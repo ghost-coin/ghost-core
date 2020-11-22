@@ -80,9 +80,9 @@ static usb_device::CUSBDevice *SelectDevice(std::vector<std::unique_ptr<usb_devi
     return rv;
 };
 
-static UniValue deviceloadmnemonic(const JSONRPCRequest &request)
+static RPCHelpMan deviceloadmnemonic()
 {
-            RPCHelpMan{"deviceloadmnemonic",
+    return RPCHelpMan{"deviceloadmnemonic",
                 "\nStart mnemonic loader.\n",
                 {
                     {"wordcount", RPCArg::Type::NUM, /* default */ "12", "Word count of mnemonic."},
@@ -93,8 +93,8 @@ static UniValue deviceloadmnemonic(const JSONRPCRequest &request)
             HelpExampleCli("deviceloadmnemonic", "")
             + HelpExampleRpc("deviceloadmnemonic", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     usb_device::CUSBDevice *pDevice = SelectDevice(vDevices);
 
@@ -122,11 +122,13 @@ static UniValue deviceloadmnemonic(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
-static UniValue devicebackup(const JSONRPCRequest &request)
+static RPCHelpMan devicebackup()
 {
-            RPCHelpMan{"devicebackup",
+    return RPCHelpMan{"devicebackup",
                 "\nStart device backup mnemonic generator.\n",
                 {
                 },
@@ -135,8 +137,8 @@ static UniValue devicebackup(const JSONRPCRequest &request)
             HelpExampleCli("devicebackup", "")
             + HelpExampleRpc("devicebackup", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     usb_device::CUSBDevice *pDevice = SelectDevice(vDevices);
 
@@ -149,11 +151,13 @@ static UniValue devicebackup(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
-static UniValue listdevices(const JSONRPCRequest &request)
+static RPCHelpMan listdevices()
 {
-            RPCHelpMan{"listdevices",
+    return RPCHelpMan{"listdevices",
                 "\nList connected hardware devices.\n",
                 {
                 },
@@ -169,8 +173,8 @@ static UniValue listdevices(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("listdevices", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     ListAllDevices(vDevices);
 
@@ -199,11 +203,13 @@ static UniValue listdevices(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
-static UniValue promptunlockdevice(const JSONRPCRequest &request)
+static RPCHelpMan promptunlockdevice()
 {
-            RPCHelpMan{"promptunlockdevice",
+    return RPCHelpMan{"promptunlockdevice",
                 "\nPrompt an unlock for the hardware device.\n",
                 {
                 },
@@ -216,8 +222,8 @@ static UniValue promptunlockdevice(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("promptunlockdevice", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     usb_device::CUSBDevice *pDevice = SelectDevice(vDevices);
 
@@ -230,11 +236,13 @@ static UniValue promptunlockdevice(const JSONRPCRequest &request)
     result.pushKV("sent", true);
 
     return result;
+},
+    };
 };
 
-static UniValue unlockdevice(const JSONRPCRequest &request)
+static RPCHelpMan unlockdevice()
 {
-            RPCHelpMan{"unlockdevice",
+    return RPCHelpMan{"unlockdevice",
                 "\nList connected hardware devices.\n",
                 {
                     {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase to unlock the device."},
@@ -249,8 +257,8 @@ static UniValue unlockdevice(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("unlockdevice", "\"mysecretpassword\" 1687")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::string passphraseword, pin, sError;
     if (!request.params[0].isNull()) {
         passphraseword = request.params[0].get_str();
@@ -282,11 +290,13 @@ static UniValue unlockdevice(const JSONRPCRequest &request)
     result.pushKV("unlocked", true);
 
     return result;
+},
+    };
 };
 
-static UniValue getdeviceinfo(const JSONRPCRequest &request)
+static RPCHelpMan getdeviceinfo()
 {
-            RPCHelpMan{"getdeviceinfo",
+    return RPCHelpMan{"getdeviceinfo",
                 "\nGet information from connected hardware device.\n",
                 {
                 },
@@ -297,8 +307,8 @@ static UniValue getdeviceinfo(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getdeviceinfo", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     usb_device::CUSBDevice *pDevice = SelectDevice(vDevices);
 
@@ -309,11 +319,13 @@ static UniValue getdeviceinfo(const JSONRPCRequest &request)
     }
 
     return info;
+},
+    };
 };
 
-static UniValue getdevicepublickey(const JSONRPCRequest &request)
+static RPCHelpMan getdevicepublickey()
 {
-            RPCHelpMan{"getdevicepublickey",
+    return RPCHelpMan{"getdevicepublickey",
                 "\nGet the public key and address at \"path\" from a hardware device.\n",
                 {
                     {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the key to sign with.\n"
@@ -334,8 +346,8 @@ static UniValue getdevicepublickey(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getdevicepublickey", "\"0/0\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<uint32_t> vPath;
     GetPath(vPath, request.params[0], request.params[1]);
 
@@ -359,11 +371,13 @@ static UniValue getdevicepublickey(const JSONRPCRequest &request)
     rv.pushKV("path", sPath);
 
     return rv;
+},
+    };
 };
 
-static UniValue getdevicexpub(const JSONRPCRequest &request)
+static RPCHelpMan getdevicexpub()
 {
-            RPCHelpMan{"getdevicexpub",
+    return RPCHelpMan{"getdevicexpub",
                 "\nGet the extended public key at \"path\" from a hardware device.\n",
                 {
                     {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the key to sign with.\n"
@@ -378,8 +392,8 @@ static UniValue getdevicexpub(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getdevicexpub", "\"0\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<uint32_t> vPath;
     GetPath(vPath, request.params[0], request.params[1]);
 
@@ -393,11 +407,13 @@ static UniValue getdevicexpub(const JSONRPCRequest &request)
     }
 
     return CBitcoinExtPubKey(ekp).ToString();
+},
+    };
 };
 
-static UniValue devicesignmessage(const JSONRPCRequest &request)
+static RPCHelpMan devicesignmessage()
 {
-            RPCHelpMan{"devicesignmessage",
+    return RPCHelpMan{"devicesignmessage",
                 "\nSign a message with the key at \"path\" on a hardware device.\n",
                 {
                     {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the key to sign with.\n"
@@ -414,8 +430,8 @@ static UniValue devicesignmessage(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("devicesignmessage", "\"0/0\", \"my message\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::vector<uint32_t> vPath;
     GetPath(vPath, request.params[0], request.params[2]);
 
@@ -433,11 +449,13 @@ static UniValue devicesignmessage(const JSONRPCRequest &request)
     }
 
     return EncodeBase64(vchSig);
+},
+    };
 };
 
-static UniValue devicesignrawtransaction(const JSONRPCRequest &request)
+static RPCHelpMan devicesignrawtransaction()
 {
-            RPCHelpMan{"devicesignrawtransaction",
+    return RPCHelpMan{"devicesignrawtransaction",
                 "\nSign inputs for raw transaction (serialized, hex-encoded).\n"
                 "The second optional argument (may be null) is an array of previous transaction outputs that\n"
                 "this transaction depends on but may not yet be in the block chain.\n"
@@ -494,8 +512,8 @@ static UniValue devicesignrawtransaction(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("devicesignrawtransaction", "\"myhex\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
 #ifdef ENABLE_WALLET
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
@@ -734,12 +752,14 @@ static UniValue devicesignrawtransaction(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
 #ifdef ENABLE_WALLET
-static UniValue initaccountfromdevice(const JSONRPCRequest &request)
+static RPCHelpMan initaccountfromdevice()
 {
-            RPCHelpMan{"initaccountfromdevice",
+    return RPCHelpMan{"initaccountfromdevice",
                 "\nInitialise an extended key account from a hardware device." +
                 HELP_REQUIRING_PASSPHRASE,
                 {
@@ -760,8 +780,8 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("initaccountfromdevice", "\"new_acc\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
@@ -983,12 +1003,14 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request)
     result.pushKV("scanfrom", nScanFrom);
 
     return result;
+},
+    };
 };
 
 
-static UniValue devicegetnewstealthaddress(const JSONRPCRequest &request)
+static RPCHelpMan devicegetnewstealthaddress()
 {
-            RPCHelpMan{"devicegetnewstealthaddress",
+    return RPCHelpMan{"devicegetnewstealthaddress",
                 "\nReturns a new Particl stealth address for receiving payments." +
                     HELP_REQUIRING_PASSPHRASE,
                 {
@@ -1009,8 +1031,8 @@ static UniValue devicegetnewstealthaddress(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("devicegetnewstealthaddress", "\"lblTestSxAddrPrefix\", 3, \"0b101\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
@@ -1144,6 +1166,8 @@ static UniValue devicegetnewstealthaddress(const JSONRPCRequest &request)
     pwallet->AddressBookChangedNotify(sxAddr, CT_NEW);
 
     return sxAddr.ToString(fBech32);
+},
+    };
 };
 #endif
 
@@ -1159,7 +1183,7 @@ static const CRPCCommand commands[] =
     { "usbdevice",          "getdevicepublickey",           &getdevicepublickey,        {"path","accountpath"} },
     { "usbdevice",          "getdevicexpub",                &getdevicexpub,             {"path","accountpath"} },
     { "usbdevice",          "devicesignmessage",            &devicesignmessage,         {"path","message","accountpath"} },
-    { "usbdevice",          "devicesignrawtransaction",     &devicesignrawtransaction,  {"hexstring","prevtxs","privkeypaths","sighashtype","accountpath"} }, /* uses wallet if enabled */
+    { "usbdevice",          "devicesignrawtransaction",     &devicesignrawtransaction,  {"hexstring","prevtxs","paths","sighashtype","accountpath"} }, /* uses wallet if enabled */
 #ifdef ENABLE_WALLET
     { "usbdevice",          "initaccountfromdevice",        &initaccountfromdevice,     {"label","path","makedefault","scan_chain_from","initstealthchain"} },
     { "usbdevice",          "devicegetnewstealthaddress",   &devicegetnewstealthaddress,{"label","num_prefix_bits","prefix_num","bech32"} },

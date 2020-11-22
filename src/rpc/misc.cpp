@@ -434,9 +434,9 @@ static RPCHelpMan setmocktime()
     };
 }
 
-static UniValue pushdevfundsetting(const JSONRPCRequest& request)
+static RPCHelpMan pushdevfundsetting()
 {
-    RPCHelpMan{"pushdevfundsetting",
+    return RPCHelpMan{"pushdevfundsetting",
         "\nAdd a dev fund setting.\n",
         {
             {"setting", RPCArg::Type::OBJ, RPCArg::Optional::NO, "JSON with dev fund setting",
@@ -450,8 +450,8 @@ static UniValue pushdevfundsetting(const JSONRPCRequest& request)
         },
         RPCResult{RPCResult::Type::NONE, "", ""},
         RPCExamples{""},
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (!Params().IsMockableChain()) {
         throw std::runtime_error("pushdevfundsetting is for regression testing (-regtest mode) only");
     }
@@ -475,6 +475,8 @@ static UniValue pushdevfundsetting(const JSONRPCRequest& request)
         setting["timefrom"].get_int(), setting["fundaddress"].get_str(), setting["minstakepercent"].get_int(), setting["outputperiod"].get_int());
 
     return NullUniValue;
+},
+    };
 }
 
 static RPCHelpMan mockscheduler()
@@ -707,8 +709,6 @@ static RPCHelpMan echo(const std::string& name)
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    if (request.fHelp) throw std::runtime_error(self.ToString());
-
     if (request.params[9].isStr()) {
         CHECK_NONFATAL(request.params[9].get_str() != "trigger_internal_bug");
     }
@@ -775,23 +775,28 @@ static RPCHelpMan getindexinfo()
     };
 }
 
-UniValue runstrings(const JSONRPCRequest& request)
+static RPCHelpMan runstrings()
 {
-    if (request.params.size() < 2) {
-        throw std::runtime_error(
-            RPCHelpMan{"runstrings",
-                "Run a method with all inputs passed as strings.\n",
+    return RPCHelpMan{"runstrings",
+                "\nRun a method with all inputs passed as strings.\n",
                 {
                     {"method", RPCArg::Type::STR, RPCArg::Optional::NO, "Method to run."},
                     {"wallet", RPCArg::Type::STR, RPCArg::Optional::NO, "Wallet to run method on."},
-                    {"arg1 arg2 ...", RPCArg::Type::STR, /* default */ "false", "Arguments to method."},
+                    {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg4", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg5", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg6", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg7", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg8", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"arg9", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
-                RPCResults{},
+                RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{""},
-            }.ToString()
-        );
-    }
-
+                [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::string strMethod = request.params[0].get_str();
     std::string strWallet = request.params[1].get_str();
 
@@ -826,6 +831,8 @@ UniValue runstrings(const JSONRPCRequest& request)
     CallRPC(rv, newrequest);
 
     return rv;
+},
+    };
 }
 
 void RegisterMiscRPCCommands(CRPCTable &t)
@@ -849,7 +856,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "mockscheduler",          &mockscheduler,          {"delta_time"}},
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echojson,               {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
-    { "hidden",             "runstrings",             &runstrings,             {"rg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
+    { "hidden",             "runstrings",             &runstrings,             {"method","wallet","arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "pushdevfundsetting",     &pushdevfundsetting,     {"setting"}},
 };
 // clang-format on

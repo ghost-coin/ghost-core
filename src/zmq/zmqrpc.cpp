@@ -59,15 +59,15 @@ static RPCHelpMan getzmqnotifications()
     };
 }
 
-UniValue getnewzmqserverkeypair(const JSONRPCRequest& request)
+static RPCHelpMan getnewzmqserverkeypair()
 {
-            RPCHelpMan{"getnewzmqserverkeypair",
+    return RPCHelpMan{"getnewzmqserverkeypair",
                 "\nReturns a newly generated server keypair for use with zmq.\n",
                 {},
                 RPCResults{},
                 RPCExamples{""},
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     char server_public_key[41], server_secret_key[41];
     if (0 != GetNewZMQKeypair(server_public_key, server_secret_key)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "zmq_curve_keypair failed.");
@@ -81,6 +81,8 @@ UniValue getnewzmqserverkeypair(const JSONRPCRequest& request)
     obj.pushKV("server_secret_key_b64", sBase64);
 
     return obj;
+},
+    };
 }
 
 const CRPCCommand commands[] =

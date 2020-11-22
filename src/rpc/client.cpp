@@ -43,7 +43,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendtoaddress", 6 , "replaceable" },
     { "sendtoaddress", 7 , "conf_target" },
     { "sendtoaddress", 9, "avoid_reuse" },
-    { "sendtoaddress", 10, "verbose"},
+    { "sendtoaddress", 10, "fee_rate"},
+    { "sendtoaddress", 11, "verbose"},
     { "settxfee", 0, "amount" },
     { "sethdseed", 0, "newkeypool" },
     { "getreceivedbyaddress", 1, "minconf" },
@@ -76,7 +77,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendmany", 4, "subtractfeefrom" },
     { "sendmany", 5 , "replaceable" },
     { "sendmany", 6 , "conf_target" },
-    { "sendmany", 8, "verbose" },
+    { "sendmany", 8, "fee_rate"},
+    { "sendmany", 9, "verbose" },
     { "deriveaddresses", 1, "range" },
     { "scantxoutset", 1, "scanobjects" },
     { "addmultisigaddress", 0, "nrequired" },
@@ -138,7 +140,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "lockunspent", 2, "permanent" },
     { "send", 0, "outputs" },
     { "send", 1, "conf_target" },
-    { "send", 3, "options" },
+    { "send", 3, "fee_rate"},
+    { "send", 4, "options" },
     { "importprivkey", 2, "rescan" },
     { "importaddress", 2, "rescan" },
     { "importaddress", 3, "p2sh" },
@@ -195,48 +198,20 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "tallyvotes", 1, "height_start" },
     { "tallyvotes", 2, "height_end" },
 
-
-    { "sendparttoblind", 1, "amount" },
-    { "sendparttoblind", 4, "subtractfeefromamount" },
-    { "sendparttoanon", 1, "amount" },
-    { "sendparttoanon", 4, "subtractfeefromamount" },
-
-    { "sendblindtopart", 1, "amount" },
-    { "sendblindtopart", 4, "subtractfeefromamount" },
-    { "sendblindtoblind", 1, "amount" },
-    { "sendblindtoblind", 4, "subtractfeefromamount" },
-    { "sendblindtoanon", 1, "amount" },
-    { "sendblindtoanon", 4, "subtractfeefromamount" },
-
-    { "sendanontopart", 1, "amount" },
-    { "sendanontopart", 4, "subtractfeefromamount" },
-    { "sendanontopart", 6, "ringsize" },
-    { "sendanontopart", 7, "inputs_per_sig" },
-
-    { "sendanontoblind", 1, "amount" },
-    { "sendanontoblind", 4, "subtractfeefromamount" },
-    { "sendanontoblind", 6, "ringsize" },
-    { "sendanontoblind", 7, "inputs_per_sig" },
-
-    { "sendanontoanon", 1, "amount" },
-    { "sendanontoanon", 4, "subtractfeefromamount" },
-    { "sendanontoanon", 6, "ringsize" },
-    { "sendanontoanon", 7, "inputs_per_sig" },
-
     { "sendtypeto", 2, "outputs" },
     { "sendtypeto", 5, "ringsize" },
     { "sendtypeto", 6, "inputs_per_sig" },
     { "sendtypeto", 7, "test_fee" },
-    { "sendtypeto", 8, "coincontrol" },
+    { "sendtypeto", 8, "coin_control" },
 
-    { "buildscript", 0, "json" },
-    { "createsignaturewithwallet", 1, "prevtx" },
-    { "createsignaturewithkey", 1, "prevtx" },
+    { "buildscript", 0, "recipe" },
+    { "createsignaturewithwallet", 1, "prevtxn" },
+    { "createsignaturewithkey", 1, "prevtxn" },
     { "createsignaturewithwallet", 4, "options" },
     { "createsignaturewithkey", 4, "options" },
 
 
-    { "walletsettings", 1, "json" },
+    { "walletsettings", 1, "value" },
 
     { "getnewextaddress", 2, "bech32" },
     { "getnewextaddress", 3, "hardened" },
@@ -270,15 +245,15 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "verifyrawtransaction", 1, "prevtxs" },
     { "verifyrawtransaction", 2, "options" },
 
-    { "generatematchingblindfactor", 0, "inputs" },
-    { "generatematchingblindfactor", 1, "outputs" },
+    { "generatematchingblindfactor", 0, "blind_in" },
+    { "generatematchingblindfactor", 1, "blind_out" },
 
 
     { "smsgsend", 3, "paid_msg" },
     { "smsgsend", 4, "days_retention" },
     { "smsgsend", 5, "testfee" },
     { "smsgsend", 6, "options" },
-    { "smsgsend", 7, "coincontrol" },
+    { "smsgsend", 7, "coin_control" },
     { "smsg", 1, "options" },
     { "smsgimport", 1, "options" },
     { "smsginbox", 2, "options" },
@@ -291,7 +266,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
 
     { "devicesignrawtransaction", 1, "prevtxs" },
-    { "devicesignrawtransaction", 2, "privkeypaths" },
+    { "devicesignrawtransaction", 2, "paths" },
     { "initaccountfromdevice", 2, "makedefault" },
     { "initaccountfromdevice", 3, "scan_chain_from" },
     { "initaccountfromdevice", 4, "initstealthchain" },

@@ -1236,7 +1236,11 @@ std::string GetDefaultAccountPath()
     // Return path of default account: 44'/44'/0'
     std::vector<uint32_t> vPath;
     vPath.push_back(WithHardenedBit(44)); // purpose
-    vPath.push_back(WithHardenedBit(Params().BIP44ID())); // coin
+    if (HaveParams()) {
+        vPath.push_back(WithHardenedBit(Params().BIP44ID())); // coin
+    } else {
+        vPath.push_back(WithHardenedBit(44)); // coin
+    }
     vPath.push_back(WithHardenedBit(0)); // account
     std::string rv;
     if (0 == PathToString(vPath, rv, 'h')) {

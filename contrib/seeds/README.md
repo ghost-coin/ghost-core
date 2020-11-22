@@ -15,6 +15,12 @@ The seeds compiled into the release are created from DNS seed data, like this:
 
 ## Dependencies
 
-Ubuntu:
+Ubuntu, Debian:
 
     sudo apt-get install python3-dnspython
+
+and/or for other operating systems:
+
+    pip install dnspython
+
+See https://dnspython.readthedocs.io/en/latest/installation.html for more information.

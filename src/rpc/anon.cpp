@@ -14,9 +14,9 @@ static bool IsDigits(const std::string &str)
     return str.length() && std::all_of(str.begin(), str.end(), ::isdigit);
 };
 
-UniValue anonoutput(const JSONRPCRequest &request)
+RPCHelpMan anonoutput()
 {
-            RPCHelpMan{"anonoutput",
+    return RPCHelpMan{"anonoutput",
                 "\nReturns an anon output at index or by publickey hex.\n"
                 "If no output is provided returns the last index.\n",
                 {
@@ -34,7 +34,8 @@ UniValue anonoutput(const JSONRPCRequest &request)
             HelpExampleCli("anonoutput", "\"1\"")
             + HelpExampleRpc("anonoutput", "\"2\"")
             },
-        }.Check(request);
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
 
     UniValue result(UniValue::VOBJ);
 
@@ -80,6 +81,8 @@ UniValue anonoutput(const JSONRPCRequest &request)
     result.pushKV("blockheight", ao.nBlockHeight);
 
     return result;
+},
+    };
 };
 
 static const CRPCCommand commands[] =

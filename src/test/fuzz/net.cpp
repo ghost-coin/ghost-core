@@ -63,7 +63,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
             break;
         }
         case 3: {
-            const std::vector<bool> asmap = ConsumeRandomLengthIntegralVector<bool>(fuzzed_data_provider, 128);
+            const std::vector<bool> asmap = ConsumeRandomLengthBitVector(fuzzed_data_provider);
             if (!SanityCheckASMap(asmap)) {
                 break;
             }
@@ -128,7 +128,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         case 11: {
             const std::vector<uint8_t> b = ConsumeRandomLengthByteVector(fuzzed_data_provider);
             bool complete;
-            node.ReceiveMsgBytes((const char*)b.data(), b.size(), complete);
+            node.ReceiveMsgBytes({(const char*)b.data(), b.size()}, complete);
             break;
         }
         }

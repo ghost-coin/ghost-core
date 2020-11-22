@@ -109,9 +109,9 @@ bool timestampSort(std::pair<CMempoolAddressDeltaKey, CMempoolAddressDelta> a,
     return a.second.time < b.second.time;
 }
 
-UniValue getaddressmempool(const JSONRPCRequest& request)
+static RPCHelpMan getaddressmempool()
 {
-            RPCHelpMan{"getaddressmempool",
+    return RPCHelpMan{"getaddressmempool",
                 "\nReturns all mempool deltas for an address (requires addressindex to be enabled).\n",
                 {
                     {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array with addresses.\n",
@@ -138,8 +138,8 @@ UniValue getaddressmempool(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getaddressmempool", "{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     const CTxMemPool& mempool = EnsureMemPool(request.context);
 
     if (!fAddressIndex) {
@@ -182,11 +182,13 @@ UniValue getaddressmempool(const JSONRPCRequest& request)
     }
 
     return result;
+},
+    };
 }
 
-UniValue getaddressutxos(const JSONRPCRequest& request)
+static RPCHelpMan getaddressutxos()
 {
-        RPCHelpMan{"getaddressutxos",
+return RPCHelpMan{"getaddressutxos",
                 "\nReturns all unspent outputs for an address (requires addressindex to be enabled).\n",
                 {
                     {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array with addresses.\n",
@@ -213,8 +215,8 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getaddressutxos", "{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
@@ -270,11 +272,13 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
     } else {
         return utxos;
     }
+},
+    };
 }
 
-UniValue getaddressdeltas(const JSONRPCRequest& request)
+static RPCHelpMan getaddressdeltas()
 {
-            RPCHelpMan{"getaddressdeltas",
+    return RPCHelpMan{"getaddressdeltas",
                 "\nReturns all changes for an address (requires addressindex to be enabled).\n",
                 {
                     {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array with addresses.\n",
@@ -301,8 +305,8 @@ UniValue getaddressdeltas(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getaddressdeltas", "{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
@@ -397,11 +401,13 @@ UniValue getaddressdeltas(const JSONRPCRequest& request)
     } else {
         return deltas;
     }
+},
+    };
 }
 
-UniValue getaddressbalance(const JSONRPCRequest& request)
+static RPCHelpMan getaddressbalance()
 {
-            RPCHelpMan{"getaddressbalance",
+    return RPCHelpMan{"getaddressbalance",
                 "\nReturns the balance for an address(es) (requires addressindex to be enabled).\n",
                 {
                     {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array with addresses.\n",
@@ -421,8 +427,8 @@ UniValue getaddressbalance(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getaddressbalance", "{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
@@ -456,11 +462,13 @@ UniValue getaddressbalance(const JSONRPCRequest& request)
     result.pushKV("received", received);
 
     return result;
+},
+    };
 }
 
-UniValue getaddresstxids(const JSONRPCRequest& request)
+static RPCHelpMan getaddresstxids()
 {
-            RPCHelpMan{"getaddresstxids",
+    return RPCHelpMan{"getaddresstxids",
                 "\nReturns the txids for an address(es) (requires addressindex to be enabled).\n",
                 {
                     {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array with addresses.\n",
@@ -481,8 +489,8 @@ UniValue getaddresstxids(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getaddresstxids", "{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
@@ -541,11 +549,13 @@ UniValue getaddresstxids(const JSONRPCRequest& request)
     }
 
     return result;
+},
+    };
 }
 
-UniValue getspentinfo(const JSONRPCRequest& request)
+static RPCHelpMan getspentinfo()
 {
-            RPCHelpMan{"getspentinfo",
+    return RPCHelpMan{"getspentinfo",
                 "\nReturns the txid and index where an output is spent.\n",
                 {
                     {"inputs", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
@@ -567,8 +577,8 @@ UniValue getspentinfo(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getspentinfo", "{\"txid\": \"0437cd7f8525ceed2324359c2d0ba26006d92d856a9c20fa0241106ee5a597c9\", \"index\": 0}")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     const CTxMemPool& mempool = EnsureMemPool(request.context);
 
     UniValue txidValue = find_value(request.params[0].get_obj(), "txid");
@@ -594,6 +604,8 @@ UniValue getspentinfo(const JSONRPCRequest& request)
     obj.pushKV("height", value.blockHeight);
 
     return obj;
+},
+    };
 }
 
 static void AddAddress(CScript *script, UniValue &uv)
@@ -739,9 +751,9 @@ static UniValue blockToDeltasJSON(const CBlock& block, const CBlockIndex* blocki
     return result;
 }
 
-static UniValue getblockdeltas(const JSONRPCRequest& request)
+static RPCHelpMan getblockdeltas()
 {
-    RPCHelpMan{"getblockdeltas",
+return RPCHelpMan{"getblockdeltas",
         "\nReturns block deltas.\n",
         {
             {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash"},
@@ -752,8 +764,8 @@ static UniValue getblockdeltas(const JSONRPCRequest& request)
         "\nAs a JSON-RPC call\n"
         + HelpExampleRpc("getblockdeltas", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")
         },
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     LOCK(cs_main);
 
     const CTxMemPool& mempool = EnsureMemPool(request.context);
@@ -777,11 +789,13 @@ static UniValue getblockdeltas(const JSONRPCRequest& request)
     }
 
     return blockToDeltasJSON(block, pblockindex, &mempool);
+},
+    };
 }
 
-static UniValue getblockhashes(const JSONRPCRequest& request)
+static RPCHelpMan getblockhashes()
 {
-            RPCHelpMan{"getblockhashes",
+    return RPCHelpMan{"getblockhashes",
                 "\nReturns array of hashes of blocks within the timestamp range provided.\n",
                 {
                     {"high", RPCArg::Type::NUM, RPCArg::Optional::NO, "The newer block timestamp."},
@@ -810,8 +824,8 @@ static UniValue getblockhashes(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getblockhashes", "1231614698, 1231024505")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     unsigned int high = request.params[0].get_int();
     unsigned int low = request.params[1].get_int();
     bool fActiveOnly = false;
@@ -854,11 +868,13 @@ static UniValue getblockhashes(const JSONRPCRequest& request)
     }
 
     return result;
+},
+    };
 }
 
-UniValue gettxoutsetinfobyscript(const JSONRPCRequest& request)
+static RPCHelpMan gettxoutsetinfobyscript()
 {
-            RPCHelpMan{"gettxoutsetinfobyscript",
+    return RPCHelpMan{"gettxoutsetinfobyscript",
                 "\nReturns statistics about the unspent transaction output set per script type.\n"
                 "This call may take some time.\n",
                 {
@@ -874,8 +890,8 @@ UniValue gettxoutsetinfobyscript(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("gettxoutsetinfobyscript", "")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     UniValue ret(UniValue::VOBJ);
 
     int nHeight;
@@ -951,6 +967,8 @@ UniValue gettxoutsetinfobyscript(const JSONRPCRequest& request)
     ret.pushKV("other", statsOther.ToUV());
 
     return ret;
+},
+    };
 }
 
 static void pushScript(UniValue &uv, const std::string &name, const CScript *script)
@@ -981,9 +999,9 @@ static void pushScript(UniValue &uv, const std::string &name, const CScript *scr
     uv.pushKV(name, uvs);
 }
 
-UniValue getblockreward(const JSONRPCRequest& request)
+static RPCHelpMan getblockreward()
 {
-            RPCHelpMan{"getblockreward",
+    return RPCHelpMan{"getblockreward",
                 "\nReturns the blockreward for block at height.\n",
                 {
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::NO, "The chain height of the block."},
@@ -1016,8 +1034,8 @@ UniValue getblockreward(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("getblockreward", "1000")
                 },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     RPCTypeCheck(request.params, {UniValue::VNUM});
 
     NodeContext& node = EnsureNodeContext(request.context);
@@ -1118,11 +1136,13 @@ UniValue getblockreward(const JSONRPCRequest& request)
     rv.pushKV("outputs", outputs);
 
     return rv;
+},
+    };
 }
 
-UniValue listcoldstakeunspent(const JSONRPCRequest& request)
+static RPCHelpMan listcoldstakeunspent()
 {
-            RPCHelpMan{"listcoldstakeunspent",
+    return RPCHelpMan{"listcoldstakeunspent",
                 "\nReturns the unspent outputs of \"stakeaddress\" at height.\n",
                 {
                     {"stakeaddress", RPCArg::Type::STR, RPCArg::Optional::NO, "The stakeaddress to filter outputs by."},
@@ -1149,8 +1169,8 @@ UniValue listcoldstakeunspent(const JSONRPCRequest& request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("listcoldstakeunspent", "\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\", 1000")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VNUM}, true);
 
     if (!g_txindex) {
@@ -1277,11 +1297,13 @@ UniValue listcoldstakeunspent(const JSONRPCRequest& request)
     }
 
     return rv;
+},
+    };
 }
 
-UniValue getinsightinfo(const JSONRPCRequest& request)
+static RPCHelpMan getinsightinfo()
 {
-        RPCHelpMan{"getinsightinfo",
+    return RPCHelpMan{"getinsightinfo",
             "\nReturns an object of enabled indices.\n",
             {
             },
@@ -1299,8 +1321,8 @@ UniValue getinsightinfo(const JSONRPCRequest& request)
         "\nAs a JSON-RPC call\n"
         + HelpExampleRpc("getindexinfo", "")
             },
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     UniValue ret(UniValue::VOBJ);
 
     ret.pushKV("txindex", (g_txindex ? true : false));
@@ -1310,21 +1332,21 @@ UniValue getinsightinfo(const JSONRPCRequest& request)
     ret.pushKV("coldstakeindex", (bool) (g_txindex && g_txindex->m_cs_index));
 
     return ret;
+},
+    };
 }
 
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    /* Address index */
     { "addressindex",       "getaddressmempool",      &getaddressmempool,      {"addresses"} },
-    { "addressindex",       "getaddressutxos",        &getaddressutxos,        {"addresses"} },
-    { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       {"addresses"} },
-    { "addressindex",       "getaddresstxids",        &getaddresstxids,        {"addresses"} },
+    { "addressindex",       "getaddressutxos",        &getaddressutxos,        {"addresses","chainInfo"} },
+    { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       {"addresses","start","end","chainInfo"} },
+    { "addressindex",       "getaddresstxids",        &getaddresstxids,        {"addresses","start","end"} },
     { "addressindex",       "getaddressbalance",      &getaddressbalance,      {"addresses"} },
 
-    /* Blockchain */
     { "blockchain",         "getspentinfo",           &getspentinfo,           {"inputs"} },
-    { "blockchain",         "getblockdeltas",         &getblockdeltas,         {} },
+    { "blockchain",         "getblockdeltas",         &getblockdeltas,         {"blockhash"} },
     { "blockchain",         "getblockhashes",         &getblockhashes,         {"high","low","options"} },
     { "blockchain",         "gettxoutsetinfobyscript",&gettxoutsetinfobyscript,{} },
     { "blockchain",         "getblockreward",         &getblockreward,         {"height"} },

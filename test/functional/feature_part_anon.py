@@ -38,19 +38,18 @@ class AnonTest(ParticlTestFramework):
 
         sxAddrTo0_1 = nodes[0].getnewstealthaddress('lblsx01')
 
-        txnHashes.append(nodes[0].sendparttoanon(sxAddrTo1_1, 1, '', '', False, 'node0 -> node1 p->a'))
-        txnHashes.append(nodes[0].sendparttoblind(sxAddrTo0_1, 1000, '', '', False, 'node0 -> node0 p->b'))
-        txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 100, '', '', False, 'node0 -> node1 b->a 1'))
-        txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 100, '', '', False, 'node0 -> node1 b->a 2'))
-        txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 100, '', '', False, 'node0 -> node1 b->a 3'))
-        txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 b->a 4'))
+
+        txnHashes.append(nodes[0].sendtypeto('part', 'anon', [{'address': sxAddrTo1_1, 'amount': 1, 'narr': 'node0 -> node1 p->a'}, ]))
+        txnHashes.append(nodes[0].sendtypeto('part', 'blind', [{'address': sxAddrTo0_1, 'amount': 1000, 'narr': 'node0 -> node0 p->b'}, ]))
+        txnHashes.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sxAddrTo1_1, 'amount': 100, 'narr': 'node0 -> node1 b->a 1'}, ]))
+        txnHashes.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sxAddrTo1_1, 'amount': 100, 'narr': 'node0 -> node1 b->a 2'}, ]))
+        txnHashes.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sxAddrTo1_1, 'amount': 100, 'narr': 'node0 -> node1 b->a 3'}, ]))
+        txnHashes.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sxAddrTo1_1, 'amount': 10, 'narr': 'node0 -> node1 b->a 4'}, ]))
 
         for k in range(5):
-            txnHash = nodes[0].sendparttoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 p->a')
-            txnHashes.append(txnHash)
+            txnHashes.append(nodes[0].sendtypeto('part', 'anon', [{'address': sxAddrTo1_1, 'amount': 10, 'narr': 'node0 -> node1 p->a'}, ]))
         for k in range(10):
-            txnHash = nodes[0].sendblindtoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 b->a')
-            txnHashes.append(txnHash)
+            txnHashes.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sxAddrTo1_1, 'amount': 10, 'narr': 'node0 -> node1 b->a'}, ]))
 
         for h in txnHashes:
             assert(self.wait_for_mempool(nodes[1], h))
@@ -65,7 +64,7 @@ class AnonTest(ParticlTestFramework):
         for txnHash in txnHashes:
             assert(txnHash in ro['tx'])
 
-        txnHash = nodes[1].sendanontoanon(sxAddrTo0_1, 1, '', '', False, 'node1 -> node0 a->a')
+        txnHash = nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo0_1, 'amount': 1, 'narr': 'node1 -> node0 a->a'}, ])
         txnHashes = [txnHash,]
 
         assert(self.wait_for_mempool(nodes[0], txnHash))
@@ -78,12 +77,12 @@ class AnonTest(ParticlTestFramework):
         assert(nodes[1].anonoutput()['lastindex'] == 28)
 
         txnHashes.clear()
-        txnHashes.append(nodes[1].sendanontoanon(sxAddrTo0_1, 101, '', '', False, 'node1 -> node0 a->a', 5, 1))
-        txnHashes.append(nodes[1].sendanontoanon(sxAddrTo0_1, 0.1, '', '', False, '', 5, 2))
+        txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo0_1, 'amount': 101, 'narr': 'node1 -> node0 a->a'}, ], '', '', 5, 1))
+        txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo0_1, 'amount': 0.1}, ], '', '', 5, 2))
 
         assert(nodes[1].getwalletinfo()['anon_balance'] > 10)
 
-        outputs = [{'address':sxAddrTo0_1, 'amount':10, 'subfee':True},]
+        outputs = [{'address': sxAddrTo0_1, 'amount': 10, 'subfee': True},]
         ro = nodes[1].sendtypeto('anon', 'part', outputs, 'comment_to', 'comment_from', 4, 32, True)
         assert(ro['bytes'] > 0)
 
@@ -162,10 +161,6 @@ class AnonTest(ParticlTestFramework):
 
         wi_1_3 = w1_3.getwalletinfo()
         assert(wi_1_3['anon_balance'] == wi_1['anon_balance'])
-
-        # Coverage
-        w1_3.sendanontoblind(sxAddrTo0_1, 1.0)
-        w1_3.sendanontopart(sxAddrTo0_1, 1.0)
 
 
 if __name__ == '__main__':

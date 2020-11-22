@@ -19,10 +19,10 @@
 
 //typedef std::basic_string<char, std::char_traits<char>, secure_allocator<char> > SecureString;
 
-UniValue mnemonicrpc(const JSONRPCRequest &request)
+static RPCHelpMan mnemonicrpc()
 {
-    std::string help = ""
-        "mnemonic new|decode|addchecksum|dumpwords|listlanguages\n"
+    return RPCHelpMan{"mnemonic",
+            "\nGenerate mnemonic phrases.\n"
         "mnemonic new ( \"password\" language nBytesEntropy bip44 )\n"
         "    Generate a new extended key and mnemonic\n"
         "    password, can be blank "", default blank\n"
@@ -39,16 +39,21 @@ UniValue mnemonicrpc(const JSONRPCRequest &request)
         "    Print list of words.\n"
         "    language, default english\n"
          "mnemonic listlanguages\n"
-        "    Print list of supported languages.\n"
-        "\nExamples:\n"
-        + HelpExampleCli("mnemonic", "\"new\" \"my pass phrase\" french 64 true") +
-        "\nAs a JSON-RPC call\n"
-        + HelpExampleRpc("smsgpurge", "\"new\", \"my pass phrase\", french, 64, true");
-
-    if (request.fHelp || request.params.size() > 5) { // defaults to info, will always take at least 1 parameter
-        throw std::runtime_error(help);
-    }
-
+        "    Print list of supported languages.\n",
+    {
+        {"mode", RPCArg::Type::STR, RPCArg::Optional::NO, "One of: new, decode, addchecksum, dumpwords, listlanguages"},
+        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+    },
+    RPCResult{RPCResult::Type::NONE, "", ""},
+    RPCExamples{
+        HelpExampleCli("mnemonic", "\"new\" \"my pass phrase\" french 64 true") +
+        HelpExampleRpc("smsgpurge", "\"new\", \"my pass phrase\", french, 64, true")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::string mode = "";
 
     if (request.params.size() > 0) {
@@ -242,17 +247,20 @@ UniValue mnemonicrpc(const JSONRPCRequest &request)
             result.pushKV(sName, sDesc);
         }
     } else {
-        throw std::runtime_error(help);
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown mode.");
     }
 
     return result;
+},
+    };
 };
 
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "mnemonic",           "mnemonic",               &mnemonicrpc,            {} },
+    { "mnemonic",           "mnemonic",               &mnemonicrpc,            {"mode","arg0","arg1","arg2","arg3"} },
 };
+
 
 void RegisterMnemonicRPCCommands(CRPCTable &tableRPC)
 {
