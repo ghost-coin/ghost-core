@@ -28,15 +28,6 @@
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 UrlDecodeFn* const URL_DECODE = urlDecode;
 
-static void WaitForShutdown(NodeContext& node)
-{
-    while (!ShutdownRequestedMainThread())
-    {
-        UninterruptibleSleep(std::chrono::milliseconds{200});
-    }
-    Interrupt(node);
-}
-
 #if ENABLE_ZMQ
 extern int GetNewZMQKeypair(char *server_public_key, char *server_secret_key);
 #endif
@@ -61,11 +52,11 @@ static bool AppInit(int argc, char* argv[])
     if (HelpRequested(args) || args.IsArgSet("-version")) {
         std::string strUsage = PACKAGE_NAME " version " + FormatFullVersion() + "\n";
 
-        if (args.IsArgSet("-version")) {
-            strUsage += FormatParagraph(LicenseInfo()) + "\n";
-        } else {
-            strUsage += "\nUsage:  particld [options]                     Start " PACKAGE_NAME "\n";
-            strUsage += "\n" + args.GetHelpMessage();
+        if (!args.IsArgSet("-version")) {
+            strUsage += FormatParagraph(LicenseInfo()) + "\n"
+                "\nUsage:  particld [options]                     Start " PACKAGE_NAME "\n"
+                "\n";
+            strUsage += args.GetHelpMessage();
         }
 
         tfm::format(std::cout, "%s", strUsage);
@@ -175,12 +166,10 @@ static bool AppInit(int argc, char* argv[])
         PrintExceptionContinue(nullptr, "AppInit()");
     }
 
-    if (!fRet)
-    {
-        Interrupt(node);
-    } else {
-        WaitForShutdown(node);
+    if (fRet) {
+        WaitForShutdown();
     }
+    Interrupt(node);
     Shutdown(node);
 
     return fRet;

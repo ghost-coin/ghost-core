@@ -213,7 +213,7 @@ BOOST_AUTO_TEST_CASE(stealth_key_index)
     BOOST_CHECK(sxId == 1);
 
 
-    CHDWalletDB wdb(pwallet->GetDBHandle());
+    CHDWalletDB wdb(pwallet->GetDatabase());
     uint160 hash;
     uint32_t nIndex = 0;
     for (size_t k = 0; k < 512; ++k) {
@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(ext_key_index)
 {
     CHDWallet *pwallet = pwalletMain.get();
 
-    CHDWalletDB wdb(pwallet->GetDBHandle());
+    CHDWalletDB wdb(pwallet->GetDatabase());
     CKeyID dummy;
     uint32_t nIndex = 0;
     for (size_t k = 0; k < 512; ++k) {

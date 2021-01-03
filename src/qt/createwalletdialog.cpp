@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -57,12 +57,15 @@ CreateWalletDialog::CreateWalletDialog(QWidget* parent) :
         }
     });
 
-    #ifndef USE_SQLITE
+#ifndef USE_SQLITE
         ui->descriptor_checkbox->setToolTip(tr("Compiled without sqlite support (required for descriptor wallets)"));
         ui->descriptor_checkbox->setEnabled(false);
         ui->descriptor_checkbox->setChecked(false);
-    #endif
-
+#endif
+#ifndef USE_BDB
+        ui->descriptor_checkbox->setEnabled(false);
+        ui->descriptor_checkbox->setChecked(true);
+#endif
 }
 
 CreateWalletDialog::~CreateWalletDialog()

@@ -31,7 +31,6 @@
 #include <utility>
 #include <vector>
 
-
 #include <wallet/walletutil.h>
 #include <wallet/hdwallet.h>
 #include <wallet/rpchdwallet.h>
@@ -46,9 +45,22 @@ void LockWallet(CWallet* pWallet)
     pWallet->Lock();
 }
 
-namespace interfaces {
-namespace {
+using interfaces::Chain;
+using interfaces::FoundBlock;
+using interfaces::Handler;
+using interfaces::MakeHandler;
+using interfaces::Wallet;
+using interfaces::WalletAddress;
+using interfaces::WalletBalances;
+using interfaces::WalletClient;
+using interfaces::WalletOrderForm;
+using interfaces::WalletTx;
+using interfaces::WalletTxOut;
+using interfaces::WalletTxStatus;
+using interfaces::WalletValueMap;
 
+namespace wallet {
+namespace {
 //! Construct wallet tx struct.
 WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
 {
@@ -117,7 +129,7 @@ WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 }
 
 //! Construct wallet tx status struct.
-WalletTxStatus MakeWalletTxStatus(CWallet& wallet, const CWalletTx& wtx)
+WalletTxStatus MakeWalletTxStatus(const CWallet& wallet, const CWalletTx& wtx)
 {
     WalletTxStatus result;
     result.block_height = wtx.m_confirm.block_height > 0 ? wtx.m_confirm.block_height : std::numeric_limits<int>::max();
@@ -136,7 +148,7 @@ WalletTxStatus MakeWalletTxStatus(CWallet& wallet, const CWalletTx& wtx)
 WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const CTransactionRecord &rtx) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     WalletTxStatus result;
-    result.block_height = wallet.chain().getBlockHeight(rtx.blockHash).get_value_or(std::numeric_limits<int>::max());
+    result.block_height = wallet.chain().getBlockHeight(rtx.blockHash).value_or(std::numeric_limits<int>::max());
     result.blocks_to_maturity = 0;
     result.depth_in_main_chain = wallet.GetDepthInMainChain(rtx);
     result.time_received = rtx.nTimeReceived;
@@ -150,7 +162,7 @@ WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const 
 }
 
 //! Construct wallet TxOut struct.
-WalletTxOut MakeWalletTxOut(CWallet& wallet,
+WalletTxOut MakeWalletTxOut(const CWallet& wallet,
     const CWalletTx& wtx,
     int n,
     int depth) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
@@ -447,7 +459,7 @@ public:
                 LOCK_ASSERTION(m_wallet_part->cs_wallet);
                 auto mi = m_wallet_part->mapRecords.find(txid);
                 if (mi != m_wallet_part->mapRecords.end()) {
-                    num_blocks = m_wallet_part->chain().getHeight().get_value_or(-1);
+                    num_blocks = m_wallet_part->chain().getHeight().value_or(-1);
                     tx_status = MakeWalletTxStatus(*m_wallet_part, mi->first, mi->second);
                     return true;
                 }
@@ -479,7 +491,7 @@ public:
             LOCK_ASSERTION(m_wallet_part->cs_wallet);
             auto mi = m_wallet_part->mapRecords.find(txid);
             if (mi != m_wallet_part->mapRecords.end()) {
-                num_blocks = m_wallet_part->chain().getHeight().get_value_or(-1);
+                num_blocks = m_wallet_part->chain().getHeight().value_or(-1);
                 in_mempool = m_wallet_part->InMempool(mi->first);
                 order_form = {};
                 tx_status = MakeWalletTxStatus(*m_wallet_part, mi->first, mi->second);
@@ -851,7 +863,7 @@ public:
     std::vector<std::string> listWalletDir() override
     {
         std::vector<std::string> paths;
-        for (auto& path : ListWalletDir()) {
+        for (auto& path : ListDatabases(GetWalletDir())) {
             paths.push_back(path.string());
         }
         return paths;
@@ -874,14 +886,14 @@ public:
     std::vector<std::unique_ptr<Handler>> m_rpc_handlers;
     std::list<CRPCCommand> m_rpc_commands;
 };
-
 } // namespace
+} // namespace wallet
 
-std::unique_ptr<Wallet> MakeWallet(const std::shared_ptr<CWallet>& wallet) { return wallet ? MakeUnique<WalletImpl>(wallet) : nullptr; }
+namespace interfaces {
+std::unique_ptr<Wallet> MakeWallet(const std::shared_ptr<CWallet>& wallet) { return wallet ? MakeUnique<wallet::WalletImpl>(wallet) : nullptr; }
 
 std::unique_ptr<WalletClient> MakeWalletClient(Chain& chain, ArgsManager& args)
 {
-    return MakeUnique<WalletClientImpl>(chain, args);
+    return MakeUnique<wallet::WalletClientImpl>(chain, args);
 }
-
 } // namespace interfaces

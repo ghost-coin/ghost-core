@@ -20,7 +20,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "txmempool -> validation -> txmempool"
     "wallet/fees -> wallet/wallet -> wallet/fees"
     "wallet/wallet -> wallet/walletdb -> wallet/wallet"
-    "policy/fees -> txmempool -> validation -> policy/fees"
+
     "anon -> txmempool -> anon"
     "anon -> validation -> anon"
     "consensus/tx_verify -> validation -> consensus/tx_verify"
@@ -42,7 +42,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "wallet/hdwallet -> wallet/wallet -> wallet/hdwallet"
     "key/extkey -> key_io -> script/standard -> key/extkey"
     "key/stealth -> key_io -> script/standard -> key/stealth"
-    "anon -> validation -> policy/fees -> anon"
     "smsg/smessage -> wallet/hdwallet -> smsg/smessage"
     "net_processing -> smsg/smessage -> wallet/hdwallet -> rpc/util -> node/transaction -> net_processing"
     "net_processing -> smsg/smessage -> node/context -> net_processing"

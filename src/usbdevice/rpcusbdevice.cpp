@@ -834,7 +834,7 @@ static RPCHelpMan initaccountfromdevice()
 
     {
         LOCK(pwallet->cs_wallet);
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
 
         CStoredExtKey checkSEA;
         if (wdb.ReadExtKey(idAccount, checkSEA)) {
@@ -1145,7 +1145,7 @@ static RPCHelpMan devicegetnewstealthaddress()
         }
 
         CKeyID idAccount = sea->GetID();
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
 
         if (!wdb.TxnBegin()) {
             throw JSONRPCError(RPC_INTERNAL_ERROR, "TxnBegin failed.");

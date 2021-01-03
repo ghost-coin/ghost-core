@@ -45,7 +45,7 @@ public:
 
     enum OptionID {
         StartAtStartup,         // bool
-        HideTrayIcon,           // bool
+        ShowTrayIcon,           // bool
         MinimizeToTray,         // bool
         MapPortUPnP,            // bool
         MinimizeOnClose,        // bool
@@ -81,7 +81,7 @@ public:
     void setDisplayUnit(const QVariant &value);
 
     /* Explicit getters */
-    bool getHideTrayIcon() const { return fHideTrayIcon; }
+    bool getShowTrayIcon() const { return m_show_tray_icon; }
     bool getMinimizeToTray() const { return fMinimizeToTray; }
     bool getMinimizeOnClose() const { return fMinimizeOnClose; }
     int getDisplayUnit() const { return nDisplayUnit; }
@@ -106,7 +106,7 @@ public:
 private:
     interfaces::Node* m_node = nullptr;
     /* Qt-only settings */
-    bool fHideTrayIcon;
+    bool m_show_tray_icon;
     bool fMinimizeToTray;
     bool fMinimizeOnClose;
     QString language;
@@ -129,7 +129,7 @@ Q_SIGNALS:
     void displayUnitChanged(int unit);
     void txnViewOptionsChanged();
     void coinControlFeaturesChanged(bool);
-    void hideTrayIconChanged(bool);
+    void showTrayIconChanged(bool);
     void setReserveBalance(CAmount);
 
 public Q_SLOTS:

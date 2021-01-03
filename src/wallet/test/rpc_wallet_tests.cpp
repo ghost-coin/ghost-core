@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(rpc_wallet)
     {
         LOCK(m_wallet.cs_wallet);
 
-        WalletBatch walletdb(m_wallet.GetDBHandle());
+        WalletBatch walletdb(m_wallet.GetDatabase());
         auto spk_man = m_wallet.GetLegacyScriptPubKeyMan();
         assert(spk_man);
         LOCK(spk_man->cs_KeyStore);

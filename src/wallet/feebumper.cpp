@@ -154,7 +154,7 @@ static feebumper::Result CheckFeeRate(const CWallet& wallet, const CWalletTx& wt
     return feebumper::Result::OK;
 }
 
-static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CAmount old_fee, CCoinControl& coin_control)
+static CFeeRate EstimateFeeRate(const CWallet& wallet, const CWalletTx& wtx, const CAmount old_fee, const CCoinControl& coin_control)
 {
     // Get the fee rate of the original transaction. This is calculated from
     // the tx fee/vsize, so it may have been rounded down. Add 1 satoshi to the
@@ -332,7 +332,7 @@ Result CreateTotalBumpTransaction(const CWallet* wallet, const uint256& txid, co
         }
 
         // Mark new tx not replaceable, if requested.
-        if (!coin_control.m_signal_bip125_rbf.get_value_or(wallet->m_signal_rbf)) {
+        if (!coin_control.m_signal_bip125_rbf.value_or(wallet->m_signal_rbf)) {
             for (auto& input : mtx.vin) {
                 if (input.nSequence < 0xfffffffe) input.nSequence = 0xfffffffe;
             }
@@ -411,7 +411,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
     // We cannot source new unconfirmed inputs(bip125 rule 2)
     new_coin_control.m_min_depth = 1;
 
-    CTransactionRef tx_new = MakeTransactionRef();
+    CTransactionRef tx_new;
     CAmount fee_ret;
     int change_pos_in_out = -1; // No requested location for change
     bilingual_str fail_reason;
@@ -427,7 +427,7 @@ Result CreateRateBumpTransaction(CWallet& wallet, const uint256& txid, const CCo
     // Write back transaction
     mtx = CMutableTransaction(*tx_new);
     // Mark new tx not replaceable, if requested.
-    if (!coin_control.m_signal_bip125_rbf.get_value_or(wallet.m_signal_rbf)) {
+    if (!coin_control.m_signal_bip125_rbf.value_or(wallet.m_signal_rbf)) {
         for (auto& input : mtx.vin) {
             if (input.nSequence < 0xfffffffe) input.nSequence = 0xfffffffe;
         }

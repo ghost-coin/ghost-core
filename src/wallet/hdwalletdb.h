@@ -6,6 +6,7 @@
 #define PARTICL_WALLET_HDWALLETDB_H
 
 #include <primitives/transaction.h>
+#include <wallet/bdb.h>
 #include <wallet/walletdb.h>
 #include <key/types.h>
 

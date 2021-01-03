@@ -514,7 +514,7 @@ static int KeyInfo(CHDWallet *pwallet, CKeyID &idMaster, CKeyID &idKey, int nSho
 {
     CStoredExtKey sek;
     LOCK(pwallet->cs_wallet);
-    CHDWalletDB wdb(pwallet->GetDBHandle());
+    CHDWalletDB wdb(pwallet->GetDatabase());
 
     if (!wdb.ReadExtKey(idKey, sek)) {
         sError = "Key not found in wallet.";
@@ -995,7 +995,7 @@ static RPCHelpMan extkey()
 
         {
             LOCK(pwallet->cs_wallet);
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
             if (!wdb.TxnBegin()) {
                 throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
             }
@@ -1085,7 +1085,7 @@ static RPCHelpMan extkey()
             }
 
             LOCK(pwallet->cs_wallet);
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
             if (!wdb.TxnBegin()) {
                 throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
             }
@@ -1137,7 +1137,7 @@ static RPCHelpMan extkey()
 
         {
             LOCK(pwallet->cs_wallet);
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
             if (!wdb.TxnBegin()) {
                 throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
             }
@@ -1177,7 +1177,7 @@ static RPCHelpMan extkey()
         int rv;
         {
             LOCK(pwallet->cs_wallet);
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
 
             if (!wdb.TxnBegin()) {
                 throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
@@ -1217,7 +1217,7 @@ static RPCHelpMan extkey()
 
         {
             LOCK(pwallet->cs_wallet);
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
             if (!wdb.TxnBegin()) {
                 delete sea;
                 throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
@@ -1309,7 +1309,7 @@ static RPCHelpMan extkey()
         CExtKeyAccount sea;
         {
             LOCK(pwallet->cs_wallet);
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
             if (!wdb.TxnBegin()) {
                 throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
             }
@@ -1480,7 +1480,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
 
     {
         LOCK(pwallet->cs_wallet);
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
         if (!wdb.TxnBegin()) {
             throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
         }
@@ -2377,7 +2377,7 @@ static RPCHelpMan deriverangekeys()
             }
         }
 
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
         CStoredExtKey sekLoose, sekDB;
         if (!sek) {
             CExtKey58 eKey58;
@@ -2517,7 +2517,7 @@ static RPCHelpMan clearwallettransactions()
 
         pwallet->ClearCachedBalances(); // Clear stakeable coins cache
 
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
         if (!wdb.TxnBegin()) {
             throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
         }
@@ -3561,7 +3561,7 @@ static RPCHelpMan filteraddresses()
     {
         LOCK(pwallet->cs_wallet);
 
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
 
         if (nOffset >= (int)pwallet->m_address_book.size()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("offset is beyond last address (%d).", nOffset));
@@ -5480,7 +5480,7 @@ static RPCHelpMan debugwallet()
                                 vPath.erase(vPath.begin(), vPath.begin() + 8);
                                 sek->mapValue[EKVT_PATH] = vPath;
 
-                                CHDWalletDB wdb(pwallet->GetDBHandle());
+                                CHDWalletDB wdb(pwallet->GetDatabase());
                                 if (!wdb.WriteExtKey(idChain, *sek)) {
                                     tmp.pushKV("error", "WriteExtKey failed");
                                 }
@@ -5549,7 +5549,7 @@ static RPCHelpMan debugwallet()
         }
 
         {
-            CHDWalletDB wdb(pwallet->GetDBHandle());
+            CHDWalletDB wdb(pwallet->GetDatabase());
             for (const auto &ri : pwallet->mapRecords) {
                 const uint256 &txhash = ri.first;
                 const CTransactionRecord &rtx = ri.second;
@@ -5941,7 +5941,7 @@ static RPCHelpMan transactionblinds()
 
     UniValue result(UniValue::VOBJ);
     CStoredTransaction stx;
-    if (!CHDWalletDB(pwallet->GetDBHandle()).ReadStoredTx(hash, stx)) {
+    if (!CHDWalletDB(pwallet->GetDatabase()).ReadStoredTx(hash, stx)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No stored data found for txn");
     }
 
@@ -6125,7 +6125,7 @@ static RPCHelpMan setvote()
     {
         LOCK(pwallet->cs_wallet);
 
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
 
         std::vector<CVoteToken> vVoteTokens;
 
@@ -6222,7 +6222,7 @@ static RPCHelpMan votehistory()
     {
         LOCK(pwallet->cs_wallet);
 
-        CHDWalletDB wdb(pwallet->GetDBHandle());
+        CHDWalletDB wdb(pwallet->GetDatabase());
         wdb.ReadVoteTokens(vVoteTokens);
     }
 

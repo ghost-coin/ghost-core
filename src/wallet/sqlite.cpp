@@ -17,7 +17,6 @@
 #include <sqlite3.h>
 #include <stdint.h>
 
-static const char* const DATABASE_FILENAME = "wallet.dat";
 static constexpr int32_t WALLET_SCHEMA_VERSION = 0;
 
 static Mutex g_sqlite_mutex;
@@ -206,7 +205,9 @@ void SQLiteDatabase::Open()
     }
 
     if (m_db == nullptr) {
-        TryCreateDirectories(m_dir_path);
+        if (!m_mock) {
+            TryCreateDirectories(m_dir_path);
+        }
         int ret = sqlite3_open_v2(m_file_path.c_str(), &m_db, flags, nullptr);
         if (ret != SQLITE_OK) {
             throw std::runtime_error(strprintf("SQLiteDatabase: Failed to open database: %s\n", sqlite3_errstr(ret)));
@@ -226,7 +227,7 @@ void SQLiteDatabase::Open()
     // Now begin a transaction to acquire the exclusive lock. This lock won't be released until we close because of the exclusive locking mode.
     ret = sqlite3_exec(m_db, "BEGIN EXCLUSIVE TRANSACTION", nullptr, nullptr, nullptr);
     if (ret != SQLITE_OK) {
-        throw std::runtime_error("SQLiteDatabase: Unable to obtain an exclusive lock on the database, is it being used by another bitcoind?\n");
+        throw std::runtime_error("SQLiteDatabase: Unable to obtain an exclusive lock on the database, is it being used by another particld?\n");
     }
     ret = sqlite3_exec(m_db, "COMMIT", nullptr, nullptr, nullptr);
     if (ret != SQLITE_OK) {
@@ -566,17 +567,11 @@ bool SQLiteBatch::TxnAbort()
     return res == SQLITE_OK;
 }
 
-bool ExistsSQLiteDatabase(const fs::path& path)
-{
-    const fs::path file = path / DATABASE_FILENAME;
-    return fs::symlink_status(file).type() == fs::regular_file && IsSQLiteFile(file);
-}
-
 std::unique_ptr<SQLiteDatabase> MakeSQLiteDatabase(const fs::path& path, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error)
 {
-    const fs::path file = path / DATABASE_FILENAME;
     try {
-        auto db = MakeUnique<SQLiteDatabase>(path, file);
+        fs::path data_file = SQLiteDataFile(path);
+        auto db = MakeUnique<SQLiteDatabase>(data_file.parent_path(), data_file);
         if (options.verify && !db->Verify(error)) {
             status = DatabaseStatus::FAILED_VERIFY;
             return nullptr;
@@ -593,38 +588,4 @@ std::unique_ptr<SQLiteDatabase> MakeSQLiteDatabase(const fs::path& path, const D
 std::string SQLiteDatabaseVersion()
 {
     return std::string(sqlite3_libversion());
-}
-
-bool IsSQLiteFile(const fs::path& path)
-{
-    if (!fs::exists(path)) return false;
-
-    // A SQLite Database file is at least 512 bytes.
-    boost::system::error_code ec;
-    auto size = fs::file_size(path, ec);
-    if (ec) LogPrintf("%s: %s %s\n", __func__, ec.message(), path.string());
-    if (size < 512) return false;
-
-    fsbridge::ifstream file(path, std::ios::binary);
-    if (!file.is_open()) return false;
-
-    // Magic is at beginning and is 16 bytes long
-    char magic[16];
-    file.read(magic, 16);
-
-    // Application id is at offset 68 and 4 bytes long
-    file.seekg(68, std::ios::beg);
-    char app_id[4];
-    file.read(app_id, 4);
-
-    file.close();
-
-    // Check the magic, see https://sqlite.org/fileformat2.html
-    std::string magic_str(magic, 16);
-    if (magic_str != std::string("SQLite format 3", 16)) {
-        return false;
-    }
-
-    // Check the application id matches our network magic
-    return memcmp(Params().MessageStart(), app_id, 4) == 0;
 }
