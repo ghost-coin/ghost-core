@@ -293,7 +293,7 @@ class FilterTransactionsTest(ParticlTestFramework):
         # sort
         #
 
-        sortings = [
+        sortable_fields = [
             [ 'time',          'desc' ],
             [ 'address',        'asc' ],
             [ 'category',       'asc' ],
@@ -302,7 +302,7 @@ class FilterTransactionsTest(ParticlTestFramework):
             [ 'txid',           'asc' ]
         ]
 
-        for sorting in sortings:
+        for sorting in sortable_fields:
             ro = nodes[0].filtertransactions({ 'sort': sorting[0] })
             prev = None
             for t in ro:
