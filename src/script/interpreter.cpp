@@ -2291,7 +2291,7 @@ bool GetNonCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut)
     return false;
 };
 
-bool SplitConditionalCoinstakeScript(const CScript &scriptIn, CScript &scriptOutA, CScript &scriptOutB)
+bool SplitConditionalCoinstakeScript(const CScript &scriptIn, CScript &scriptOutA, CScript &scriptOutB, bool enforce_end)
 {
     CScript::const_iterator pc = scriptIn.begin();
     CScript::const_iterator pend = scriptIn.end();
@@ -2301,35 +2301,35 @@ bool SplitConditionalCoinstakeScript(const CScript &scriptIn, CScript &scriptOut
     valtype vchPushValue;
 
     bool fFoundOp = false, fFoundElse = false;
-    while (pc < pend)
-    {
-        if (!scriptIn.GetOp(pc, opcode, vchPushValue))
+    while (pc < pend) {
+        if (!scriptIn.GetOp(pc, opcode, vchPushValue)) {
             break;
+        }
 
         if (!fFoundOp
-            && opcode == OP_ISCOINSTAKE)
-        {
-            pc++; // skip over if
+            && opcode == OP_ISCOINSTAKE) {
+            pc++; // Skip over if
 
             pcStart = pc;
             fFoundOp = true;
             continue;
-        };
+        }
 
-        if (fFoundElse && opcode == OP_ENDIF)
-        {
+        if (fFoundElse && opcode == OP_ENDIF) {
+            if (enforce_end && pc < pend) {
+                return false;
+            }
             pc--;
             scriptOutB = CScript(pcStart, pc);
             return true;
-        };
+        }
 
-        if (fFoundOp && opcode == OP_ELSE)
-        {
+        if (fFoundOp && opcode == OP_ELSE) {
             scriptOutA = CScript(pcStart, pc-1);
             pcStart = pc;
             fFoundElse = true;
-        };
-    };
+        }
+    }
 
     return false;
 };
