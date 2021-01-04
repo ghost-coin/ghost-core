@@ -252,14 +252,35 @@ BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)
     script.append(scriptSpend);
     script << OP_ENDIF;
 
-    BOOST_CHECK(true == SplitConditionalCoinstakeScript(script, scriptStake, scriptSpend));
-    BOOST_CHECK(true == SplitConditionalCoinstakeScript(script, scriptStake, scriptSpend, true));
+    int64_t cs_time = Params().GetConsensus().OpIsCoinstakeTime;
+    TxoutType whichType;
+    BOOST_CHECK(true == IsStandard(script, whichType, cs_time));
 
+    // Test trailing script
     script << OP_DROP;
     script << CScriptNum(123);
+    BOOST_CHECK(false == IsStandard(script, whichType, cs_time));
 
-    BOOST_CHECK(true == SplitConditionalCoinstakeScript(script, scriptStake, scriptSpend));
-    BOOST_CHECK(false == SplitConditionalCoinstakeScript(script, scriptStake, scriptSpend, true));
+    // Test compacted cs_script
+    CScript script2 = CScript() << OP_DUP << OP_HASH160;
+    script2 << OP_ISCOINSTAKE << OP_IF << ToByteVector(id1);
+    script2 << OP_ELSE << ToByteVector(id2) << OP_ENDIF << OP_EQUALVERIFY << OP_CHECKSIG;
+
+    BOOST_CHECK(true == SplitConditionalCoinstakeScript(script2, scriptOutA, scriptOutB));
+    BOOST_CHECK(scriptOutA == scriptStake);
+    BOOST_CHECK(scriptOutB == scriptSpend);
+
+    // Test nested ifs
+    CScript script3_nested_if = CScript() << OP_1 << OP_IF << OP_RETURN << OP_ELSE << OP_IF << OP_RETURN << OP_ELSE << OP_1 << OP_RETURN << OP_ENDIF << OP_ENDIF;
+    CScript script3 = CScript() << OP_ISCOINSTAKE << OP_IF;
+    script3.append(script3_nested_if);
+    script3 << OP_ELSE;
+    script3.append(scriptSpend);
+    script3 << OP_ENDIF;
+
+    BOOST_CHECK(true == SplitConditionalCoinstakeScript(script3, scriptOutA, scriptOutB));
+    BOOST_CHECK(scriptOutA == script3_nested_if);
+    BOOST_CHECK(scriptOutB == scriptSpend);
 }
 
 BOOST_AUTO_TEST_CASE(coin_year_reward)

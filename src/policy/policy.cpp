@@ -99,12 +99,8 @@ bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType, int64_t time)
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     if (time >= consensusParams.OpIsCoinstakeTime) {
-        // TODO: better method
-        if (HasIsCoinstakeOp(scriptPubKey)) {
-            CScript scriptA, scriptB;
-            if (!SplitConditionalCoinstakeScript(scriptPubKey, scriptA, scriptB, true)) {
-                return false;
-            }
+        CScript scriptA, scriptB;
+        if (SplitConditionalCoinstakeScript(scriptPubKey, scriptA, scriptB)) {
             return IsStandard(scriptA, whichType) && IsStandard(scriptB, whichType);
         }
     }

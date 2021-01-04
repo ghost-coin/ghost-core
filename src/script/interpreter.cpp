@@ -2181,17 +2181,19 @@ bool HasIsCoinstakeOp(const CScript &script)
 {
     CScript::const_iterator pc = script.begin();
 
-    if (pc == script.end())
+    if (pc == script.end()) {
         return false;
-
+    }
     opcodetype opcode;
     valtype vchPushValue;
 
-    if (!script.GetOp(pc, opcode, vchPushValue))
+    if (!script.GetOp(pc, opcode, vchPushValue)) {
         return false;
+    }
 
-    if (opcode == OP_ISCOINSTAKE)
+    if (opcode == OP_ISCOINSTAKE) {
         return true;
+    }
 
     return false;
 };
@@ -2291,7 +2293,7 @@ bool GetNonCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut)
     return false;
 };
 
-bool SplitConditionalCoinstakeScript(const CScript &scriptIn, CScript &scriptOutA, CScript &scriptOutB, bool enforce_end)
+bool SplitConditionalCoinstakeScript(const CScript &scriptIn, CScript &scriptOutA, CScript &scriptOutB)
 {
     CScript::const_iterator pc = scriptIn.begin();
     CScript::const_iterator pend = scriptIn.end();
@@ -2300,35 +2302,58 @@ bool SplitConditionalCoinstakeScript(const CScript &scriptIn, CScript &scriptOut
     opcodetype opcode;
     valtype vchPushValue;
 
-    bool fFoundOp = false, fFoundElse = false;
+    scriptOutA = CScript();
+    scriptOutB = CScript();
+
+    bool in_ifcs = false, fFoundElse = false, found_cs_block = false;
+    int inner_ifcount = 0;
     while (pc < pend) {
         if (!scriptIn.GetOp(pc, opcode, vchPushValue)) {
             break;
         }
 
-        if (!fFoundOp
+        if (!in_ifcs
             && opcode == OP_ISCOINSTAKE) {
-            pc++; // Skip over if
+            CScript::const_iterator pc_test = pc;
+            if (scriptIn.GetOp(pc_test, opcode, vchPushValue) && opcode == OP_IF) {
+                pc = pc_test;
 
-            pcStart = pc;
-            fFoundOp = true;
-            continue;
-        }
-
-        if (fFoundElse && opcode == OP_ENDIF) {
-            if (enforce_end && pc < pend) {
-                return false;
+                CScript segment = CScript(pcStart, pc-2);
+                scriptOutA.append(segment);
+                scriptOutB.append(segment);
+                pcStart = pc;
+                in_ifcs = true;
+                inner_ifcount = 0;
+                continue;
             }
-            pc--;
-            scriptOutB = CScript(pcStart, pc);
-            return true;
         }
 
-        if (fFoundOp && opcode == OP_ELSE) {
-            scriptOutA = CScript(pcStart, pc-1);
+        if (in_ifcs && opcode == OP_IF) {
+            inner_ifcount++;
+        }
+
+        if (opcode == OP_ENDIF) {
+            if (fFoundElse) {
+                scriptOutB.append(CScript(pcStart, pc-1));
+                found_cs_block = true;
+                pcStart = pc;
+            } else {
+                inner_ifcount--;
+            }
+        }
+
+        if (in_ifcs && inner_ifcount == 0 && opcode == OP_ELSE) {
+            scriptOutA.append(CScript(pcStart, pc-1));
             pcStart = pc;
             fFoundElse = true;
         }
+    }
+
+    if (found_cs_block) {
+        CScript segment = CScript(pcStart, pend);
+        scriptOutA.append(segment);
+        scriptOutB.append(segment);
+        return true;
     }
 
     return false;
