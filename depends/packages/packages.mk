@@ -19,6 +19,7 @@ sqlite_packages=sqlite
 zmq_packages=zeromq
 
 upnp_packages=miniupnpc
+natpmp_packages=libnatpmp
 usb_packages=libusb hidapi protobuf
 usb_native_packages=native_protobuf
 

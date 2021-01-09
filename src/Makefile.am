@@ -169,6 +169,7 @@ BITCOIN_CORE_H = \
   key_io.h \
   logging.h \
   logging/timer.h \
+  mapport.h \
   memusage.h \
   merkleblock.h \
   miner.h \
@@ -337,6 +338,7 @@ libparticl_server_a_SOURCES = \
   index/blockfilterindex.cpp \
   index/txindex.cpp \
   init.cpp \
+  mapport.cpp \
   miner.cpp \
   net.cpp \
   net_processing.cpp \
@@ -497,6 +499,8 @@ crypto_libparticl_crypto_base_a_SOURCES = \
   crypto/hmac_sha512.h \
   crypto/poly1305.h \
   crypto/poly1305.cpp \
+  crypto/muhash.h \
+  crypto/muhash.cpp \
   crypto/ripemd160.cpp \
   crypto/ripemd160.h \
   crypto/sha1.cpp \
@@ -733,7 +737,7 @@ particl_bin_ldadd = \
   $(LIBPARTICL_MNEMONIC) \
   $(LIBPARTICL_USBDEVICE)
 
-particl_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
+particl_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
 if ENABLE_USBDEVICE
 particl_bin_ldadd += $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
