@@ -31,8 +31,8 @@ MessageVerificationResult MessageVerify(
         return MessageVerificationResult::ERR_INVALID_ADDRESS;
     }
 
-    const PKHash *pkhash = boost::get<PKHash>(&destination);
-    const CKeyID256 *keyID256 = boost::get<CKeyID256>(&destination);
+    const PKHash *pkhash = std::get_if<PKHash>(&destination);
+    const CKeyID256 *keyID256 = std::get_if<CKeyID256>(&destination);
 
     if (!pkhash && !keyID256) {
         return MessageVerificationResult::ERR_ADDRESS_NO_KEY;

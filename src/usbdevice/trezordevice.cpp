@@ -675,11 +675,11 @@ int CTrezorDevice::CompleteTransaction(CMutableTransaction* tx)
                     if (!ExtractDestination(scriptB, addrSpend)) {
                         return errorN(1, m_error, __func__, "ExtractDestination failed.");
                     }
-                    if (addrStake.type() != typeid(PKHash) || addrSpend.type() != typeid(CKeyID256)) {
+                    if (addrStake.index() != DI::_PKHash || addrSpend.index() != DI::_CKeyID256) {
                         return errorN(1, m_error, __func__, "Unsupported coldstake script types.");
                     }
-                    PKHash idStake = boost::get<PKHash>(addrStake);
-                    CKeyID256 idSpend = boost::get<CKeyID256>(addrSpend);
+                    PKHash idStake = std::get<PKHash>(addrStake);
+                    CKeyID256 idSpend = std::get<CKeyID256>(addrSpend);
 
                     // Construct joined address, p2pkh prefix +2
                     std::vector<uint8_t> addr_raw(53);

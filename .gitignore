@@ -8,6 +8,7 @@ src/particl-cli
 src/particl-gui
 src/particl-node
 src/particl-tx
+src/particl-util
 src/particl-wallet
 src/test/fuzz/*
 !src/test/fuzz/*.*

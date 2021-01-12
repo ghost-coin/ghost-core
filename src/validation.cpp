@@ -2940,7 +2940,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
 
                     CTxDestination dfDest = CBitcoinAddress(pDevFundSettings->sDevFundAddresses).Get();
-                    if (dfDest.type() == typeid(CNoDestination)) {
+                    if (std::get_if<CNoDestination>(&dfDest)) {
                         return error("%s: Failed to get foundation fund destination: %s.", __func__, pDevFundSettings->sDevFundAddresses);
                     }
                     CScript devFundScriptPubKey = GetScriptForDestination(dfDest);

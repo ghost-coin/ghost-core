@@ -401,7 +401,7 @@ public:
     std::unique_ptr<TransportDeserializer> m_deserializer;
     std::unique_ptr<TransportSerializer> m_serializer;
 
-    // socket
+    NetPermissionFlags m_permissionFlags{PF_NONE};
     std::atomic<ServiceFlags> nServices{NODE_NONE};
     SOCKET hSocket GUARDED_BY(cs_hSocket);
     /** Total size of all vSendMsg entries */
@@ -535,11 +535,6 @@ public:
      */
     Network ConnectedThroughNetwork() const;
 
-//protected:
-    mapMsgCmdSize mapSendBytesPerMsgCmd GUARDED_BY(cs_vSend);
-    mapMsgCmdSize mapRecvBytesPerMsgCmd GUARDED_BY(cs_vRecv);
-
-public:
     // We selected peer as (compact blocks) high-bandwidth peer (BIP152)
     std::atomic<bool> m_bip152_highbandwidth_to{false};
     // Peer selected us as (compact blocks) high-bandwidth peer (BIP152)
@@ -572,9 +567,8 @@ public:
         std::atomic<std::chrono::seconds> m_last_mempool_req{0s};
         std::chrono::microseconds nNextInvSend{0};
 
-        RecursiveMutex cs_feeFilter;
-        // Minimum fee rate with which to filter inv's to this node
-        CAmount minFeeFilter GUARDED_BY(cs_feeFilter){0};
+        /** Minimum fee rate with which to filter inv's to this node */
+        std::atomic<CAmount> minFeeFilter{0};
         CAmount lastSentFeeFilter{0};
         int64_t nextSendTimeFeeFilter{0};
     };
@@ -611,49 +605,6 @@ public:
     ~CNode();
     CNode(const CNode&) = delete;
     CNode& operator=(const CNode&) = delete;
-
-//private:
-    const NodeId id;
-    const uint64_t nLocalHostNonce;
-    const ConnectionType m_conn_type;
-    std::atomic<int> m_greatest_common_version{INIT_PROTO_VERSION};
-
-    //! Services offered to this peer.
-    //!
-    //! This is supplied by the parent CConnman during peer connection
-    //! (CConnman::ConnectNode()) from its attribute of the same name.
-    //!
-    //! This is const because there is no protocol defined for renegotiating
-    //! services initially offered to a peer. The set of local services we
-    //! offer should not change after initialization.
-    //!
-    //! An interesting example of this is NODE_NETWORK and initial block
-    //! download: a node which starts up from scratch doesn't have any blocks
-    //! to serve, but still advertises NODE_NETWORK because it will eventually
-    //! fulfill this role after IBD completes. P2P code is written in such a
-    //! way that it can gracefully handle peers who don't make good on their
-    //! service advertisements.
-    const ServiceFlags nLocalServices;
-
-    NetPermissionFlags m_permissionFlags{ PF_NONE };
-    std::list<CNetMessage> vRecvMsg;  // Used only by SocketHandler thread
-
-    mutable RecursiveMutex cs_addrName;
-    std::string addrName GUARDED_BY(cs_addrName);
-
-    // Our address, as reported by the peer
-    CService addrLocal GUARDED_BY(cs_addrLocal);
-    mutable RecursiveMutex cs_addrLocal;
-
-    //! Whether this peer is an inbound onion, e.g. connected via our Tor onion service.
-    const bool m_inbound_onion{false};
-
-    /**
-     * Particl
-     */
-    SecMsgNode smsgData;
-
-public:
 
     NodeId GetId() const {
         return id;
@@ -736,7 +687,6 @@ public:
         }
     }
 
-
     void AddKnownTx(const uint256& hash)
     {
         if (m_tx_relay != nullptr) {
@@ -771,6 +721,49 @@ public:
 
     /** Whether this peer is an inbound onion, e.g. connected via our Tor onion service. */
     bool IsInboundOnion() const { return m_inbound_onion; }
+
+//private:
+    const NodeId id;
+    const uint64_t nLocalHostNonce;
+    const ConnectionType m_conn_type;
+    std::atomic<int> m_greatest_common_version{INIT_PROTO_VERSION};
+
+    //! Services offered to this peer.
+    //!
+    //! This is supplied by the parent CConnman during peer connection
+    //! (CConnman::ConnectNode()) from its attribute of the same name.
+    //!
+    //! This is const because there is no protocol defined for renegotiating
+    //! services initially offered to a peer. The set of local services we
+    //! offer should not change after initialization.
+    //!
+    //! An interesting example of this is NODE_NETWORK and initial block
+    //! download: a node which starts up from scratch doesn't have any blocks
+    //! to serve, but still advertises NODE_NETWORK because it will eventually
+    //! fulfill this role after IBD completes. P2P code is written in such a
+    //! way that it can gracefully handle peers who don't make good on their
+    //! service advertisements.
+    const ServiceFlags nLocalServices;
+
+    std::list<CNetMessage> vRecvMsg;  // Used only by SocketHandler thread
+
+    mutable RecursiveMutex cs_addrName;
+    std::string addrName GUARDED_BY(cs_addrName);
+
+    // Our address, as reported by the peer
+    CService addrLocal GUARDED_BY(cs_addrLocal);
+    mutable RecursiveMutex cs_addrLocal;
+
+    //! Whether this peer is an inbound onion, e.g. connected via our Tor onion service.
+    const bool m_inbound_onion{false};
+
+    mapMsgCmdSize mapSendBytesPerMsgCmd GUARDED_BY(cs_vSend);
+    mapMsgCmdSize mapRecvBytesPerMsgCmd GUARDED_BY(cs_vRecv);
+
+    /**
+     * Particl
+     */
+    SecMsgNode smsgData;
 };
 
 /**
@@ -956,6 +949,19 @@ public:
     bool AddNode(const std::string& node);
     bool RemoveAddedNode(const std::string& node);
     std::vector<AddedNodeInfo> GetAddedNodeInfo();
+
+    /**
+     * Attempts to open a connection. Currently only used from tests.
+     *
+     * @param[in]   address     Address of node to try connecting to
+     * @param[in]   conn_type   ConnectionType::OUTBOUND or ConnectionType::BLOCK_RELAY
+     * @return      bool        Returns false if there are no available
+     *                          slots for this connection:
+     *                          - conn_type not a supported ConnectionType
+     *                          - Max total outbound connection capacity filled
+     *                          - Max connection capacity for type is filled
+     */
+    bool AddConnection(const std::string& address, ConnectionType conn_type);
 
     size_t GetNodeCount(NumConnections num);
     void GetNodeStats(std::vector<CNodeStats>& vstats);

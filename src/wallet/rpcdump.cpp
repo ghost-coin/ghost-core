@@ -733,11 +733,11 @@ RPCHelpMan dumpprivkey()
     }
 
     if (IsParticlWallet(pwallet)) {
-        if (dest.type() == typeid(CExtPubKey)) {
+        CExtPubKey *pek = std::get_if<CExtPubKey>(&dest);
+        if (pek) {
             CHDWallet *phdw = GetParticlWallet(pwallet);
             LOCK_ASSERTION(phdw->cs_wallet);
-            CExtPubKey ek = boost::get<CExtPubKey>(dest);
-            CKeyID id = ek.GetID();
+            CKeyID id = pek->GetID();
             CStoredExtKey sek;
             if (!phdw->GetExtKey(id, sek)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, "Private key for extaddress " + strAddress + " is not known");

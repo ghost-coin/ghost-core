@@ -9,10 +9,8 @@
 #include <script/interpreter.h>
 #include <uint256.h>
 
-#include <boost/variant.hpp>
-
 #include <string>
-
+#include <variant>
 
 static const bool DEFAULT_ACCEPT_DATACARRIER = true;
 
@@ -232,8 +230,21 @@ struct WitnessUnknown
  *    (taproot outputs do not require their own type as long as no wallet support exists)
  *  A CTxDestination is the internal data type encoded in a bitcoin address
  */
-typedef boost::variant<CNoDestination, PKHash, ScriptHash, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown,
-    CStealthAddress, CExtPubKey, CKeyID256, CScriptID256> CTxDestination;
+using CTxDestination = std::variant<CNoDestination, PKHash, ScriptHash, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown,
+    CStealthAddress, CExtPubKey, CKeyID256, CScriptID256>;
+
+enum DI {
+    _CNoDestination = 0,
+    _PKHash,
+    _ScriptHash,
+    _WitnessV0ScriptHash,
+    _WitnessV0KeyHash,
+    _WitnessUnknown,
+    _CStealthAddress,
+    _CExtPubKey,
+    _CKeyID256,
+    _CScriptID256
+};
 
 /** Check whether a CTxDestination is a CNoDestination. */
 bool IsValidDestination(const CTxDestination& dest);

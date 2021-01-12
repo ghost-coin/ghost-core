@@ -20,41 +20,39 @@
 
 #include <univalue.h>
 
-#include <boost/thread/thread.hpp> // boost::thread::interrupt
-
 static bool GetIndexKey(const CTxDestination &dest, uint256 &hashBytes, int &type) {
-    if (dest.type() == typeid(PKHash)) {
-        const PKHash &id = boost::get<PKHash>(dest);
+    if (dest.index() == DI::_PKHash) {
+        const PKHash &id = std::get<PKHash>(dest);
         memcpy(hashBytes.begin(), id.begin(), 20);
         type = ADDR_INDT_PUBKEY_ADDRESS;
         return true;
     }
-    if (dest.type() == typeid(ScriptHash)) {
-        const ScriptHash& id = boost::get<ScriptHash>(dest);
+    if (dest.index() == DI::_ScriptHash) {
+        const ScriptHash& id = std::get<ScriptHash>(dest);
         memcpy(hashBytes.begin(), id.begin(), 20);
         type = ADDR_INDT_SCRIPT_ADDRESS;
         return true;
     }
-    if (dest.type() == typeid(CKeyID256)) {
-        const CKeyID256& id = boost::get<CKeyID256>(dest);
+    if (dest.index() == DI::_CKeyID256) {
+        const CKeyID256& id = std::get<CKeyID256>(dest);
         memcpy(hashBytes.begin(), id.begin(), 32);
         type = ADDR_INDT_PUBKEY_ADDRESS_256;
         return true;
     }
-    if (dest.type() == typeid(CScriptID256)) {
-        const CScriptID256& id = boost::get<CScriptID256>(dest);
+    if (dest.index() == DI::_CScriptID256) {
+        const CScriptID256& id = std::get<CScriptID256>(dest);
         memcpy(hashBytes.begin(), id.begin(), 32);
         type = ADDR_INDT_SCRIPT_ADDRESS_256;
         return true;
     }
-    if (dest.type() == typeid(WitnessV0KeyHash)) {
-        const WitnessV0KeyHash& id = boost::get<WitnessV0KeyHash>(dest);
+    if (dest.index() == DI::_WitnessV0KeyHash) {
+        const WitnessV0KeyHash& id = std::get<WitnessV0KeyHash>(dest);
         memcpy(hashBytes.begin(), id.begin(), 20);
         type = ADDR_INDT_WITNESS_V0_KEYHASH;
         return true;
     }
-    if (dest.type() == typeid(WitnessV0ScriptHash)) {
-        const WitnessV0ScriptHash& id = boost::get<WitnessV0ScriptHash>(dest);
+    if (dest.index() == DI::_WitnessV0ScriptHash) {
+        const WitnessV0ScriptHash& id = std::get<WitnessV0ScriptHash>(dest);
         memcpy(hashBytes.begin(), id.begin(), 32);
         type = ADDR_INDT_WITNESS_V0_SCRIPTHASH;
         return true;
@@ -990,10 +988,10 @@ static void pushScript(UniValue &uv, const std::string &name, const CScript *scr
     } else {
         ExtractDestination(*script, dest_spend);
     }
-    if (dest_stake.type() != typeid(CNoDestination)) {
+    if (!std::get_if<CNoDestination>(&dest_stake)) {
         uvs.pushKV("stakeaddr", EncodeDestination(dest_stake));
     }
-    if (dest_spend.type() != typeid(CNoDestination)) {
+    if (!std::get_if<CNoDestination>(&dest_spend)) {
         uvs.pushKV("spendaddr", EncodeDestination(dest_spend));
     }
     uv.pushKV(name, uvs);
@@ -1182,14 +1180,14 @@ static RPCHelpMan listcoldstakeunspent()
 
     ColdStakeIndexLinkKey seek_key;
     CTxDestination stake_dest = DecodeDestination(request.params[0].get_str(), true);
-    if (stake_dest.type() == typeid(PKHash)) {
+    if (stake_dest.index() == DI::_PKHash) {
         seek_key.m_stake_type = TxoutType::PUBKEYHASH;
-        PKHash id = boost::get<PKHash>(stake_dest);
+        PKHash id = std::get<PKHash>(stake_dest);
         memcpy(seek_key.m_stake_id.begin(), id.begin(), 20);
     } else
-    if (stake_dest.type() == typeid(CKeyID256)) {
+    if (stake_dest.index() == DI::_CKeyID256) {
         seek_key.m_stake_type = TxoutType::PUBKEYHASH256;
-        seek_key.m_stake_id = boost::get<CKeyID256>(stake_dest);
+        seek_key.m_stake_id = std::get<CKeyID256>(stake_dest);
     } else {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unrecognised stake address type.");
     }

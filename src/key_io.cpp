@@ -9,16 +9,12 @@
 #include <util/strencodings.h>
 #include <insight/addressindex.h>
 
-#include <boost/variant/apply_visitor.hpp>
-#include <boost/variant/static_visitor.hpp>
-
+#include <algorithm>
 #include <assert.h>
 #include <string.h>
-#include <algorithm>
 
-namespace
-{
-class DestinationEncoder : public boost::static_visitor<std::string>
+namespace {
+class DestinationEncoder
 {
 private:
     const CChainParams& m_params;
@@ -249,7 +245,7 @@ std::string EncodeExtKey(const CExtKey& key)
 
 std::string EncodeDestination(const CTxDestination& dest, bool fBech32, bool stake_only)
 {
-    return boost::apply_visitor(DestinationEncoder(Params(), fBech32, stake_only), dest);
+    return std::visit(DestinationEncoder(Params(), fBech32, stake_only), dest);
 }
 
 CTxDestination DecodeDestination(const std::string& str, bool allow_stake_only)
@@ -385,7 +381,7 @@ int CBase58Data::CompareTo(const CBase58Data& b58) const
 
 namespace
 {
-class CBitcoinAddressVisitor : public boost::static_visitor<bool>
+class CBitcoinAddressVisitor
 {
 private:
     CBitcoinAddress* addr;
@@ -505,7 +501,7 @@ bool CBitcoinAddress::Set(const CExtKeyPair &ek, bool fBech32)
 
 bool CBitcoinAddress::Set(const CTxDestination& dest, bool fBech32)
 {
-    return boost::apply_visitor(CBitcoinAddressVisitor(this, fBech32), dest);
+    return std::visit(CBitcoinAddressVisitor(this, fBech32), dest);
 }
 
 bool CBitcoinAddress::IsValidStealthAddress() const
@@ -551,8 +547,7 @@ bool CBitcoinAddress::IsValid(const CChainParams& params) const
             return false;
         }
 
-        switch (prefix)
-        {
+        switch (prefix) {
             case CChainParams::PUBKEY_ADDRESS:
             case CChainParams::SCRIPT_ADDRESS:
             case CChainParams::EXT_KEY_HASH:

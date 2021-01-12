@@ -692,10 +692,10 @@ static RPCHelpMan smsgdumpprivkey()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Particl address");
     }
 
-    if (dest.type() != typeid(PKHash)) {
+    if (dest.index() != DI::_PKHash) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address not a key id");
     }
-    const CKeyID &idk = ToKeyID(boost::get<PKHash>(dest));
+    const CKeyID &idk = ToKeyID(std::get<PKHash>(dest));
 
     CKey key_out;
     int rv = smsgModule.DumpPrivkey(idk, key_out);

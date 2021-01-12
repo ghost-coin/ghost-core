@@ -1007,25 +1007,25 @@ isminetype CHDWallet::HaveAddress(const CTxDestination &dest)
 {
     LOCK(cs_wallet);
 
-    if (dest.type() == typeid(PKHash)) {
-        CKeyID id = ToKeyID(boost::get<PKHash>(dest));
+    if (dest.index() == DI::_PKHash) {
+        CKeyID id = ToKeyID(std::get<PKHash>(dest));
         return IsMine(id);
     }
 
-    if (dest.type() == typeid(CKeyID256)) {
-        CKeyID256 id256 = boost::get<CKeyID256>(dest);
+    if (dest.index() == DI::_CKeyID256) {
+        CKeyID256 id256 = std::get<CKeyID256>(dest);
         CKeyID id(id256);
         return IsMine(id);
     }
 
-    if (dest.type() == typeid(CExtPubKey)) {
-        CExtPubKey ek = boost::get<CExtPubKey>(dest);
+    if (dest.index() == DI::_CExtPubKey) {
+        CExtPubKey ek = std::get<CExtPubKey>(dest);
         CKeyID id = ek.GetID();
         return HaveExtKey(id);
     }
 
-    if (dest.type() == typeid(CStealthAddress)) {
-        CStealthAddress sx = boost::get<CStealthAddress>(dest);
+    if (dest.index() == DI::_CStealthAddress) {
+        CStealthAddress sx = std::get<CStealthAddress>(dest);
         return HaveStealthAddress(sx);
     }
 
@@ -1367,8 +1367,8 @@ bool CHDWallet::AddressBookChangedNotify(const CTxDestination &address, ChangeTy
     NotifyAddressBookChanged(this, address, entry.GetLabel(), tIsMine != ISMINE_NO, entry.purpose, str_path, nMode);
 
     if (tIsMine == ISMINE_SPENDABLE
-        && address.type() == typeid(PKHash)) {
-        CKeyID id = ToKeyID(boost::get<PKHash>(address));
+        && address.index() == DI::_PKHash) {
+        CKeyID id = ToKeyID(std::get<PKHash>(address));
         smsgModule.WalletKeyChanged(id, entry.GetLabel(), nMode);
     }
 
@@ -1497,8 +1497,8 @@ bool CHDWallet::SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address,
         NotifyAddressBookChanged(this, address, strName, tIsMine != ISMINE_NO, strPurpose, str_path, nMode);
 
         if (tIsMine == ISMINE_SPENDABLE
-            && address.type() == typeid(PKHash)) {
-            CKeyID id = ToKeyID(boost::get<PKHash>(address));
+            && address.index() == DI::_PKHash) {
+            CKeyID id = ToKeyID(std::get<PKHash>(address));
             smsgModule.WalletKeyChanged(id, strName, nMode);
         }
     }
@@ -1530,8 +1530,8 @@ bool CHDWallet::SetAddressBook(const CTxDestination &address, const std::string 
     }
 
     if (tIsMine == ISMINE_SPENDABLE &&
-        address.type() == typeid(PKHash)) {
-        CKeyID id = ToKeyID(boost::get<PKHash>(address));
+        address.index() == DI::_PKHash) {
+        CKeyID id = ToKeyID(std::get<PKHash>(address));
         smsgModule.WalletKeyChanged(id, strName, nMode);
     }
 
@@ -1549,8 +1549,8 @@ bool CHDWallet::DelAddressBook(const CTxDestination &address)
     {
         LOCK(cs_wallet);
         tIsMine = IsMine(address);
-        if (address.type() == typeid(CStealthAddress)) {
-            const CStealthAddress &sxAddr = boost::get<CStealthAddress>(address);
+        if (address.index() == DI::_CStealthAddress) {
+            const CStealthAddress &sxAddr = std::get<CStealthAddress>(address);
             //bool fOwned; // must check on copy from wallet
 
             std::set<CStealthAddress>::iterator si = stealthAddresses.find(sxAddr);
@@ -1570,8 +1570,8 @@ bool CHDWallet::DelAddressBook(const CTxDestination &address)
     }
 
     if (tIsMine == ISMINE_SPENDABLE
-        && address.type() == typeid(PKHash)) {
-        CKeyID id = ToKeyID(boost::get<PKHash>(address));
+        && address.index() == DI::_PKHash) {
+        CKeyID id = ToKeyID(std::get<PKHash>(address));
         smsgModule.WalletKeyChanged(id, "", CT_DELETED);
     }
 
@@ -2804,8 +2804,8 @@ int CHDWallet::GetChangeAddress(CPubKey &pk)
 
 void CHDWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputRecord &rec)
 {
-    if (addr.type() == typeid(CStealthAddress)) {
-        CStealthAddress sx = boost::get<CStealthAddress>(addr);
+    if (addr.index() == DI::_CStealthAddress) {
+        CStealthAddress sx = std::get<CStealthAddress>(addr);
 
         CStealthAddressIndexed sxi;
         sx.ToRaw(sxi.addrRaw);
@@ -2816,7 +2816,7 @@ void CHDWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputRecor
             memcpy(&rec.vPath[1], &sxId, 4);
         }
     } else
-    if (addr.type() == typeid(CExtPubKey)) {
+    if (addr.index() == DI::_CExtPubKey) {
         /*
         CExtPubKey ek = boost::get<CExtPubKey>(addr);
         rec.vPath.resize(21);
@@ -2825,7 +2825,7 @@ void CHDWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputRecor
         memcpy(&rec.vPath[1], eid.begin(), 20)
         */
     } else
-    if (addr.type() == typeid(PKHash)) {
+    if (addr.index() == DI::_PKHash) {
         //ORA_STANDARD
     }
     return;
@@ -2893,8 +2893,8 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
         CTempRecipient &r = vecSend[i];
 
         if (r.nType == OUTPUT_STANDARD) {
-            if (r.address.type() == typeid(CStealthAddress)) {
-                CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+            if (r.address.index() == DI::_CStealthAddress) {
+                CStealthAddress sx = std::get<CStealthAddress>(r.address);
 
                 CKey sShared;
                 ec_point pkSendTo;
@@ -2928,8 +2928,8 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                 vecSend.insert(vecSend.begin() + (i+1), rd);
                 i++; // skip over inserted output
             } else {
-                if (r.address.type() == typeid(CExtPubKey)) {
-                    CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(r.address));
+                if (r.address.index() == DI::_CExtPubKey) {
+                    CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(r.address));
                     CPubKey pkDest;
                     uint32_t nChildKey;
                     if (0 != ExtKeyGetDestination(ek, pkDest, nChildKey)) {
@@ -2940,7 +2940,7 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                     r.pkTo = pkDest;
                     r.scriptPubKey = GetScriptForDestination(PKHash(pkDest));
                 } else
-                if (r.address.type() == typeid(PKHash)) {
+                if (r.address.index() == DI::_PKHash) {
                     r.scriptPubKey = GetScriptForDestination(r.address);
                 } else {
                     if (!r.fScriptSet) {
@@ -2976,8 +2976,8 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                 sEphem.MakeNewKey(true);
             }
 
-            if (r.address.type() == typeid(CStealthAddress)) {
-                CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+            if (r.address.index() == DI::_CStealthAddress) {
+                CStealthAddress sx = std::get<CStealthAddress>(r.address);
 
                 CKey sShared;
                 ec_point pkSendTo;
@@ -3010,8 +3010,8 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                     WalletLogPrintf("Creating blind output to stealth generated address: %s\n", EncodeDestination(pkhash));
                 }
             } else
-            if (r.address.type() == typeid(CExtPubKey)) {
-                CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(r.address));
+            if (r.address.index() == DI::_CExtPubKey) {
+                CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(r.address));
                 uint32_t nDestChildKey;
                 if (0 != ExtKeyGetDestination(ek, r.pkTo, nDestChildKey)) {
                     return wserrorN(1, sError, __func__, "ExtKeyGetDestination failed.");
@@ -3020,9 +3020,9 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                 r.nChildKey = nDestChildKey;
                 r.scriptPubKey = GetScriptForDestination(PKHash(r.pkTo));
             } else
-            if (r.address.type() == typeid(PKHash)) {
+            if (r.address.index() == DI::_PKHash) {
                 // Need a matching public key
-                PKHash pkhash = boost::get<PKHash>(r.address);
+                PKHash pkhash = std::get<PKHash>(r.address);
                 CKeyID idTo = ToKeyID(pkhash);
                 r.scriptPubKey = GetScriptForDestination(PKHash(idTo));
 
@@ -3033,11 +3033,11 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                     return wserrorN(1, sError, __func__, "Mismatched pubkey for address %s.", EncodeDestination(r.address));
                 }
             } else
-            if (r.address.type() == typeid(CKeyID256)) {
+            if (r.address.index() == DI::_CKeyID256) {
                 r.scriptPubKey = GetScriptForDestination(r.address);
 
                 // Need a matching public key
-                CKeyID256 id256 = boost::get<CKeyID256>(r.address);
+                CKeyID256 id256 = std::get<CKeyID256>(r.address);
                 CKeyID idTo(id256);
                 if (!r.pkTo.IsValid() && !GetPubKey(idTo, r.pkTo)) {
                     return wserrorN(1, sError, __func__, "No public key found for address %s.", EncodeDestination(r.address));
@@ -3067,8 +3067,8 @@ int CHDWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, CStore
                 sEphem.MakeNewKey(true);
             }
 
-            if (r.address.type() == typeid(CStealthAddress)) {
-                CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+            if (r.address.index() == DI::_CStealthAddress) {
+                CStealthAddress sx = std::get<CStealthAddress>(r.address);
 
                 CKey sShared;
                 ec_point pkSendTo;
@@ -3194,8 +3194,8 @@ int CHDWallet::AddCTData(const CCoinControl *coinControl, CTxOutBase *txout, CTe
         }
 
         if (coinControl->m_blind_watchonly_visible &&
-            r.address.type() == typeid(CStealthAddress)) {
-            CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+            r.address.index() == DI::_CStealthAddress) {
+            CStealthAddress sx = std::get<CStealthAddress>(r.address);
             uint256 tweak(uint256S("0x444"));
             CKey tweaked = r.sEphem.Add(tweak.begin());
             nonce = tweaked.ECDH(CPubKey(sx.scan_pubkey));
@@ -3286,14 +3286,14 @@ int CHDWallet::PostProcessTempRecipients(std::vector<CTempRecipient> &vecSend)
     for (size_t i = 0; i < vecSend.size(); ++i) {
         CTempRecipient &r = vecSend[i];
 
-        if (r.address.type() == typeid(CExtPubKey)) {
-            CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(r.address));
+        if (r.address.index() == DI::_CExtPubKey) {
+            CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(r.address));
             r.nChildKey+=1;
             ExtKeyUpdateLooseKey(ek, r.nChildKey, true);
         }
 
-        if (r.addressColdStaking.type() == typeid(CExtPubKey)) {
-            CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(r.addressColdStaking));
+        if (r.addressColdStaking.index() == DI::_CExtPubKey) {
+            CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(r.addressColdStaking));
             r.nChildKeyColdStaking+=1;
             ExtKeyUpdateLooseKey(ek, r.nChildKeyColdStaking, false);
         }
@@ -3375,8 +3375,8 @@ bool CTempRecipient::ApplySubFee(CAmount nFee, size_t nSubtractFeeFromAmount, bo
 
 static bool ExpandChangeAddress(CHDWallet *phdw, CTempRecipient &r, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
 {
-    if (r.address.type() == typeid(CStealthAddress)) {
-        CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+    if (r.address.index() == DI::_CStealthAddress) {
+        CStealthAddress sx = std::get<CStealthAddress>(r.address);
 
         CKey sShared;
         ec_point pkSendTo;
@@ -3418,8 +3418,8 @@ static bool ExpandChangeAddress(CHDWallet *phdw, CTempRecipient &r, std::string 
         return true;
     }
 
-    if (r.address.type() == typeid(CExtPubKey)) {
-        CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(r.address));
+    if (r.address.index() == DI::_CExtPubKey) {
+        CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(r.address));
         uint32_t nChildKey;
 
         if (0 != phdw->ExtKeyGetDestination(ek, r.pkTo, nChildKey)) {
@@ -3432,8 +3432,8 @@ static bool ExpandChangeAddress(CHDWallet *phdw, CTempRecipient &r, std::string 
         return true;
     }
 
-    if (r.address.type() == typeid(PKHash)) {
-        PKHash pkhash = boost::get<PKHash>(r.address);
+    if (r.address.index() == DI::_PKHash) {
+        PKHash pkhash = std::get<PKHash>(r.address);
 
         CKeyID idk = ToKeyID(pkhash);
         if (!phdw->GetPubKey(idk, r.pkTo)) {
@@ -3444,7 +3444,7 @@ static bool ExpandChangeAddress(CHDWallet *phdw, CTempRecipient &r, std::string 
         return true;
     }
 
-    if (r.address.type() != typeid(CNoDestination)
+    if (r.address.index() != DI::_CNoDestination
         // TODO OUTPUT_CT?
         && r.nType == OUTPUT_STANDARD) {
         r.scriptPubKey = GetScriptForDestination(r.address);
@@ -3457,7 +3457,7 @@ static bool ExpandChangeAddress(CHDWallet *phdw, CTempRecipient &r, std::string 
 bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r, std::string &sError)
 {
     if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT
-        || r.address.type() == typeid(CStealthAddress)) {
+        || r.address.index() == DI::_CStealthAddress) {
         /*
         // TODO: Make optional
         if (0 != pc->DeriveNextKey(r.sEphem, nChild, true))
@@ -3467,7 +3467,7 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
     }
 
     // coin control: send change to custom address
-    if (coinControl && !boost::get<CNoDestination>(&coinControl->destChange)) {
+    if (coinControl && !std::get_if<CNoDestination>(&coinControl->destChange)) {
         WalletLogPrintf("%s: Set from coincontrol dest.\n", __func__);
         r.address = coinControl->destChange;
         return ExpandChangeAddress(this, r, sError);
@@ -3484,10 +3484,10 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
             if (!ExtractDestination(r.scriptPubKey, r.address)) {
                 return wserrorN(0, sError, __func__, "Could not get pubkey from changescript.");
             }
-            if (r.address.type() != typeid(PKHash)) {
+            if (r.address.index() != DI::_PKHash) {
                 return wserrorN(0, sError, __func__, "Could not get pubkey from changescript.");
             }
-            CKeyID idk = ToKeyID(boost::get<PKHash>(r.address));
+            CKeyID idk = ToKeyID(std::get<PKHash>(r.address));
             if (!GetPubKey(idk, r.pkTo)) {
                 return wserrorN(0, sError, __func__, "Could not get pubkey from changescript.");
             }
@@ -3536,14 +3536,14 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
             std::string sAddress = jsonSettings["coldstakingaddress"].get_str();
 
             CTxDestination destStake = DecodeDestination(sAddress, true);
-            if (destStake.type() == typeid(CNoDestination)) {
+            if (destStake.index() == DI::_CNoDestination) {
                 return wserrorN(0, sError, __func__, "Invalid coldstaking address setting.");
             }
             r.addressColdStaking = destStake;
 
             CScript scriptStaking;
-            if (r.addressColdStaking.type() == typeid(CExtPubKey)) {
-                CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(r.addressColdStaking));
+            if (r.addressColdStaking.index() == DI::_CExtPubKey) {
+                CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(r.addressColdStaking));
                 uint32_t nChildKey;
 
                 CPubKey pkTemp;
@@ -3554,14 +3554,14 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
                 r.nChildKeyColdStaking = nChildKey;
                 scriptStaking = GetScriptForDestination(PKHash(pkTemp));
             } else
-            if (r.addressColdStaking.type() == typeid(PKHash)) {
-                PKHash idk = boost::get<PKHash>(r.addressColdStaking);
+            if (r.addressColdStaking.index() == DI::_PKHash) {
+                PKHash idk = std::get<PKHash>(r.addressColdStaking);
                 scriptStaking = GetScriptForDestination(idk);
             }
 
-            if (r.address.type() == typeid(ScriptHash) ||
-                r.address.type() == typeid(WitnessV0ScriptHash) ||
-                r.address.type() == typeid(CScriptID256)) {
+            if (r.address.index() == DI::_ScriptHash ||
+                r.address.index() == DI::_WitnessV0ScriptHash ||
+                r.address.index() == DI::_CScriptID256) {
                 // Pass through p2sh
             } else {
                 // Switch to sha256 hash
@@ -9169,7 +9169,7 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
     ec_point pkExtracted;
     CKey sSpend;
 
-    CKeyID ckidMatch = ToKeyID(boost::get<PKHash>(address));
+    CKeyID ckidMatch = ToKeyID(std::get<PKHash>(address));
     if (HaveKey(ckidMatch)) {
         CStealthAddress sx;
         if (fNeedShared
@@ -9416,7 +9416,7 @@ int CHDWallet::CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutDat
         const CTxOutStandard *so = (CTxOutStandard*)pb;
         CTxDestination address;
         if (!ExtractDestination(so->scriptPubKey, address)
-            || address.type() != typeid(PKHash)) {
+            || address.index() != DI::_PKHash) {
             WalletLogPrintf("%s: ExtractDestination failed.\n",  __func__);
             return -1;
         }
@@ -9516,7 +9516,7 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
 
             CTxDestination address;
             if (!ExtractDestination(ctout->scriptPubKey, address)
-                || address.type() != typeid(PKHash)) {
+                || address.index() != DI::_PKHash) {
                 WalletLogPrintf("%s: ExtractDestination failed.\n", __func__);
                 continue;
             }
@@ -12223,16 +12223,16 @@ bool CHDWallet::GetScriptForAddress(CScript &script, const CBitcoinAddress &addr
     LOCK(cs_wallet);
 
     CTxDestination dest = addr.Get();
-    if (allow_stakeonly && dest.type() == typeid(CNoDestination())) {
+    if (allow_stakeonly && dest.index() == DI::_CNoDestination) {
         dest = addr.GetStakeOnly();
     }
 
-    if (dest.type() == typeid(CStealthAddress)) {
+    if (dest.index() == DI::_CStealthAddress) {
         if (!vData) {
             return werror("%s: StealthAddress, vData is null .", __func__);
         }
 
-        CStealthAddress sx = boost::get<CStealthAddress>(dest);
+        CStealthAddress sx = std::get<CStealthAddress>(dest);
         std::vector<CTempRecipient> vecSend;
         std::string strError;
         CTempRecipient r;
@@ -12247,8 +12247,8 @@ bool CHDWallet::GetScriptForAddress(CScript &script, const CBitcoinAddress &addr
         script = vecSend[0].scriptPubKey;
         *vData = vecSend[1].vData;
     } else
-    if (dest.type() == typeid(CExtPubKey)) {
-        CExtKeyPair ek = CExtKeyPair(boost::get<CExtPubKey>(dest));
+    if (dest.index() == DI::_CExtPubKey) {
+        CExtKeyPair ek = CExtKeyPair(std::get<CExtPubKey>(dest));
         uint32_t nChildKey;
 
         CPubKey pkTemp;
@@ -12263,8 +12263,8 @@ bool CHDWallet::GetScriptForAddress(CScript &script, const CBitcoinAddress &addr
 
         script = GetScriptForDestination(PKHash(pkTemp));
     } else
-    if (dest.type() == typeid(PKHash)) {
-        PKHash idk = boost::get<PKHash>(dest);
+    if (dest.index() == DI::_PKHash) {
+        PKHash idk = std::get<PKHash>(dest);
         script = GetScriptForDestination(idk);
     } else {
         return werror("%s: Unknown destination type.", __func__);
@@ -12776,7 +12776,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             outDevSplit->nValue = nDevCfwd;
 
             CTxDestination dfDest = CBitcoinAddress(pDevFundSettings->sDevFundAddresses).Get();
-            if (dfDest.type() == typeid(CNoDestination)) {
+            if (dfDest.index() == DI::_CNoDestination) {
                 return werror("%s: Failed to get foundation fund destination: %s.", __func__, pDevFundSettings->sDevFundAddresses);
             }
             outDevSplit->scriptPubKey = GetScriptForDestination(dfDest);

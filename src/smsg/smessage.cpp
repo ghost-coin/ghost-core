@@ -4121,8 +4121,8 @@ int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
             if (!pactive_wallet->IsMine(entry.first)) {
                 continue;
             }
-            if (entry.first.type() == typeid(PKHash)) {
-                addressOutbox = ToKeyID(boost::get<PKHash>(entry.first));
+            if (entry.first.index() == DI::_PKHash) {
+                addressOutbox = ToKeyID(std::get<PKHash>(entry.first));
                 break;
             }
         }

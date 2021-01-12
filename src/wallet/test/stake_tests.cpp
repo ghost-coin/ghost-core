@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     {
         LOCK(pwallet->cs_wallet);
         CTxDestination addr = DecodeDestination("pdtYqn1fBVpgRa6Am6VRRLH8fkrFr1TuDq");
-        CKeyID idk = ToKeyID(boost::get<PKHash>(addr));
+        CKeyID idk = ToKeyID(std::get<PKHash>(addr));
         BOOST_CHECK(pwallet->IsMine(idk) == ISMINE_SPENDABLE);
 
         const CEKAKey *pak = nullptr;

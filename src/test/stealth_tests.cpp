@@ -162,8 +162,8 @@ BOOST_AUTO_TEST_CASE(stealth_key_address)
 
         CTxDestination dest = addrC.Get();
 
-        BOOST_CHECK(dest.type() == typeid(CStealthAddress));
-        CStealthAddress sxAddrOut = boost::get<CStealthAddress>(dest);
+        BOOST_CHECK(dest.index() == DI::_CStealthAddress);
+        CStealthAddress sxAddrOut = std::get<CStealthAddress>(dest);
 
         BOOST_CHECK(sxAddrOut == sxAddr);
         BOOST_CHECK(sxAddrOut.Encoded() == sxAddr.Encoded());

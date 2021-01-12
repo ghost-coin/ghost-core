@@ -97,7 +97,7 @@ static RPCHelpMan validateaddress()
             } else {
                 ret.pushKV("bech32_address", EncodeDestination(dest, true));
             }
-            if (dest.type() == typeid(PKHash)) {
+            if (dest.index() == DI::_PKHash) {
                 ret.pushKV("stakeonly_address", EncodeDestination(dest, true, true));
             }
         }

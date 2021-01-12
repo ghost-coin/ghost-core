@@ -460,8 +460,8 @@ void RunSerialiseTests()
     BOOST_CHECK(addr.IsValid(CChainParams::EXT_PUBLIC_KEY) == true);
     BOOST_CHECK(addr.ToString() == "PPARTKMMf4AUDYzRSBcXSJZALbUXgWKHi6qdpy95yBmABuznU3keHFyNHfjaMT33ehuYwjx3RXort1j8d9AYnqyhAvdN168J4GBsM2ZHuTb91rsj");
     dest = addr.Get();
-    BOOST_CHECK(dest.type() == typeid(CExtPubKey));
-    kpT = CExtKeyPair(boost::get<CExtPubKey>(dest));
+    BOOST_CHECK(dest.index() == DI::_CExtPubKey);
+    kpT = CExtKeyPair(std::get<CExtPubKey>(dest));
     BOOST_CHECK(kpT == kp);
 
 
@@ -489,8 +489,8 @@ void RunSerialiseTests()
     BOOST_CHECK(addr.IsValid(CChainParams::EXT_PUBLIC_KEY) == true);
     BOOST_CHECK(addr.ToString() == "pparszDdEByd5kvHotS5WeLAiv5gp7b1YfUTs31TmudPuf1dHtos22oNJPmHT2NKyysyfqN56nFPVkUwZjPhK5zqLMucuT8g9dHXjnjsKufeSuVm");
     dest = addr.Get();
-    BOOST_CHECK(dest.type() == typeid(CExtPubKey));
-    kpT = CExtKeyPair(boost::get<CExtPubKey>(dest));
+    BOOST_CHECK(dest.index() == DI::_CExtPubKey);
+    kpT = CExtKeyPair(std::get<CExtPubKey>(dest));
     BOOST_CHECK(kpT == kp);
 
     // Return to mainnet

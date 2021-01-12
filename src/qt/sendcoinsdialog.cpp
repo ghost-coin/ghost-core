@@ -358,7 +358,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
             sCoinControl += ",\"conf_target\":" + QString::number(*m_coin_control->m_confirm_target);
     }
 
-    if (!boost::get<CNoDestination>(&m_coin_control->destChange)) {
+    if (!std::get_if<CNoDestination>(&m_coin_control->destChange)) {
         sCoinControl += ",\"changeaddress\":\""+QString::fromStdString(EncodeDestination(m_coin_control->destChange))+"\"";
     }
 

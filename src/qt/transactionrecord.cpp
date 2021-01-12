@@ -59,7 +59,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     }
                 }
             } else {
-                if (address.type() == typeid(CNoDestination)) {
+                if (std::get_if<CNoDestination>(&address)) {
                     ExtractDestination(r.scriptPubKey, address);
                 }
             }
@@ -82,7 +82,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             }
         }
 
-        if (address.type() != typeid(CNoDestination)) {
+        if (!std::get_if<CNoDestination>(&address)) {
             sub.address = EncodeDestination(address);
         }
         if (sub.debit != 0) {
@@ -244,7 +244,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     continue;
                 }
 
-                if (!boost::get<CNoDestination>(&wtx.txout_address[nOut]))
+                if (!std::get_if<CNoDestination>(&wtx.txout_address[nOut]))
                 {
                     // Sent to Bitcoin Address
                     sub.type = TransactionRecord::SendToAddress;

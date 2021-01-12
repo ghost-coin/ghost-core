@@ -135,29 +135,25 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             CScript scriptPubKey = GetScriptForDestination(destination);
             CAmount nAmount = AmountFromValue(outputs[name_]);
 
-            if (fParticlMode)
-            {
+            if (fParticlMode) {
                 OUTPUT_PTR<CTxOutStandard> out = MAKE_OUTPUT<CTxOutStandard>();
                 out->nValue = nAmount;
-                if (destination.type() == typeid(CStealthAddress))
-                {
-                    CStealthAddress sx = boost::get<CStealthAddress>(destination);
+                CStealthAddress *psx = std::get_if<CStealthAddress>(&destination);
+                if (psx) {
                     OUTPUT_PTR<CTxOutData> outData = MAKE_OUTPUT<CTxOutData>();
-                    std::string sNarration;
-                    std::string sError;
-                    if (0 != PrepareStealthOutput(sx, sNarration, scriptPubKey, outData->vData, sError))
+                    std::string sNarration, sError;
+                    if (0 != PrepareStealthOutput(*psx, sNarration, scriptPubKey, outData->vData, sError)) {
                         throw JSONRPCError(RPC_INTERNAL_ERROR, std::string("PrepareStealthOutput failed: ") + sError);
+                    }
 
                     out->scriptPubKey = scriptPubKey;
                     rawTx.vpout.push_back(std::move(out));
                     rawTx.vpout.push_back(std::move(outData));
-                } else
-                {
+                } else {
                     out->scriptPubKey = scriptPubKey;
                     rawTx.vpout.push_back(std::move(out));
-                };
-            } else
-            {
+                }
+            } else {
                 CTxOut out(nAmount, scriptPubKey);
                 rawTx.vout.push_back(out);
             }

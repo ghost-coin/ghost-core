@@ -396,12 +396,11 @@ static void MutateTxAddOutAddr(CMutableTransaction& tx, const std::string& strIn
 
     // construct TxOut, append to transaction output list
     if (tx.IsParticlVersion()) {
-        if (destination.type() == typeid(CStealthAddress)) {
-            CStealthAddress sx = boost::get<CStealthAddress>(destination);
+        CStealthAddress *psx = std::get_if<CStealthAddress>(&destination);
+        if (psx) {
             OUTPUT_PTR<CTxOutData> outData = MAKE_OUTPUT<CTxOutData>();
-            std::string sNarration;
-            std::string sError;
-            if (0 != PrepareStealthOutput(sx, sNarration, scriptPubKey, outData->vData, sError))
+            std::string sNarration, sError;
+            if (0 != PrepareStealthOutput(*psx, sNarration, scriptPubKey, outData->vData, sError))
                 throw std::runtime_error(std::string("PrepareStealthOutput failed: ") + sError);
 
             tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(value, scriptPubKey));

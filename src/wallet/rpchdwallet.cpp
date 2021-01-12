@@ -1291,7 +1291,7 @@ static RPCHelpMan extkey()
             fAccount = true;
         } else
         if (addr.IsValid(CChainParams::EXT_PUBLIC_KEY)) {
-            CExtPubKey ek = boost::get<CExtPubKey>(addr.Get());
+            CExtPubKey ek = std::get<CExtPubKey>(addr.Get());
 
             id = ek.GetID();
 
@@ -2634,7 +2634,7 @@ static bool ParseOutput(
             return false;
         }
     }
-    if (o.destStake.type() != typeid(CNoDestination)) {
+    if (!std::get_if<CNoDestination>(&o.destStake)) {
         output.pushKV("coldstake_address", EncodeDestination(o.destStake));
     }
     auto mi = pwallet->m_address_book.find(o.destination);
@@ -2749,9 +2749,9 @@ static void ParseOutputs(
                 )) {
                     return ;
                 }
-                if (r.destination.type() == typeid(PKHash)) {
+                if (r.destination.index() == DI::_PKHash) {
                     CStealthAddress sx;
-                    CKeyID idK = ToKeyID(boost::get<PKHash>(r.destination));
+                    CKeyID idK = ToKeyID(std::get<PKHash>(r.destination));
                     if (pwallet->GetStealthLinked(idK, sx)) {
                         output.pushKV("stealth_address", sx.Encoded(fBech32));
                     }
@@ -2957,8 +2957,8 @@ static void ParseRecords(
                 }
             }
         } else {
-            if (extracted && dest.type() == typeid(PKHash)) {
-                CKeyID idK = ToKeyID(boost::get<PKHash>(dest));
+            if (extracted && dest.index() == DI::_PKHash) {
+                CKeyID idK = ToKeyID(std::get<PKHash>(dest));
                 if (pwallet->GetStealthLinked(idK, sx)) {
                     output.__pushKV("stealth_address", sx.Encoded());
                     addresses.push_back(sx.Encoded());
@@ -2966,7 +2966,7 @@ static void ParseRecords(
             }
         }
 
-        if (extracted && dest.type() == typeid(CNoDestination)) {
+        if (extracted && dest.index() == DI::_CNoDestination) {
             output.__pushKV("address", "none");
         } else if (extracted) {
             output.__pushKV("address", addr.ToString());
@@ -3302,7 +3302,7 @@ static RPCHelpMan filtertransactions()
         const auto v = Params().GetDevFundSettings();
         for (const auto &s : v) {
             CTxDestination dfDest = CBitcoinAddress(s.second.sDevFundAddresses).Get();
-            if (dfDest.type() == typeid(CNoDestination)) {
+            if (dfDest.index() == DI::_CNoDestination) {
                 continue;
             }
             CScript script = GetScriptForDestination(dfDest);
@@ -4060,7 +4060,7 @@ static RPCHelpMan getcoldstakinginfo()
     obj.pushKV("enabled", fEnabled);
     if (addrColdStaking.IsValid(CChainParams::EXT_PUBLIC_KEY)) {
         CTxDestination dest = addrColdStaking.Get();
-        CExtPubKey kp = boost::get<CExtPubKey>(dest);
+        CExtPubKey kp = std::get<CExtPubKey>(dest);
         CKeyID idk = kp.GetID();
         CBitcoinAddress addr;
         addr.Set(idk, CChainParams::EXT_KEY_HASH);
@@ -4460,9 +4460,9 @@ static RPCHelpMan listunspentblind()
                 entry.pushKV("label", i->second.GetLabel());
             }
 
-            if (address.type() == typeid(PKHash)) {
+            if (address.index() == DI::_PKHash) {
                 CStealthAddress sx;
-                CKeyID idk = ToKeyID(boost::get<PKHash>(address));
+                CKeyID idk = ToKeyID(std::get<PKHash>(address));
                 if (pwallet->GetStealthLinked(idk, sx)) {
                     entry.pushKV("stealth_address", sx.Encoded());
                     if (!entry.exists("label")) {
@@ -4476,13 +4476,13 @@ static RPCHelpMan listunspentblind()
 
             std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(*scriptPubKey);
             if (scriptPubKey->IsPayToScriptHash()) {
-                const CScriptID& hash = CScriptID(boost::get<ScriptHash>(address));
+                const CScriptID& hash = CScriptID(std::get<ScriptHash>(address));
                 CScript redeemScript;
                 if (provider->GetCScript(hash, redeemScript))
                     entry.pushKV("redeemScript", HexStr(redeemScript));
             } else
             if (scriptPubKey->IsPayToScriptHash256()) {
-                const CScriptID256& hash = boost::get<CScriptID256>(address);
+                const CScriptID256& hash = std::get<CScriptID256>(address);
                 CScriptID scriptID;
                 scriptID.Set(hash);
                 CScript redeemScript;
@@ -5152,12 +5152,12 @@ static UniValue createsignatureinner(const JSONRPCRequest &request, CHDWallet *c
             CTxDestination redeemDest;
             std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(scriptPubKey);
             if (ExtractDestination(scriptPubKey, redeemDest)) {
-                if (redeemDest.type() == typeid(ScriptHash)) {
-                    const CScriptID& scriptID = CScriptID(boost::get<ScriptHash>(redeemDest));
+                if (redeemDest.index() == DI::_ScriptHash) {
+                    const CScriptID& scriptID = CScriptID(std::get<ScriptHash>(redeemDest));
                     provider->GetCScript(scriptID, scriptRedeem);
                 } else
-                if (redeemDest.type() == typeid(CScriptID256)) {
-                    const CScriptID256& hash = boost::get<CScriptID256>(redeemDest);
+                if (redeemDest.index() == DI::_CScriptID256) {
+                    const CScriptID256& hash = std::get<CScriptID256>(redeemDest);
                     CScriptID scriptID;
                     scriptID.Set(hash);
                     provider->GetCScript(scriptID, scriptRedeem);
@@ -5178,8 +5178,8 @@ static UniValue createsignatureinner(const JSONRPCRequest &request, CHDWallet *c
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
         }
 
-        if (destSign.type() == typeid(PKHash)) {
-            idSign = ToKeyID(boost::get<PKHash>(destSign));
+        if (destSign.index() == DI::_PKHash) {
+            idSign = ToKeyID(std::get<PKHash>(destSign));
         } else {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unsupported signing key type.");
         }
@@ -5812,7 +5812,7 @@ static RPCHelpMan walletsettings()
                 }
 
                 CBitcoinAddress addr(json["rewardaddress"].get_str());
-                if (!addr.IsValid() || addr.Get().type() == typeid(CNoDestination)) {
+                if (!addr.IsValid() || addr.Get().index() == DI::_CNoDestination) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid rewardaddress.");
                 }
             } else
@@ -5990,7 +5990,7 @@ static RPCHelpMan derivefromstealthaddress()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Must input a stealthaddress.");
     }
 
-    CStealthAddress sx = boost::get<CStealthAddress>(addr.Get());
+    CStealthAddress sx = std::get<CStealthAddress>(addr.Get());
 
 
     UniValue result(UniValue::VOBJ);
@@ -6400,7 +6400,7 @@ return RPCHelpMan{"buildscript",
         if (!IsValidDestination(destSpend)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid addrspend.");
         }
-        if (destSpend.type() == typeid(PKHash)) {
+        if (destSpend.index() == DI::_PKHash) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid addrspend, can't be p2pkh.");
         }
 

@@ -472,8 +472,8 @@ bool TxIndex::AppendCSAddress(std::string addr)
 {
     CTxDestination dest = DecodeDestination(addr);
 
-    if (dest.type() == typeid(PKHash)) {
-        PKHash id = boost::get<PKHash>(dest);
+    if (dest.index() == DI::_PKHash) {
+        PKHash id = std::get<PKHash>(dest);
         valtype vSolution;
         vSolution.resize(20);
         memcpy(vSolution.data(), id.begin(), 20);
@@ -481,8 +481,8 @@ bool TxIndex::AppendCSAddress(std::string addr)
         return true;
     }
 
-    if (dest.type() == typeid(CKeyID256)) {
-        CKeyID256 id256 = boost::get<CKeyID256>(dest);
+    if (dest.index() == DI::_CKeyID256) {
+        CKeyID256 id256 = std::get<CKeyID256>(dest);
         valtype vSolution;
         vSolution.resize(32);
         memcpy(vSolution.data(), id256.begin(), 32);
