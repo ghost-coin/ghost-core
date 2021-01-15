@@ -16,6 +16,10 @@ if BUILD_BITCOIN_TX
   dist_man1_MANS+=particl-tx.1
 endif
 
+if BUILD_BITCOIN_UTIL
+  dist_man1_MANS+=particl-util.1
+endif
+
 if ENABLE_WALLET
 if BUILD_BITCOIN_WALLET
   dist_man1_MANS+=particl-wallet.1

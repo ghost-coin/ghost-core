@@ -23,6 +23,7 @@
 #include <txdb.h>
 #include <versionbits.h>
 #include <serialize.h>
+#include <util/hasher.h>
 
 #include <atomic>
 #include <map>
@@ -101,8 +102,7 @@ static const unsigned int DEFAULT_CHECKLEVEL = 3;
 // Setting the target to >= 550 MiB will make it likely we can respect the target.
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
-
-// Particl
+/** Particl */
 static const bool DEFAULT_CSINDEX = false;
 static const bool DEFAULT_ADDRESSINDEX = false;
 static const bool DEFAULT_TIMESTAMPINDEX = false;
@@ -110,15 +110,6 @@ static const bool DEFAULT_SPENTINDEX = false;
 static const unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
 static const bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
 static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
-
-
-struct BlockHasher
-{
-    // this used to call `GetCheapHash()` in uint256, which was later moved; the
-    // cheap hash function simply calls ReadLE64() however, so the end result is
-    // identical
-    size_t operator()(const uint256& hash) const { return ReadLE64(hash.begin()); }
-};
 
 /** Current sync state passed to tip changed callbacks. */
 enum class SynchronizationState {
