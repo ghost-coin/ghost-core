@@ -113,7 +113,7 @@ endif
 endif
 
 if BUILD_BITCOIN_UTIL
-  bin_PROGRAMS += bitcoin-util
+  bin_PROGRAMS += particl-util
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -836,16 +836,16 @@ endif
 #
 
 # bitcoin-util binary #
-bitcoin_util_SOURCES = bitcoin-util.cpp
-bitcoin_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-bitcoin_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+particl_util_SOURCES = bitcoin-util.cpp
+particl_util_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+particl_util_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+particl_util_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-bitcoin_util_SOURCES += bitcoin-util-res.rc
+particl_util_SOURCES += bitcoin-util-res.rc
 endif
 
-bitcoin_util_LDADD = \
+particl_util_LDADD = \
   $(LIBPARTICL_COMMON) \
   $(LIBPARTICL_UTIL) \
   $(LIBUNIVALUE) \
@@ -853,7 +853,7 @@ bitcoin_util_LDADD = \
   $(LIBPARTICL_CRYPTO) \
   $(LIBSECP256K1)
 
-bitcoin_util_LDADD += $(BOOST_LIBS)
+particl_util_LDADD += $(BOOST_LIBS)
 #
 
 # bitcoinconsensus library #
