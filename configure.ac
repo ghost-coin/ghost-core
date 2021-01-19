@@ -134,6 +134,12 @@ AC_ARG_WITH([bdb],
   [use_bdb=$withval],
   [use_bdb=auto])
 
+AC_ARG_ENABLE([ebpf],
+  [AS_HELP_STRING([--enable-ebpf],
+  [enable eBPF tracing (default is yes if sys/sdt.h is found)])],
+  [use_ebpf=$enableval],
+  [use_ebpf=yes])
+
 AC_ARG_ENABLE([usbdevice],
   [AS_HELP_STRING([--enable-usbdevice],
   [enable usbdevice (disabled by default)])],
@@ -1310,6 +1316,16 @@ if test x$enable_wallet != xno; then
     fi
 fi
 
+if test x$use_ebpf != xno; then
+  AC_CHECK_HEADER([sys/sdt.h], [have_sdt=yes], [have_sdt=no])
+else
+  have_sdt=no
+fi
+
+if test x$have_sdt = xyes; then
+  AC_DEFINE([ENABLE_TRACING], [1], [Define to 1 to enable eBPF user static defined tracepoints])
+fi
+
 dnl Check for libminiupnpc (optional)
 if test x$use_upnp != xno; then
   AC_CHECK_HEADERS(
@@ -1780,6 +1796,7 @@ AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([USE_SQLITE], [test "x$use_sqlite" = "xyes"])
 AM_CONDITIONAL([USE_BDB], [test "x$use_bdb" = "xyes"])
+AM_CONDITIONAL([ENABLE_TRACING],[test x$have_sdt = xyes])
 AM_CONDITIONAL([ENABLE_USBDEVICE],[test x$enable_usbdevice = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_FUZZ],[test x$enable_fuzz = xyes])
@@ -1953,6 +1970,7 @@ echo "  with bench    = $use_bench"
 echo "  with upnp     = $use_upnp"
 echo "  with natpmp   = $use_natpmp"
 echo "  use asm       = $use_asm"
+echo "  ebpf tracing  = $have_sdt"
 echo "  sanitizers    = $use_sanitizers"
 echo "  debug enabled = $enable_debug"
 echo "  gprof enabled = $enable_gprof"
