@@ -6,6 +6,7 @@ Versions of Particl Core that are currently supported with security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.21    | :white_check_mark: |
 | 0.19    | :white_check_mark: |
 | 0.18    | :white_check_mark: |
 | < 0.18  | :x:                |
