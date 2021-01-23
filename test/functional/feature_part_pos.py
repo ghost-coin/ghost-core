@@ -42,7 +42,7 @@ class PosTest(ParticlTestFramework):
         [nodes[0].sendtoaddress(addrTo256, 1000) for i in range(4)]
 
         self.log.info('Test reserve balance')
-        nodes[0].walletsettings('stakelimit', {'height':1})
+        nodes[0].walletsettings('stakelimit', {'height': 1})
         assert(isclose(nodes[0].getwalletinfo()['reserve'], 10000000.0))
 
         ro = nodes[0].reservebalance(True, 100)
@@ -88,12 +88,12 @@ class PosTest(ParticlTestFramework):
 
 
         addrReward = nodes[0].getnewaddress()
-        ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress':addrReward})
+        ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress': addrReward})
         assert(ro['stakingoptions']['rewardaddress'] == addrReward)
 
         addrReward_stakeonly = nodes[0].validateaddress(addrReward, True)['stakeonly_address']
         try:
-            ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress':addrReward_stakeonly})
+            ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress': addrReward_stakeonly})
             raise AssertionError('Should have failed.')
         except JSONRPCException as e:
             assert('Invalid rewardaddress' in e.error['message'])
@@ -116,7 +116,7 @@ class PosTest(ParticlTestFramework):
         assert(fFound)
 
         self.log.info('Test staking pkh256 outputs')
-        nodes[2].walletsettings('stakelimit', {'height':1})
+        nodes[2].walletsettings('stakelimit', {'height': 1})
         nodes[2].reservebalance(False)
         assert(nodes[2].getstakinginfo()['weight'] == 400000000000)
 
@@ -124,7 +124,7 @@ class PosTest(ParticlTestFramework):
 
         self.log.info('Test rewardaddress')
         addrRewardExt = nodes[0].getnewextaddress()
-        ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress':addrRewardExt})
+        ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress': addrRewardExt})
         assert(ro['stakingoptions']['rewardaddress'] == addrRewardExt)
         self.stakeBlocks(1)
         block5_hash = nodes[0].getblockhash(5)
@@ -146,7 +146,7 @@ class PosTest(ParticlTestFramework):
 
 
         addrRewardSx = nodes[0].getnewstealthaddress()
-        ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress':addrRewardSx})
+        ro = nodes[0].walletsettings('stakingoptions', {'rewardaddress': addrRewardSx})
         assert(ro['stakingoptions']['rewardaddress'] == addrRewardSx)
         self.stakeBlocks(1)
         block6_hash = nodes[0].getblockhash(6)

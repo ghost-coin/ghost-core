@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 tecnovert
+# Copyright (c) 2020-2021 tecnovert
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -102,6 +102,29 @@ class DevFundTest(ParticlTestFramework):
 
         block12_header = nodes[0].getblockheader(nodes[0].getblockhash(12))
         assert(abs((block12_header['moneysupply'] * COIN - base_supply) - expect_created) < 10)
+
+        self.log.info('Test foundationdonationpercent option')
+        staking_opts['foundationdonationpercent'] = 50
+        nodes[0].walletsettings('stakingoptions', staking_opts)
+        nodes[0].walletsettings('stakelimit', {'height': 13})
+
+        si = nodes[0].getstakinginfo()
+        assert(si['walletfoundationdonationpercent'] == 50)
+        self.wait_for_height(nodes[0], 13)
+        block_reward_13 = nodes[0].getblockreward(13)
+        assert(block_reward_13['stakereward'] * COIN == expect_reward)
+        assert(block_reward_13['blockreward'] * COIN == expect_reward - ((expect_reward * 50) // 100))
+
+        # A value below 10% is accepted and ignored.
+        staking_opts['foundationdonationpercent'] = 2
+        nodes[0].walletsettings('stakingoptions', staking_opts)
+        nodes[0].walletsettings('stakelimit', {'height': 14})
+        si = nodes[0].getstakinginfo()
+        assert(si['walletfoundationdonationpercent'] == 2)
+        self.wait_for_height(nodes[0], 14)
+        block_reward_14 = nodes[0].getblockreward(14)
+        assert(block_reward_14['stakereward'] * COIN == expect_reward)
+        assert(block_reward_14['blockreward'] * COIN == expect_reward - ((expect_reward * 10) // 100))
 
 
 if __name__ == '__main__':
