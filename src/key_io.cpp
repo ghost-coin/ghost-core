@@ -13,6 +13,9 @@
 #include <assert.h>
 #include <string.h>
 
+/// Maximum witness length for Bech32 addresses.
+static constexpr std::size_t BECH32_WITNESS_PROG_MAX_LEN = 40;
+
 namespace {
 class DestinationEncoder
 {
@@ -89,8 +92,9 @@ public:
     std::string operator()(const CScriptID256& id) const { return CBitcoinAddress(id, m_bech32).ToString(); }
 };
 
-static CTxDestination DecodeDestination(const std::string& str, const CChainParams& params, bool allow_stake_only=false)
+static CTxDestination DecodeDestination(const std::string& str, const CChainParams& params, std::string& error_str, bool allow_stake_only=false)
 {
+    error_str = "";
     CBitcoinAddress addr(str);
     if (addr.IsValid()) {
         if (allow_stake_only && addr.getVchVersion() == params.Bech32Prefix(CChainParams::STAKE_ONLY_PKADDR)) {
@@ -121,14 +125,25 @@ static CTxDestination DecodeDestination(const std::string& str, const CChainPara
         const std::vector<unsigned char>& stealth_prefix = params.Base58Prefix(CChainParams::STEALTH_ADDRESS);
         if (data.size() > stealth_prefix.size() && std::equal(stealth_prefix.begin(), stealth_prefix.end(), data.begin())) {
             CStealthAddress sx;
-            if (0 == sx.FromRaw(data.data()+stealth_prefix.size(), data.size()))
+            if (0 == sx.FromRaw(data.data()+stealth_prefix.size(), data.size())) {
                 return sx;
+            }
             return CNoDestination();
         }
+        // Set potential error message.
+        // This message may be changed if the address can also be interpreted as a Bech32 address.
+        error_str = "Invalid prefix for Base58-encoded address";
     }
     data.clear();
     auto bech = bech32::Decode(str);
-    if (bech.second.size() > 0 && bech.first == params.Bech32HRP()) {
+    if (bech.second.size() > 0) {
+        error_str = "";
+
+        if (bech.first != params.Bech32HRP()) {
+            error_str = "Invalid prefix for Bech32 address";
+            return CNoDestination();
+        }
+
         // Bech32 decoding
         int version = bech.second[0]; // The first 5 bit symbol is the witness version (0-16)
         // The rest of the symbols are converted witness program bytes.
@@ -149,11 +164,21 @@ static CTxDestination DecodeDestination(const std::string& str, const CChainPara
                         return scriptid;
                     }
                 }
+
+                error_str = "Invalid Bech32 v0 address data size";
                 return CNoDestination();
             }
-            if (version > 16 || data.size() < 2 || data.size() > 40) {
+
+            if (version > 16) {
+                error_str = "Invalid Bech32 address witness version";
                 return CNoDestination();
             }
+
+            if (data.size() < 2 || data.size() > BECH32_WITNESS_PROG_MAX_LEN) {
+                error_str = "Invalid Bech32 address data size";
+                return CNoDestination();
+            }
+
             WitnessUnknown unk;
             unk.version = version;
             std::copy(data.begin(), data.end(), unk.program);
@@ -161,6 +186,10 @@ static CTxDestination DecodeDestination(const std::string& str, const CChainPara
             return unk;
         }
     }
+
+    // Set error message if address can't be interpreted as Base58 or Bech32.
+    if (error_str.empty()) error_str = "Invalid address format";
+
     return CNoDestination();
 }
 } // namespace
@@ -248,14 +277,21 @@ std::string EncodeDestination(const CTxDestination& dest, bool fBech32, bool sta
     return std::visit(DestinationEncoder(Params(), fBech32, stake_only), dest);
 }
 
+CTxDestination DecodeDestination(const std::string& str, std::string& error_msg, bool allow_stake_only)
+{
+    return DecodeDestination(str, Params(), error_msg, allow_stake_only);
+}
+
 CTxDestination DecodeDestination(const std::string& str, bool allow_stake_only)
 {
-    return DecodeDestination(str, Params(), allow_stake_only);
+    std::string error_msg;
+    return DecodeDestination(str, Params(), error_msg, allow_stake_only);
 }
 
 bool IsValidDestinationString(const std::string& str, const CChainParams& params, bool allow_stake_only)
 {
-    return IsValidDestination(DecodeDestination(str, params, allow_stake_only));
+    std::string err_str;
+    return IsValidDestination(DecodeDestination(str, params, err_str, allow_stake_only));
 }
 
 bool IsValidDestinationString(const std::string& str, bool allow_stake_only)

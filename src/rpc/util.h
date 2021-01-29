@@ -92,6 +92,7 @@ CTxDestination AddAndGetMultisigDestination(const int required, const std::vecto
 UniValue DescribeAddress(const CTxDestination& dest);
 
 bool GetBool(const UniValue &uv);
+uint32_t GetUInt32(const UniValue &uv);
 
 //! Parse a confirm target option and raise an RPC error if it is invalid.
 unsigned int ParseConfirmTarget(const UniValue& value, unsigned int max_target);
@@ -340,6 +341,8 @@ public:
     RPCHelpMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples, RPCMethodImpl fun);
 
     std::string ToString() const;
+    /** Append the named args that need to be converted from string to another JSON type */
+    void AppendArgMap(UniValue& arr) const;
     UniValue HandleRequest(const JSONRPCRequest& request)
     {
         Check(request);

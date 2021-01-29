@@ -9,12 +9,14 @@
 #include <qt/createwalletdialog.h>
 #include <qt/forms/ui_createwalletdialog.h>
 
+#include <qt/guiutil.h>
+
 #include <QPushButton>
 
 extern bool fParticlMode;
 
 CreateWalletDialog::CreateWalletDialog(QWidget* parent) :
-    QDialog(parent),
+    QDialog(parent, GUIUtil::dialog_flags),
     ui(new Ui::CreateWalletDialog)
 {
     ui->setupUi(this);

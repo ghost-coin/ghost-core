@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2394,35 +2394,35 @@ static RPCHelpMan smsgdebug()
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "smsg",               "smsgenable",             &smsgenable,             {"walletname"} },
-    { "smsg",               "smsgsetwallet",          &smsgsetwallet,          {"walletname"} },
-    { "smsg",               "smsgdisable",            &smsgdisable,            {} },
-    { "smsg",               "smsgoptions",            &smsgoptions,            {"mode","optname","value"} },
-    { "smsg",               "smsglocalkeys",          &smsglocalkeys,          {"mode","optype","address"} },
-    { "smsg",               "smsgscanchain",          &smsgscanchain,          {} },
-    { "smsg",               "smsgscanbuckets",        &smsgscanbuckets,        {"options"} },
-    { "smsg",               "smsgaddaddress",         &smsgaddaddress,         {"address","pubkey"} },
-    { "smsg",               "smsgaddlocaladdress",    &smsgaddlocaladdress,    {"address"} },
-    { "smsg",               "smsgimportprivkey",      &smsgimportprivkey,      {"privkey","label"} },
-    { "smsg",               "smsgdumpprivkey",        &smsgdumpprivkey,        {"address"} },
-    { "smsg",               "smsggetpubkey",          &smsggetpubkey,          {"address"} },
-    { "smsg",               "smsgsend",               &smsgsend,               {"address_from","address_to","message","paid_msg","days_retention","testfee","options","coin_control"} },
-    { "smsg",               "smsgsendanon",           &smsgsendanon,           {"address_to","message"} },
-    { "smsg",               "smsginbox",              &smsginbox,              {"mode","filter","options"} },
-    { "smsg",               "smsgoutbox",             &smsgoutbox,             {"mode","filter","options"} },
-    { "smsg",               "smsgbuckets",            &smsgbuckets,            {"mode"} },
-    { "smsg",               "smsgview",               &smsgview,               {"arg1","arg2","arg3","arg4"}},
-    { "smsg",               "smsg",                   &smsgone,                {"msgid","options"}},
-    { "smsg",               "smsgimport",             &smsgimport,             {"msg","options"}},
-    { "smsg",               "smsgpurge",              &smsgpurge,              {"msgid"}},
-    { "smsg",               "smsggetfeerate",         &smsggetfeerate,         {"height"}},
-    { "smsg",               "smsggetdifficulty",      &smsggetdifficulty,      {"time"}},
-    { "smsg",               "smsggetinfo",            &smsggetinfo,            {}},
-    { "smsg",               "smsgpeers",              &smsgpeers,              {"index"}},
-    { "smsg",               "smsgzmqpush",            &smsgzmqpush,            {"options"}},
-    { "smsg",               "smsgdebug",              &smsgdebug,              {"command","arg1"}},
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "smsg",               &smsgenable                 },
+    { "smsg",               &smsgsetwallet              },
+    { "smsg",               &smsgdisable                },
+    { "smsg",               &smsgoptions                },
+    { "smsg",               &smsglocalkeys              },
+    { "smsg",               &smsgscanchain              },
+    { "smsg",               &smsgscanbuckets            },
+    { "smsg",               &smsgaddaddress             },
+    { "smsg",               &smsgaddlocaladdress        },
+    { "smsg",               &smsgimportprivkey          },
+    { "smsg",               &smsgdumpprivkey            },
+    { "smsg",               &smsggetpubkey              },
+    { "smsg",               &smsgsend                   },
+    { "smsg",               &smsgsendanon               },
+    { "smsg",               &smsginbox                  },
+    { "smsg",               &smsgoutbox                 },
+    { "smsg",               &smsgbuckets                },
+    { "smsg",               &smsgview                   },
+    { "smsg",               &smsgone                    },
+    { "smsg",               &smsgimport                 },
+    { "smsg",               &smsgpurge                  },
+    { "smsg",               &smsggetfeerate             },
+    { "smsg",               &smsggetdifficulty          },
+    { "smsg",               &smsggetinfo                },
+    { "smsg",               &smsgpeers                  },
+    { "smsg",               &smsgzmqpush                },
+    { "smsg",               &smsgdebug                  },
 };
 
 void RegisterSmsgRPCCommands(CRPCTable &tableRPC)

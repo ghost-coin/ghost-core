@@ -86,10 +86,10 @@ static RPCHelpMan getnewzmqserverkeypair()
 }
 
 const CRPCCommand commands[] =
-{ //  category              name                                actor (function)                argNames
-  //  -----------------     ------------------------            -----------------------         ----------
-    { "zmq",                "getzmqnotifications",              &getzmqnotifications,           {} },
-    { "zmq",                "getnewzmqserverkeypair",           &getnewzmqserverkeypair,        {} },
+{ //  category           actor (function)
+  //  -----------------  -----------------------
+    { "zmq",             &getzmqnotifications,    },
+    { "zmq",             &getnewzmqserverkeypair, },
 };
 
 } // anonymous namespace

@@ -98,13 +98,7 @@ static RPCHelpMan deviceloadmnemonic()
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     usb_device::CUSBDevice *pDevice = SelectDevice(vDevices);
 
-    uint32_t wordcount = 12;
-    if (request.params.size() > 0) {
-        std::string s = request.params[0].get_str();
-        if (s.length() && !ParseUInt32(s, &wordcount)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "wordcount invalid number.");
-        }
-    }
+    uint32_t wordcount = request.params.size() > 0 ? GetUInt32(request.params[0]) : 0;
 
     bool pinprotection = false;
     if (request.params.size() > 1) {
@@ -1045,14 +1039,7 @@ static RPCHelpMan devicegetnewstealthaddress()
         sLabel = request.params[0].get_str();
     }
 
-    uint32_t num_prefix_bits = 0;
-    if (request.params.size() > 1) {
-        std::string s = request.params[1].get_str();
-        if (s.length() && !ParseUInt32(s, &num_prefix_bits)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits invalid number.");
-        }
-    }
-
+    uint32_t num_prefix_bits = request.params.size() > 1 ? GetUInt32(request.params[1]) : 0;
     if (num_prefix_bits > 32) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits must be <= 32.");
     }
@@ -1172,21 +1159,21 @@ static RPCHelpMan devicegetnewstealthaddress()
 #endif
 
 static const CRPCCommand commands[] =
-{ //  category              name                            actor (function)            argNames
-  //  --------------------- ------------------------        -----------------------     ----------
-    { "usbdevice",          "deviceloadmnemonic",           &deviceloadmnemonic,        {"wordcount", "pinprotection"} },
-    { "usbdevice",          "devicebackup",                 &devicebackup,              {} },
-    { "usbdevice",          "listdevices",                  &listdevices,               {} },
-    { "usbdevice",          "promptunlockdevice",           &promptunlockdevice,        {} },
-    { "usbdevice",          "unlockdevice",                 &unlockdevice,              {"passphrase", "pin"} },
-    { "usbdevice",          "getdeviceinfo",                &getdeviceinfo,             {} },
-    { "usbdevice",          "getdevicepublickey",           &getdevicepublickey,        {"path","accountpath"} },
-    { "usbdevice",          "getdevicexpub",                &getdevicexpub,             {"path","accountpath"} },
-    { "usbdevice",          "devicesignmessage",            &devicesignmessage,         {"path","message","accountpath"} },
-    { "usbdevice",          "devicesignrawtransaction",     &devicesignrawtransaction,  {"hexstring","prevtxs","paths","sighashtype","accountpath"} }, /* uses wallet if enabled */
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "usbdevice",          &deviceloadmnemonic             },
+    { "usbdevice",          &devicebackup                   },
+    { "usbdevice",          &listdevices                    },
+    { "usbdevice",          &promptunlockdevice             },
+    { "usbdevice",          &unlockdevice                   },
+    { "usbdevice",          &getdeviceinfo                  },
+    { "usbdevice",          &getdevicepublickey             },
+    { "usbdevice",          &getdevicexpub                  },
+    { "usbdevice",          &devicesignmessage              },
+    { "usbdevice",          &devicesignrawtransaction       }, /* uses wallet if enabled */
 #ifdef ENABLE_WALLET
-    { "usbdevice",          "initaccountfromdevice",        &initaccountfromdevice,     {"label","path","makedefault","scan_chain_from","initstealthchain"} },
-    { "usbdevice",          "devicegetnewstealthaddress",   &devicegetnewstealthaddress,{"label","num_prefix_bits","prefix_num","bech32"} },
+    { "usbdevice",          &initaccountfromdevice          },
+    { "usbdevice",          &devicegetnewstealthaddress     },
 #endif
 };
 

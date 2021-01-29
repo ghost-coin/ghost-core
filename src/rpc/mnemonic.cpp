@@ -1,5 +1,5 @@
 // Copyright (c) 2015 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -256,9 +256,9 @@ static RPCHelpMan mnemonicrpc()
 };
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "mnemonic",           "mnemonic",               &mnemonicrpc,            {"mode","arg0","arg1","arg2","arg3"} },
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "mnemonic",           &mnemonicrpc                },
 };
 
 

@@ -1779,14 +1779,7 @@ static RPCHelpMan getnewstealthaddress()
         sLabel = request.params[0].get_str();
     }
 
-    uint32_t num_prefix_bits = 0;
-    if (request.params.size() > 1) {
-        std::string s = request.params[1].get_str();
-        if (s.length() && !ParseUInt32(s, &num_prefix_bits)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits invalid number.");
-        }
-    }
-
+    uint32_t num_prefix_bits = request.params.size() > 1 ? GetUInt32(request.params[1]) : 0;
     if (num_prefix_bits > 32) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits must be <= 32.");
     }
@@ -1869,14 +1862,7 @@ static RPCHelpMan importstealthaddress()
         sLabel = request.params[2].get_str();
     }
 
-    uint32_t num_prefix_bits = 0;
-    if (request.params.size() > 3) {
-        std::string s = request.params[3].get_str();
-        if (s.length() && !ParseUInt32(s, &num_prefix_bits)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits invalid number.");
-        }
-    }
-
+    uint32_t num_prefix_bits = request.params.size() > 3 ? GetUInt32(request.params[3]) : 0;
     if (num_prefix_bits > 32) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits must be <= 32.");
     }
@@ -2281,7 +2267,7 @@ static RPCHelpMan deriverangekeys()
                 {
                     {"start", RPCArg::Type::NUM, RPCArg::Optional::NO, "Start from key index."},
                     {"end", RPCArg::Type::NUM, /* default */ "start+1", "Stop deriving after key index."},
-                    {"key/id", RPCArg::Type::NUM, /* default */ "", "Account to derive from, default external chain of current account, set to empty (\"\") for default."},
+                    {"key/id", RPCArg::Type::STR, /* default */ "", "Account to derive from, default external chain of current account, set to empty (\"\") for default."},
                     {"hardened", RPCArg::Type::BOOL, /* default */ "false", "Derive hardened keys."},
                     {"save", RPCArg::Type::BOOL, /* default */ "false", "Save derived keys to the wallet."},
                     {"add_to_addressbook", RPCArg::Type::BOOL, /* default */ "false", "Add derived keys to address book, only applies when saving keys."},
@@ -3467,7 +3453,7 @@ static RPCHelpMan filteraddresses()
                     {"count", RPCArg::Type::NUM, /* default */ "", "Max no. of addresses to return"},
                     {"sort_code", RPCArg::Type::NUM, /* default */ "0", "0: sort by label ascending, 1: sort by label descending."},
                     {"match_str", RPCArg::Type::STR, /* default */ "", "Filter by label."},
-                    {"match_owned", RPCArg::Type::BOOL, /* default */ "0", "0: off, 1: owned, 2: non-owned"},
+                    {"match_owned", RPCArg::Type::NUM, /* default */ "0", "0: off, 1: owned, 2: non-owned"},
                     {"show_path", RPCArg::Type::BOOL, /* default */ "", ""},
                 },
                 RPCResults{},
@@ -5642,12 +5628,12 @@ static RPCHelpMan walletsettings()
                 "Pass an empty json object to clear the settings group.\n" +
                 HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"setting", RPCArg::Type::STR, RPCArg::Optional::NO, "Settings group to view or modify."},
-                    {"value", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"setting_name", RPCArg::Type::STR, RPCArg::Optional::NO, "Settings group to view or modify."},
+                    {"setting_value", RPCArg::Type::OBJ, /* default */ "", "",
                         {
                             {"...", RPCArg::Type::STR, /* default */ "", ""},
                         },
-                    },
+                    "setting_value"},
                 },
                 RPCResults{},
                 RPCExamples{
@@ -8157,58 +8143,58 @@ Span<const CRPCCommand> GetHDWalletRPCCommands()
 {
 // clang-format off
 static const CRPCCommand commands[] =
-{ //  category              name                                actor (function)                argNames
-  //  --------------------- ------------------------            -----------------------         ----------
-    { "wallet",             "extkey",                           &extkey,                        {"mode","arg0","arg1","arg2","arg3"} },
-    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
-    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
-    { "wallet",             "extkeyaltversion",                 &extkeyaltversion,              {"ext_key"} },
-    { "wallet",             "getnewextaddress",                 &getnewextaddress,              {"label","childnum","bech32","hardened"} },
-    { "wallet",             "getnewstealthaddress",             &getnewstealthaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
-    { "wallet",             "importstealthaddress",             &importstealthaddress,          {"scan_secret","spend_secret","label","num_prefix_bits","prefix_num","bech32"} },
-    { "wallet",             "liststealthaddresses",             &liststealthaddresses,          {"show_secrets","options"} },
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "wallet",             &extkey                         },
+    { "wallet",             &extkeyimportmaster             },
+    { "wallet",             &extkeygenesisimport            },
+    { "wallet",             &extkeyaltversion               },
+    { "wallet",             &getnewextaddress               },
+    { "wallet",             &getnewstealthaddress           },
+    { "wallet",             &importstealthaddress           },
+    { "wallet",             &liststealthaddresses           },
 
-    { "wallet",             "reservebalance",                   &reservebalance,                {"enabled","amount"} },
-    { "wallet",             "deriverangekeys",                  &deriverangekeys,               {"start","end","key/id","hardened","save","add_to_addressbook","256bithash"} },
-    { "wallet",             "clearwallettransactions",          &clearwallettransactions,       {"remove_all"} },
+    { "wallet",             &reservebalance                 },
+    { "wallet",             &deriverangekeys                },
+    { "wallet",             &clearwallettransactions        },
 
-    { "wallet",             "filtertransactions",               &filtertransactions,            {"options"} },
-    { "wallet",             "filteraddresses",                  &filteraddresses,               {"offset","count","sort_code","match_str","match_owned","show_path"} },
-    { "wallet",             "manageaddressbook",                &manageaddressbook,             {"action","address","label","purpose"} },
+    { "wallet",             &filtertransactions             },
+    { "wallet",             &filteraddresses                },
+    { "wallet",             &manageaddressbook              },
 
-    { "wallet",             "getstakinginfo",                   &getstakinginfo,                {} },
-    { "wallet",             "getcoldstakinginfo",               &getcoldstakinginfo,            {} },
+    { "wallet",             &getstakinginfo                 },
+    { "wallet",             &getcoldstakinginfo             },
 
-    { "wallet",             "listunspentanon",                  &listunspentanon,               {"minconf","maxconf","addresses","include_unsafe","query_options"} },
-    { "wallet",             "listunspentblind",                 &listunspentblind,              {"minconf","maxconf","addresses","include_unsafe","query_options"} },
+    { "wallet",             &listunspentanon                },
+    { "wallet",             &listunspentblind               },
 
-    { "wallet",             "sendtypeto",                       &sendtypeto,                    {"typein","typeout","outputs","comment","comment_to","ringsize","inputs_per_sig","test_fee","coin_control"} },
+    { "wallet",             &sendtypeto                     },
 
-    { "wallet",             "createsignaturewithwallet",        &createsignaturewithwallet,     {"hexstring","prevtxn","address","sighashtype","options"} },
-    { "rawtransactions",    "createsignaturewithkey",           &createsignaturewithkey,        {"hexstring","prevtxn","privkey","sighashtype","options"} },
+    { "wallet",             &createsignaturewithwallet      },
+    { "rawtransactions",    &createsignaturewithkey         },
 
-    { "wallet",             "debugwallet",                      &debugwallet,                   {"attempt_repair","clear_stakes_seen"} },
-    { "wallet",             "walletsettings",                   &walletsettings,                {"setting","value"} },
+    { "wallet",             &debugwallet                    },
+    { "wallet",             &walletsettings                 },
 
-    { "wallet",             "transactionblinds",                &transactionblinds,             {"txnid"} },
-    { "wallet",             "derivefromstealthaddress",         &derivefromstealthaddress,      {"stealthaddress","ephemeralvalue"} },
+    { "wallet",             &transactionblinds              },
+    { "wallet",             &derivefromstealthaddress       },
 
 
-    { "governance",         "setvote",                          &setvote,                       {"proposal","option","height_start","height_end"} },
-    { "governance",         "votehistory",                      &votehistory,                   {"current_only"} },
-    { "governance",         "tallyvotes",                       &tallyvotes,                    {"proposal","height_start","height_end"} },
+    { "governance",         &setvote                        },
+    { "governance",         &votehistory                    },
+    { "governance",         &tallyvotes                     },
 
-    { "rawtransactions",    "buildscript",                      &buildscript,                   {"recipe"} },
-    { "rawtransactions",    "createrawparttransaction",         &createrawparttransaction,      {"inputs","outputs","locktime","replaceable"} },
-    { "rawtransactions",    "fundrawtransactionfrom",           &fundrawtransactionfrom,        {"input_type","hexstring","input_amounts","output_amounts","options"} },
-    { "rawtransactions",    "verifycommitment",                 &verifycommitment,              {"commitment","blind","amount"} },
-    { "rawtransactions",    "rewindrangeproof",                 &rewindrangeproof,              {"rangeproof","commitment","nonce_key","ephemeral_key"} },
-    { "rawtransactions",    "generatematchingblindfactor",      &generatematchingblindfactor,   {"blind_in","blind_out"} },
-    { "rawtransactions",    "verifyrawtransaction",             &verifyrawtransaction,          {"hexstring","prevtxs","options"} },
+    { "rawtransactions",    &buildscript                    },
+    { "rawtransactions",    &createrawparttransaction       },
+    { "rawtransactions",    &fundrawtransactionfrom         },
+    { "rawtransactions",    &verifycommitment               },
+    { "rawtransactions",    &rewindrangeproof               },
+    { "rawtransactions",    &generatematchingblindfactor    },
+    { "rawtransactions",    &verifyrawtransaction           },
 
-    { "blockchain",         "rewindchain",                      &rewindchain,                   {"height"} },
-    { "blockchain",         "pruneorphanedblocks",              &pruneorphanedblocks,           {"testonly"} },
-    { "blockchain",         "rehashblock",                      &rehashblock,                   {"blockhex","signwith","addtxns"} },
+    { "blockchain",         &rewindchain                    },
+    { "blockchain",         &pruneorphanedblocks            },
+    { "blockchain",         &rehashblock                    },
 };
 // clang-format on
     return MakeSpan(commands);

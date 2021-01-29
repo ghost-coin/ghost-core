@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -86,9 +86,9 @@ RPCHelpMan anonoutput()
 };
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "anon",               "anonoutput",             &anonoutput,             {"output"} },
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "anon",               &anonoutput                  },
 };
 
 void RegisterAnonRPCCommands(CRPCTable &tableRPC)

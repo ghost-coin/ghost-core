@@ -176,8 +176,10 @@ bool ShouldAutoReindex() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 bool RebuildRollingIndices(CTxMemPool* mempool);
 /** Unload database information */
 void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman);
-/** Run an instance of the script checking thread */
-void ThreadScriptCheck(int worker_num);
+/** Run instances of script checking worker threads */
+void StartScriptCheckWorkerThreads(int threads_num);
+/** Stop all of the script checking worker threads */
+void StopScriptCheckWorkerThreads();
 /** Return the median number of blocks that other nodes claim to have */
 int GetNumBlocksOfPeers();
 /** Return the median number of connected nodes */

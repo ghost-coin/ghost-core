@@ -323,6 +323,22 @@ bool GetBool(const UniValue &uv)
     return rv;
 };
 
+uint32_t GetUInt32(const UniValue &uv)
+{
+    if (uv.isNum()) {
+        return (uint32_t) uv.get_int();
+    }
+    if (!uv.isStr()) {
+        throw std::runtime_error("Not a number or string value.");
+    }
+    uint32_t rv = 0;
+    std::string s = uv.get_str();
+    if (s.length() && !ParseUInt32(s, &rv)) {
+        throw std::runtime_error("String not a numeric value.");
+    }
+    return rv;
+};
+
 RPCErrorCode RPCErrorFromTransactionError(TransactionError terr)
 {
     switch (terr) {
@@ -590,6 +606,24 @@ std::string RPCHelpMan::ToString() const
     ret += m_examples.ToDescriptionString();
 
     return ret;
+}
+
+void RPCHelpMan::AppendArgMap(UniValue& arr) const
+{
+    for (int i{0}; i < int(m_args.size()); ++i) {
+        const auto& arg = m_args.at(i);
+        std::vector<std::string> arg_names;
+        boost::split(arg_names, arg.m_names, boost::is_any_of("|"));
+        for (const auto& arg_name : arg_names) {
+            UniValue map{UniValue::VARR};
+            map.push_back(m_name);
+            map.push_back(i);
+            map.push_back(arg_name);
+            map.push_back(arg.m_type == RPCArg::Type::STR ||
+                          arg.m_type == RPCArg::Type::STR_HEX);
+            arr.push_back(map);
+        }
+    }
 }
 
 std::string RPCArg::GetFirstName() const

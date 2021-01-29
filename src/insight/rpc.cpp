@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 The Particl Core developers
+// Copyright (c) 2018-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1335,23 +1335,23 @@ static RPCHelpMan getinsightinfo()
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "addressindex",       "getaddressmempool",      &getaddressmempool,      {"addresses"} },
-    { "addressindex",       "getaddressutxos",        &getaddressutxos,        {"addresses","chainInfo"} },
-    { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       {"addresses","start","end","chainInfo"} },
-    { "addressindex",       "getaddresstxids",        &getaddresstxids,        {"addresses","start","end"} },
-    { "addressindex",       "getaddressbalance",      &getaddressbalance,      {"addresses"} },
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "addressindex",       &getaddressmempool       },
+    { "addressindex",       &getaddressutxos         },
+    { "addressindex",       &getaddressdeltas        },
+    { "addressindex",       &getaddresstxids         },
+    { "addressindex",       &getaddressbalance       },
 
-    { "blockchain",         "getspentinfo",           &getspentinfo,           {"inputs"} },
-    { "blockchain",         "getblockdeltas",         &getblockdeltas,         {"blockhash"} },
-    { "blockchain",         "getblockhashes",         &getblockhashes,         {"high","low","options"} },
-    { "blockchain",         "gettxoutsetinfobyscript",&gettxoutsetinfobyscript,{} },
-    { "blockchain",         "getblockreward",         &getblockreward,         {"height"} },
+    { "blockchain",         &getspentinfo            },
+    { "blockchain",         &getblockdeltas          },
+    { "blockchain",         &getblockhashes          },
+    { "blockchain",         &gettxoutsetinfobyscript },
+    { "blockchain",         &getblockreward          },
 
-    { "csindex",            "listcoldstakeunspent",   &listcoldstakeunspent,   {"stakeaddress","height","options"} },
+    { "csindex",            &listcoldstakeunspent    },
 
-    { "blockchain",         "getinsightinfo",           &getinsightinfo,       {} },
+    { "blockchain",         &getinsightinfo          },
 };
 
 void RegisterInsightRPCCommands(CRPCTable &tableRPC)

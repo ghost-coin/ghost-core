@@ -211,10 +211,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createsignaturewithkey", 4, "options" },
 
 
-    { "walletsettings", 1, "value" },
+    { "walletsettings", 1, "setting_value" },
 
     { "getnewextaddress", 2, "bech32" },
     { "getnewextaddress", 3, "hardened" },
+    { "getnewstealthaddress", 1, "num_prefix_bits" },
     { "getnewstealthaddress", 3, "bech32" },
     { "getnewstealthaddress", 4, "makeV2" },
     { "importstealthaddress", 5, "bech32" },
@@ -271,6 +272,37 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "initaccountfromdevice", 3, "scan_chain_from" },
     { "initaccountfromdevice", 4, "initstealthchain" },
 
+    { "pruneorphanedblocks", 0, "testonly" },
+    { "extkeyimportmaster", 2, "save_bip44_root" },
+    { "filteraddresses", 4, "match_owned" },
+    { "debugwallet", 0, "attempt_repair" },
+    { "debugwallet", 1, "clear_stakes_seen" },
+    { "reservebalance", 1, "amount" },
+    { "votehistory", 0, "current_only" },
+    { "unlockdevice", 1, "pin" },
+    { "deviceloadmnemonic", 1, "pinprotection" },
+    { "devicegetnewstealthaddress", 1, "num_prefix_bits" },
+    { "devicegetnewstealthaddress", 3, "bech32" },
+    { "extkeygenesisimport", 2, "save_bip44_root" },
+    { "filteraddresses", 2, "sort_code" },
+    { "filteraddresses", 5, "show_path" },
+    { "deviceloadmnemonic", 0, "wordcount" },
+    { "getaddresstxids", 1, "start" },
+    { "getaddresstxids", 2, "end" },
+    { "getaddressdeltas", 1, "start" },
+    { "getaddressdeltas", 2, "end" },
+    { "getaddressdeltas", 3, "chainInfo" },
+    { "getaddressutxos", 1, "chainInfo" },
+    { "importstealthaddress", 3, "num_prefix_bits" },
+    { "liststealthaddresses", 0, "show_secrets" },
+    { "deriverangekeys", 4, "save" },
+    { "deriverangekeys", 5, "add_to_addressbook" },
+    { "deriverangekeys", 6, "256bithash" },
+    { "clearwallettransactions", 0, "remove_all" },
+    { "deriverangekeys", 3, "hardened" },
+    { "rehashblock", 2, "addtxns" },
+    { "verifycommitment", 2, "amount" },
+
 
     { "logging", 0, "include" },
     { "logging", 1, "exclude" },
@@ -321,14 +353,9 @@ public:
 
 CRPCConvertTable::CRPCConvertTable()
 {
-    const unsigned int n_elem =
-        (sizeof(vRPCConvertParams) / sizeof(vRPCConvertParams[0]));
-
-    for (unsigned int i = 0; i < n_elem; i++) {
-        members.insert(std::make_pair(vRPCConvertParams[i].methodName,
-                                      vRPCConvertParams[i].paramIdx));
-        membersByName.insert(std::make_pair(vRPCConvertParams[i].methodName,
-                                            vRPCConvertParams[i].paramName));
+    for (const auto& cp : vRPCConvertParams) {
+        members.emplace(cp.methodName, cp.paramIdx);
+        membersByName.emplace(cp.methodName, cp.paramName);
     }
 }
 

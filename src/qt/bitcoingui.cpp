@@ -33,6 +33,7 @@
 #include <qt/macdockiconhandler.h>
 #endif
 
+#include <functional>
 #include <chain.h>
 #include <chainparams.h>
 #include <interfaces/handler.h>
@@ -908,7 +909,7 @@ void BitcoinGUI::showColdStakingClicked()
 
 void BitcoinGUI::showHelpMessageClicked()
 {
-    helpMessageDialog->show();
+    GUIUtil::bringToFront(helpMessageDialog);
 }
 
 #ifdef ENABLE_WALLET
