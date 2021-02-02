@@ -121,8 +121,6 @@ enum class SynchronizationState {
 
 extern RecursiveMutex cs_main;
 typedef std::unordered_map<uint256, CBlockIndex*, BlockHasher> BlockMap;
-extern std::map<COutPoint, uint256> mapStakeSeen;
-extern std::list<COutPoint> listStakeSeen;
 extern uint64_t nLastBlockTx;
 extern uint64_t nLastBlockSize;
 extern Mutex g_best_block_mutex;
@@ -1044,10 +1042,14 @@ inline bool IsBlockPruned(const CBlockIndex* pblockindex)
     return (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0);
 }
 
-bool RemoveUnreceivedHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-size_t CountDelayedBlocks() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-int64_t GetSmsgFeeRate(const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-uint32_t GetSmsgDifficulty(uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
+bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
+bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
+void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
+
+
+
+namespace particl {
 
 class StakeConflict
 {
@@ -1075,15 +1077,13 @@ public:
 
 extern std::map<uint256, StakeConflict> mapStakeConflict;
 extern CoinStakeCache coinStakeCache;
+extern std::map<COutPoint, uint256> mapStakeSeen;
+extern std::list<COutPoint> listStakeSeen;
 
-DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
-bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
-bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
-void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
+bool RemoveUnreceivedHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+size_t CountDelayedBlocks() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 
-
-namespace particl {
 
 bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 bool CheckStakeUnused(const COutPoint &kernel);
@@ -1093,6 +1093,9 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
 bool ShouldAutoReindex() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 /** Returns true if the block index was rewound to rebuild the temporary indices. */
 bool RebuildRollingIndices(CTxMemPool* mempool);
+
+int64_t GetSmsgFeeRate(const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+uint32_t GetSmsgDifficulty(uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 } // particl
 

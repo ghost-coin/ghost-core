@@ -1538,7 +1538,7 @@ void CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         auto it_headers = dos_counters.m_map_loose_headers.begin();
         for (; it_headers != dos_counters.m_map_loose_headers.end();) {
             if (it_headers->second + MAX_LOOSE_HEADER_TIME < now) {
-                if (RemoveUnreceivedHeader(it_headers->first)) {
+                if (particl::RemoveUnreceivedHeader(it_headers->first)) {
                     g_peerman->MisbehavingByAddr(it->first, dos_counters.m_misbehavior, 5, "Block not received.");
                     dos_counters.m_misbehavior += 5;
                 }

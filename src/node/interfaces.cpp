@@ -687,7 +687,7 @@ public:
     int64_t getSmsgFeeRate(const CBlockIndex *pindex, bool reduce_height) override
     {
         LOCK(::cs_main);
-        return GetSmsgFeeRate(pindex, reduce_height);
+        return particl::GetSmsgFeeRate(pindex, reduce_height);
     }
     bool transactionInMempool(const uint256 &txhash) override
     {

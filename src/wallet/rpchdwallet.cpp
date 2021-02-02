@@ -5360,9 +5360,9 @@ static RPCHelpMan debugwallet()
 
     if (clear_stakes_seen) {
         LOCK(cs_main);
-        mapStakeConflict.clear();
-        mapStakeSeen.clear();
-        listStakeSeen.clear();
+        particl::mapStakeConflict.clear();
+        particl::mapStakeSeen.clear();
+        particl::listStakeSeen.clear();
         return "Cleared stakes seen.";
     }
 

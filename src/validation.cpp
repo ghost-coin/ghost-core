@@ -140,13 +140,6 @@ ChainstateManager& ChainstateManagerActive()
  */
 RecursiveMutex cs_main;
 
-std::map<uint256, StakeConflict> mapStakeConflict;
-std::map<COutPoint, uint256> mapStakeSeen;
-std::list<COutPoint> listStakeSeen;
-
-CoinStakeCache coinStakeCache GUARDED_BY(cs_main);
-std::set<CCmpPubKey> setConnectKi; // hacky workaround
-
 CBlockIndex *pindexBestHeader = nullptr;
 Mutex g_best_block_mutex;
 std::condition_variable g_best_block_cv;
@@ -192,17 +185,6 @@ namespace {
     std::set<int> setDirtyFileInfo;
 } // anon namespace
 
-int StakeConflict::Add(NodeId id)
-{
-    nLastUpdated = GetAdjustedTime();
-    std::pair<std::map<NodeId, int>::iterator,bool> ret;
-    ret = peerCount.insert(std::pair<NodeId, int>(id, 1));
-    if (ret.second == false) { // existing element
-        ret.first->second++;
-    }
-    return 0;
-};
-
 CBlockIndex* BlockManager::LookupBlockIndex(const uint256& hash)
 {
     AssertLockHeld(cs_main);
@@ -232,6 +214,41 @@ CBlockIndex* BlockManager::FindForkInGlobalIndex(const CChain& chain, const CBlo
 }
 
 std::unique_ptr<CBlockTreeDB> pblocktree;
+
+namespace particl {
+bool DelayBlock(const std::shared_ptr<const CBlock>& pblock, BlockValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+void CheckDelayedBlocks(const CChainParams& chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main);
+
+std::map<uint256, StakeConflict> mapStakeConflict;
+std::map<COutPoint, uint256> mapStakeSeen;
+std::list<COutPoint> listStakeSeen;
+
+CoinStakeCache coinStakeCache GUARDED_BY(cs_main);
+CoinStakeCache smsgFeeCoinstakeCache;
+CoinStakeCache smsgDifficultyCoinstakeCache(180);
+
+size_t MAX_DELAYED_BLOCKS = 64;
+int64_t MAX_DELAY_BLOCK_SECONDS = 180;
+
+class DelayedBlock
+{
+public:
+    DelayedBlock(const std::shared_ptr<const CBlock>& pblock, int node_id) : m_pblock(pblock), m_node_id(node_id) {
+        m_time = GetTime();
+    }
+    int64_t m_time;
+    std::shared_ptr<const CBlock> m_pblock;
+    int m_node_id;
+};
+std::list<DelayedBlock> list_delayed_blocks;
+} // namespace particl
+extern void Misbehaving(NodeId nodeid, int howmuch, const std::string& message="");
+extern void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+extern bool AddNodeHeader(NodeId node_id, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+extern void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+extern void RemoveNonReceivedHeaderFromNodes(BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+extern bool IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
 
 bool CheckInputScripts(const CTransaction& tx, TxValidationState &state, const CCoinsViewCache &inputs, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks = nullptr, bool fAnonChecks = true);
 static FILE* OpenUndoFile(const FlatFilePos &pos, bool fReadOnly = false);
@@ -2863,7 +2880,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
                 if (pindex->pprev->nHeight > 0 // Skip genesis block (POW)
                     && pindex->pprev->nTime >= consensus.smsg_fee_time) {
-                    if (!coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)
+                    if (!particl::coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)
                         || !txPrevCoinstake->GetSmsgFeeRate(smsg_fee_prev)) {
                         LogPrintf("ERROR: %s: Failed to get previous smsg fee.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-fee-prev");
@@ -2890,7 +2907,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 uint32_t smsg_difficulty_new, smsg_difficulty_prev = consensus.smsg_min_difficulty;
                 if (pindex->pprev->nHeight > 0 // Skip genesis block (POW)
                     && pindex->pprev->nTime >= consensus.smsg_difficulty_time) {
-                    if (!coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)
+                    if (!particl::coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)
                         || !txPrevCoinstake->GetSmsgDifficulty(smsg_difficulty_prev)) {
                         LogPrintf("ERROR: %s: Failed to get previous smsg difficulty.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-diff-prev");
@@ -2931,7 +2948,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                 if (pindex->pprev->nHeight > 0) { // Genesis block is pow
                     if (!txPrevCoinstake
-                        && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                        && !particl::coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
                         LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
                     }
@@ -2991,7 +3008,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
                 }
 
-                coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
+                particl::coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
             }
         } else {
             if (block.GetHash() != chainparams.GenesisBlock().GetHash()) {
@@ -3537,7 +3554,6 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     int64_t nTime3;
 
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
-    setConnectKi.clear();
     {
         CCoinsViewCache view(&CoinsTip());
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
@@ -3777,8 +3793,6 @@ static bool NotifyHeaderTip(CChainState& chainstate) LOCKS_EXCLUDED(cs_main) {
     return fNotify;
 }
 
-void CheckDelayedBlocks(const CChainParams& chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main);
-
 static void LimitValidationInterfaceQueue() LOCKS_EXCLUDED(cs_main) {
     AssertLockNotHeld(cs_main);
 
@@ -3870,7 +3884,7 @@ bool CChainState::ActivateBestChain(BlockValidationState &state, const CChainPar
         // When we reach this point, we switched to a new tip (stored in pindexNewTip).
 
         for (const auto& block_hash : connected_blocks) {
-            CheckDelayedBlocks(chainparams, block_hash);
+            particl::CheckDelayedBlocks(chainparams, block_hash);
         }
 
         if (nStopAtHeight && pindexNewTip && pindexNewTip->nHeight >= nStopAtHeight) StartShutdown();
@@ -4773,283 +4787,6 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     return true;
 }
 
-bool ProcessDuplicateStakeHeader(CBlockIndex *pindex, NodeId nodeId) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    if (!pindex) {
-        return false;
-    }
-
-    uint256 hash = pindex->GetBlockHash();
-
-    bool fMakeValid = false;
-    if (nodeId == -1) {
-        LogPrintf("%s: Duplicate stake block %s was received in a group, marking valid.\n",
-            __func__, hash.ToString());
-
-        fMakeValid = true;
-    }
-
-    if (nodeId > -1) {
-        std::pair<std::map<uint256, StakeConflict>::iterator,bool> ret;
-        ret = mapStakeConflict.insert(std::pair<uint256, StakeConflict>(hash, StakeConflict()));
-        StakeConflict &sc = ret.first->second;
-        sc.Add(nodeId);
-
-        if ((int)sc.peerCount.size() > std::min(GetNumPeers() / 2, 4)) {
-            LogPrintf("%s: More than half the connected peers are building on block %s," /* Continued */
-                "  marked as duplicate stake, assuming this node has the duplicate.\n", __func__, hash.ToString());
-
-            fMakeValid = true;
-        }
-    }
-
-    if (fMakeValid) {
-        pindex->nFlags &= (~BLOCK_FAILED_DUPLICATE_STAKE);
-        pindex->nStatus &= (~BLOCK_FAILED_VALID);
-        setDirtyBlockIndex.insert(pindex);
-
-        //if (pindex->nStatus & BLOCK_FAILED_CHILD)
-        //{
-            CBlockIndex *pindexPrev = pindex->pprev;
-            while (pindexPrev) {
-                if (pindexPrev->nStatus & BLOCK_VALID_MASK) {
-                    break;
-                }
-
-                if (pindexPrev->nFlags & BLOCK_FAILED_DUPLICATE_STAKE) {
-                    pindexPrev->nFlags &= (~BLOCK_FAILED_DUPLICATE_STAKE);
-                    pindexPrev->nStatus &= (~BLOCK_FAILED_VALID);
-                    setDirtyBlockIndex.insert(pindexPrev);
-
-                    if (!pindexPrev->prevoutStake.IsNull()) {
-                        uint256 prevhash = pindexPrev->GetBlockHash();
-                        particl::AddToMapStakeSeen(pindexPrev->prevoutStake, prevhash);
-                    }
-
-                    pindexPrev->nStatus &= (~BLOCK_FAILED_CHILD);
-                }
-
-                pindexPrev = pindexPrev->pprev;
-            }
-
-            pindex->nStatus &= (~BLOCK_FAILED_CHILD);
-        //};
-
-        if (!pindex->prevoutStake.IsNull()) {
-            particl::AddToMapStakeSeen(pindex->prevoutStake, hash);
-        }
-        return true;
-    }
-
-    return false;
-}
-
-size_t MAX_DELAYED_BLOCKS = 64;
-int64_t MAX_DELAY_BLOCK_SECONDS = 180;
-
-class DelayedBlock
-{
-public:
-    DelayedBlock(const std::shared_ptr<const CBlock>& pblock, int node_id) : m_pblock(pblock), m_node_id(node_id) {
-        m_time = GetTime();
-    }
-    int64_t m_time;
-    std::shared_ptr<const CBlock> m_pblock;
-    int m_node_id;
-};
-std::list<DelayedBlock> list_delayed_blocks;
-
-extern void Misbehaving(NodeId nodeid, int howmuch, const std::string& message="");
-extern void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern bool AddNodeHeader(NodeId node_id, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern void RemoveNonReceivedHeaderFromNodes(BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern bool IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-
-void EraseDelayedBlock(std::list<DelayedBlock>::iterator p) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    if (p->m_node_id > -1) {
-        Misbehaving(p->m_node_id, 25, "Delayed block");
-    }
-
-    auto it = g_chainman.BlockIndex().find(p->m_pblock->GetHash());
-    if (it != g_chainman.BlockIndex().end()) {
-        it->second->nFlags &= ~BLOCK_DELAYED;
-        setDirtyBlockIndex.insert(it->second);
-    }
-}
-
-extern NodeId GetBlockSource(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-bool DelayBlock(const std::shared_ptr<const CBlock>& pblock, BlockValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    NodeId nodeId = GetBlockSource(pblock->GetHash());
-    LogPrintf("Warning: %s - Previous stake modifier is null for block %s from peer %d.\n", __func__, pblock->GetHash().ToString(), nodeId);
-    while (list_delayed_blocks.size() >= MAX_DELAYED_BLOCKS) {
-        LogPrint(BCLog::NET, "Removing Delayed block %s, too many delayed.\n", pblock->GetHash().ToString());
-        EraseDelayedBlock(list_delayed_blocks.begin());
-        list_delayed_blocks.erase(list_delayed_blocks.begin());
-    }
-    assert(list_delayed_blocks.size() < MAX_DELAYED_BLOCKS);
-    state.nFlags |= BLOCK_DELAYED; // Mark to prevent further processing
-    list_delayed_blocks.emplace_back(pblock, nodeId);
-    return true;
-}
-
-void CheckDelayedBlocks(const CChainParams& chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main)
-{
-    if (list_delayed_blocks.empty()) {
-        return;
-    }
-
-    int64_t now = GetTime();
-    std::vector<std::shared_ptr<const CBlock> > process_blocks;
-    {
-        LOCK(cs_main);
-        std::list<DelayedBlock>::iterator p = list_delayed_blocks.begin();
-        while (p != list_delayed_blocks.end()) {
-            if (p->m_pblock->hashPrevBlock == block_hash) {
-                process_blocks.push_back(p->m_pblock);
-                p = list_delayed_blocks.erase(p);
-                continue;
-            }
-            if (p->m_time + MAX_DELAY_BLOCK_SECONDS < now) {
-                LogPrint(BCLog::NET, "Removing delayed block %s, timed out.\n", p->m_pblock->GetHash().ToString());
-                EraseDelayedBlock(p);
-                p = list_delayed_blocks.erase(p);
-                continue;
-            }
-            ++p;
-        }
-    }
-
-    for (auto &p : process_blocks) {
-        LogPrint(BCLog::NET, "Processing delayed block %s prev %s.\n", p->GetHash().ToString(), block_hash.ToString());
-
-        ChainstateManagerActive().ProcessNewBlock(chainparams, p, false, nullptr); // Should update DoS if necessary, finding block through mapBlockSource
-    }
-}
-
-bool RemoveUnreceivedHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    BlockMap::iterator mi = g_chainman.BlockIndex().find(hash);
-    if (mi != g_chainman.BlockIndex().end() && (mi->second->nFlags & BLOCK_ACCEPTED)) {
-        return false;
-    }
-    if (mi == g_chainman.BlockIndex().end()) {
-        return true; // was already removed, peer misbehaving
-    }
-
-    // Remove entire chain
-    std::vector<BlockMap::iterator> remove_headers;
-    std::vector<BlockMap::iterator> last_round[2];
-
-    size_t n = 0;
-    last_round[n].push_back(mi);
-    remove_headers.push_back(mi);
-    while (last_round[n].size()) {
-        last_round[!n].clear();
-
-        for (BlockMap::iterator& check_header : last_round[n]) {
-            BlockMap::iterator it = g_chainman.BlockIndex().begin();
-            while (it != g_chainman.BlockIndex().end()) {
-                if (it->second->pprev == check_header->second) {
-                    if ((it->second->nFlags & BLOCK_ACCEPTED)) {
-                        LogPrintf("Can't remove header %s, descendant block %s accepted.\n", hash.ToString(), it->second->GetBlockHash().ToString());
-                        return true; // Can't remove any blocks, peer misbehaving for not sending
-                    }
-                    last_round[!n].push_back(it);
-                    remove_headers.push_back(it);
-                }
-                it++;
-            }
-        }
-        n = !n;
-    }
-
-    LogPrintf("Removing %d loose headers from %s.\n", remove_headers.size(), hash.ToString());
-
-    for (auto &entry : remove_headers) {
-        LogPrint(BCLog::NET, "Removing loose header %s.\n", entry->second->GetBlockHash().ToString());
-        setDirtyBlockIndex.erase(entry->second);
-
-        if (pindexBestHeader == entry->second) {
-            pindexBestHeader = ::ChainActive().Tip();
-        }
-        if (pindexBestInvalid == entry->second) {
-            pindexBestInvalid = nullptr;
-        }
-        RemoveNonReceivedHeaderFromNodes(entry);
-        delete entry->second;
-        g_chainman.BlockIndex().erase(entry);
-    }
-
-    return true;
-}
-
-size_t CountDelayedBlocks() EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    return list_delayed_blocks.size();
-}
-
-CoinStakeCache smsgFeeCoinstakeCache;
-int64_t GetSmsgFeeRate(const CBlockIndex *pindex, bool reduce_height) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    const Consensus::Params &consensusParams = Params().GetConsensus();
-
-    if ((pindex && pindex->nTime < consensusParams.smsg_fee_time)
-        || (!pindex && GetTime() < consensusParams.smsg_fee_time)) {
-        return consensusParams.smsg_fee_msg_per_day_per_k;
-    }
-
-    int chain_height = pindex ? pindex->nHeight : ::ChainActive().Height();
-    if (reduce_height) { // Grace period, push back to previous period
-        chain_height -= 10;
-    }
-    int fee_height = (chain_height / consensusParams.smsg_fee_period) * consensusParams.smsg_fee_period;
-
-    CBlockIndex *fee_block = ::ChainActive()[fee_height];
-    if (!fee_block || fee_block->nTime < consensusParams.smsg_fee_time) {
-        return consensusParams.smsg_fee_msg_per_day_per_k;
-    }
-
-    int64_t smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
-    CTransactionRef coinstake = nullptr;
-    if (!smsgFeeCoinstakeCache.GetCoinStake(fee_block->GetBlockHash(), coinstake)
-        || !coinstake->GetSmsgFeeRate(smsg_fee_rate)) {
-        return consensusParams.smsg_fee_msg_per_day_per_k;
-    }
-
-    return smsg_fee_rate;
-};
-
-CoinStakeCache smsgDifficultyCoinstakeCache(180);
-uint32_t GetSmsgDifficulty(uint64_t time, bool verify) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    const Consensus::Params &consensusParams = Params().GetConsensus();
-
-    CBlockIndex *pindex = ::ChainActive().Tip();
-    for (size_t k = 0; k < 180; ++k) {
-        if (!pindex) {
-            break;
-        }
-        if (time >= pindex->nTime) {
-            uint32_t smsg_difficulty = 0;
-            CTransactionRef coinstake = nullptr;
-            if (smsgDifficultyCoinstakeCache.GetCoinStake(pindex->GetBlockHash(), coinstake)
-                && coinstake->GetSmsgDifficulty(smsg_difficulty)) {
-
-                if (verify && smsg_difficulty != consensusParams.smsg_min_difficulty) {
-                    return smsg_difficulty + consensusParams.smsg_difficulty_max_delta;
-                }
-                return smsg_difficulty - consensusParams.smsg_difficulty_max_delta;
-            }
-        }
-        pindex = pindex->pprev;
-    }
-
-    return consensusParams.smsg_min_difficulty - consensusParams.smsg_difficulty_max_delta;
-};
-
 bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested)
 {
     AssertLockHeld(cs_main);
@@ -5268,7 +5005,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
                     return true;
                 }
                 pindex->nFlags |= BLOCK_DELAYED;
-                return DelayBlock(pblock, state);
+                return particl::DelayBlock(pblock, state);
             }
         } else {
             pindex->bnStakeModifier = ComputeStakeModifierV2(pindex->pprev, pindex->prevoutStake.hash);
@@ -5390,7 +5127,7 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
     {
         assert(pindex);
         // Check here for blocks not connected to the chain, TODO: move to a timer.
-        CheckDelayedBlocks(chainparams, pindex->GetBlockHash());
+        particl::CheckDelayedBlocks(chainparams, pindex->GetBlockHash());
     }
 
     return true;
@@ -6789,40 +6526,6 @@ double GuessVerificationProgress(const ChainTxData& data, const CBlockIndex *pin
     return std::min<double>(pindex->nChainTx / fTxTotal, 1.0);
 }
 
-bool CoinStakeCache::GetCoinStake(const uint256 &blockHash, CTransactionRef &tx)
-{
-    for (const auto &i : lData) {
-        if (blockHash != i.first) {
-            continue;
-        }
-        tx = i.second;
-        return true;
-    }
-
-    BlockMap::iterator mi = g_chainman.BlockIndex().find(blockHash);
-    if (mi == g_chainman.BlockIndex().end()) {
-        return false;
-    }
-
-    CBlockIndex *pindex = mi->second;
-    if (ReadTransactionFromDiskBlock(pindex, 0, tx)) {
-        return InsertCoinStake(blockHash, tx);
-    }
-
-    return false;
-}
-
-bool CoinStakeCache::InsertCoinStake(const uint256 &blockHash, const CTransactionRef &tx)
-{
-    lData.emplace_front(blockHash, tx);
-
-    while (lData.size() > nMaxSize) {
-        lData.pop_back();
-    }
-
-    return true;
-}
-
 Optional<uint256> ChainstateManager::SnapshotBlockhash() const {
     LOCK(::cs_main);  // for m_active_chainstate access
     if (m_active_chainstate != nullptr) {
@@ -6946,8 +6649,249 @@ void ChainstateManager::MaybeRebalanceCaches()
     }
 }
 
-
+extern NodeId GetBlockSource(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 namespace particl {
+
+int StakeConflict::Add(NodeId id)
+{
+    nLastUpdated = GetAdjustedTime();
+    std::pair<std::map<NodeId, int>::iterator,bool> ret;
+    ret = peerCount.insert(std::pair<NodeId, int>(id, 1));
+    if (ret.second == false) { // existing element
+        ret.first->second++;
+    }
+    return 0;
+};
+
+bool CoinStakeCache::GetCoinStake(const uint256 &blockHash, CTransactionRef &tx)
+{
+    for (const auto &i : lData) {
+        if (blockHash != i.first) {
+            continue;
+        }
+        tx = i.second;
+        return true;
+    }
+
+    BlockMap::iterator mi = g_chainman.BlockIndex().find(blockHash);
+    if (mi == g_chainman.BlockIndex().end()) {
+        return false;
+    }
+
+    CBlockIndex *pindex = mi->second;
+    if (ReadTransactionFromDiskBlock(pindex, 0, tx)) {
+        return InsertCoinStake(blockHash, tx);
+    }
+
+    return false;
+}
+
+bool CoinStakeCache::InsertCoinStake(const uint256 &blockHash, const CTransactionRef &tx)
+{
+    lData.emplace_front(blockHash, tx);
+
+    while (lData.size() > nMaxSize) {
+        lData.pop_back();
+    }
+
+    return true;
+}
+
+static void EraseDelayedBlock(std::list<DelayedBlock>::iterator p) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    if (p->m_node_id > -1) {
+        Misbehaving(p->m_node_id, 25, "Delayed block");
+    }
+
+    auto it = g_chainman.BlockIndex().find(p->m_pblock->GetHash());
+    if (it != g_chainman.BlockIndex().end()) {
+        it->second->nFlags &= ~BLOCK_DELAYED;
+        setDirtyBlockIndex.insert(it->second);
+    }
+}
+
+bool DelayBlock(const std::shared_ptr<const CBlock>& pblock, BlockValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    NodeId nodeId = GetBlockSource(pblock->GetHash());
+    LogPrintf("Warning: %s - Previous stake modifier is null for block %s from peer %d.\n", __func__, pblock->GetHash().ToString(), nodeId);
+    while (list_delayed_blocks.size() >= MAX_DELAYED_BLOCKS) {
+        LogPrint(BCLog::NET, "Removing Delayed block %s, too many delayed.\n", pblock->GetHash().ToString());
+        EraseDelayedBlock(list_delayed_blocks.begin());
+        list_delayed_blocks.erase(list_delayed_blocks.begin());
+    }
+    assert(list_delayed_blocks.size() < MAX_DELAYED_BLOCKS);
+    state.nFlags |= BLOCK_DELAYED; // Mark to prevent further processing
+    list_delayed_blocks.emplace_back(pblock, nodeId);
+    return true;
+}
+
+void CheckDelayedBlocks(const CChainParams& chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main)
+{
+    if (list_delayed_blocks.empty()) {
+        return;
+    }
+
+    int64_t now = GetTime();
+    std::vector<std::shared_ptr<const CBlock> > process_blocks;
+    {
+        LOCK(cs_main);
+        std::list<DelayedBlock>::iterator p = list_delayed_blocks.begin();
+        while (p != list_delayed_blocks.end()) {
+            if (p->m_pblock->hashPrevBlock == block_hash) {
+                process_blocks.push_back(p->m_pblock);
+                p = list_delayed_blocks.erase(p);
+                continue;
+            }
+            if (p->m_time + MAX_DELAY_BLOCK_SECONDS < now) {
+                LogPrint(BCLog::NET, "Removing delayed block %s, timed out.\n", p->m_pblock->GetHash().ToString());
+                EraseDelayedBlock(p);
+                p = list_delayed_blocks.erase(p);
+                continue;
+            }
+            ++p;
+        }
+    }
+
+    for (auto &p : process_blocks) {
+        LogPrint(BCLog::NET, "Processing delayed block %s prev %s.\n", p->GetHash().ToString(), block_hash.ToString());
+
+        ChainstateManagerActive().ProcessNewBlock(chainparams, p, false, nullptr); // Should update DoS if necessary, finding block through mapBlockSource
+    }
+}
+
+bool RemoveUnreceivedHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    BlockMap::iterator mi = g_chainman.BlockIndex().find(hash);
+    if (mi != g_chainman.BlockIndex().end() && (mi->second->nFlags & BLOCK_ACCEPTED)) {
+        return false;
+    }
+    if (mi == g_chainman.BlockIndex().end()) {
+        return true; // was already removed, peer misbehaving
+    }
+
+    // Remove entire chain
+    std::vector<BlockMap::iterator> remove_headers;
+    std::vector<BlockMap::iterator> last_round[2];
+
+    size_t n = 0;
+    last_round[n].push_back(mi);
+    remove_headers.push_back(mi);
+    while (last_round[n].size()) {
+        last_round[!n].clear();
+
+        for (BlockMap::iterator& check_header : last_round[n]) {
+            BlockMap::iterator it = g_chainman.BlockIndex().begin();
+            while (it != g_chainman.BlockIndex().end()) {
+                if (it->second->pprev == check_header->second) {
+                    if ((it->second->nFlags & BLOCK_ACCEPTED)) {
+                        LogPrintf("Can't remove header %s, descendant block %s accepted.\n", hash.ToString(), it->second->GetBlockHash().ToString());
+                        return true; // Can't remove any blocks, peer misbehaving for not sending
+                    }
+                    last_round[!n].push_back(it);
+                    remove_headers.push_back(it);
+                }
+                it++;
+            }
+        }
+        n = !n;
+    }
+
+    LogPrintf("Removing %d loose headers from %s.\n", remove_headers.size(), hash.ToString());
+
+    for (auto &entry : remove_headers) {
+        LogPrint(BCLog::NET, "Removing loose header %s.\n", entry->second->GetBlockHash().ToString());
+        setDirtyBlockIndex.erase(entry->second);
+
+        if (pindexBestHeader == entry->second) {
+            pindexBestHeader = ::ChainActive().Tip();
+        }
+        if (pindexBestInvalid == entry->second) {
+            pindexBestInvalid = nullptr;
+        }
+        RemoveNonReceivedHeaderFromNodes(entry);
+        delete entry->second;
+        g_chainman.BlockIndex().erase(entry);
+    }
+
+    return true;
+}
+
+size_t CountDelayedBlocks() EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    return list_delayed_blocks.size();
+}
+
+bool ProcessDuplicateStakeHeader(CBlockIndex *pindex, NodeId nodeId) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    if (!pindex) {
+        return false;
+    }
+
+    uint256 hash = pindex->GetBlockHash();
+
+    bool fMakeValid = false;
+    if (nodeId == -1) {
+        LogPrintf("%s: Duplicate stake block %s was received in a group, marking valid.\n",
+            __func__, hash.ToString());
+
+        fMakeValid = true;
+    }
+
+    if (nodeId > -1) {
+        std::pair<std::map<uint256, StakeConflict>::iterator,bool> ret;
+        ret = mapStakeConflict.insert(std::pair<uint256, StakeConflict>(hash, StakeConflict()));
+        StakeConflict &sc = ret.first->second;
+        sc.Add(nodeId);
+
+        if ((int)sc.peerCount.size() > std::min(GetNumPeers() / 2, 4)) {
+            LogPrintf("%s: More than half the connected peers are building on block %s," /* Continued */
+                "  marked as duplicate stake, assuming this node has the duplicate.\n", __func__, hash.ToString());
+
+            fMakeValid = true;
+        }
+    }
+
+    if (fMakeValid) {
+        pindex->nFlags &= (~BLOCK_FAILED_DUPLICATE_STAKE);
+        pindex->nStatus &= (~BLOCK_FAILED_VALID);
+        setDirtyBlockIndex.insert(pindex);
+
+        //if (pindex->nStatus & BLOCK_FAILED_CHILD)
+        //{
+            CBlockIndex *pindexPrev = pindex->pprev;
+            while (pindexPrev) {
+                if (pindexPrev->nStatus & BLOCK_VALID_MASK) {
+                    break;
+                }
+
+                if (pindexPrev->nFlags & BLOCK_FAILED_DUPLICATE_STAKE) {
+                    pindexPrev->nFlags &= (~BLOCK_FAILED_DUPLICATE_STAKE);
+                    pindexPrev->nStatus &= (~BLOCK_FAILED_VALID);
+                    setDirtyBlockIndex.insert(pindexPrev);
+
+                    if (!pindexPrev->prevoutStake.IsNull()) {
+                        uint256 prevhash = pindexPrev->GetBlockHash();
+                        particl::AddToMapStakeSeen(pindexPrev->prevoutStake, prevhash);
+                    }
+
+                    pindexPrev->nStatus &= (~BLOCK_FAILED_CHILD);
+                }
+
+                pindexPrev = pindexPrev->pprev;
+            }
+
+            pindex->nStatus &= (~BLOCK_FAILED_CHILD);
+        //};
+
+        if (!pindex->prevoutStake.IsNull()) {
+            particl::AddToMapStakeSeen(pindex->prevoutStake, hash);
+        }
+        return true;
+    }
+
+    return false;
+}
+
 
 bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash)
 {
@@ -7071,4 +7015,61 @@ bool RebuildRollingIndices(CTxMemPool* mempool)
     return true;
 }
 
-} // particl
+int64_t GetSmsgFeeRate(const CBlockIndex *pindex, bool reduce_height) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    const Consensus::Params &consensusParams = Params().GetConsensus();
+
+    if ((pindex && pindex->nTime < consensusParams.smsg_fee_time)
+        || (!pindex && GetTime() < consensusParams.smsg_fee_time)) {
+        return consensusParams.smsg_fee_msg_per_day_per_k;
+    }
+
+    int chain_height = pindex ? pindex->nHeight : ::ChainActive().Height();
+    if (reduce_height) { // Grace period, push back to previous period
+        chain_height -= 10;
+    }
+    int fee_height = (chain_height / consensusParams.smsg_fee_period) * consensusParams.smsg_fee_period;
+
+    CBlockIndex *fee_block = ::ChainActive()[fee_height];
+    if (!fee_block || fee_block->nTime < consensusParams.smsg_fee_time) {
+        return consensusParams.smsg_fee_msg_per_day_per_k;
+    }
+
+    int64_t smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
+    CTransactionRef coinstake = nullptr;
+    if (!smsgFeeCoinstakeCache.GetCoinStake(fee_block->GetBlockHash(), coinstake)
+        || !coinstake->GetSmsgFeeRate(smsg_fee_rate)) {
+        return consensusParams.smsg_fee_msg_per_day_per_k;
+    }
+
+    return smsg_fee_rate;
+};
+
+uint32_t GetSmsgDifficulty(uint64_t time, bool verify) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    const Consensus::Params &consensusParams = Params().GetConsensus();
+
+    CBlockIndex *pindex = ::ChainActive().Tip();
+    for (size_t k = 0; k < 180; ++k) {
+        if (!pindex) {
+            break;
+        }
+        if (time >= pindex->nTime) {
+            uint32_t smsg_difficulty = 0;
+            CTransactionRef coinstake = nullptr;
+            if (smsgDifficultyCoinstakeCache.GetCoinStake(pindex->GetBlockHash(), coinstake)
+                && coinstake->GetSmsgDifficulty(smsg_difficulty)) {
+
+                if (verify && smsg_difficulty != consensusParams.smsg_min_difficulty) {
+                    return smsg_difficulty + consensusParams.smsg_difficulty_max_delta;
+                }
+                return smsg_difficulty - consensusParams.smsg_difficulty_max_delta;
+            }
+        }
+        pindex = pindex->pprev;
+    }
+
+    return consensusParams.smsg_min_difficulty - consensusParams.smsg_difficulty_max_delta;
+};
+
+} // namespace particl

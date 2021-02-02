@@ -3110,7 +3110,7 @@ int CSMSG::Receive(PeerManager *peerLogic, CNode *pfrom, std::vector<uint8_t> &v
                 GetPowHash(&smsg, pPayload, smsg.nPayload, msg_hash);
                 {
                 LOCK(cs_main);
-                target.SetCompact(GetSmsgDifficulty(now, true));
+                target.SetCompact(particl::GetSmsgDifficulty(now, true));
                 }
 
                 if (UintToArith256(msg_hash) > target) {
@@ -3531,7 +3531,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
             pindex = mi->second;
             if (pindex && ::ChainActive().Contains(pindex)) {
                 blockDepth = ::ChainActive().Height() - pindex->nHeight + 1;
-                nMsgFeePerKPerDay = GetSmsgFeeRate(pindex);
+                nMsgFeePerKPerDay = particl::GetSmsgFeeRate(pindex);
             }
         }
     }
@@ -3554,7 +3554,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
                 // Grace period after fee period transition where prev fee is still allowed
                 bool matched_last_fee = false;
                 if (pindex->nHeight % consensusParams.smsg_fee_period < 10) {
-                    int64_t nMsgFeePerKPerDayLast = GetSmsgFeeRate(pindex, true);
+                    int64_t nMsgFeePerKPerDayLast = particl::GetSmsgFeeRate(pindex, true);
                     int64_t nExpectFeeLast = ((nMsgFeePerKPerDayLast * nMsgBytes) / 1000) * nDaysRetention;
 
                     if (nAmount >= nExpectFeeLast) {
@@ -3685,7 +3685,7 @@ int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_
     arith_uint256 target;
     {
     LOCK(cs_main);
-    target.SetCompact(GetSmsgDifficulty(psmsg->timestamp, true));
+    target.SetCompact(particl::GetSmsgDifficulty(psmsg->timestamp, true));
     }
 
     if (UintToArith256(msg_hash) <= target) {
@@ -3712,7 +3712,7 @@ int CSMSG::SetHash(SecureMessage *psmsg, uint8_t *pPayload, uint32_t nPayload)
     arith_uint256 target_difficulty;
     {
     LOCK(cs_main);
-    target_difficulty.SetCompact(GetSmsgDifficulty(psmsg->timestamp));
+    target_difficulty.SetCompact(particl::GetSmsgDifficulty(psmsg->timestamp));
     }
 
     unsigned char header_buffer[SMSG_HDR_LEN];

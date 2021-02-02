@@ -1371,7 +1371,7 @@ RPCHelpMan getblockchaininfo()
     if (fParticlMode) {
         obj.pushKV("moneysupply",           ValueFromAmount(tip->nMoneySupply));
         obj.pushKV("blockindexsize",        (int)g_chainman.BlockIndex().size());
-        obj.pushKV("delayedblocks",         (int)CountDelayedBlocks());
+        obj.pushKV("delayedblocks",         (int)particl::CountDelayedBlocks());
     }
     obj.pushKV("difficulty",            (double)GetDifficulty(tip));
     PushTime(obj, "mediantime", tip->GetMedianTimePast());

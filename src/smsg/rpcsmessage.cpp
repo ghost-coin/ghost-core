@@ -2078,7 +2078,7 @@ static RPCHelpMan smsggetfeerate()
                 return result;
             }
 
-            result.pushKV("currentrate", GetSmsgFeeRate(nullptr));
+            result.pushKV("currentrate", particl::GetSmsgFeeRate(nullptr));
             int fee_height = (chain_height / consensusParams.smsg_fee_period) * consensusParams.smsg_fee_period;
             result.pushKV("currentrateblockheight", fee_height);
 
@@ -2099,7 +2099,7 @@ static RPCHelpMan smsggetfeerate()
         pblockindex = ::ChainActive()[nHeight];
     }
 
-    return GetSmsgFeeRate(pblockindex);
+    return particl::GetSmsgFeeRate(pblockindex);
 },
     };
 }
@@ -2131,7 +2131,7 @@ static RPCHelpMan smsggetdifficulty()
         }
     }
 
-    uint32_t target_compact = GetSmsgDifficulty(chain_time);
+    uint32_t target_compact = particl::GetSmsgDifficulty(chain_time);
     return smsg::GetDifficulty(target_compact);
 },
     };

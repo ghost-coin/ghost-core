@@ -32,8 +32,8 @@ HDWalletTestingSetup::~HDWalletTestingSetup()
     pwalletMain->Finalise();
     pwalletMain.reset();
 
-    mapStakeSeen.clear();
-    listStakeSeen.clear();
+    particl::mapStakeSeen.clear();
+    particl::listStakeSeen.clear();
 
     ECC_Stop_Stealth();
     ECC_Stop_Blinding();
