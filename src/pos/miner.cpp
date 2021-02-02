@@ -80,7 +80,7 @@ bool CheckStake(CBlock *pblock)
         return error("%s: %s is not a proof-of-stake block.", __func__, hashBlock.GetHex());
     }
 
-    if (!CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
+    if (!particl::CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
         return error("%s: %s CheckStakeUnique failed.", __func__, hashBlock.GetHex());
     }
 

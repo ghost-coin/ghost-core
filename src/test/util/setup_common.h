@@ -17,8 +17,7 @@
 #include <util/string.h>
 
 #include <type_traits>
-
-#include <boost/thread/thread.hpp>
+#include <vector>
 
 #include <key/extkey.h>
 #include <key/stealth.h>
@@ -108,7 +107,6 @@ private:
  * initialization behaviour.
  */
 struct ChainTestingSetup : public BasicTestingSetup {
-    boost::thread_group threadGroup;
 
     explicit ChainTestingSetup(const std::string& chainName = CBaseChainParams::MAIN, const std::vector<const char*>& extra_args = {}, bool fParticlModeIn = false);
     ~ChainTestingSetup();

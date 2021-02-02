@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <string.h>
+#include <cmath>  // std::ceil
 
 /// Maximum witness length for Bech32 addresses.
 static constexpr std::size_t BECH32_WITNESS_PROG_MAX_LEN = 40;

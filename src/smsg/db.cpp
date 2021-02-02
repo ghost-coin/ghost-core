@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -180,7 +180,7 @@ bool SecMsgDB::ReadPK(const CKeyID &addr, CPubKey &pubkey)
     }
 
     try {
-        CDataStream ssValue(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(strValue), SER_DISK, CLIENT_VERSION);
         ssValue >> pubkey;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -278,7 +278,7 @@ bool SecMsgDB::ReadKey(const CKeyID &idk, SecMsgKey &key)
     }
 
     try {
-        CDataStream ssValue(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(strValue), SER_DISK, CLIENT_VERSION);
         ssValue >> key;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -340,7 +340,7 @@ bool SecMsgDB::NextSmesg(leveldb::Iterator *it, const std::string &prefix, uint8
     memcpy(chKey, it->key().data(), 30);
 
     try {
-        CDataStream ssValue(it->value().data(), it->value().data() + it->value().size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(it->value()), SER_DISK, CLIENT_VERSION);
         ssValue >> smsgStored;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -404,7 +404,7 @@ bool SecMsgDB::ReadSmesg(const uint8_t *chKey, SecMsgStored &smsgStored)
     }
 
     try {
-        CDataStream ssValue(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(strValue), SER_DISK, CLIENT_VERSION);
         ssValue >> smsgStored;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -511,7 +511,7 @@ bool SecMsgDB::ReadPurged(const uint8_t *chKey, SecMsgPurged &smsgPurged)
     }
 
     try {
-        CDataStream ssValue(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(strValue), SER_DISK, CLIENT_VERSION);
         ssValue >> smsgPurged;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -574,7 +574,7 @@ bool SecMsgDB::NextPurged(leveldb::Iterator *it, const std::string &prefix, uint
     memcpy(chKey, it->key().data(), 30);
 
     try {
-        CDataStream ssValue(it->value().data(), it->value().data() + it->value().size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(it->value()), SER_DISK, CLIENT_VERSION);
         ssValue >> smsgPurged;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -605,7 +605,7 @@ bool SecMsgDB::NextPrivKey(leveldb::Iterator *it, const std::string &prefix, CKe
     memcpy(idk.begin(), it->key().data()+2, 20);
 
     try {
-        CDataStream ssValue(it->value().data(), it->value().data() + it->value().size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(it->value()), SER_DISK, CLIENT_VERSION);
         ssValue >> key;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
@@ -647,7 +647,7 @@ bool SecMsgDB::ReadFundingData(const uint256 &key, std::vector<uint8_t> &data)
     }
 
     try {
-        CDataStream ssValue(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(MakeUCharSpan(strValue), SER_DISK, CLIENT_VERSION);
         ssValue >> data;
     } catch (std::exception &e) {
         LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());

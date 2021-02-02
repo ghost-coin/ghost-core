@@ -40,6 +40,7 @@ class CBlockIndex;
 class CBlockTreeDB;
 class CBlockUndo;
 class CChainParams;
+struct CCheckpointData;
 class CInv;
 class CConnman;
 class CScriptCheck;
@@ -166,14 +167,8 @@ extern const std::vector<std::string> CHECKLEVEL_DOC;
 FILE* OpenBlockFile(const FlatFilePos &pos, bool fReadOnly = false);
 /** Translation to a filesystem path */
 fs::path GetBlockPosFilename(const FlatFilePos &pos);
-/** Import blocks from an external file */
-void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFilePos* dbp = nullptr);
 /** Ensures we have a genesis block in the block tree, possibly writing one to disk. */
 bool LoadGenesisBlock(const CChainParams& chainparams);
-/** Returns true if the block index needs to be reindexed. */
-bool ShouldAutoReindex() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-/** Returns true if the block index was rewound to rebuild the temporary indices. */
-bool RebuildRollingIndices(CTxMemPool* mempool);
 /** Unload database information */
 void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman);
 /** Run instances of script checking worker threads */
@@ -201,13 +196,6 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
 /** Retrieve a transaction and block header from disk */
 bool GetTransaction(const uint256 &hash, CTransactionRef &tx, const Consensus::Params& params, CBlock &block, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
 
-/**
- * Find the best known block, and make it the tip of the block chain
- *
- * May not be called with cs_main held. May not be called in a
- * validationinterface callback.
- */
-bool ActivateBestChain(BlockValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */
@@ -348,10 +336,6 @@ bool UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex* pindex);
 
 /** Functions for validating blocks and updating the block tree */
 
-bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-bool CheckStakeUnused(const COutPoint &kernel);
-bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
-
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 
@@ -360,8 +344,14 @@ unsigned int GetNextTargetRequired(const CBlockIndex *pindexLast);
 bool ConnectBlock(const CBlock& block, BlockValidationState& state, CBlockIndex* pindex,
     CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-/** Check a block is completely valid from start to finish (only works on top of our current best block, with cs_main held) */
-bool TestBlockValidity(BlockValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+/** Check a block is completely valid from start to finish (only works on top of our current best block) */
+bool TestBlockValidity(BlockValidationState& state,
+                       const CChainParams& chainparams,
+                       CChainState& chainstate,
+                       const CBlock& block,
+                       CBlockIndex* pindexPrev,
+                       bool fCheckPOW = true,
+                       bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Check whether witness commitments are required for a block, and whether to enforce NULLDUMMY (BIP 147) rules.
  *  Note that transaction witness validation rules are always enforced when P2SH is enforced. */
@@ -380,11 +370,6 @@ public:
     ~CVerifyDB();
     bool VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview, int nCheckLevel, int nCheckDepth);
 };
-
-CBlockIndex* LookupBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-
-/** Find the last common block between the parameter chain and a locator. */
-CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& locator) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 enum DisconnectResult
 {
@@ -504,6 +489,21 @@ public:
         CBlockIndex** ppindex,
         bool fRequested=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
+    CBlockIndex* LookupBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+    /** Find the last common block between the parameter chain and a locator. */
+    CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& locator) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+    //! Returns last CBlockIndex* that is a checkpoint
+    CBlockIndex* GetLastCheckpoint(const CCheckpointData& data) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+    /**
+     * Return the spend height, which is one more than the inputs.GetBestBlock().
+     * While checking, GetBestBlock() refers to the parent block. (protected by cs_main)
+     * This is also true for mempool checks.
+     */
+    int GetSpendHeight(const CCoinsViewCache& inputs) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
     ~BlockManager() {
         Unload();
     }
@@ -597,11 +597,6 @@ public:
      */
     mutable std::atomic<bool> m_cached_finished_ibd{false};
 
-    //! Reference to a BlockManager instance which itself is shared across all
-    //! CChainState instances. Keeping a local reference allows us to test more
-    //! easily as opposed to referencing a global.
-    BlockManager& m_blockman;
-
     //! mempool that is kept in sync with the chain
     CTxMemPool& m_mempool;
 
@@ -609,6 +604,10 @@ public:
     std::unique_ptr<CoinsViews> m_coins_views;
 
 public:
+    //! Reference to a BlockManager instance which itself is shared across all
+    //! CChainState instances.
+    BlockManager& m_blockman;
+
     explicit CChainState(CTxMemPool& mempool, BlockManager& blockman, uint256 from_snapshot_blockhash = uint256());
 
     /**
@@ -685,6 +684,9 @@ public:
     bool ResizeCoinsCaches(size_t coinstip_size, size_t coinsdb_size)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
+    /** Import blocks from an external file */
+    void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFilePos* dbp = nullptr);
+
     /**
      * Update the on-disk chain state.
      * The caches and indexes are flushed depending on the mode we're called with
@@ -710,9 +712,10 @@ public:
     void PruneAndFlush();
 
     /**
-     * Make the best chain active, in multiple steps. The result is either failure
-     * or an activated best chain. pblock is either nullptr or a pointer to a block
-     * that is already loaded (to avoid loading it again from disk).
+     * Find the best known block, and make it the tip of the block chain. The
+     * result is either failure or an activated best chain. pblock is either
+     * nullptr or a pointer to a block that is already loaded (to avoid loading
+     * it again from disk).
      *
      * ActivateBestChain is split into steps (see ActivateBestChainStep) so that
      * we avoid holding cs_main for an extended period of time; the length of this
@@ -726,7 +729,7 @@ public:
     bool ActivateBestChain(
         BlockValidationState& state,
         const CChainParams& chainparams,
-        std::shared_ptr<const CBlock> pblock) LOCKS_EXCLUDED(cs_main);
+        std::shared_ptr<const CBlock> pblock = nullptr) LOCKS_EXCLUDED(cs_main);
 
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, BlockValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const FlatFilePos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
@@ -889,7 +892,7 @@ private:
     //! This is especially important when, e.g., calling ActivateBestChain()
     //! on all chainstates because we are not able to hold ::cs_main going into
     //! that call.
-    CChainState* m_active_chainstate{nullptr};
+    CChainState* m_active_chainstate GUARDED_BY(::cs_main) {nullptr};
 
     //! If true, the assumed-valid chainstate has been fully validated
     //! by the background validation chainstate.
@@ -1019,13 +1022,6 @@ ChainstateManager& ChainstateManagerActive();
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern std::unique_ptr<CBlockTreeDB> pblocktree;
 
-/**
- * Return the spend height, which is one more than the inputs.GetBestBlock().
- * While checking, GetBestBlock() refers to the parent block. (protected by cs_main)
- * This is also true for mempool checks.
- */
-int GetSpendHeight(const CCoinsViewCache& inputs);
-
 extern VersionBitsCache versionbitscache;
 
 /**
@@ -1084,5 +1080,20 @@ DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex,
 bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
 bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
 void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
+
+
+
+namespace particl {
+
+bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool CheckStakeUnused(const COutPoint &kernel);
+bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
+
+/** Returns true if the block index needs to be reindexed. */
+bool ShouldAutoReindex() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+/** Returns true if the block index was rewound to rebuild the temporary indices. */
+bool RebuildRollingIndices(CTxMemPool* mempool);
+
+} // particl
 
 #endif // BITCOIN_VALIDATION_H

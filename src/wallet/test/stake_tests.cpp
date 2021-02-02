@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     {
         BlockValidationState state;
         std::shared_ptr<const CBlock> pblock = std::make_shared<const CBlock>(block);
-        BOOST_REQUIRE(ActivateBestChain(state, chainparams, pblock));
+        BOOST_REQUIRE(::ChainstateActive().ActivateBestChain(state, chainparams, pblock));
 
         LOCK(cs_main);
         CCoinsViewCache &view = ::ChainstateActive().CoinsTip();

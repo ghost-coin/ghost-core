@@ -61,7 +61,7 @@ void CallOneOf(FuzzedDataProvider& fuzzed_data_provider, Callables... callables)
 
 [[nodiscard]] inline CDataStream ConsumeDataStream(FuzzedDataProvider& fuzzed_data_provider, const size_t max_length = 4096) noexcept
 {
-    return {ConsumeRandomLengthByteVector(fuzzed_data_provider, max_length), SER_NETWORK, INIT_PROTO_VERSION};
+    return CDataStream{ConsumeRandomLengthByteVector(fuzzed_data_provider, max_length), SER_NETWORK, INIT_PROTO_VERSION};
 }
 
 [[nodiscard]] inline std::vector<std::string> ConsumeRandomLengthStringVector(FuzzedDataProvider& fuzzed_data_provider, const size_t max_vector_size = 16, const size_t max_string_length = 16) noexcept
@@ -269,8 +269,8 @@ inline CNetAddr ConsumeNetAddr(FuzzedDataProvider& fuzzed_data_provider) noexcep
     const Network network = fuzzed_data_provider.PickValueInArray({Network::NET_IPV4, Network::NET_IPV6, Network::NET_INTERNAL, Network::NET_ONION});
     CNetAddr net_addr;
     if (network == Network::NET_IPV4) {
-        const in_addr v4_addr = {
-            .s_addr = fuzzed_data_provider.ConsumeIntegral<uint32_t>()};
+        in_addr v4_addr = {};
+        v4_addr.s_addr = fuzzed_data_provider.ConsumeIntegral<uint32_t>();
         net_addr = CNetAddr{v4_addr};
     } else if (network == Network::NET_IPV6) {
         if (fuzzed_data_provider.remaining_bytes() >= 16) {

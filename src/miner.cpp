@@ -48,7 +48,7 @@ void RegenerateCommitments(CBlock& block)
     tx.vout.erase(tx.vout.begin() + GetWitnessCommitmentIndex(block));
     block.vtx.at(0) = MakeTransactionRef(tx);
 
-    GenerateCoinbaseCommitment(block, WITH_LOCK(cs_main, return LookupBlockIndex(block.hashPrevBlock)), Params().GetConsensus());
+    GenerateCoinbaseCommitment(block, WITH_LOCK(cs_main, return g_chainman.m_blockman.LookupBlockIndex(block.hashPrevBlock)), Params().GetConsensus());
 
     block.hashMerkleRoot = BlockMerkleRoot(block);
 }
@@ -189,7 +189,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     BlockValidationState state;
     if (fTestBlockValidity
-        && !TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
+        && !TestBlockValidity(state, chainparams, ::ChainstateActive(), *pblock, pindexPrev, false, false)) {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, state.ToString()));
     }
     int64_t nTime2 = GetTimeMicros();
