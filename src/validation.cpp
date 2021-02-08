@@ -6527,7 +6527,7 @@ double GuessVerificationProgress(const ChainTxData& data, const CBlockIndex *pin
 }
 
 Optional<uint256> ChainstateManager::SnapshotBlockhash() const {
-    LOCK(::cs_main);  // for m_active_chainstate access
+    LOCK(::cs_main);
     if (m_active_chainstate != nullptr) {
         // If a snapshot chainstate exists, it will always be our active.
         return m_active_chainstate->m_from_snapshot_blockhash;
@@ -6537,6 +6537,7 @@ Optional<uint256> ChainstateManager::SnapshotBlockhash() const {
 
 std::vector<CChainState*> ChainstateManager::GetAll()
 {
+    LOCK(::cs_main);
     std::vector<CChainState*> out;
 
     if (!IsSnapshotValidated() && m_ibd_chainstate) {
@@ -6581,11 +6582,13 @@ CChainState& ChainstateManager::ActiveChainstate() const
 
 bool ChainstateManager::IsSnapshotActive() const
 {
-    return m_snapshot_chainstate && WITH_LOCK(::cs_main, return m_active_chainstate) == m_snapshot_chainstate.get();
+    LOCK(::cs_main);
+    return m_snapshot_chainstate && m_active_chainstate == m_snapshot_chainstate.get();
 }
 
 CChainState& ChainstateManager::ValidatedChainstate() const
 {
+    LOCK(::cs_main);
     if (m_snapshot_chainstate && IsSnapshotValidated()) {
         return *m_snapshot_chainstate.get();
     }
@@ -6595,6 +6598,7 @@ CChainState& ChainstateManager::ValidatedChainstate() const
 
 bool ChainstateManager::IsBackgroundIBD(CChainState* chainstate) const
 {
+    LOCK(::cs_main);
     return (m_snapshot_chainstate && chainstate == m_ibd_chainstate.get());
 }
 
@@ -6610,12 +6614,10 @@ void ChainstateManager::Unload()
 
 void ChainstateManager::Reset()
 {
+    LOCK(::cs_main);
     m_ibd_chainstate.reset();
     m_snapshot_chainstate.reset();
-    {
-        LOCK(::cs_main);
-        m_active_chainstate = nullptr;
-    }
+    m_active_chainstate = nullptr;
     m_snapshot_validated = false;
 }
 

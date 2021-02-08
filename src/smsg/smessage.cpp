@@ -64,7 +64,6 @@ Notes:
 
 #include <xxhash/xxhash.h>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/thread/thread.hpp>
 
 smsg::CSMSG smsgModule;
 

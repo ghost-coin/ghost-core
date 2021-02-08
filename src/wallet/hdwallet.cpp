@@ -10279,7 +10279,7 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
     unsigned char msg[256]; // Currently narration is capped at 32 bytes
     size_t mlen = sizeof(msg);
     memset(msg, 0, mlen);
-    uint64_t amountOut;
+    uint64_t amountOut = 0;
 
     if (pout->vRangeproof.size() < 1000) {
         int rewind_rv = 0;
