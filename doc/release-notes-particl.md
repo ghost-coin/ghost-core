@@ -2,6 +2,12 @@ Next Major Version
 ==============
 
 
+0.21.0.2
+==============
+
+- Wallet tracks anon watchonly transactions.
+
+
 0.21.0.1
 ==============
 
