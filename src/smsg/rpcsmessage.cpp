@@ -28,7 +28,7 @@
 #include <wallet/hdwallet.h>
 #include <wallet/coincontrol.h>
 extern void EnsureWalletIsUnlocked(CHDWallet *pwallet);
-extern void ReadCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinControl &coin_control);
+extern void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinControl &coin_control);
 #endif
 
 #include <univalue.h>
@@ -947,7 +947,7 @@ static RPCHelpMan smsgsend()
         }
         UniValue uv_cctl = request.params[7];
         if (uv_cctl.isObject()) {
-            ReadCoinControlOptions(uv_cctl, pw, cctl);
+            ParseCoinControlOptions(uv_cctl, pw, cctl);
         }
     }
     if (smsgModule.Send(kiFrom, kiTo, msg, smsgOut, sError, fPaid, nRetention, fTestFee, &nFee, &nTxBytes,

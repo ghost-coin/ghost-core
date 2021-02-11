@@ -4855,6 +4855,8 @@ RPCHelpMan getaddressinfo()
         } else
         if (dest.index() == DI::_CStealthAddress) {
             const CStealthAddress &sxAddr = std::get<CStealthAddress>(dest);
+            ret.pushKV("scan_public_key", HexStr(sxAddr.scan_pubkey));
+            ret.pushKV("spend_public_key", HexStr(sxAddr.spend_pubkey));
             const CExtKeyAccount *pa = nullptr;
             const CEKAStealthKey *pask = nullptr;
             mine = phdw->IsMine(sxAddr, pa, pask);
