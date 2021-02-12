@@ -399,14 +399,14 @@ static RPCHelpMan signmessagewithprivkey()
 static RPCHelpMan setmocktime()
 {
     return RPCHelpMan{"setmocktime",
-                "\nSet the local time to given timestamp (-regtest only)\n",
-                {
-                    {"timestamp", RPCArg::Type::NUM, RPCArg::Optional::NO, UNIX_EPOCH_TIME + "\n"
-            "   Pass 0 to go back to using the system time."},
-                    {"is_offset", RPCArg::Type::BOOL, /* default */ "false", "Clock keeps moving if set to true."},
-                },
-                RPCResult{RPCResult::Type::NONE, "", ""},
-                RPCExamples{""},
+        "\nSet the local time to given timestamp (-regtest only)\n",
+        {
+            {"timestamp", RPCArg::Type::NUM, RPCArg::Optional::NO, UNIX_EPOCH_TIME + "\n"
+             "Pass 0 to go back to using the system time."},
+            {"is_offset", RPCArg::Type::BOOL, /* default */ "false", "Clock keeps moving if set to true."},
+        },
+        RPCResult{RPCResult::Type::NONE, "", ""},
+        RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     if (!Params().IsMockableChain()) {
@@ -423,10 +423,13 @@ static RPCHelpMan setmocktime()
     RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VBOOL}, true);
     bool isOffset = request.params.size() > 1 ? GetBool(request.params[1]) : false;
     int64_t time = request.params[0].get_int64();
+    if (time < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Mocktime can not be negative: %s.", time));
+    }
     if (isOffset) {
-        SetMockTimeOffset(request.params[0].get_int64());
+        SetMockTimeOffset(time);
     } else {
-        SetMockTime(request.params[0].get_int64());
+        SetMockTime(time);
     }
     if (request.context.Has<NodeContext>()) {
         for (const auto& chain_client : request.context.Get<NodeContext>().chain_clients) {

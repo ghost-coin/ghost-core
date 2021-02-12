@@ -116,8 +116,7 @@ isminetype IsMineInner(const LegacyScriptPubKeyMan& keystore, const CScript& scr
     CKeyID keyID;
 
     isminetype mine = ISMINE_NO;
-    switch (whichType)
-    {
+    switch (whichType) {
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:
@@ -153,8 +152,9 @@ isminetype IsMineInner(const LegacyScriptPubKeyMan& keystore, const CScript& scr
         break;
     }
     case TxoutType::PUBKEYHASH:
-    case TxoutType::TIMELOCKED_PUBKEYHASH:
     case TxoutType::PUBKEYHASH256:
+    case TxoutType::TIMELOCKED_PUBKEYHASH:
+    case TxoutType::TIMELOCKED_PUBKEYHASH256:
         if (vSolutions[0].size() == 20)
             keyID = CKeyID(uint160(vSolutions[0]));
         else
@@ -175,8 +175,9 @@ isminetype IsMineInner(const LegacyScriptPubKeyMan& keystore, const CScript& scr
         //    return ISMINE_SPENDABLE;
         break;
     case TxoutType::SCRIPTHASH:
-    case TxoutType::TIMELOCKED_SCRIPTHASH:
     case TxoutType::SCRIPTHASH256:
+    case TxoutType::TIMELOCKED_SCRIPTHASH:
+    case TxoutType::TIMELOCKED_SCRIPTHASH256:
     {
         if (sigversion != IsMineSigVersion::TOP) {
             // P2SH inside P2WSH or P2SH is invalid.
@@ -245,9 +246,7 @@ isminetype IsMineInner(const LegacyScriptPubKeyMan& keystore, const CScript& scr
             return ISMINE_SPENDABLE;
         break;
     }
-    default:
-        break;
-    }
+    } // no default case, so the compiler can warn about missing cases
 
     if (keystore.HaveWatchOnly(scriptPubKey)) {
         return ISMINE_WATCH_ONLY_;

@@ -3,7 +3,7 @@ name: "particl-core-osx-22.0.0"
 enable_cache: true
 distro: "ubuntu"
 suites:
-- "bionic"
+- "focal"
 architectures:
 - "amd64"
 packages:
@@ -29,6 +29,7 @@ packages:
 - "python3-setuptools"
 - "fonts-tuffy"
 - "xorriso"
+- "libtinfo5"
 remotes:
 - "url": "https://github.com/particl/particl-core.git"
   "dir": "particl-core"
@@ -39,7 +40,7 @@ script: |
 
   WRAP_DIR=$HOME/wrapped
   HOSTS="x86_64-apple-darwin18"
-  CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests --enable-usbdevice XORRISOFS=${WRAP_DIR}/xorrisofs DMG=${WRAP_DIR}/dmg"
+  CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests --disable-fuzz-binary --enable-usbdevice XORRISOFS=${WRAP_DIR}/xorrisofs DMG=${WRAP_DIR}/dmg"
   FAKETIME_HOST_PROGS=""
   FAKETIME_PROGS="ar ranlib date dmg xorrisofs"
 

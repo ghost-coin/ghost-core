@@ -117,8 +117,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         whichTypeRet = Solver(scriptPubKey, vSolutions);
     }
 
-    switch (whichTypeRet)
-    {
+    switch (whichTypeRet) {
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:
@@ -130,7 +129,8 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return true;
     case TxoutType::PUBKEYHASH:
     case TxoutType::TIMELOCKED_PUBKEYHASH:
-    case TxoutType::PUBKEYHASH256: {
+    case TxoutType::PUBKEYHASH256:
+    case TxoutType::TIMELOCKED_PUBKEYHASH256: {
         CKeyID keyID = vSolutions[0].size() == 32 ? CKeyID(uint256(vSolutions[0])) : CKeyID(uint160(vSolutions[0]));
         CPubKey pubkey;
         if (!GetPubKey(provider, sigdata, keyID, pubkey)) {
@@ -145,7 +145,8 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     }
     case TxoutType::SCRIPTHASH:
     case TxoutType::TIMELOCKED_SCRIPTHASH:
-    case TxoutType::SCRIPTHASH256: {
+    case TxoutType::SCRIPTHASH256:
+    case TxoutType::TIMELOCKED_SCRIPTHASH256: {
         CScriptID idScript;
         if (vSolutions[0].size() == 20) {
             idScript = CScriptID(uint160(vSolutions[0]));
@@ -198,10 +199,8 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         // Could not find witnessScript, add to missing
         sigdata.missing_witness_script = uint256(vSolutions[0]);
         return false;
-
-    default:
-        return false;
-    }
+    } // no default case, so the compiler can warn about missing cases
+    assert(false);
 }
 
 static CScript PushAll(const std::vector<valtype>& values)

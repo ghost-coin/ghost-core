@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(ct_parameters_test)
         int ct_exponent = 0;
         int ct_bits = 32;
 
-        SelectRangeProofParameters(nValue, min_value, ct_exponent, ct_bits);
+        BOOST_REQUIRE(0 == SelectRangeProofParameters(nValue, min_value, ct_exponent, ct_bits));
     }
 }
 

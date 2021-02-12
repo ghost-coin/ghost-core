@@ -7,7 +7,10 @@
 #include <config/bitcoin-config.h>
 #endif
 
+#include <compat.h>
 #include <util/time.h>
+
+#include <util/check.h>
 
 #include <atomic>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -18,8 +21,8 @@
 
 void UninterruptibleSleep(const std::chrono::microseconds& n) { std::this_thread::sleep_for(n); }
 
-static std::atomic<int64_t> nMockTime(0); //!< For unit testing
-static std::atomic<bool> mockTimeOffset(false); // Treat nMockTime as an offset
+static std::atomic<int64_t> nMockTime(0); //!< For testing
+static std::atomic<bool> mockTimeOffset(false); //!< Treat nMockTime as an offset
 
 int64_t GetTime()
 {
@@ -51,6 +54,7 @@ template std::chrono::microseconds GetTime();
 
 void SetMockTime(int64_t nMockTimeIn)
 {
+    Assert(nMockTimeIn >= 0);
     mockTimeOffset = false;
     nMockTime.store(nMockTimeIn, std::memory_order_relaxed);
 }
@@ -127,6 +131,19 @@ int64_t ParseISO8601DateTime(const std::string& str)
     return (ptime - epoch).total_seconds();
 }
 
+struct timeval MillisToTimeval(int64_t nTimeout)
+{
+    struct timeval timeout;
+    timeout.tv_sec  = nTimeout / 1000;
+    timeout.tv_usec = (nTimeout % 1000) * 1000;
+    return timeout;
+}
+
+struct timeval MillisToTimeval(std::chrono::milliseconds ms)
+{
+    return MillisToTimeval(count_milliseconds(ms));
+}
+
 namespace part
 {
 std::string GetTimeString(int64_t timestamp, char *buffer, size_t nBuffer)
@@ -137,12 +154,12 @@ std::string GetTimeString(int64_t timestamp, char *buffer, size_t nBuffer)
 
     strftime(buffer, nBuffer, "%Y-%m-%dT%H:%M:%S%z", dt); // %Z shows long strings on windows
     return std::string(buffer); // copies the null-terminated character sequence
-};
+}
 
 static int daysInMonth(int year, int month)
 {
     return month == 2 ? (year % 4 ? 28 : (year % 100 ? 29 : (year % 400 ? 28 : 29))) : ((month - 1) % 7 % 2 ? 30 : 31);
-};
+}
 
 int64_t strToEpoch(const char *input, bool fFillMax)
 {
@@ -167,5 +184,5 @@ int64_t strToEpoch(const char *input, bool fFillMax)
         tm.tm_sec = seconds;            else if (fFillMax) tm.tm_sec = 59;
 
     return (int64_t) mktime(&tm);
-};
+}
 }

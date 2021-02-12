@@ -1,8 +1,6 @@
 Particl Core integration/staging tree
 =====================================
 
-[![Build Status](https://travis-ci.org/particl/particl-core.svg?branch=master)](https://travis-ci.org/particl/particl-core)
-
 https://particl.io
 
 What is Particl?

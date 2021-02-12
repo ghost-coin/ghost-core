@@ -53,19 +53,19 @@ SHA256_SUMS = {
 "aa7a9563b48aa79252c8e7b6a41c07a5441bd9f14c5e4562cc72720ea6cb0ee5": "bitcoin-0.19.1-riscv64-linux-gnu.tar.gz",
 "5fcac9416e486d4960e1a946145566350ca670f9aaba99de6542080851122e4c": "bitcoin-0.19.1-x86_64-linux-gnu.tar.gz",
 
-"14d967239267b256aec57df819669333c4c580e274b8f8c8d80ba485a15391bd": "particl--aarch64-linux-gnu.tar.gz",
-"070b9a588d586b64bd2f2b54ef3b46c7bd6e92fd5bda193b9ddf3f8e779db51c": "particl-0.19.0.1-arm-linux-gnueabihf.tar.gz",
-"019b70af552388c7ffd4f1bb8ecc9403a7e23c3281e4005bf818eeb99f8e229a": "particl-0.19.0.1-i686-pc-linux-gnu.tar.gz",
-"ef2157fb8323185600822921839eeb09c1f9e4eb20e6a51301447cef88ea4970": "particl-0.19.0.1-riscv64-linux-gnu.tar.gz",
-"255e3fe805382089ec02e9ce36e74f18516dc16b99a15e9f9ebb1d3fd34b0230": "particl-0.19.0.1-x86_64-linux-gnu.tar.gz",
-"524dc863a834150f9ecb77175898c63b82bfc743f7a0e14841b7063931070aee": "particl-0.19.0.1-osx64.tar.gz",
-
 "fc649cb46d9f4ea4919bb87be8b685474f95f89ae82996dd1e36f2089b69f90d": "particl-0.18.1.7-aarch64-linux-gnu.tar.gz",
 "779e57c7e4d680736f972de07276a1037de6c2aa8a2c95c8087c43c56927dc60": "particl-0.18.1.7-arm-linux-gnueabihf.tar.gz",
 "d5a2ac8dac2b3d262a1684c21b444890837ad51f2b93e2372f54fc51d7fccbcd": "particl-0.18.1.7-i686-pc-linux-gnu.tar.gz",
 "f85b7ee98dab3fbccc7a2de0d560c6861df05d7fbb11664f1da1a5f24d4dc58a": "particl-0.18.1.7-riscv64-linux-gnu.tar.gz",
 "e758db39812dd2edf2c4aec215dfce4802c37e3a881d81233d24afff9d61af32": "particl-0.18.1.7-x86_64-linux-gnu.tar.gz",
-"44c9f60a1f5fc8377cc1cef278a99b401a67ef0ff64429ce1aa21ca71bf73c04": "particl-0.18.1.7-osx64.tar.gz"
+"44c9f60a1f5fc8377cc1cef278a99b401a67ef0ff64429ce1aa21ca71bf73c04": "particl-0.18.1.7-osx64.tar.gz",
+
+"98edac817ed8a252e14880c211a880f3940b64189f4bd540c9e7c8cfa5ec7303": "particl-0.19.2.3-aarch64-linux-gnu.tar.gz",
+"8e56b57337a547f55c1dbfda593838a8ad2d970983b24ff6a102245e7a2904c8": "particl-0.19.2.3-arm-linux-gnueabihf.tar.gz",
+"6df1c267d78e9945fc1417523e0c8d77eab4aaac56890f43b5a6a4f0c7bbda97": "particl-0.19.2.3-i686-pc-linux-gnu.tar.gz",
+"d8e23caf38c3e7b4916823e332ae2040d8255289531c860c049ecbdbf9ff7dd0": "particl-0.19.2.3-riscv64-linux-gnu.tar.gz",
+"116d960d61bbb52dcb0bb498a742c028d900e89394169be0777586bf268d01a6": "particl-0.19.2.3-x86_64-linux-gnu.tar.gz",
+"12506300ad8aeda8be2b9195f50163abde6c219a4f478e81f6dccbe722147a68": "particl-0.19.2.3-osx64.tar.gz"
 }
 
 @contextlib.contextmanager

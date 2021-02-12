@@ -7,7 +7,7 @@
 export LC_ALL=C.UTF-8
 
 export HOST=arm-linux-gnueabihf
-export DEP_OPTS="NO_USB=1"
+export DEP_OPTS="NO_USB=1 NO_QT=1" # Times out with qt
 # The host arch is unknown, so we run the tests through qemu.
 # If the host is arm and wants to run the tests natively, it can set QEMU_USER_CMD to the empty string.
 if [ -z ${QEMU_USER_CMD+x} ]; then export QEMU_USER_CMD="${QEMU_USER_CMD:-"qemu-arm -L /usr/arm-linux-gnueabihf/"}"; fi

@@ -975,22 +975,39 @@ static std::string RecurseImportData(const CScript& script, ImportData& import_d
         import_data.used_keys.emplace(pubkey.GetID(), false);
         return "";
     }
+    case TxoutType::TIMELOCKED_PUBKEYHASH256:
+    case TxoutType::PUBKEYHASH256: {
+        CKeyID id = CKeyID(uint256(solverdata[0]));
+        import_data.used_keys[id] = true;
+        return "";
+    }
+    case TxoutType::TIMELOCKED_PUBKEYHASH:
     case TxoutType::PUBKEYHASH: {
         CKeyID id = CKeyID(uint160(solverdata[0]));
         import_data.used_keys[id] = true;
         return "";
     }
+    case TxoutType::SCRIPTHASH256:
+    case TxoutType::TIMELOCKED_SCRIPTHASH:
+    case TxoutType::TIMELOCKED_SCRIPTHASH256:
     case TxoutType::SCRIPTHASH: {
         if (script_ctx == ScriptContext::P2SH) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Trying to nest P2SH inside another P2SH");
         if (script_ctx == ScriptContext::WITNESS_V0) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Trying to nest P2SH inside a P2WSH");
         CHECK_NONFATAL(script_ctx == ScriptContext::TOP);
-        CScriptID id = CScriptID(uint160(solverdata[0]));
+        CScriptID id;
+        if (solverdata[0].size() == 20) {
+            id = CScriptID(uint160(solverdata[0]));
+        } else
+        if (solverdata[0].size() == 32) {
+            id.Set(uint256(solverdata[0]));
+        }
         auto subscript = std::move(import_data.redeemscript); // Remove redeemscript from import_data to check for superfluous script later.
         if (!subscript) return "missing redeemscript";
         if (CScriptID(*subscript) != id) return "redeemScript does not match the scriptPubKey";
         import_data.import_scripts.emplace(*subscript);
         return RecurseImportData(*subscript, import_data, ScriptContext::P2SH);
     }
+    case TxoutType::TIMELOCKED_MULTISIG:
     case TxoutType::MULTISIG: {
         for (size_t i = 1; i + 1< solverdata.size(); ++i) {
             CPubKey pubkey(solverdata[i].begin(), solverdata[i].end());
@@ -1026,9 +1043,9 @@ static std::string RecurseImportData(const CScript& script, ImportData& import_d
     case TxoutType::NONSTANDARD:
     case TxoutType::WITNESS_UNKNOWN:
     case TxoutType::WITNESS_V1_TAPROOT:
-    default:
         return "unrecognized script";
-    }
+    } // no default case, so the compiler can warn about missing cases
+    CHECK_NONFATAL(false);
 }
 
 static UniValue ProcessImportLegacy(ImportData& import_data, std::map<CKeyID, CPubKey>& pubkey_map, std::map<CKeyID, CKey>& privkey_map, std::set<CScript>& script_pub_keys, bool& have_solving_data, const UniValue& data, std::vector<CKeyID>& ordered_pubkeys)

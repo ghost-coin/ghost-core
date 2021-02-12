@@ -17,5 +17,6 @@ export RUN_SECURITY_TESTS="true"
 export RUN_UNIT_TESTS_SEQUENTIAL="true"
 export RUN_UNIT_TESTS="false"
 export GOAL="install"
-export PREVIOUS_RELEASES_TO_DOWNLOAD="v0.18.1.7 v0.19.0.1"
-export BITCOIN_CONFIG="--enable-zmq --with-libs=no --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports --enable-debug CFLAGS=\"-g0 -O2 -funsigned-char\" CXXFLAGS=\"-g0 -O2 -funsigned-char\" --with-boost-process --enable-usbdevice"
+export PREVIOUS_RELEASES_TO_DOWNLOAD="v0.18.1.7 v0.19.2.3"
+export BITCOIN_CONFIG="--enable-zmq --with-libs=no --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports
+--enable-debug --disable-fuzz-binary  CFLAGS=\"-g0 -O2 -funsigned-char\" CXXFLAGS=\"-g0 -O2 -funsigned-char\" --with-boost-process --enable-usbdevice"
