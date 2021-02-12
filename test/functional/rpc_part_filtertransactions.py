@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2021 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -47,16 +47,19 @@ class FilterTransactionsTest(ParticlTestFramework):
         # simple PART transaction
         nodes[0].sendtoaddress(targetAddress, 10)
         self.stakeBlocks(1)
-        nodes[1].sendtoaddress(selfAddress, 8)
+
+        txids = []
+        txids.append(nodes[1].sendtoaddress(selfAddress, 8))
+
 
         # PART to BLIND
-        nodes[0].sendtypeto('part', 'blind', [{'address': selfStealth, 'amount': 20, 'narr': 'node0 -> node0 p->b'},])
+        txids.append(nodes[0].sendtypeto('part', 'blind', [{'address': selfStealth, 'amount': 20, 'narr': 'node0 -> node0 p->b'},]))
 
         # PART to ANON
-        nodes[0].sendtypeto('part', 'anon', [{'address': targetStealth, 'amount': 20, 'narr': 'node0 -> node1 p->a'},])
+        txids.append(nodes[0].sendtypeto('part', 'anon', [{'address': targetStealth, 'amount': 20, 'narr': 'node0 -> node1 p->a'},]))
 
-        # Multiple outputs
-        nodes[0].sendtypeto(
+        # several outputs
+        txids.append(nodes[0].sendtypeto(
             'part',               # type in
             'part',               # type out
             [                     # outputs
@@ -71,7 +74,7 @@ class FilterTransactionsTest(ParticlTestFramework):
                     'narr':       'output 2'
                 }
             ]
-        )
+        ))
 
         # cold staking: watchonly
         script = nodes[0].buildscript(
@@ -81,7 +84,7 @@ class FilterTransactionsTest(ParticlTestFramework):
                 'addrspend':     selfSpending
             }
         )
-        nodes[0].sendtypeto(
+        txids.append(nodes[0].sendtypeto(
             'part',              # type in
             'part',              # type out
             [                    # outputs
@@ -92,15 +95,16 @@ class FilterTransactionsTest(ParticlTestFramework):
                     'narr':      'activating cold staking'
                 }
             ]
-        )
+        ))
         txid = nodes[0].sendtoaddress(selfSpending, 50)
-        nodes[0].sendtypeto(
+        txids.append(txid)
+        txids.append(nodes[0].sendtypeto(
             'part',              # type in
             'part',              # type out
             [                    # outputs
                 {
                     'address':   targetAddress,
-                    'amount':    7,
+                    'amount':    7.123,
                     'narr':      'watchonly transaction'
                 }
             ],
@@ -116,20 +120,20 @@ class FilterTransactionsTest(ParticlTestFramework):
                 'conf_target':   1,
                 'estimate_mode': 'CONSERVATIVE'
             }
-        )
+        ))
 
-        ro = nodes[0].rescanblockchain()
+        for txid in txids:
+            assert(self.wait_for_mempool(nodes[0], txid))
         self.stakeBlocks(1)
 
         #
         # general
         #
 
-        # without argument
-        ro = nodes[0].filtertransactions()
-        assert(len(ro) == 10)
+        # Without argument
+        assert(len(nodes[0].filtertransactions()) == 10)
 
-        # too much arguments
+        # Too many arguments
         try:
             nodes[0].filtertransactions('foo', 'bar')
             assert(False)
@@ -148,12 +152,10 @@ class FilterTransactionsTest(ParticlTestFramework):
             assert('Invalid count' in e.error['message'])
 
         # count: 0 => all transactions
-        ro = nodes[0].filtertransactions({ 'count': 0 })
-        assert(len(ro) == 11)
+        assert(len(nodes[0].filtertransactions({ 'count': 0 })) == 11)
 
         # count: 1
-        ro = nodes[0].filtertransactions({ 'count': 1 })
-        assert(len(ro) == 1)
+        assert(len(nodes[0].filtertransactions({ 'count': 1 })) == 1)
 
         #
         # skip
@@ -200,7 +202,7 @@ class FilterTransactionsTest(ParticlTestFramework):
         queries = [
             [targetAddress, 2],
             [selfStealth,   1],
-            ['70000',       1]
+            ['71230',       1]
         ]
 
         for query in queries:
