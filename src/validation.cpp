@@ -215,6 +215,7 @@ CBlockIndex* BlockManager::FindForkInGlobalIndex(const CChain& chain, const CBlo
 
 std::unique_ptr<CBlockTreeDB> pblocktree;
 
+int64_t EXPLOIT_FIX_HF1_TIME = 0; // TODO: Remove
 namespace particl {
 bool DelayBlock(const std::shared_ptr<const CBlock>& pblock, BlockValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 void CheckDelayedBlocks(const CChainParams& chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main);
