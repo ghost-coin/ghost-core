@@ -41,24 +41,26 @@ Next Major Version
 0.19.2.5
 ==============
 
- - Allow anon and blinded transaction on testnet.
+- Allow anon and blinded transaction on testnet.
+- filtertransactions can display blinding factors.
+- New mainnet checkpoint.
 
 
 0.19.2.4
 ==============
 
- - Emergency hardfork release
- - Disables anon and blind transactions
+- Emergency hardfork release
+- Disables anon and blind transactions
 
 
 0.19.2.3
 ==============
 
- - Merged Bitcoin 0.19.2 backports.
- - New checkpoints.
- - Fix smsginbox hex encoding bug.
- - Tighten IsStandard() check to fail on trailing script.
- - Re-enable win32 gitian build.
+- Merged Bitcoin 0.19.2 backports.
+- New checkpoints.
+- Fix smsginbox hex encoding bug.
+- Tighten IsStandard() check to fail on trailing script.
+- Re-enable win32 gitian build.
 
 
 0.19.1.2
