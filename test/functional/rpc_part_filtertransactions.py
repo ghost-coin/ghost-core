@@ -38,13 +38,11 @@ class FilterTransactionsTest(ParticlTestFramework):
         selfAddress2   = nodes[0].getnewaddress('self2')
         selfStealth    = nodes[0].getnewstealthaddress('stealth')
         selfSpending   = nodes[0].getnewaddress('spending', 'false', 'false', 'true')
-        #selfExternal   = nodes[0].getnewextaddress('external')
         targetAddress  = nodes[1].getnewaddress('target')
         targetStealth  = nodes[1].getnewstealthaddress('taret stealth')
-        #targetExternal = nodes[1].getnewextaddress('target external')
         stakingAddress = nodes[2].getnewaddress('staking')
 
-        # simple PART transaction
+        # Simple PART transaction
         nodes[0].sendtoaddress(targetAddress, 10)
         self.stakeBlocks(1)
 
@@ -58,7 +56,7 @@ class FilterTransactionsTest(ParticlTestFramework):
         # PART to ANON
         txids.append(nodes[0].sendtypeto('part', 'anon', [{'address': targetStealth, 'amount': 20, 'narr': 'node0 -> node1 p->a'},]))
 
-        # several outputs
+        # Several outputs
         txids.append(nodes[0].sendtypeto(
             'part',               # type in
             'part',               # type out
@@ -125,6 +123,17 @@ class FilterTransactionsTest(ParticlTestFramework):
         for txid in txids:
             assert(self.wait_for_mempool(nodes[0], txid))
         self.stakeBlocks(1)
+
+        # Check blinding factors
+        fto = nodes[1].filtertransactions({'type': 'anon', 'show_blinding_factors': True})
+        rtx = nodes[1].getrawtransaction(fto[0]['txid'], True, fto[0]['blockhash'])
+        bfs = {}
+        for vout in fto[0]['outputs']:
+            if 'blindingfactor' in vout:
+                bfs[vout['vout']] = (vout['amount'], vout['blindingfactor'])
+        for vout in rtx['vout']:
+            if vout.get('type', 'unknown') == 'anon':
+                assert(nodes[1].verifycommitment(vout['valueCommitment'], bfs[vout['n']][1], bfs[vout['n']][0])['result'] is True)
 
         #
         # general
