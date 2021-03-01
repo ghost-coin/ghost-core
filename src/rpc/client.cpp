@@ -265,13 +265,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "smsgpeers", 0, "index" },
     { "smsgzmqpush", 0, "options" },
 
-
-    { "devicesignrawtransaction", 1, "prevtxs" },
-    { "devicesignrawtransaction", 2, "paths" },
-    { "initaccountfromdevice", 2, "makedefault" },
-    { "initaccountfromdevice", 3, "scan_chain_from" },
-    { "initaccountfromdevice", 4, "initstealthchain" },
-
     { "pruneorphanedblocks", 0, "testonly" },
     { "extkeyimportmaster", 2, "save_bip44_root" },
     { "filteraddresses", 4, "match_owned" },
@@ -279,14 +272,21 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "debugwallet", 1, "clear_stakes_seen" },
     { "reservebalance", 1, "amount" },
     { "votehistory", 0, "current_only" },
+
+    { "devicesignrawtransaction", 1, "prevtxs" },
+    { "devicesignrawtransaction", 2, "paths" },
+    { "initaccountfromdevice", 2, "makedefault" },
+    { "initaccountfromdevice", 3, "scan_chain_from" },
+    { "initaccountfromdevice", 4, "initstealthchain" },
     { "unlockdevice", 1, "pin" },
+    { "deviceloadmnemonic", 0, "wordcount" },
     { "deviceloadmnemonic", 1, "pinprotection" },
     { "devicegetnewstealthaddress", 1, "num_prefix_bits" },
     { "devicegetnewstealthaddress", 3, "bech32" },
+
     { "extkeygenesisimport", 2, "save_bip44_root" },
     { "filteraddresses", 2, "sort_code" },
     { "filteraddresses", 5, "show_path" },
-    { "deviceloadmnemonic", 0, "wordcount" },
     { "getaddresstxids", 1, "start" },
     { "getaddresstxids", 2, "end" },
     { "getaddressdeltas", 1, "start" },

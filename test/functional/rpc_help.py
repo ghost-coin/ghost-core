@@ -77,7 +77,7 @@ class HelpRpcTest(BitcoinTestFramework):
         ]
 
         # Only check if all RPC methods have been compiled (i.e. wallet is enabled)
-        if self.is_wallet_compiled() and sorted(mapping_client) != sorted(mapping_server_conversion):
+        if self.is_usbdevice_compiled() and self.is_wallet_compiled() and sorted(mapping_client) != sorted(mapping_server_conversion):
             raise AssertionError("RPC client conversion table ({}) and RPC server named arguments mismatch!\n{}".format(
                 file_conversion_table,
                 set(mapping_client).symmetric_difference(mapping_server_conversion),
