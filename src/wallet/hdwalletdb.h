@@ -65,8 +65,6 @@ prefixes
     mkey                - CMasterKey
     minversion
 
-    oal
-    oao                 - owned anon output
     orderposnext
 
     pool

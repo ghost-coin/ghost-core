@@ -3004,7 +3004,8 @@ static void ParseRecords(
     const std::string          &search,
     const std::string          &category_filter,
     int                         type,
-    bool                        show_blinding_factors
+    bool                        show_blinding_factors,
+    bool                        show_anon_spends
 ) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     std::vector<std::string> addresses, amounts;
@@ -3039,16 +3040,35 @@ static void ParseRecords(
 
     bool have_stx = false;
     CStoredTransaction stx;
-    if (show_blinding_factors) {
+    if (show_blinding_factors || show_anon_spends) {
         CHDWalletDB wdb(pwallet->GetDatabase());
         if (wdb.ReadStoredTx(hash, stx)) {
             have_stx = true;
+        }
+        if (show_anon_spends && (rtx.nFlags & ORF_ANON_IN)) {
+            UniValue anon_inputs(UniValue::VARR);
+            CCmpPubKey ki;
+            for (const auto &prevout : rtx.vin) {
+                UniValue anon_prevout(UniValue::VOBJ);
+                memcpy(ki.ncbegin(), prevout.hash.begin(), 32);
+                *(ki.ncbegin() + 32) = prevout.n;
+
+                COutPoint kiPrevout;
+                // TODO: Keep keyimages in memory
+                if (!wdb.ReadAnonKeyImage(ki, kiPrevout)) {
+                    continue;
+                }
+                anon_prevout.__pushKV("txid", kiPrevout.hash.ToString());
+                anon_prevout.__pushKV("n", (int) kiPrevout.n);
+                anon_inputs.push_back(anon_prevout);
+            }
+            entry.__pushKV("anon_inputs", anon_inputs);
         }
     }
 
     int nStd = 0, nBlind = 0, nAnon = 0;
     size_t nLockedOutputs = 0;
-    for (auto &record : rtx.vout) {
+    for (const auto &record : rtx.vout) {
         UniValue output(UniValue::VOBJ);
 
         if (record.nFlags & ORF_CHANGE) {
@@ -3068,19 +3088,21 @@ static void ParseRecords(
         }
 
         // Skip over watchonly outputs if not requested
+        // TODO: Improve
         if (nWatchOnly >= nOwned && !(watchonly_filter & ISMINE_WATCH_ONLY)) {
             if (!nFrom) {
-                return;
+                continue;
             }
-            // Check for non-watchonly inputs
-            CAmount nInput = 0;
-            for (const auto &vin : rtx.vin) {
-                if (!vin.IsAnonInput()) {
+            if (!(rtx.nFlags & ORF_ANON_IN)) {
+                // Check for non-watchonly inputs
+                CAmount nInput = 0;
+                for (const auto &vin : rtx.vin) {
+                    // Keyimage is embedded in CTransactionRecord outpoints, IsAnonInput() will be false
                     nInput += pwallet->GetOwnedOutputValue(vin, watchonly_filter);
                 }
-            }
-            if (nInput == 0) {
-                return;
+                if (nInput == 0) {
+                    continue;
+                }
             }
         }
 
@@ -3158,7 +3180,8 @@ static void ParseRecords(
 
         if (record.nType == OUTPUT_CT || record.nType == OUTPUT_RINGCT) {
             uint256 blinding_factor;
-            if (have_stx && stx.GetBlind(record.n, blinding_factor.begin())) {
+            if (show_blinding_factors && have_stx &&
+                stx.GetBlind(record.n, blinding_factor.begin())) {
                 output.__pushKV("blindingfactor", blinding_factor.ToString());
             }
         }
@@ -3224,7 +3247,7 @@ static void ParseRecords(
         }
 
         CAmount nOutput = 0;
-        for (auto &record : rtx.vout) {
+        for (const auto &record : rtx.vout) {
             if ((record.nFlags & ORF_OWNED && watchonly_filter & ISMINE_SPENDABLE)
                 || (record.nFlags & ORF_OWN_WATCH && watchonly_filter & ISMINE_WATCH_ONLY)) {
                 nOutput += record.nValue;
@@ -3307,6 +3330,7 @@ static RPCHelpMan filtertransactions()
                             {"use_bech32", RPCArg::Type::BOOL, /* default */ "false", "Display addresses in bech32 encoding"},
                             {"hide_zero_coinstakes", RPCArg::Type::BOOL, /* default */ "false", "Hide coinstake transactions without a balance change"},
                             {"show_blinding_factors", RPCArg::Type::BOOL, /* default */ "false", "Display blinding factors for blinded outputs"},
+                            {"show_anon_spends", RPCArg::Type::BOOL, /* default */ "false", "Display inputs for anon transactions"},
                         },
                         "options"},
                 },
@@ -3346,6 +3370,7 @@ static RPCHelpMan filtertransactions()
     bool fBech32 = false;
     bool hide_zero_coinstakes = false;
     bool show_blinding_factors = false;
+    bool show_anon_spends = false;
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -3363,6 +3388,7 @@ static RPCHelpMan filtertransactions()
                 {"use_bech32",              UniValueType(UniValue::VBOOL)},
                 {"hide_zero_coinstakes",    UniValueType(UniValue::VBOOL)},
                 {"show_blinding_factors",   UniValueType(UniValue::VBOOL)},
+                {"show_anon_spends",        UniValueType(UniValue::VBOOL)},
             },
             true, // allow null
             false // strict
@@ -3467,6 +3493,9 @@ static RPCHelpMan filtertransactions()
         if (options["show_blinding_factors"].isBool()) {
             show_blinding_factors = options["show_blinding_factors"].get_bool();
         }
+        if (options["show_anon_spends"].isBool()) {
+            show_anon_spends = options["show_anon_spends"].get_bool();
+        }
     }
 
     std::vector<CScript> vDevFundScripts;
@@ -3530,7 +3559,8 @@ static RPCHelpMan filtertransactions()
                 search,
                 category,
                 type_i,
-                show_blinding_factors);
+                show_blinding_factors,
+                show_anon_spends);
         rit++;
     }
 
@@ -6285,8 +6315,8 @@ static RPCHelpMan votehistory()
 
             int nNextHeight = ::ChainActive().Height() + 1;
 
-            for (auto i = pwallet->vVoteTokens.rbegin(); i != pwallet->vVoteTokens.rend(); ++i) {
-                auto &v = *i;
+            for (auto i = pwallet->vVoteTokens.crbegin(); i != pwallet->vVoteTokens.crend(); ++i) {
+                const auto &v = *i;
                 if (v.nEnd < nNextHeight
                     || v.nStart > nNextHeight) {
                     continue;
@@ -6314,8 +6344,8 @@ static RPCHelpMan votehistory()
         wdb.ReadVoteTokens(vVoteTokens);
     }
 
-    for (auto i = vVoteTokens.rbegin(); i != vVoteTokens.rend(); ++i) {
-        auto &v = *i;
+    for (auto i = vVoteTokens.crbegin(); i != vVoteTokens.crend(); ++i) {
+        const auto &v = *i;
         UniValue vote(UniValue::VOBJ);
         vote.pushKV("proposal", (int)(v.nToken & 0xFFFF));
         vote.pushKV("option", (int)(v.nToken >> 16));
@@ -6415,11 +6445,10 @@ static RPCHelpMan tallyvotes()
     result.pushKV("blocks_counted", nBlocks);
 
     float fnBlocks = (float) nBlocks;
-    for (auto &i : mapVotes)
-    {
+    for (const auto &i : mapVotes) {
         std::string sKey = i.first == 0 ? "Abstain" : strprintf("Option %d", i.first);
         result.pushKV(sKey, strprintf("%d, %.02f%%", i.second, ((float) i.second / fnBlocks) * 100.0));
-    };
+    }
 
     return result;
 },
