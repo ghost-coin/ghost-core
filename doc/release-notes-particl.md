@@ -43,6 +43,7 @@ Next Major Version
 
 - Add show_anon_spends option to filtertransactions.
 - Remove spurious "ExtractDestination failed" log messages.
+- Add show_change option to filtertransactions.
 
 
 0.19.2.5
