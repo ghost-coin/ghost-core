@@ -15,7 +15,7 @@
 #include <key/keyutil.h>
 #include <versionbitsinfo.h>
 
-#include <chainparamsimport.h>
+#include <chain/chainparamsimport.h>
 
 #include <assert.h>
 

@@ -45,4 +45,4 @@ bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::strin
 bool RewindRangeProof(const std::vector<uint8_t> &rangeproof, const std::vector<uint8_t> &commitment, const uint256 &nonce,
                       std::vector<uint8_t> &blind_out, CAmount &value_out);
 
-#endif  // PARTICL_ANON_H
+#endif // PARTICL_ANON_H
