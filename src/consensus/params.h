@@ -85,6 +85,10 @@ struct Params {
     uint32_t clamp_tx_version_time = 0xffffffff;
     /** Exploit fix 1 */
     uint32_t exploit_fix_1_time = 0;
+    /** Exploit fix 2 */
+    uint32_t exploit_fix_2_time = 0xffffffff;
+    int64_t m_frozen_anon_index = 0;
+    int m_frozen_blinded_height = 0;
 
     uint32_t smsg_fee_period;
     int64_t smsg_fee_funding_tx_per_k;

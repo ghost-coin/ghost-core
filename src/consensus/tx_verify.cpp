@@ -148,8 +148,9 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
     unsigned int nSigOps = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
-        if (tx.vin[i].IsAnonInput())
+        if (tx.vin[i].IsAnonInput()) {
             continue;
+        }
 
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -187,9 +188,11 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
 {
-    // reset per tx
+    // Reset per tx
     state.m_has_anon_output = false;
     state.m_has_anon_input = false;
+    state.m_spends_frozen_blinded = false;
+    bool spends_tainted_blinded = false;
 
     if (!state.m_consensus_params) {
         state.m_consensus_params = &::Params().GetConsensus();
@@ -208,7 +211,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
-    size_t nStandard = 0, nCt = 0, nRingCTInputs = 0;
+    size_t nStandard = 0, nCt = 0, nRingCTInputs = 0, nRCTRows = 0;
     CAmount nValueIn = 0;
     CAmount nFees = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
@@ -216,6 +219,24 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         if (tx.vin[i].IsAnonInput()) {
             state.m_has_anon_input = true;
             nRingCTInputs++;
+
+            const std::vector<uint8_t> &vMI = tx.vin[i].scriptWitness.stack[0];
+            uint32_t nInputs, nRingSize;
+            tx.vin[i].GetAnonInfo(nInputs, nRingSize);
+            nRCTRows += nInputs;
+
+            size_t ofs = 0, nB = 0;
+            for (size_t k = 0; k < nInputs; ++k)
+            for (size_t i = 0; i < nRingSize; ++i) {
+                int64_t nIndex = 0;
+                if (0 != part::GetVarInt(vMI, ofs, (uint64_t&)nIndex, nB)) {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-extract-i");
+                }
+                ofs += nB;
+                if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
+                    state.m_spends_frozen_blinded = true;
+                }
+            }
             continue;
         }
 
@@ -254,6 +275,14 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if (coin.nType == OUTPUT_CT) {
                 vpCommitsIn.push_back(&coin.commitment);
                 nCt++;
+
+                if (coin.nHeight <= state.m_consensus_params->m_frozen_blinded_height) {
+                    state.m_spends_frozen_blinded = true;
+                    if (IsTaintedBlindOutput(prevout.hash)) {
+                        spends_tainted_blinded = true;
+                    }
+                }
+
             } else {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-input-type");
             }
@@ -269,9 +298,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-input-types");
     }
 
-    size_t nRingCTOutputs = 0;
+
+    size_t nCTOutputs = 0, nRingCTOutputs = 0;
     // GetPlainValueOut adds to nStandard, nCt, nRingCT
-    CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCt, nRingCTOutputs);
+    CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCTOutputs, nRingCTOutputs);
+    nCt += nCTOutputs;
     state.m_has_anon_output = nRingCTOutputs > 0;
 
     txfee = 0;
@@ -339,15 +370,29 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
+    if (state.m_spends_frozen_blinded) {
+        if (nRingCTOutputs > 0 || nCTOutputs > 0) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-ct-out");
+        }
+        if (spends_tainted_blinded && nPlainValueOut + txfee > MAX_TAINTED_VALUE_OUT) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-ct-too-large");
+        }
+        if (tx.vin.size() > 1 || nRCTRows > 1) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-multiple-inputs");
+        }
+    }
+
     if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
+        bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
+        bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
         if (state.m_exploit_fix_1 &&
             nRingCTOutputs > 0 &&
-            !gArgs.GetBoolArg("-acceptanontxn", DEFAULT_ACCEPT_ANON_TX)) {
+            !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");
         }
         if (state.m_exploit_fix_1 &&
             nCt > 0 &&
-            !gArgs.GetBoolArg("-acceptblindtxn", DEFAULT_ACCEPT_BLIND_TX)) {
+            !gArgs.GetBoolArg("-acceptblindtxn", default_accept_blind)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-blind-disabled");
         }
         if (!state.m_exploit_fix_1 && nCt == 0) {

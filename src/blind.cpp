@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,11 +10,19 @@
 #include <support/allocators/secure.h>
 #include <random.h>
 #include <util/system.h>
+#include <serialize.h>
+#include <streams.h>
+#include <version.h>
+
+#include <bloom.h>
+#include <chain/ct_tainted.h>
 
 
 secp256k1_context *secp256k1_ctx_blind = nullptr;
 secp256k1_scratch_space *blind_scratch = nullptr;
 secp256k1_bulletproof_generators *blind_gens = nullptr;
+
+static CBloomFilter ct_tainted_filter;
 
 static int CountLeadingZeros(uint64_t nValueIn)
 {
@@ -126,6 +134,21 @@ int GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &r
         &rexp, &rmantissa, (uint64_t*) &min_value, (uint64_t*) &max_value,
         &vRangeproof[0], vRangeproof.size()) == 1));
 };
+
+void InitBlinding()
+{
+    CDataStream stream(Span<const unsigned char>(ct_tainted_filter_data, ct_tainted_filter_data_len), SER_NETWORK, PROTOCOL_VERSION);
+    stream >> ct_tainted_filter;
+}
+
+bool IsTaintedBlindOutput(const uint256 &txid)
+{
+    if (ct_tainted_filter.contains(txid)) {
+        // TODO: Check whitelist
+        return true;
+    }
+    return false;
+}
 
 void ECC_Start_Blinding()
 {
