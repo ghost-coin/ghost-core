@@ -12,9 +12,6 @@
 
 #include <amount.h>
 
-// Maximum value of tainted blinded output that can be spent without being whitelisted
-const static CAmount MAX_TAINTED_VALUE_OUT = 500 * COIN;
-
 class uint256;
 
 extern secp256k1_context *secp256k1_ctx_blind;
@@ -25,8 +22,12 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
 
 int GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &rmantissa, CAmount &min_value, CAmount &max_value);
 
+void LoadRCTWhitelist(const int64_t indices[], size_t num_indices);
+void LoadCTWhitelist(const unsigned char *data, size_t data_length);
+void LoadCTTaintedFilter(const unsigned char *data, size_t data_length);
 void InitBlinding();
 bool IsTaintedBlindOutput(const uint256 &txid);
+bool IsWhitelistedAnonOutput(int64_t anon_index);
 
 void ECC_Start_Blinding();
 void ECC_Stop_Blinding();

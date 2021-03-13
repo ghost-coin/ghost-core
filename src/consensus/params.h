@@ -87,8 +87,15 @@ struct Params {
     uint32_t exploit_fix_1_time = 0;
     /** Exploit fix 2 */
     uint32_t exploit_fix_2_time = 0xffffffff;
-    int64_t m_frozen_anon_index = 0;
+    int64_t m_frozen_anon_index = 0; // Last prefork anonoutput index
     int m_frozen_blinded_height = 0;
+    int64_t m_max_tainted_value_out = 500LL * 100000000LL /* COIN */; // Maximum value of tainted blinded output that can be spent without being whitelisted
+
+    /** Avoid circular dependency */
+    size_t m_min_ringsize_post_hf2 = 3;
+    size_t m_min_ringsize = 1;
+    size_t m_max_ringsize = 32;
+    size_t m_max_anon_inputs = 32;
 
     uint32_t smsg_fee_period;
     int64_t smsg_fee_funding_tx_per_k;

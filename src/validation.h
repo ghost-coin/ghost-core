@@ -179,8 +179,11 @@ void StartScriptCheckWorkerThreads(int threads_num);
 void StopScriptCheckWorkerThreads();
 /** Return the median number of blocks that other nodes claim to have */
 int GetNumBlocksOfPeers();
+/** Set the median number of blocks that other nodes claim to have - debug only */
+void SetNumBlocksOfPeers(int num_blocks);
 /** Return the median number of connected nodes */
 int GetNumPeers();
+CAmount GetUTXOSum();
 /**
  * Return transaction from the block at block_index.
  * If block_index is not provided, fall back to mempool.

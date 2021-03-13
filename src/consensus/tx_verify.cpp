@@ -192,11 +192,14 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     state.m_has_anon_output = false;
     state.m_has_anon_input = false;
     state.m_spends_frozen_blinded = false;
-    bool spends_tainted_blinded = false;
+    bool spends_tainted_blinded = false;  // If true limit max plain output
+    bool spends_post_fork_blinded = false;
 
     if (!state.m_consensus_params) {
         state.m_consensus_params = &::Params().GetConsensus();
     }
+    size_t min_ring_size = state.m_consensus_params->m_max_ringsize;
+    size_t max_ring_size = state.m_consensus_params->m_min_ringsize;
 
     bool is_particl_tx = tx.IsParticlVersion();
     if (is_particl_tx && tx.vin.size() < 1) { // early out
@@ -211,7 +214,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
-    size_t nStandard = 0, nCt = 0, nRingCTInputs = 0, nRCTRows = 0;
+    size_t nStandard = 0, nCt = 0, nRingCTInputs = 0, nRCTPrevouts = 0;
     CAmount nValueIn = 0;
     CAmount nFees = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
@@ -223,11 +226,23 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             const std::vector<uint8_t> &vMI = tx.vin[i].scriptWitness.stack[0];
             uint32_t nInputs, nRingSize;
             tx.vin[i].GetAnonInfo(nInputs, nRingSize);
-            nRCTRows += nInputs;
+            if (nInputs < 1 || nInputs > state.m_consensus_params->m_max_anon_inputs) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-num-inputs");
+            }
+            if (nRingSize < state.m_consensus_params->m_min_ringsize || nRingSize > state.m_consensus_params->m_max_ringsize) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
+            }
+            if (min_ring_size > nRingSize) {
+                min_ring_size = nRingSize;
+            }
+            if (max_ring_size < nRingSize) {
+                max_ring_size = nRingSize;
+            }
 
             size_t ofs = 0, nB = 0;
             for (size_t k = 0; k < nInputs; ++k)
             for (size_t i = 0; i < nRingSize; ++i) {
+                nRCTPrevouts++;
                 int64_t nIndex = 0;
                 if (0 != part::GetVarInt(vMI, ofs, (uint64_t&)nIndex, nB)) {
                     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-extract-i");
@@ -235,6 +250,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                 ofs += nB;
                 if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
                     state.m_spends_frozen_blinded = true;
+                    if (!IsWhitelistedAnonOutput(nIndex)) {
+                        spends_tainted_blinded = true;
+                    }
+                } else {
+                    spends_post_fork_blinded = true;
                 }
             }
             continue;
@@ -254,12 +274,12 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                     int nRequiredDepth = std::min(COINBASE_MATURITY, (int)(coin.nHeight / 2));
                     if (nSpendHeight - coin.nHeight < nRequiredDepth) {
                         return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND,
-                            "bad-txns-premature-spend-of-coinbase",
-                            strprintf("tried to spend coinbase at height %d at depth %d, required %d", coin.nHeight, nSpendHeight - coin.nHeight, nRequiredDepth));
+                            "bad-txns-premature-spend-of-coinbase", // or coinstake
+                            strprintf("tried to spend coinbase or coinstake at height %d at depth %d, required %d", coin.nHeight, nSpendHeight - coin.nHeight, nRequiredDepth));
                     }
                 } else
                 return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
-                    strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
+                    strprintf("tried to spend coinbase or coinstake at depth %d", nSpendHeight - coin.nHeight));
             }
         }
 
@@ -281,6 +301,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                     if (IsTaintedBlindOutput(prevout.hash)) {
                         spends_tainted_blinded = true;
                     }
+                } else {
+                    spends_post_fork_blinded = true;
                 }
 
             } else {
@@ -294,10 +316,20 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
+    if (state.m_exploit_fix_2) {
+        if (state.m_spends_frozen_blinded && spends_post_fork_blinded) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-frozen-blinded");
+        }
+        if (state.m_spends_frozen_blinded && max_ring_size > 1) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
+        }
+    }
+    if (spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
+    }
     if ((nStandard > 0) + (nCt > 0) + (nRingCTInputs > 0) > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-input-types");
     }
-
 
     size_t nCTOutputs = 0, nRingCTOutputs = 0;
     // GetPlainValueOut adds to nStandard, nCt, nRingCT
@@ -372,14 +404,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
     if (state.m_spends_frozen_blinded) {
         if (nRingCTOutputs > 0 || nCTOutputs > 0) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-ct-out");
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
         }
-        if (spends_tainted_blinded && nPlainValueOut + txfee > MAX_TAINTED_VALUE_OUT) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-ct-too-large");
+        if (spends_tainted_blinded && nPlainValueOut + txfee > state.m_consensus_params->m_max_tainted_value_out) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-too-large");
         }
-        if (tx.vin.size() > 1 || nRCTRows > 1) {
+        /* TODO? Limit to spending one frozen output at a time
+        if (tx.vin.size() > 1 || nRCTPrevouts > 1) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-multiple-inputs");
         }
+        */
     }
 
     if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
@@ -419,6 +453,17 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
 
         if (nPlainValueOut > 0) {
+            if (state.m_spends_frozen_blinded) {
+                // Get the blinding factor from the fee data output
+                const std::vector<uint8_t> &vData = *tx.vpout[0]->GetPData();
+                size_t nb;
+                uint64_t nTmp;
+                part::GetVarInt(vData, 1, nTmp, nb);
+                if (vData.size() < 1 + nb + 33 || vData[1 + nb] != DO_MASK) {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-bf");
+                }
+                memcpy(blindPlain, &vData[1 + nb + 1], 32);
+            }
             if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainOutCommitment, blindPlain, (uint64_t) nPlainValueOut, &secp256k1_generator_const_h, &secp256k1_generator_const_g)) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "commit-failed");
             }

@@ -4309,6 +4309,8 @@ static RPCHelpMan listunspentanon()
                             {"minimumSumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Minimum sum value of all UTXOs in " + CURRENCY_UNIT + ""},
                             {"cc_format", RPCArg::Type::BOOL, /* default */ "false", "Format output for coincontrol"},
                             {"include_immature", RPCArg::Type::BOOL, /* default */ "false", "Include immature staked outputs"},
+                            {"frozen", RPCArg::Type::BOOL, /* default */ "false", "Show frozen outputs only"},
+                            {"include_tainted_frozen", RPCArg::Type::BOOL, /* default */ "false", "Show tainted frozen outputs"},
                         },
                         "query_options"},
                 },
@@ -4370,6 +4372,7 @@ static RPCHelpMan listunspentanon()
         include_unsafe = request.params[3].get_bool();
     }
 
+    CCoinControl cctl;
     bool fCCFormat = false;
     bool fIncludeImmature = false;
     CAmount nMinimumAmount = 0;
@@ -4384,25 +4387,34 @@ static RPCHelpMan listunspentanon()
             {
                 {"maximumCount",            UniValueType(UniValue::VNUM)},
                 {"cc_format",               UniValueType(UniValue::VBOOL)},
+                {"frozen",                  UniValueType(UniValue::VBOOL)},
+                {"include_tainted_frozen",  UniValueType(UniValue::VBOOL)},
+
             }, true, false);
 
-        if (options.exists("minimumAmount"))
+        if (options.exists("minimumAmount")) {
             nMinimumAmount = AmountFromValue(options["minimumAmount"]);
-
-        if (options.exists("maximumAmount"))
+        }
+        if (options.exists("maximumAmount")) {
             nMaximumAmount = AmountFromValue(options["maximumAmount"]);
-
-        if (options.exists("minimumSumAmount"))
+        }
+        if (options.exists("minimumSumAmount")) {
             nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
-
-        if (options.exists("maximumCount"))
+        }
+        if (options.exists("maximumCount")) {
             nMaximumCount = options["maximumCount"].get_int64();
-
+        }
         if (options.exists("cc_format")) {
             fCCFormat = options["cc_format"].get_bool();
         }
         if (options.exists("include_immature")) {
             fIncludeImmature = options["include_immature"].get_bool();
+        }
+        if (options.exists("frozen")) {
+            cctl.m_spend_frozen_blinded = options["frozen"].get_bool();
+        }
+        if (options.exists("include_tainted_frozen")) {
+            cctl.m_include_tainted_frozen = options["include_tainted_frozen"].get_bool();
         }
     }
 
@@ -4414,7 +4426,6 @@ static RPCHelpMan listunspentanon()
     std::vector<COutputR> vecOutputs;
 
     {
-        CCoinControl cctl;
         cctl.m_min_depth = nMinDepth;
         cctl.m_max_depth = nMaxDepth;
         cctl.m_include_immature = fIncludeImmature;
@@ -4514,6 +4525,8 @@ static RPCHelpMan listunspentblind()
                             {"maximumCount", RPCArg::Type::NUM, /* default */ "unlimited", "Maximum number of UTXOs"},
                             {"minimumSumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Minimum sum value of all UTXOs in " + CURRENCY_UNIT + ""},
                             {"cc_format", RPCArg::Type::BOOL, /* default */ "false", "Format output for coincontrol"},
+                            {"frozen", RPCArg::Type::BOOL, /* default */ "false", "Show frozen outputs only"},
+                            {"include_tainted_frozen", RPCArg::Type::BOOL, /* default */ "false", "Show tainted frozen outputs"},
                         },
                         "query_options"},
                 },
@@ -4565,6 +4578,7 @@ static RPCHelpMan listunspentblind()
         nMaxDepth = request.params[1].get_int();
     }
 
+    CCoinControl cctl;
     bool fCCFormat = false;
     CAmount nMinimumAmount = 0;
     CAmount nMaximumAmount = MAX_MONEY;
@@ -4578,22 +4592,32 @@ static RPCHelpMan listunspentblind()
             {
                 {"maximumCount",            UniValueType(UniValue::VNUM)},
                 {"cc_format",               UniValueType(UniValue::VBOOL)},
+                {"frozen",                  UniValueType(UniValue::VBOOL)},
+                {"include_tainted_frozen",  UniValueType(UniValue::VBOOL)},
+
             }, true, false);
 
-        if (options.exists("minimumAmount"))
+        if (options.exists("minimumAmount")) {
             nMinimumAmount = AmountFromValue(options["minimumAmount"]);
-
-        if (options.exists("maximumAmount"))
+        }
+        if (options.exists("maximumAmount")) {
             nMaximumAmount = AmountFromValue(options["maximumAmount"]);
-
-        if (options.exists("minimumSumAmount"))
+        }
+        if (options.exists("minimumSumAmount")) {
             nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
-
-        if (options.exists("maximumCount"))
+        }
+        if (options.exists("maximumCount")) {
             nMaximumCount = options["maximumCount"].get_int64();
-
-        if (options.exists("cc_format"))
+        }
+        if (options.exists("cc_format")) {
             fCCFormat = options["cc_format"].get_bool();
+        }
+        if (options.exists("frozen")) {
+            cctl.m_spend_frozen_blinded = options["frozen"].get_bool();
+        }
+        if (options.exists("include_tainted_frozen")) {
+            cctl.m_include_tainted_frozen = options["include_tainted_frozen"].get_bool();
+        }
     }
 
     std::set<CBitcoinAddress> setAddress;
@@ -4603,10 +4627,12 @@ static RPCHelpMan listunspentblind()
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
             CBitcoinAddress address(input.get_str());
-            if (!address.IsValidStealthAddress())
+            if (!address.IsValidStealthAddress()) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Particl stealth address: ")+input.get_str());
-            if (setAddress.count(address))
+            }
+            if (setAddress.count(address)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ")+input.get_str());
+            }
            setAddress.insert(address);
         }
     }
@@ -4625,7 +4651,6 @@ static RPCHelpMan listunspentblind()
     std::vector<COutputR> vecOutputs;
 
     {
-        CCoinControl cctl;
         cctl.m_min_depth = nMinDepth;
         cctl.m_max_depth = nMaxDepth;
         LOCK(pwallet->cs_wallet);
@@ -4747,6 +4772,23 @@ static int AddOutput(uint8_t nType, std::vector<CTempRecipient> &vecSend, const 
 
 static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, OutputTypes typeOut)
 {
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+
+    bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
+    bool default_accept_anon = exploit_fix_2_active ? true : DEFAULT_ACCEPT_ANON_TX;
+    bool default_accept_blind = exploit_fix_2_active ? true : DEFAULT_ACCEPT_BLIND_TX;
+    if (!gArgs.GetBoolArg("-acceptanontxn", default_accept_anon) &&
+        (typeIn == OUTPUT_RINGCT || typeOut == OUTPUT_RINGCT)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Disabled output type.");
+    }
+    if (!gArgs.GetBoolArg("-acceptblindtxn", default_accept_blind) &&
+        (typeIn == OUTPUT_CT || typeOut == OUTPUT_CT)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Disabled output type.");
+    }
+    if (typeOut == OUTPUT_RINGCT && GetTime() < consensusParams.rct_time) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Anon transactions not yet activated.");
+    }
+
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
@@ -4761,10 +4803,6 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     if (!pwallet->GetBroadcastTransactions()) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: Wallet transaction broadcasting is disabled with -walletbroadcast");
-    }
-
-    if (typeOut == OUTPUT_RINGCT && GetTime() < Params().GetConsensus().rct_time) {
-        throw std::runtime_error("Anon transactions not yet activated.");
     }
 
     CAmount nTotal = 0;
@@ -4873,11 +4911,8 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     switch (typeIn) {
         case OUTPUT_STANDARD:
-            {
-            const auto bal = pwallet->GetBalance();
-            if (nTotal > bal.m_mine_trusted) {
+            if (nTotal > pwallet->GetBalance().m_mine_trusted) {
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
-            }
             }
             break;
         case OUTPUT_CT:
@@ -4934,6 +4969,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     bool fShowHex = false;
     bool fShowFee = false;
     bool fCheckFeeOnly = false;
+    bool fTestMempoolAccept = false;
     nv = nTestFeeOfs;
     if (request.params.size() > nv) {
         fCheckFeeOnly = request.params[nv].get_bool();
@@ -4960,11 +4996,34 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         if (uvCoinControl["blind_watchonly_visible"].isBool() && uvCoinControl["blind_watchonly_visible"].get_bool() == true) {
             coincontrol.m_blind_watchonly_visible = true;
         }
+        if (uvCoinControl["spend_frozen_blinded"].isBool() && uvCoinControl["spend_frozen_blinded"].get_bool() == true) {
+            coincontrol.m_spend_frozen_blinded = true;
+            coincontrol.m_addChangeOutput = false;
+        }
+        if (uvCoinControl["test_mempool_accept"].isBool() && uvCoinControl["test_mempool_accept"].get_bool() == true) {
+            fTestMempoolAccept = true;
+        }
+        const UniValue &uvMixins = uvCoinControl["use_mixins"];
+        if (uvMixins.isArray()) {
+            coincontrol.m_use_mixins.clear();
+            coincontrol.m_use_mixins.reserve(uvMixins.size());
+            for (size_t i = 0; i < uvMixins.size(); ++i) {
+                const UniValue &uvi = uvMixins[i];
+                if (!uvi.isNum()) {
+                    JSONRPCError(RPC_INVALID_PARAMETER, "Mixin index must be an integer.");
+                }
+                coincontrol.m_use_mixins.push_back(uvi.get_int64());
+            }
+        }
+        if (uvCoinControl["mixin_selection_mode"].isNum()) {
+            coincontrol.m_mixin_selection_mode = uvCoinControl["mixin_selection_mode"].get_int();
+        } else {
+            coincontrol.m_mixin_selection_mode = pwallet->m_mixin_selection_mode_default;
+        }
     }
     coincontrol.m_avoid_partial_spends |= coincontrol.m_avoid_address_reuse;
 
     CAmount nFeeRet = 0;
-    {
     switch (typeIn) {
         case OUTPUT_STANDARD:
             if (0 != pwallet->AddStandardInputs(wtx, rtx, vecSend, !fCheckFeeOnly, nFeeRet, &coincontrol, sError)) {
@@ -4984,10 +5043,26 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         default:
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Unknown input type: %d.", typeIn));
     }
-    }
 
     UniValue result(UniValue::VOBJ);
-    if (fCheckFeeOnly || fShowFee) {
+    bool mempool_allowed = false;
+    if (fTestMempoolAccept) {
+        CTxMemPool *mempool = pwallet->HaveChain() ? pwallet->chain().getMempool() : nullptr;
+        if (!mempool) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get mempool");
+        }
+        const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(*mempool, wtx.tx,
+                                                  false /* bypass_limits */, /* test_accept */ true, /* ignore_locks */ false));
+        if (accept_result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
+            mempool_allowed = true;
+        } else {
+            mempool_allowed = false;
+            const TxValidationState state = accept_result.m_state;
+            result.pushKV("mempool-reject-reason", state.GetRejectReason());
+        }
+        result.pushKV("mempool-allowed", mempool_allowed);
+    }
+    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept) {
         result.pushKV("fee", ValueFromAmount(nFeeRet));
         result.pushKV("bytes", (int)GetVirtualTransactionSize(*(wtx.tx)));
         result.pushKV("need_hwdevice", UniValue(coincontrol.fNeedHardwareKey ? true : false));
@@ -5017,7 +5092,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
 
         result.pushKV("outputs_fee", objChangedOutputs);
-        if (fCheckFeeOnly) {
+        if (fCheckFeeOnly || (fTestMempoolAccept && !mempool_allowed)) {
             return result;
         }
     }
@@ -5058,7 +5133,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     pwallet->PostProcessTempRecipients(vecSend);
 
-    if (fShowFee) {
+    if (fShowFee || fTestMempoolAccept) {
         result.pushKV("txid", wtx.GetHash().GetHex());
         return result;
     } else {
@@ -5082,16 +5157,6 @@ UniValue SendTypeToInner(const JSONRPCRequest &request)
     }
     if (typeOut == OUTPUT_NULL) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown output type.");
-    }
-
-    if (!gArgs.GetBoolArg("-acceptanontxn", DEFAULT_ACCEPT_ANON_TX) &&
-        (typeIn == OUTPUT_RINGCT || typeOut == OUTPUT_RINGCT)) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Disabled output type.");
-    }
-
-    if (!gArgs.GetBoolArg("-acceptblindtxn", DEFAULT_ACCEPT_BLIND_TX) &&
-        (typeIn == OUTPUT_CT || typeOut == OUTPUT_CT)) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Disabled output type.");
     }
 
     JSONRPCRequest req = request;
@@ -5154,6 +5219,14 @@ static RPCHelpMan sendtypeto()
                             "                             dirty if they have previously been used in a transaction."},
                             {"feeRate", RPCArg::Type::AMOUNT, /* default */ "not set: makes wallet determine the fee", "Set a specific fee rate in " + CURRENCY_UNIT + "/kB"},
                             {"blind_watchonly_visible", RPCArg::Type::BOOL, /* default */ "false", "Reveal amounts of blinded outputs sent to stealth addresses to the scan_secret"},
+                            {"spend_frozen_blinded", RPCArg::Type::BOOL, /* default */ "false", "Enable spending frozen blinded outputs"},
+                            {"test_mempool_accept", RPCArg::Type::BOOL, /* default */ "false", "Test if transaction would be accepted to the mempool, return if not"},
+                            {"use_mixins", RPCArg::Type::ARR, /* default */ "", "A json array of anonoutput indices to use as mixins",
+                                {
+                                    {"ao_index", RPCArg::Type::NUM, /* default */ "", "anonoutput index"},
+                                },
+                            },
+                            {"mixin_selection_mode", RPCArg::Type::NUM, /* default */ "", "Mixin selection mode: 1 select from ranges, 2 select nearby, 3 random full range"},
                         },
                     },
                 },
