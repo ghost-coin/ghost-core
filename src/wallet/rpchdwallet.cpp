@@ -4968,8 +4968,11 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     bool fShowHex = false;
     bool fShowFee = false;
+    bool fDebug = false;
     bool fCheckFeeOnly = false;
     bool fTestMempoolAccept = false;
+    bool fSubmitTx = true;
+
     nv = nTestFeeOfs;
     if (request.params.size() > nv) {
         fCheckFeeOnly = request.params[nv].get_bool();
@@ -4987,11 +4990,17 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
         ParseCoinControlOptions(uvCoinControl, pwallet, coincontrol);
 
-        if (uvCoinControl["debug"].isBool() && uvCoinControl["debug"].get_bool() == true) {
-            fShowHex = true;
+        if (uvCoinControl["debug"].isBool()) {
+            fDebug = uvCoinControl["debug"].get_bool();
         }
-        if (uvCoinControl["show_fee"].isBool() && uvCoinControl["show_fee"].get_bool() == true) {
-            fShowFee = true;
+        if (uvCoinControl["show_hex"].isBool()) {
+            fShowHex = uvCoinControl["show_hex"].get_bool();
+        }
+        if (uvCoinControl["show_fee"].isBool()) {
+            fShowFee = uvCoinControl["show_fee"].get_bool();
+        }
+        if (uvCoinControl["submit_tx"].isBool()) {
+            fSubmitTx = uvCoinControl["submit_tx"].get_bool();
         }
         if (uvCoinControl["blind_watchonly_visible"].isBool() && uvCoinControl["blind_watchonly_visible"].get_bool() == true) {
             coincontrol.m_blind_watchonly_visible = true;
@@ -5062,8 +5071,12 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
         result.pushKV("mempool-allowed", mempool_allowed);
     }
-    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept) {
-        result.pushKV("fee", ValueFromAmount(nFeeRet));
+    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept || !fSubmitTx) {
+        if (fDebug) {
+            result.pushKV("fee", nFeeRet);
+        } else {
+            result.pushKV("fee", ValueFromAmount(nFeeRet));
+        }
         result.pushKV("bytes", (int)GetVirtualTransactionSize(*(wtx.tx)));
         result.pushKV("need_hwdevice", UniValue(coincontrol.fNeedHardwareKey ? true : false));
 
@@ -5092,7 +5105,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
 
         result.pushKV("outputs_fee", objChangedOutputs);
-        if (fCheckFeeOnly || (fTestMempoolAccept && !mempool_allowed)) {
+        if (fCheckFeeOnly || (fTestMempoolAccept && !mempool_allowed) || !fSubmitTx) {
             return result;
         }
     }
@@ -5227,6 +5240,9 @@ static RPCHelpMan sendtypeto()
                                 },
                             },
                             {"mixin_selection_mode", RPCArg::Type::NUM, /* default */ "", "Mixin selection mode: 1 select from ranges, 2 select nearby, 3 random full range"},
+                            {"show_hex", RPCArg::Type::BOOL, /* default */ "false", "Display the hex encoded tx"},
+                            {"show_fee", RPCArg::Type::BOOL, /* default */ "false", "Return the fee"},
+                            {"submit_tx", RPCArg::Type::BOOL, /* default */ "true", "Send the tx"},
                         },
                     },
                 },
