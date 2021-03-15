@@ -8937,7 +8937,7 @@ bool CHDWallet::ProcessLockedStealthOutputs()
             continue;
         }
 
-        ec_point pkEphem;;
+        ec_point pkEphem;
         pkEphem.resize(EC_COMPRESSED_SIZE);
         memcpy(&pkEphem[0], sxKeyMeta.pkEphem.begin(), sxKeyMeta.pkEphem.size());
 
@@ -11309,7 +11309,7 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlyS
 
             if (spend_frozen && !include_tainted_frozen) {
                 if (r.nValue > consensusParams.m_max_tainted_value_out) {
-                    if (IsTaintedBlindOutput(txid)) {
+                    if (IsFrozenBlindOutput(txid)) {
                         continue;
                     }
                 }

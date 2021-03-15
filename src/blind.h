@@ -26,7 +26,7 @@ void LoadRCTWhitelist(const int64_t indices[], size_t num_indices);
 void LoadCTWhitelist(const unsigned char *data, size_t data_length);
 void LoadCTTaintedFilter(const unsigned char *data, size_t data_length);
 void InitBlinding();
-bool IsTaintedBlindOutput(const uint256 &txid);
+bool IsFrozenBlindOutput(const uint256 &txid);  // tainted && !whitelisted
 bool IsWhitelistedAnonOutput(int64_t anon_index);
 
 void ECC_Start_Blinding();

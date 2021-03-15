@@ -820,7 +820,7 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
                 if (!IsHex(s) || !(s.size() == 66)) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Commitment must be 33 bytes and hex encoded.");
                 }
-                std::vector<uint8_t> v = ParseHex(s);;
+                std::vector<uint8_t> v = ParseHex(s);
                 memcpy(im.commitment.data, v.data(), 33);
                 have_attribute = true;
             }
@@ -5566,8 +5566,14 @@ static RPCHelpMan debugwallet()
                 "\nDetect problems in wallet." +
                 HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"attempt_repair", RPCArg::Type::BOOL, /* default */ "false", "Attempt to repair if possible."},
-                    {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
+                    {"options", RPCArg::Type::OBJ, /* default */ "", "JSON with options",
+                        {
+                            {"list_frozen_outputs", RPCArg::Type::BOOL, /* default */ "false", "List frozen anon and blinded outputs."},
+                            {"spend_frozen_output", RPCArg::Type::BOOL, /* default */ "false", "Withdraw one frozen output to plain balance."},
+                            {"attempt_repair", RPCArg::Type::BOOL, /* default */ "false", "Attempt to repair if possible."},
+                            {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
+                        },
+                        "options"},
                 },
                 RPCResults{},
                 RPCExamples{""},
@@ -5581,8 +5587,193 @@ static RPCHelpMan debugwallet()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    bool attempt_repair = request.params.size() > 0 ? GetBool(request.params[0]) : false;
-    bool clear_stakes_seen = request.params.size() > 1 ? GetBool(request.params[1]) : false;
+    bool list_frozen_outputs = false;
+    bool spend_frozen_output = false;
+    bool attempt_repair = false;
+    bool clear_stakes_seen = false;
+
+    if (!request.params[0].isNull()) {
+        const UniValue &options = request.params[0].get_obj();
+        RPCTypeCheckObj(options,
+            {
+                {"list_frozen_outputs",                 UniValueType(UniValue::VBOOL)},
+                {"spend_frozen_output",                 UniValueType(UniValue::VBOOL)},
+                {"attempt_repair",                      UniValueType(UniValue::VBOOL)},
+                {"clear_stakes_seen",                   UniValueType(UniValue::VBOOL)},
+            }, true, false);
+        if (options.exists("list_frozen_outputs")) {
+            list_frozen_outputs = options["list_frozen_outputs"].get_bool();
+        }
+        if (options.exists("spend_frozen_output")) {
+            spend_frozen_output = options["spend_frozen_output"].get_bool();
+        }
+        if (options.exists("attempt_repair")) {
+            attempt_repair = options["attempt_repair"].get_bool();
+        }
+        if (options.exists("clear_stakes_seen")) {
+            clear_stakes_seen = options["clear_stakes_seen"].get_bool();
+        }
+    }
+
+    UniValue result(UniValue::VOBJ);
+    UniValue errors(UniValue::VARR);
+    UniValue warnings(UniValue::VARR);
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    CAmount min_value = 10000;
+    if (list_frozen_outputs || spend_frozen_output) {
+        {
+        LOCK(pwallet->cs_wallet);
+
+        CHDWalletDB wdb(pwallet->GetDatabase());
+
+        UniValue blinded_outputs(UniValue::VARR);
+        CAmount total_spendable = 0;
+        CAmount total_unspendable = 0;
+        size_t num_spendable = 0, num_unspendable = 0;
+
+        const Consensus::Params &consensusParams = Params().GetConsensus();
+        bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
+        for (MapRecords_t::const_iterator it = pwallet->mapRecords.begin(); it != pwallet->mapRecords.end(); ++it) {
+            const uint256 &txid = it->first;
+            const CTransactionRecord &rtx = it->second;
+
+            if (rtx.block_height < 1 || // height 0 is mempool
+                rtx.block_height > consensusParams.m_frozen_blinded_height) {
+                continue;
+            }
+
+            for (const auto &r : rtx.vout) {
+                if ((r.nType != OUTPUT_RINGCT && r.nType != OUTPUT_CT) ||
+                    !(r.nFlags & ORF_OWNED) ||
+                    r.nValue < min_value ||
+                    pwallet->IsSpent(txid, r.n)) {
+                    continue;
+                }
+
+                bool is_spendable = true;
+                if (r.nValue > consensusParams.m_max_tainted_value_out) {
+                    // TODO: Store pubkey on COutputRecord - in scriptPubKey
+                    if (r.nType == OUTPUT_RINGCT) {
+                        CStoredTransaction stx;
+                        int64_t index;
+                        if (!wdb.ReadStoredTx(txid, stx) ||
+                            !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
+                            !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
+                            !IsWhitelistedAnonOutput(index)) {
+                            is_spendable = false;
+                        }
+                    } else
+                    if (r.nType == OUTPUT_CT) {
+                        if (IsFrozenBlindOutput(txid)) {
+                            is_spendable = false;
+                        }
+                    }
+                }
+                if (is_spendable) {
+                    total_spendable += r.nValue;
+                    num_spendable++;
+                } else {
+                    total_unspendable += r.nValue;
+                    num_unspendable++;
+                }
+                UniValue output(UniValue::VOBJ);
+                output.pushKV("type", r.nType == OUTPUT_RINGCT ? "anon" : "blind");
+                output.pushKV("spendable", is_spendable);
+                output.pushKV("txid", txid.ToString());
+                output.pushKV("n", r.n);
+                output.pushKV("amount", ValueFromAmount(r.nValue));
+                blinded_outputs.push_back(output);
+            }
+        }
+
+        // Sort
+        std::vector<UniValue> &values = blinded_outputs.getValues_nc();
+        std::sort(values.begin(), values.end(), [] (const UniValue &a, const UniValue &b) -> bool {
+            return a["amount"].get_real() > b["amount"].get_real();
+        });
+
+        if (list_frozen_outputs) {
+            result.pushKV("frozen_outputs", blinded_outputs);
+            result.pushKV("num_spendable", num_spendable);
+            result.pushKV("total_spendable", ValueFromAmount(total_spendable));
+            result.pushKV("num_unspendable", num_unspendable);
+            result.pushKV("total_unspendable", ValueFromAmount(total_unspendable));
+            return result;
+        }
+
+        if (!exploit_fix_2_active) {
+            result.pushKV("error", "Exploit repair fork is not active yet.");
+            return result;
+        }
+        if (num_spendable < 1) {
+            result.pushKV("error", "No spendable outputs.");
+            return result;
+        }
+
+        // Withdraw the largest spendable frozen blinded output
+        for (const auto &v : values) {
+            if (!v["spendable"].get_bool()) {
+                continue;
+            }
+            std::string label = "Redeem frozen blinded";
+            CPubKey pubkey;
+            if (0 != pwallet->NewKeyFromAccount(pubkey, false, false, false, false, label.c_str())) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "NewKeyFromAccount failed.");
+            }
+
+            uint256 input_txid = ParseHashO(v, "txid");
+            int rv, input_n = v["n"].get_int();
+            CCoinControl cctl;
+            cctl.m_spend_frozen_blinded = true;
+            cctl.m_addChangeOutput = false;
+            cctl.Select(COutPoint(input_txid, input_n));
+
+            std::vector<CTempRecipient> vec_send;
+            std::string sError;
+            CTempRecipient r;
+            r.nType = OUTPUT_STANDARD;
+            CAmount output_amount = AmountFromValue(v["amount"]);
+            r.SetAmount(output_amount);
+            r.address = GetDestinationForKey(pubkey, OutputType::LEGACY);
+            r.fSubtractFeeFromAmount = true;
+            vec_send.push_back(r);
+
+            CTransactionRef tx_new;
+            CWalletTx wtx(pwallet, tx_new);
+            CTransactionRecord rtx;
+            CAmount nFee;
+
+            if (v["type"].get_str() == "anon") {
+                rv = pwallet->AddAnonInputs(wtx, rtx, vec_send, true, 1, 1, nFee, &cctl, sError);
+                if (rv != 0) {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "AddAnonInputs failed " + sError);
+                }
+            } else {
+                rv = pwallet->AddBlindedInputs(wtx, rtx, vec_send, true, nFee, &cctl, sError);
+                if (rv != 0) {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "AddBlindedInputs failed " + sError);
+                }
+            }
+
+            rv = wtx.SubmitMemoryPoolAndRelay(sError, true);
+            if (rv != 1) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "SubmitMemoryPoolAndRelay failed " + sError);
+            }
+            uint256 txid = wtx.GetHash();
+            result.pushKV("txid", txid.ToString());
+            result.pushKV("spent_txid", input_txid.ToString());
+            result.pushKV("spent_n", input_n);
+            result.pushKV("amount", ValueFromAmount(output_amount));
+            result.pushKV("fee", ValueFromAmount(nFee));
+
+            break;
+        }
+        }
+        SyncWithValidationInterfaceQueue();
+        return result;
+    }
 
     if (clear_stakes_seen) {
         LOCK(cs_main);
@@ -5592,13 +5783,7 @@ static RPCHelpMan debugwallet()
         return "Cleared stakes seen.";
     }
 
-    EnsureWalletIsUnlocked(pwallet);
-
-    UniValue result(UniValue::VOBJ);
-    UniValue errors(UniValue::VARR);
-    UniValue warnings(UniValue::VARR);
     result.pushKV("wallet_name", pwallet->GetName());
-
 
     size_t nUnabandonedOrphans = 0;
     size_t nCoinStakes = 0;
@@ -6242,7 +6427,7 @@ static RPCHelpMan derivefromstealthaddress()
                 throw JSONRPCError(RPC_WALLET_ERROR, "Spend key not found for stealth address.");
             }
 
-            ec_point pEphem;;
+            ec_point pEphem;
             pEphem.resize(EC_COMPRESSED_SIZE);
             memcpy(&pEphem[0], pkEphem.begin(), pkEphem.size());
 

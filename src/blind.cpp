@@ -169,7 +169,7 @@ void InitBlinding()
     LoadRCTWhitelist(anon_index_whitelist, anon_index_whitelist_size);
 }
 
-bool IsTaintedBlindOutput(const uint256 &txid)
+bool IsFrozenBlindOutput(const uint256 &txid)
 {
     if (ct_tainted_filter.contains(txid)) {
         return !ct_whitelist.count(txid);
@@ -203,7 +203,7 @@ void ECC_Start_Blinding()
     assert(blind_scratch);
     blind_gens = secp256k1_bulletproof_generators_create(secp256k1_ctx_blind, &secp256k1_generator_const_g, 128);
     assert(blind_gens);
-};
+}
 
 void ECC_Stop_Blinding()
 {
@@ -216,4 +216,4 @@ void ECC_Stop_Blinding()
     if (ctx) {
         secp256k1_context_destroy(ctx);
     }
-};
+}

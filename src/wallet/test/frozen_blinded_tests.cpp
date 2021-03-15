@@ -21,6 +21,7 @@
 #include <validation.h>
 #include <blind.h>
 #include <rpc/rpcutil.h>
+#include <rpc/util.h>
 #include <util/string.h>
 #include <util/translation.h>
 #include <util/moneystr.h>
@@ -242,12 +243,36 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     size_t num_prefork_blind = rv.size();
 
 
-    // Enable HF2
+    // Set frozen blinded markers
     const CBlockIndex *tip = ::ChainActive().Tip();
-    RegtestParams().GetConsensus_nc().exploit_fix_2_time = tip->nTime + 1;
     RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
     RegtestParams().GetConsensus_nc().m_frozen_blinded_height = tip->nHeight;
+
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
+    size_t num_spendable = rv["num_spendable"].get_int();
+    size_t num_unspendable = rv["num_unspendable"].get_int();
+    BOOST_CHECK(num_spendable > 0);
+    BOOST_CHECK(num_unspendable > 0);
+    BOOST_CHECK(AmountFromValue(rv["frozen_outputs"][0]["amount"]) > AmountFromValue(rv["frozen_outputs"][num_spendable + num_unspendable - 1]["amount"]));
+
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
+    BOOST_CHECK(rv["error"].get_str() == "Exploit repair fork is not active yet.");
+
+    // Enable HF2
+    RegtestParams().GetConsensus_nc().exploit_fix_2_time = tip->nTime + 1;
     CAmount moneysupply_before_fork = tip->nMoneySupply;
+
+    while (GetTime() < tip->nTime + 1) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
+
+    // Test spend_frozen_output with num_spendable == 0
+    RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 100;
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
+    BOOST_CHECK(rv["num_spendable"].get_int() == 0);
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
+    BOOST_CHECK(rv["error"].get_str() == "No spendable outputs.");
+    RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 500 * COIN;
 
     // Build and install ct tainted bloom filter
     CBloomFilter tainted_filter(160, 0.004, 0, BLOOM_UPDATE_NONE);
@@ -256,14 +281,10 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
     stream << tainted_filter;
     LoadCTTaintedFilter(stream.data(), stream.size());
-    BOOST_REQUIRE(IsTaintedBlindOutput(txid_ct_anon_small));
-    BOOST_REQUIRE(IsTaintedBlindOutput(txid_ct_anon_large));
-    BOOST_REQUIRE(!IsTaintedBlindOutput(txid_ct_plain_small));
-    BOOST_REQUIRE(!IsTaintedBlindOutput(txid_ct_plain_large));
-
-    while (GetTime() < tip->nTime + 1) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    }
+    BOOST_REQUIRE(IsFrozenBlindOutput(txid_ct_anon_small));
+    BOOST_REQUIRE(IsFrozenBlindOutput(txid_ct_anon_large));
+    BOOST_REQUIRE(!IsFrozenBlindOutput(txid_ct_plain_small));
+    BOOST_REQUIRE(!IsFrozenBlindOutput(txid_ct_plain_large));
 
     // Test available coins, should be all frozen
     BOOST_CHECK_NO_THROW(rv = CallRPC("listunspentanon", context));
@@ -617,6 +638,20 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
     CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     BOOST_REQUIRE(moneysupply_after_post_fork_to_blinded + stake_reward * 2 ==  moneysupply_after_post_fork_blind_spends);
+
+    // Test debugwallet spend_frozen_output
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
+    num_spendable = rv["num_spendable"].get_int();
+    BOOST_CHECK(num_spendable > 0);
+
+    for (size_t i = 0; i < num_spendable; i++) {
+        BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
+        BOOST_REQUIRE(rv["txid"].isStr());
+    }
+
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
+    BOOST_CHECK(rv["num_spendable"].get_int() == 0);
+    BOOST_CHECK(rv["num_unspendable"].get_int() > 0);
 
     SetNumBlocksOfPeers(peer_blocks);
 }

@@ -298,7 +298,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
                 if (coin.nHeight <= state.m_consensus_params->m_frozen_blinded_height) {
                     state.m_spends_frozen_blinded = true;
-                    if (IsTaintedBlindOutput(prevout.hash)) {
+                    if (IsFrozenBlindOutput(prevout.hash)) {
                         spends_tainted_blinded = true;
                     }
                 } else {
@@ -456,10 +456,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if (state.m_spends_frozen_blinded) {
                 // Get the blinding factor from the fee data output
                 const std::vector<uint8_t> &vData = *tx.vpout[0]->GetPData();
-                size_t nb;
+                size_t nb = 0;
                 uint64_t nTmp;
-                part::GetVarInt(vData, 1, nTmp, nb);
-                if (vData.size() < 1 + nb + 33 || vData[1 + nb] != DO_MASK) {
+                if (0 != part::GetVarInt(vData, 1, nTmp, nb) || vData.size() < 1 + nb + 33 || vData[1 + nb] != DO_MASK) {
                     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-bf");
                 }
                 memcpy(blindPlain, &vData[1 + nb + 1], 32);
