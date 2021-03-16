@@ -312,10 +312,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 1);
 
     CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    {
-        LOCK(pwallet->cs_wallet);
-        pwallet->GetBalances(balances);
-    }
+    pwallet->GetBalances(balances);
     CAmount balance_before = balances.nPart + balances.nPartStaked;
     CAmount utxo_sum_after_fork = GetUTXOSum();
     BOOST_REQUIRE(moneysupply_post_fork == balance_before);
@@ -347,10 +344,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         CAmount txFee = rv["fee"].get_int64();
-        {
-            LOCK(pwallet->cs_wallet);
-            pwallet->GetBalances(balances);
-        }
+        pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
     }
@@ -380,10 +374,6 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-txns-frozen-blinded-too-large");
-        {
-            LOCK(pwallet->cs_wallet);
-            pwallet->GetBalances(balances);
-        }
 
         // Update whitelist
         std::vector<uint8_t> vct_whitelist;
@@ -395,10 +385,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         BOOST_REQUIRE(rv["txid"].isStr());
         CAmount txFee = rv["fee"].get_int64();
-        {
-            LOCK(pwallet->cs_wallet);
-            pwallet->GetBalances(balances);
-        }
+        pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
     }
@@ -435,12 +422,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         CAmount txFee = rv["fee"].get_int64();
-        {
-            LOCK(pwallet->cs_wallet);
-            pwallet->GetBalances(balances);
-        }
+        pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
-
         balance_before = balances.nPart + balances.nPartStaked;
     }
 
@@ -485,20 +468,14 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         BOOST_REQUIRE(rv["txid"].isStr());
         CAmount txFee = rv["fee"].get_int64();
-        {
-            LOCK(pwallet->cs_wallet);
-            pwallet->GetBalances(balances);
-        }
+        pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
     }
 
     StakeNBlocks(pwallet, 1);
 
-    {
-        LOCK(pwallet->cs_wallet);
-        pwallet->GetBalances(balances);
-    }
+    pwallet->GetBalances(balances);
     CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
     BOOST_REQUIRE(GetUTXOSum() == moneysupply_before_post_fork_to_blinded);
@@ -525,10 +502,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 2);
 
 
-    {
-        LOCK(pwallet->cs_wallet);
-        pwallet->GetBalances(balances);
-    }
+    pwallet->GetBalances(balances);
     CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
 
     BOOST_REQUIRE(GetUTXOSum() + 2100 * COIN == moneysupply_after_post_fork_to_blinded);

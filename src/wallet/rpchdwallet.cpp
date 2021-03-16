@@ -5572,6 +5572,7 @@ static RPCHelpMan debugwallet()
                             {"spend_frozen_output", RPCArg::Type::BOOL, /* default */ "false", "Withdraw one frozen output to plain balance."},
                             {"attempt_repair", RPCArg::Type::BOOL, /* default */ "false", "Attempt to repair if possible."},
                             {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
+                            {"downgrade_wallet", RPCArg::Type::BOOL, /* default */ "false", "Downgrade wallet for older releases."},
                         },
                         "options"},
                 },
@@ -5591,6 +5592,7 @@ static RPCHelpMan debugwallet()
     bool spend_frozen_output = false;
     bool attempt_repair = false;
     bool clear_stakes_seen = false;
+    bool downgrade_wallet = false;
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -5600,6 +5602,7 @@ static RPCHelpMan debugwallet()
                 {"spend_frozen_output",                 UniValueType(UniValue::VBOOL)},
                 {"attempt_repair",                      UniValueType(UniValue::VBOOL)},
                 {"clear_stakes_seen",                   UniValueType(UniValue::VBOOL)},
+                {"downgrade_wallet",             UniValueType(UniValue::VBOOL)},
             }, true, false);
         if (options.exists("list_frozen_outputs")) {
             list_frozen_outputs = options["list_frozen_outputs"].get_bool();
@@ -5612,6 +5615,9 @@ static RPCHelpMan debugwallet()
         }
         if (options.exists("clear_stakes_seen")) {
             clear_stakes_seen = options["clear_stakes_seen"].get_bool();
+        }
+        if (options.exists("downgrade_wallet")) {
+            downgrade_wallet = options["downgrade_wallet"].get_bool();
         }
     }
 
@@ -5696,9 +5702,9 @@ static RPCHelpMan debugwallet()
 
         if (list_frozen_outputs) {
             result.pushKV("frozen_outputs", blinded_outputs);
-            result.pushKV("num_spendable", num_spendable);
+            result.pushKV("num_spendable", (int)num_spendable);
             result.pushKV("total_spendable", ValueFromAmount(total_spendable));
-            result.pushKV("num_unspendable", num_unspendable);
+            result.pushKV("num_unspendable", (int)num_unspendable);
             result.pushKV("total_unspendable", ValueFromAmount(total_unspendable));
             return result;
         }
@@ -5781,6 +5787,12 @@ static RPCHelpMan debugwallet()
         particl::mapStakeSeen.clear();
         particl::listStakeSeen.clear();
         return "Cleared stakes seen.";
+    }
+
+    if (downgrade_wallet) {
+        pwallet->Downgrade();
+        StartShutdown();
+        return "Wallet downgraded - Shutting down.";
     }
 
     result.pushKV("wallet_name", pwallet->GetName());
