@@ -402,7 +402,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (state.m_spends_frozen_blinded) {
+    if (state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
         if (nRingCTOutputs > 0 || nCTOutputs > 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
         }
@@ -443,8 +443,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
         // Commitments must sum to 0
         secp256k1_pedersen_commitment plainInCommitment, plainOutCommitment;
-        uint8_t blindPlain[32];
-        memset(blindPlain, 0, 32);
+        uint8_t blindPlain[32] = {0};
         if (nValueIn > 0) {
             if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainInCommitment, blindPlain, (uint64_t) nValueIn, &secp256k1_generator_const_h, &secp256k1_generator_const_g)) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "commit-failed");
@@ -453,7 +452,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
 
         if (nPlainValueOut > 0) {
-            if (state.m_spends_frozen_blinded) {
+            if (state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
                 // Get the blinding factor from the fee data output
                 const std::vector<uint8_t> &vData = *tx.vpout[0]->GetPData();
                 size_t nb = 0;
@@ -668,7 +667,7 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState &state)
         }
 
         size_t max_data_outputs = 1 + nStandardOutputs; // extra 1 for ct fee output
-        if (state.fIncDataOutputs) {
+        if (state.m_clamp_tx_version) {
             max_data_outputs += nBlindOutputs + nAnonOutputs;
         }
         if (nDataOutputs > max_data_outputs) {
