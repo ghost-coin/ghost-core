@@ -77,13 +77,9 @@ static void AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes output_
     {
     LOCK(pwallet->cs_wallet);
 
-    std::vector<CTempRecipient> vecSend;
     std::string sError;
-    CTempRecipient r;
-    r.nType = output_type;
-    r.SetAmount(amount);
-    r.address = dest;
-    vecSend.push_back(r);
+    std::vector<CTempRecipient> vecSend;
+    vecSend.emplace_back(output_type, amount, dest);
 
     CTransactionRef tx_new;
     CWalletTx wtx(pwallet, tx_new);
