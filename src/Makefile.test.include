@@ -167,7 +167,8 @@ BITCOIN_TESTS += \
   wallet/test/hdwallet_tests.cpp \
   wallet/test/rpc_hdwallet_tests.cpp \
   wallet/test/stake_tests.cpp \
-  wallet/test/frozen_blinded_tests.cpp
+  wallet/test/frozen_blinded_tests.cpp \
+  wallet/test/rct_tests.cpp
 
 FUZZ_SUITE_LD_COMMON +=\
  $(LIBBITCOIN_WALLET) \
