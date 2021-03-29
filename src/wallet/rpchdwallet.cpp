@@ -5560,6 +5560,351 @@ static RPCHelpMan createsignaturewithkey()
     };
 }
 
+struct TracedOutput {
+    OutputTypes m_type = OUTPUT_NULL;
+    CAmount m_value = 0;
+    uint256 m_blinding_factor;
+    int m_n = -1;
+    bool m_spendable = false;
+    int64_t m_anon_index = -1;
+    bool m_is_spent = false;
+    CKey m_anon_spend_key;
+};
+struct TracedTx {
+    OutputTypes m_input_type;
+    std::string m_wallet_name;
+    std::vector<COutPoint> m_inputs;
+    std::map<int, TracedOutput> m_outputs;
+    bool all_inputs_traced = false;
+    CAmount m_input_amount_traced_to_plain = 0;
+};
+
+static void traceFrozenPrevout(const COutPoint &op_trace, std::map<uint256, TracedTx> &traced_txs, UniValue &warnings)
+{
+    std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
+    for (auto &wallet : wallets) {
+        CHDWallet *pwallet = GetParticlWallet(wallet.get());
+        LOCK(pwallet->cs_wallet);
+
+        MapRecords_t::const_iterator mri = pwallet->mapRecords.find(op_trace.hash);
+        if (mri == pwallet->mapRecords.end()) {
+            continue;
+        }
+        const CTransactionRecord &rtx = mri->second;
+
+        const COutputRecord *pout = rtx.GetOutput(op_trace.n);
+        if (!pout) {
+            continue;
+        }
+        const auto &r = *pout;
+
+        CHDWalletDB wdb(pwallet->GetDatabase());
+        CStoredTransaction stx;
+        if (!wdb.ReadStoredTx(op_trace.hash, stx)) {
+            warnings.push_back(strprintf("ReadStoredTx failed %s", op_trace.hash.ToString()));
+            continue;
+        }
+
+        bool is_spent = pwallet->IsSpent(op_trace.hash, op_trace.n);
+        if (!is_spent) {
+            // Should always be spent
+            warnings.push_back(strprintf("Unspent input %s", op_trace.ToString()));
+        }
+
+        int64_t anon_index = 0;
+        CCmpPubKey anon_pubkey;
+        if (r.nType == OUTPUT_RINGCT) {
+            anon_pubkey = ((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk;
+            if (!pblocktree->ReadRCTOutputLink(anon_pubkey, anon_index)) {
+                warnings.push_back(strprintf("ReadRCTOutputLink failed %s", op_trace.ToString()));
+            }
+        }
+
+        auto ret = traced_txs.insert(std::pair<uint256, TracedTx>(op_trace.hash, TracedTx()));
+        auto &traced_tx = ret.first->second;
+        if (ret.second) {
+            traced_tx.m_input_type = rtx.nFlags & ORF_ANON_IN ? OUTPUT_RINGCT : rtx.nFlags & ORF_BLIND_IN ? OUTPUT_CT : OUTPUT_STANDARD;
+            traced_tx.m_wallet_name = pwallet->GetDisplayName();
+
+            if (traced_tx.m_input_type != OUTPUT_STANDARD) {
+                for (const auto &op : rtx.vin) {
+                    traceFrozenPrevout(op, traced_txs, warnings);
+                    traced_tx.m_inputs.push_back(op);
+                }
+            }
+        }
+
+        TracedOutput traced_output;
+        traced_output.m_type = r.nType == OUTPUT_RINGCT ? OUTPUT_RINGCT : OUTPUT_CT;
+        traced_output.m_value = r.nValue;
+        traced_output.m_n = r.n;
+        traced_output.m_anon_index = anon_index;
+        traced_output.m_is_spent = is_spent;
+        if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
+            warnings.push_back(strprintf("GetBlind failed %s", op_trace.ToString()));
+        }
+        if (r.nType == OUTPUT_RINGCT) {
+            CKeyID apkid = anon_pubkey.GetID();
+            if (!pwallet->GetKey(apkid, traced_output.m_anon_spend_key)) {
+                warnings.push_back(strprintf("GetKey failed %s", op_trace.ToString()));
+            }
+        }
+        traced_tx.m_outputs[r.n] = traced_output;
+    }
+}
+
+static bool placeTracedPrevout(const COutPoint &op, const std::map<uint256, TracedTx> &traced_txs, UniValue &rv, CAmount &value)
+{
+    std::map<uint256, TracedTx>::const_iterator mi = traced_txs.find(op.hash);
+    if (mi == traced_txs.end()) {
+        return false;
+    }
+    const auto &tx = mi->second;
+    std::map<int, TracedOutput>::const_iterator mio = tx.m_outputs.find(op.n);
+    if (mio == tx.m_outputs.end()) {
+        return false;
+    }
+    const auto &txo = mio->second;
+    value = txo.m_value;
+    rv.pushKV("type", txo.m_type == OUTPUT_RINGCT ? "anon" : "blind");
+    rv.pushKV("value", txo.m_value);
+    rv.pushKV("blind", txo.m_blinding_factor.ToString());
+    if (txo.m_type == OUTPUT_RINGCT) {
+        rv.pushKV("anon_index", txo.m_anon_index);
+    }
+    rv.pushKV("spent", txo.m_is_spent);
+    if (txo.m_is_spent && txo.m_type == OUTPUT_RINGCT) {
+        rv.pushKV("anon_spend_key", EncodeSecret(txo.m_anon_spend_key));
+    }
+    return true;
+}
+
+static void placeTracedInputTxns(const std::vector<COutPoint> &inputs, const std::map<uint256, TracedTx> &traced_txs, UniValue &rv)
+{
+    std::set<uint256> added_txids;
+
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        const auto &op = inputs[i];
+
+        CAmount total_value = 0;
+        if (added_txids.count(op.hash)) {
+            continue;
+        }
+        UniValue uvtx(UniValue::VOBJ);
+        uvtx.pushKV("txid", op.hash.ToString());
+
+        CAmount value = 0;
+        UniValue uv_prevouts(UniValue::VARR), uv_prevout(UniValue::VOBJ);
+        if (placeTracedPrevout(op, traced_txs, uv_prevout, value)) {
+            total_value += value;
+            uv_prevouts.push_back(uv_prevout);
+        }
+
+        std::map<uint256, TracedTx>::const_iterator mi = traced_txs.find(op.hash);
+        if (mi == traced_txs.end()) {
+            continue;
+        }
+        const auto &tx = mi->second;
+
+        // Add prevouts from the same txn
+        for (size_t i2 = i + 1; i2 < inputs.size(); ++i2) {
+            const auto &op2 = inputs[i2];
+            if (op2.hash != op.hash) {
+                continue;
+            }
+            UniValue uv_prevout(UniValue::VOBJ);
+            if (placeTracedPrevout(op, traced_txs, uv_prevout, value)) {
+                total_value += value;
+                uv_prevouts.push_back(uv_prevout);
+            }
+        }
+        uvtx.pushKV("outputs", uv_prevouts);
+        uvtx.pushKV("input_type", tx.m_input_type == OUTPUT_RINGCT ? "anon" : tx.m_input_type == OUTPUT_CT ? "blind" : "plain");
+        uvtx.pushKV("wallet", tx.m_wallet_name);
+
+        UniValue uv_inputs(UniValue::VARR);
+        placeTracedInputTxns(tx.m_inputs, traced_txs, uv_inputs);
+        if (uv_inputs.size() > 0) {
+            uvtx.pushKV("inputs", uv_inputs);
+        }
+        uvtx.pushKV("total_value", total_value);
+
+        rv.push_back(uvtx);
+        added_txids.insert(op.hash);
+    }
+}
+
+static void traceFrozenOutputs(UniValue &rv, CAmount min_value, const UniValue &uv_extra_outputs)
+{
+    // Dump information necessary for an external script to trace blinded amounts back to plain values
+    UniValue errors(UniValue::VARR);
+    UniValue warnings(UniValue::VARR);
+
+    std::map<uint256, TracedTx> traced_txs;
+    std::set<uint256> top_level;
+    std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
+    std::set<COutPoint> extra_txouts;  // Trace these outputs even if spent
+
+    if (uv_extra_outputs.isArray()) {
+        for (size_t i = 0; i < uv_extra_outputs.size(); ++i) {
+            const UniValue &uvi = uv_extra_outputs[i];
+            RPCTypeCheckObj(uvi,
+            {
+                {"tx", UniValueType(UniValue::VSTR)},
+                {"n", UniValueType(UniValue::VNUM)},
+            });
+            COutPoint op(ParseHashO(uvi, "tx"), uvi["n"].get_int());
+            extra_txouts.insert(op);
+        }
+    }
+
+    // Ensure all wallets are unlocked
+    for (auto &wallet : wallets) {
+        CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+        EnsureWalletIsUnlocked(pwallet);
+    }
+
+    std::map<uint256, TracedTx> traced_txns;
+    CAmount total_traced = 0;
+    size_t num_traced = 0;
+
+    for (auto &wallet : wallets) {
+        CHDWallet *pwallet = GetParticlWallet(wallet.get());
+        LOCK(pwallet->cs_wallet);
+
+        CHDWalletDB wdb(pwallet->GetDatabase());
+
+        const Consensus::Params &consensusParams = Params().GetConsensus();
+        for (MapRecords_t::const_iterator it = pwallet->mapRecords.begin(); it != pwallet->mapRecords.end(); ++it) {
+            const uint256 &txid = it->first;
+            const CTransactionRecord &rtx = it->second;
+
+            if (rtx.block_height < 1 || // height 0 is mempool
+                rtx.block_height > consensusParams.m_frozen_blinded_height) {
+                continue;
+            }
+
+            for (const auto &r : rtx.vout) {
+                if ((r.nType != OUTPUT_RINGCT && r.nType != OUTPUT_CT) ||
+                    !(r.nFlags & ORF_OWNED) ||
+                    r.nValue < min_value) {
+                    if (!extra_txouts.count(COutPoint(txid, r.n))) {
+                        continue;
+                    }
+                }
+
+                bool is_spent = pwallet->IsSpent(txid, r.n);
+                if (is_spent && !extra_txouts.count(COutPoint(txid, r.n))) {
+                    continue;
+                }
+
+                int64_t anon_index = -1;
+                bool is_spendable = true;
+                if (r.nValue > consensusParams.m_max_tainted_value_out) {
+                    // TODO: Store pubkey on COutputRecord - in scriptPubKey
+                    if (r.nType == OUTPUT_RINGCT) {
+                        CStoredTransaction stx;
+                        if (!wdb.ReadStoredTx(txid, stx) ||
+                            !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
+                            !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
+                            !IsWhitelistedAnonOutput(anon_index)) {
+                            is_spendable = false;
+                        }
+                    } else
+                    if (r.nType == OUTPUT_CT) {
+                        if (IsFrozenBlindOutput(txid)) {
+                            is_spendable = false;
+                        }
+                    }
+                }
+                if (is_spendable) {
+                    if (!extra_txouts.count(COutPoint(txid, r.n))) {
+                        continue;
+                    }
+                }
+                total_traced += r.nValue;
+                num_traced++;
+
+                CStoredTransaction stx;
+                if (!wdb.ReadStoredTx(txid, stx)) {
+                    warnings.push_back(strprintf("ReadStoredTx failed %s", txid.ToString()));
+                    continue;
+                }
+
+                auto ret = traced_txns.insert(std::pair<uint256, TracedTx>(txid, TracedTx()));
+                auto &traced_tx = ret.first->second;
+                if (ret.second) {
+                    traced_tx.m_input_type = rtx.nFlags & ORF_ANON_IN ? OUTPUT_RINGCT : rtx.nFlags & ORF_BLIND_IN ? OUTPUT_CT : OUTPUT_STANDARD;
+                    traced_tx.m_wallet_name = pwallet->GetDisplayName();
+
+                    if (traced_tx.m_input_type != OUTPUT_STANDARD) {
+                        for (const auto &op : rtx.vin) {
+                            traceFrozenPrevout(op, traced_txns, warnings);
+                            traced_tx.m_inputs.push_back(op);
+                        }
+                    }
+                }
+
+                top_level.insert(txid);
+                TracedOutput traced_output;
+                traced_output.m_type = r.nType == OUTPUT_RINGCT ? OUTPUT_RINGCT : OUTPUT_CT;
+                traced_output.m_value = r.nValue;
+                traced_output.m_n = r.n;
+                traced_output.m_anon_index = anon_index;
+                traced_output.m_is_spent = is_spent;
+                if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
+                    warnings.push_back(strprintf("GetBlind failed %s %d", txid.ToString(), r.n));
+                }
+                traced_tx.m_outputs[r.n] = traced_output;
+            }
+        }
+    }
+
+    UniValue rv_txns(UniValue::VARR);
+    for (const auto &txid : top_level) {
+        UniValue rv_tx(UniValue::VOBJ);
+        rv_tx.pushKV("txid", txid.ToString());
+
+        const auto &tx = traced_txns[txid];
+        UniValue uv_outputs(UniValue::VARR);
+        for (const auto &itxo : tx.m_outputs) {
+            const auto &txo = itxo.second;
+            UniValue uvo(UniValue::VOBJ);
+            uvo.pushKV("n", txo.m_n);
+            uvo.pushKV("type", txo.m_type == OUTPUT_RINGCT ? "anon" : "blind");
+            uvo.pushKV("value", txo.m_value);
+            uvo.pushKV("blind", txo.m_blinding_factor.ToString());
+            if (txo.m_type == OUTPUT_RINGCT) {
+                uvo.pushKV("anon_index", txo.m_anon_index);
+            }
+            uvo.pushKV("spent", txo.m_is_spent);
+            uv_outputs.push_back(uvo);
+        }
+        rv_tx.pushKV("outputs", uv_outputs);
+        rv_tx.pushKV("input_type", tx.m_input_type == OUTPUT_RINGCT ? "anon" : tx.m_input_type == OUTPUT_CT ? "blind" : "plain");
+        rv_tx.pushKV("wallet", tx.m_wallet_name);
+
+        UniValue uv_inputs(UniValue::VARR);
+        placeTracedInputTxns(tx.m_inputs, traced_txns, uv_inputs);
+        if (uv_inputs.size() > 0) {
+            rv_tx.pushKV("inputs", uv_inputs);
+        }
+
+        rv_txns.push_back(rv_tx);
+    }
+
+    rv.pushKV("transactions", rv_txns);
+    rv.pushKV("num_traced", num_traced);
+    rv.pushKV("total_traced", total_traced);
+
+    if (warnings.size() > 0) {
+        rv.pushKV("warnings", warnings);
+    }
+    if (errors.size() > 0) {
+        rv.pushKV("errors", errors);
+    }
+}
+
 static RPCHelpMan debugwallet()
 {
     return RPCHelpMan{"debugwallet",
@@ -5570,6 +5915,19 @@ static RPCHelpMan debugwallet()
                         {
                             {"list_frozen_outputs", RPCArg::Type::BOOL, /* default */ "false", "List frozen anon and blinded outputs."},
                             {"spend_frozen_output", RPCArg::Type::BOOL, /* default */ "false", "Withdraw one frozen output to plain balance."},
+                            {"trace_frozen_outputs", RPCArg::Type::BOOL, /* default */ "false", "Attempt to trace frozen blinded outputs back to plain inputs.\n"
+                                                                                                "Will search all loaded wallets.\n"
+                                                                                                "All loaded wallets must be unlocked"},
+                            {"trace_frozen_extra", RPCArg::Type::ARR, /* default */ "", "A json array of extra outputs to trace",
+                                {
+                                    {"", RPCArg::Type::OBJ, /* default */ "", "",
+                                        {
+                                            {"tx", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "txn id"},
+                                            {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "txn vout"},
+                                        },
+                                    },
+                                },
+                            },
                             {"attempt_repair", RPCArg::Type::BOOL, /* default */ "false", "Attempt to repair if possible."},
                             {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
                             {"downgrade_wallet", RPCArg::Type::BOOL, /* default */ "false", "Downgrade wallet for older releases."},
@@ -5590,6 +5948,7 @@ static RPCHelpMan debugwallet()
 
     bool list_frozen_outputs = false;
     bool spend_frozen_output = false;
+    bool trace_frozen_outputs = false;
     bool attempt_repair = false;
     bool clear_stakes_seen = false;
     bool downgrade_wallet = false;
@@ -5600,15 +5959,20 @@ static RPCHelpMan debugwallet()
             {
                 {"list_frozen_outputs",                 UniValueType(UniValue::VBOOL)},
                 {"spend_frozen_output",                 UniValueType(UniValue::VBOOL)},
+                {"trace_frozen_outputs",                UniValueType(UniValue::VBOOL)},
+                {"trace_frozen_extra",                  UniValueType(UniValue::VARR)},
                 {"attempt_repair",                      UniValueType(UniValue::VBOOL)},
                 {"clear_stakes_seen",                   UniValueType(UniValue::VBOOL)},
-                {"downgrade_wallet",             UniValueType(UniValue::VBOOL)},
+                {"downgrade_wallet",                    UniValueType(UniValue::VBOOL)},
             }, true, false);
         if (options.exists("list_frozen_outputs")) {
             list_frozen_outputs = options["list_frozen_outputs"].get_bool();
         }
         if (options.exists("spend_frozen_output")) {
             spend_frozen_output = options["spend_frozen_output"].get_bool();
+        }
+        if (options.exists("trace_frozen_outputs")) {
+            trace_frozen_outputs = options["trace_frozen_outputs"].get_bool();
         }
         if (options.exists("attempt_repair")) {
             attempt_repair = options["attempt_repair"].get_bool();
@@ -5620,14 +5984,26 @@ static RPCHelpMan debugwallet()
             downgrade_wallet = options["downgrade_wallet"].get_bool();
         }
     }
+    if (list_frozen_outputs + spend_frozen_output + trace_frozen_outputs > 1) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Multiple frozen blinded methods selected.");
+    }
 
     UniValue result(UniValue::VOBJ);
     UniValue errors(UniValue::VARR);
     UniValue warnings(UniValue::VARR);
 
+    CAmount min_frozen_blinded_value = 10000;
+
+    if (trace_frozen_outputs) {
+        const UniValue &options = request.params[0].get_obj();
+        UniValue empty_array(UniValue::VARR);
+        const UniValue &extra_outputs = options.exists("trace_frozen_extra") ? options["trace_frozen_extra"] : empty_array;
+        traceFrozenOutputs(result, min_frozen_blinded_value, extra_outputs);
+        return result;
+    }
+
     EnsureWalletIsUnlocked(pwallet);
 
-    CAmount min_value = 10000;
     if (list_frozen_outputs || spend_frozen_output) {
         {
         LOCK(pwallet->cs_wallet);
@@ -5653,7 +6029,7 @@ static RPCHelpMan debugwallet()
             for (const auto &r : rtx.vout) {
                 if ((r.nType != OUTPUT_RINGCT && r.nType != OUTPUT_CT) ||
                     !(r.nFlags & ORF_OWNED) ||
-                    r.nValue < min_value ||
+                    r.nValue < min_frozen_blinded_value ||
                     pwallet->IsSpent(txid, r.n)) {
                     continue;
                 }
@@ -5709,6 +6085,7 @@ static RPCHelpMan debugwallet()
             return result;
         }
 
+        // spend_frozen_output
         if (!exploit_fix_2_active) {
             result.pushKV("error", "Exploit repair fork is not active yet.");
             return result;
@@ -7797,7 +8174,7 @@ static RPCHelpMan verifycommitment()
     }
 
     if (memcmp(vchCommitment.data(), commitment.data, 33) != 0) {
-        throw JSONRPCError(RPC_MISC_ERROR, strprintf("Mismatched commitment, expected ") + HexStr(Span<const unsigned char>(commitment.data, 32)));
+        throw JSONRPCError(RPC_MISC_ERROR, strprintf("Mismatched commitment, expected ") + HexStr(Span<const unsigned char>(commitment.data, 33)));
     }
 
     UniValue result(UniValue::VOBJ);
@@ -7932,8 +8309,8 @@ static RPCHelpMan generatematchingblindfactor()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Outputs must be an array of hex encoded blind factors.");
     }
 
-    UniValue inputs = request.params[0].get_array();
-    UniValue outputs = request.params[1].get_array();
+    const UniValue &inputs = request.params[0].get_array();
+    const UniValue &outputs = request.params[1].get_array();
 
     if (inputs.size() < 1) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Inputs should contain at least one element.");
