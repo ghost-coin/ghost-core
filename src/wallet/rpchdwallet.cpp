@@ -5564,6 +5564,7 @@ struct TracedOutput {
     OutputTypes m_type = OUTPUT_NULL;
     CAmount m_value = 0;
     uint256 m_blinding_factor;
+    uint256 m_spentby;  // Output could show in multiple tx histories
     int m_n = -1;
     bool m_spendable = false;
     int64_t m_anon_index = -1;
@@ -5579,7 +5580,7 @@ struct TracedTx {
     CAmount m_input_amount_traced_to_plain = 0;
 };
 
-static void traceFrozenPrevout(const COutPoint &op_trace, std::map<uint256, TracedTx> &traced_txs, UniValue &warnings)
+static void traceFrozenPrevout(const COutPoint &op_trace, const uint256 &txid_spentby, std::map<uint256, TracedTx> &traced_txs, UniValue &warnings)
 {
     std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
     for (auto &wallet : wallets) {
@@ -5628,7 +5629,7 @@ static void traceFrozenPrevout(const COutPoint &op_trace, std::map<uint256, Trac
 
             if (traced_tx.m_input_type != OUTPUT_STANDARD) {
                 for (const auto &op : rtx.vin) {
-                    traceFrozenPrevout(op, traced_txs, warnings);
+                    traceFrozenPrevout(op, op_trace.hash, traced_txs, warnings);
                     traced_tx.m_inputs.push_back(op);
                 }
             }
@@ -5640,6 +5641,7 @@ static void traceFrozenPrevout(const COutPoint &op_trace, std::map<uint256, Trac
         traced_output.m_n = r.n;
         traced_output.m_anon_index = anon_index;
         traced_output.m_is_spent = is_spent;
+        traced_output.m_spentby = txid_spentby;
         if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
             warnings.push_back(strprintf("GetBlind failed %s", op_trace.ToString()));
         }
@@ -5653,52 +5655,37 @@ static void traceFrozenPrevout(const COutPoint &op_trace, std::map<uint256, Trac
     }
 }
 
-static bool placeTracedPrevout(const COutPoint &op, const std::map<uint256, TracedTx> &traced_txs, UniValue &rv, CAmount &value)
+static void placeTracedPrevout(const TracedOutput &txo, UniValue &rv)
 {
-    std::map<uint256, TracedTx>::const_iterator mi = traced_txs.find(op.hash);
-    if (mi == traced_txs.end()) {
-        return false;
-    }
-    const auto &tx = mi->second;
-    std::map<int, TracedOutput>::const_iterator mio = tx.m_outputs.find(op.n);
-    if (mio == tx.m_outputs.end()) {
-        return false;
-    }
-    const auto &txo = mio->second;
-    value = txo.m_value;
-    rv.pushKV("type", txo.m_type == OUTPUT_RINGCT ? "anon" : "blind");
+    rv.pushKV("n", txo.m_n);
+    rv.pushKV("type", txo.m_type == OUTPUT_RINGCT ? "anon" : txo.m_type == OUTPUT_CT ? "blind" : "plain");
     rv.pushKV("value", txo.m_value);
     rv.pushKV("blind", txo.m_blinding_factor.ToString());
     if (txo.m_type == OUTPUT_RINGCT) {
         rv.pushKV("anon_index", txo.m_anon_index);
     }
     rv.pushKV("spent", txo.m_is_spent);
-    if (txo.m_is_spent && txo.m_type == OUTPUT_RINGCT) {
+    if (txo.m_is_spent && txo.m_type == OUTPUT_RINGCT && txo.m_anon_spend_key.IsValid()) {
         rv.pushKV("anon_spend_key", EncodeSecret(txo.m_anon_spend_key));
     }
-    return true;
+    if (!txo.m_spentby.IsNull()) {
+        rv.pushKV("spent_by", txo.m_spentby.ToString());
+    }
 }
 
-static void placeTracedInputTxns(const std::vector<COutPoint> &inputs, const std::map<uint256, TracedTx> &traced_txs, UniValue &rv)
+static void placeTracedInputTxns(const uint256 &spend_txid, const std::vector<COutPoint> &inputs, const std::map<uint256, TracedTx> &traced_txs, UniValue &rv)
 {
     std::set<uint256> added_txids;
 
     for (size_t i = 0; i < inputs.size(); ++i) {
         const auto &op = inputs[i];
 
-        CAmount total_value = 0;
+        CAmount spent_value = 0;
         if (added_txids.count(op.hash)) {
             continue;
         }
         UniValue uvtx(UniValue::VOBJ);
         uvtx.pushKV("txid", op.hash.ToString());
-
-        CAmount value = 0;
-        UniValue uv_prevouts(UniValue::VARR), uv_prevout(UniValue::VOBJ);
-        if (placeTracedPrevout(op, traced_txs, uv_prevout, value)) {
-            total_value += value;
-            uv_prevouts.push_back(uv_prevout);
-        }
 
         std::map<uint256, TracedTx>::const_iterator mi = traced_txs.find(op.hash);
         if (mi == traced_txs.end()) {
@@ -5706,16 +5693,15 @@ static void placeTracedInputTxns(const std::vector<COutPoint> &inputs, const std
         }
         const auto &tx = mi->second;
 
-        // Add prevouts from the same txn
-        for (size_t i2 = i + 1; i2 < inputs.size(); ++i2) {
-            const auto &op2 = inputs[i2];
-            if (op2.hash != op.hash) {
-                continue;
-            }
+        UniValue uv_prevouts(UniValue::VARR);
+        for (const auto &itxo : tx.m_outputs) {
+            const auto &txo = itxo.second;
             UniValue uv_prevout(UniValue::VOBJ);
-            if (placeTracedPrevout(op, traced_txs, uv_prevout, value)) {
-                total_value += value;
-                uv_prevouts.push_back(uv_prevout);
+            placeTracedPrevout(txo, uv_prevout);
+            uv_prevouts.push_back(uv_prevout);
+
+            if (txo.m_spentby == spend_txid) {
+                spent_value += txo.m_value;
             }
         }
         uvtx.pushKV("outputs", uv_prevouts);
@@ -5723,11 +5709,11 @@ static void placeTracedInputTxns(const std::vector<COutPoint> &inputs, const std
         uvtx.pushKV("wallet", tx.m_wallet_name);
 
         UniValue uv_inputs(UniValue::VARR);
-        placeTracedInputTxns(tx.m_inputs, traced_txs, uv_inputs);
+        placeTracedInputTxns(op.hash, tx.m_inputs, traced_txs, uv_inputs);
         if (uv_inputs.size() > 0) {
             uvtx.pushKV("inputs", uv_inputs);
         }
-        uvtx.pushKV("total_value", total_value);
+        uvtx.pushKV("spent_outputs_value", spent_value);
 
         rv.push_back(uvtx);
         added_txids.insert(op.hash);
@@ -5767,17 +5753,19 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, const UniValue &
     std::map<uint256, TracedTx> traced_txns;
     CAmount total_traced = 0;
     size_t num_traced = 0;
+    size_t num_searched = 0;
 
+    const Consensus::Params &consensusParams = Params().GetConsensus();
     for (auto &wallet : wallets) {
         CHDWallet *pwallet = GetParticlWallet(wallet.get());
         LOCK(pwallet->cs_wallet);
 
         CHDWalletDB wdb(pwallet->GetDatabase());
-
-        const Consensus::Params &consensusParams = Params().GetConsensus();
         for (MapRecords_t::const_iterator it = pwallet->mapRecords.begin(); it != pwallet->mapRecords.end(); ++it) {
             const uint256 &txid = it->first;
             const CTransactionRecord &rtx = it->second;
+
+            num_searched += 1;
 
             if (rtx.block_height < 1 || // height 0 is mempool
                 rtx.block_height > consensusParams.m_frozen_blinded_height) {
@@ -5839,19 +5827,64 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, const UniValue &
 
                     if (traced_tx.m_input_type != OUTPUT_STANDARD) {
                         for (const auto &op : rtx.vin) {
-                            traceFrozenPrevout(op, traced_txns, warnings);
+                            traceFrozenPrevout(op, txid, traced_txns, warnings);
                             traced_tx.m_inputs.push_back(op);
                         }
                     }
                 }
-
                 top_level.insert(txid);
                 TracedOutput traced_output;
-                traced_output.m_type = r.nType == OUTPUT_RINGCT ? OUTPUT_RINGCT : OUTPUT_CT;
+                traced_output.m_type = r.nType == OUTPUT_RINGCT ? OUTPUT_RINGCT : r.nType == OUTPUT_CT ? OUTPUT_CT : OUTPUT_STANDARD;
                 traced_output.m_value = r.nValue;
                 traced_output.m_n = r.n;
                 traced_output.m_anon_index = anon_index;
                 traced_output.m_is_spent = is_spent;
+                if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
+                    warnings.push_back(strprintf("GetBlind failed %s %d", txid.ToString(), r.n));
+                }
+                traced_tx.m_outputs[r.n] = traced_output;
+            }
+        }
+    }
+
+    // Fill in all known tx outputs, external script needs to know them all to check tx outputs == txinputs
+    for (auto &wallet : wallets) {
+        CHDWallet *pwallet = GetParticlWallet(wallet.get());
+        LOCK(pwallet->cs_wallet);
+
+        CHDWalletDB wdb(pwallet->GetDatabase());
+        for (MapRecords_t::const_iterator it = pwallet->mapRecords.begin(); it != pwallet->mapRecords.end(); ++it) {
+            const uint256 &txid = it->first;
+            const CTransactionRecord &rtx = it->second;
+
+            std::map<uint256, TracedTx>::iterator traced_txnsi = traced_txns.find(txid);
+            if (traced_txnsi == traced_txns.end()) {
+                continue;
+            }
+            TracedTx &traced_tx = traced_txnsi->second;
+
+            CStoredTransaction stx;
+            if (!wdb.ReadStoredTx(txid, stx)) {
+                warnings.push_back(strprintf("ReadStoredTx failed %s", txid.ToString()));
+                continue;
+            }
+            for (const auto &r : rtx.vout) {
+                if ((r.nType != OUTPUT_RINGCT && r.nType != OUTPUT_CT) ||
+                    !(r.nFlags & ORF_OWNED)) {
+                    continue;
+                }
+                if (traced_tx.m_outputs.count(r.n)) {
+                    continue;
+                }
+                TracedOutput traced_output;
+                traced_output.m_type = r.nType == OUTPUT_RINGCT ? OUTPUT_RINGCT : OUTPUT_CT;
+                traced_output.m_value = r.nValue;
+                traced_output.m_n = r.n;
+                if (r.nType == OUTPUT_RINGCT &&
+                    !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, traced_output.m_anon_index)) {
+                    warnings.push_back(strprintf("ReadRCTOutputLink failed %s %d", txid.ToString(), r.n));
+                }
+                traced_output.m_is_spent = pwallet->IsSpent(txid, r.n);
                 if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
                     warnings.push_back(strprintf("GetBlind failed %s %d", txid.ToString(), r.n));
                 }
@@ -5870,14 +5903,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, const UniValue &
         for (const auto &itxo : tx.m_outputs) {
             const auto &txo = itxo.second;
             UniValue uvo(UniValue::VOBJ);
-            uvo.pushKV("n", txo.m_n);
-            uvo.pushKV("type", txo.m_type == OUTPUT_RINGCT ? "anon" : "blind");
-            uvo.pushKV("value", txo.m_value);
-            uvo.pushKV("blind", txo.m_blinding_factor.ToString());
-            if (txo.m_type == OUTPUT_RINGCT) {
-                uvo.pushKV("anon_index", txo.m_anon_index);
-            }
-            uvo.pushKV("spent", txo.m_is_spent);
+            placeTracedPrevout(txo, uvo);
             uv_outputs.push_back(uvo);
         }
         rv_tx.pushKV("outputs", uv_outputs);
@@ -5885,7 +5911,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, const UniValue &
         rv_tx.pushKV("wallet", tx.m_wallet_name);
 
         UniValue uv_inputs(UniValue::VARR);
-        placeTracedInputTxns(tx.m_inputs, traced_txns, uv_inputs);
+        placeTracedInputTxns(txid, tx.m_inputs, traced_txns, uv_inputs);
         if (uv_inputs.size() > 0) {
             rv_tx.pushKV("inputs", uv_inputs);
         }
@@ -5893,8 +5919,10 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, const UniValue &
         rv_txns.push_back(rv_tx);
     }
 
+    LogPrintf("traceFrozenOutputs() searched %d transactions.\n", num_searched);
+
     rv.pushKV("transactions", rv_txns);
-    rv.pushKV("num_traced", num_traced);
+    rv.pushKV("num_traced", (int)num_traced);
     rv.pushKV("total_traced", total_traced);
 
     if (warnings.size() > 0) {
