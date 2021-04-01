@@ -5968,7 +5968,8 @@ static RPCHelpMan debugwallet()
                             {"trace_frozen_dump_privkeys", RPCArg::Type::BOOL, /* default */ "false", "Dump anon spending keys, use with trace_frozen_outputs."},
                             {"attempt_repair", RPCArg::Type::BOOL, /* default */ "false", "Attempt to repair if possible."},
                             {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
-                            {"downgrade_wallet", RPCArg::Type::BOOL, /* default */ "false", "Downgrade wallet for older releases."},
+                            {"downgrade_wallets", RPCArg::Type::BOOL, /* default */ "false", "Downgrade all loaded wallets for older releases then shutdown.\n"
+                                                                                             "All loaded wallets must be unlocked."},
                         },
                         "options"},
                 },
@@ -5990,7 +5991,7 @@ static RPCHelpMan debugwallet()
     bool trace_frozen_dump_privkeys = false;
     bool attempt_repair = false;
     bool clear_stakes_seen = false;
-    bool downgrade_wallet = false;
+    bool downgrade_wallets = false;
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -6003,7 +6004,7 @@ static RPCHelpMan debugwallet()
                 {"trace_frozen_dump_privkeys",          UniValueType(UniValue::VBOOL)},
                 {"attempt_repair",                      UniValueType(UniValue::VBOOL)},
                 {"clear_stakes_seen",                   UniValueType(UniValue::VBOOL)},
-                {"downgrade_wallet",                    UniValueType(UniValue::VBOOL)},
+                {"downgrade_wallets",                   UniValueType(UniValue::VBOOL)},
             }, true, false);
         if (options.exists("list_frozen_outputs")) {
             list_frozen_outputs = options["list_frozen_outputs"].get_bool();
@@ -6023,8 +6024,8 @@ static RPCHelpMan debugwallet()
         if (options.exists("clear_stakes_seen")) {
             clear_stakes_seen = options["clear_stakes_seen"].get_bool();
         }
-        if (options.exists("downgrade_wallet")) {
-            downgrade_wallet = options["downgrade_wallet"].get_bool();
+        if (options.exists("downgrade_wallets")) {
+            downgrade_wallets = options["downgrade_wallets"].get_bool();
         }
     }
     if (list_frozen_outputs + spend_frozen_output + trace_frozen_outputs > 1) {
@@ -6043,6 +6044,17 @@ static RPCHelpMan debugwallet()
         const UniValue &extra_outputs = options.exists("trace_frozen_extra") ? options["trace_frozen_extra"] : empty_array;
         traceFrozenOutputs(result, min_frozen_blinded_value, extra_outputs, trace_frozen_dump_privkeys);
         return result;
+    }
+
+    if (downgrade_wallets) {
+        std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
+        for (auto &wallet : wallets) {
+            CHDWallet *pw = GetParticlWallet(wallet.get());
+            EnsureWalletIsUnlocked(pw);
+            pw->Downgrade();
+        }
+        StartShutdown();
+        return "Wallet downgraded - Shutting down.";
     }
 
     EnsureWalletIsUnlocked(pwallet);
@@ -6207,12 +6219,6 @@ static RPCHelpMan debugwallet()
         particl::mapStakeSeen.clear();
         particl::listStakeSeen.clear();
         return "Cleared stakes seen.";
-    }
-
-    if (downgrade_wallet) {
-        pwallet->Downgrade();
-        StartShutdown();
-        return "Wallet downgraded - Shutting down.";
     }
 
     result.pushKV("wallet_name", pwallet->GetName());
