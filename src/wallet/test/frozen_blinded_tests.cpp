@@ -222,6 +222,13 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_extra\":[{\"tx\":\"%s\",\"n\":%d}]}",
         prevout_spendable.hash.ToString(), prevout_spendable.n), context));
     BOOST_CHECK(rv["num_traced"].get_int() == last_num_traced + 1);
+    std::string str_rv_check = rv.write();
+    BOOST_CHECK(str_rv_check.find("anon_spend_key") == std::string::npos);
+
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_dump_privkeys\":true}", context));
+    str_rv_check = rv.write();
+    BOOST_CHECK(str_rv_check.find("anon_spend_key") != std::string::npos);
+
 
     // Build and install ct tainted bloom filter
     CBloomFilter tainted_filter(160, 0.004, 0, BLOOM_UPDATE_NONE);
