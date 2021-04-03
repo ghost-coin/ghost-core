@@ -36,7 +36,6 @@ RPCHelpMan anonoutput()
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-
     UniValue result(UniValue::VOBJ);
 
     if (request.params.size() == 0) {
