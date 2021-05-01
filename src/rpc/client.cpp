@@ -272,6 +272,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "debugwallet", 0, "options" },
     { "reservebalance", 1, "amount" },
     { "votehistory", 0, "current_only" },
+    { "votehistory", 1, "include_future" },
 
     { "devicesignrawtransaction", 1, "prevtxs" },
     { "devicesignrawtransaction", 2, "paths" },

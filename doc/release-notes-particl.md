@@ -65,7 +65,9 @@ Next Major Version
   - Wallet won't try stake outputs with values lower than.
 - New walletsettings other minownedvalue option.
   - Wallet won't track outputs with values lower than.
-
+- setvote will clear all vote settings when all parameters are set to 0.
+- votehistory, new include_future parameter.
+  - If current_only and include_future are true, future scheduled votes will be displayed.
 
 
 0.19.2.5
