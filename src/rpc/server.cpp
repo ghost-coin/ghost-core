@@ -546,8 +546,7 @@ void PushTime(UniValue &o, const char *name, int64_t nTime)
     char cTime[256];
 
     static bool fHumanReadableLocal = gArgs.GetBoolArg("-displaylocaltime", false);
-    if (fHumanReadableLocal)
-    {
+    if (fHumanReadableLocal) {
         struct tm *ptm;
         time_t tmp = nTime;
         ptm = localtime(&tmp);
@@ -555,11 +554,10 @@ void PushTime(UniValue &o, const char *name, int64_t nTime)
 
         std::string sName = std::string(name) + "_local";
         o.pushKV(sName, cTime);
-    };
+    }
 
     static bool fHumanReadableUTC = gArgs.GetBoolArg("-displayutctime", false);
-    if (fHumanReadableUTC)
-    {
+    if (fHumanReadableUTC) {
         struct tm *ptm;
         time_t tmp = nTime;
         ptm = gmtime(&tmp);
@@ -567,7 +565,7 @@ void PushTime(UniValue &o, const char *name, int64_t nTime)
 
         std::string sName = std::string(name) + "_utc";
         o.pushKV(sName, cTime);
-    };
+    }
 };
 
 CRPCTable tableRPC;

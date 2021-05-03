@@ -2,6 +2,13 @@ Next Major Version
 ==============
 
 
+0.21.0.3
+==============
+
+- New argument -checkpeerheight
+  - Can disable peer height for initial-block-download status and staking.
+
+
 0.21.0.2
 ==============
 
