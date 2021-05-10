@@ -99,6 +99,41 @@ class VoteTest(ParticlTestFramework):
         assert(ro[2]['option'] == 6)
         assert(ro[3]['option'] == 5)
 
+        # Multiple votes per period:
+        # 0 abstain, 1 yes, 2 no.
+        # Max options 2 ^ 16: 65536
+        # 10 issues of 3 options requires 3 ^ 10: 59049 values
+
+        def forward_map(arr, options, issues):
+            if options ** issues >= 2 ** 16:
+                raise ValueError('Out of range')
+            if len(arr) != issues:
+                raise ValueError('mismatched issues length')
+            ret = 0
+            for i in range(issues):
+                ret += arr[issues - 1 - i] * (options ** i)
+            return ret
+
+        def reverse_map(n, options, issues):
+            if options ** issues >= 2 ** 16:
+                raise ValueError('Out of range')
+            ret = []
+            for i in range(issues-1, -1, -1):
+                l = n // (options ** i)
+                n -= l * (options ** i)
+                ret.append(l)
+            return ret
+
+        # Test 4 issues of 3 options
+        for i in range(3):
+            for k in range(3):
+                for j in range(3):
+                    for l in range(3):
+                        option = i * 27 + k * 9 + j * 3 + l
+                        arr = [i, k, j, l]
+                        assert(option == forward_map(arr, 3, 4))
+                        assert(arr == reverse_map(option, 3, 4))
+
 
 if __name__ == '__main__':
     VoteTest().main()
