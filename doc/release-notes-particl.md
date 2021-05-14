@@ -64,6 +64,7 @@ Next Major Version
   - spend_frozen_output: Spends the largest spendable frozen blinded output, after next hard fork.
   - trace_frozen_outputs: Dumps amounts, blinding values and optionally spent anon keys to aid in validating frozen outputs.
     - See: https://github.com/tecnovert/particl_debug_scripts/blob/main/trace_frozen.py
+  - detects missing anon spends.
 - New insight -balancesindex
   - New rpc command: getblockbalances
   - balancesindex tracks the amount of plain coin sent to and from blind and anon.
@@ -74,7 +75,9 @@ Next Major Version
   - Wallet won't track outputs with values lower than.
 - setvote will clear all vote settings when all parameters are set to 0.
 - votehistory, new include_future parameter.
-  - If current_only and include_future are true, future scheduled votes will be displayed.
+  - If current_only and include_future are true, future scheduled votes will be displayed.\
+- Fixed bug in wallet stealth address lookahead when rescanning.
+
 
 
 0.19.2.5
