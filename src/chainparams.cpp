@@ -27,9 +27,17 @@ int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
     static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
 
     if (strNetworkID != "regtest") {
+        // After HF2: 8, 7, 6%
+        if (nTime >= consensus.exploit_fix_2_time) {
+            int64_t nYearsSinceHF2 = (nTime - consensus.exploit_fix_2_time) / nSecondsInYear;
+            if (nYearsSinceHF2 >= 0 && nYearsSinceHF2 < 2) {
+                return (8 - nYearsSinceHF2) * CENT;
+            }
+            return 6 * CENT;
+        }
+
         // Y1 5%, Y2 4%, Y3 3%, Y4 2%, ... YN 2%
         int64_t nYearsSinceGenesis = (nTime - genesis.nTime) / nSecondsInYear;
-
         if (nYearsSinceGenesis >= 0 && nYearsSinceGenesis < 3) {
             return (5 - nYearsSinceGenesis) * CENT;
         }
@@ -534,6 +542,8 @@ public:
             DevFundSettings("RJAPhgckEgRGVPZa9WoGSWW24spskSfLTQ", 10, 60));
         vDevFundSettings.emplace_back(consensus.OpIsCoinstakeTime,
             DevFundSettings("RBiiQBnQsVPPQkUaJVQTjsZM9K2xMKozST", 10, 60));
+        vDevFundSettings.emplace_back(consensus.exploit_fix_2_time,
+            DevFundSettings("RBiiQBnQsVPPQkUaJVQTjsZM9K2xMKozST", 50, 60));
 
 
         base58Prefixes[PUBKEY_ADDRESS]     = {0x38}; // P
