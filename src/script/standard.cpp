@@ -139,56 +139,22 @@ static bool MatchMultisig(const CScript& script, unsigned int& required, std::ve
     return (it + 1 == script.end());
 }
 
-TxoutType Solver(const CScript& scriptPubKeyIn, std::vector<std::vector<unsigned char>>& vSolutionsRet)
+TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned char>>& vSolutionsRet)
 {
     vSolutionsRet.clear();
-
-    opcodetype opcode;
-    std::vector<unsigned char> vch1;
-    CScript::const_iterator pc1 = scriptPubKeyIn.begin();
-    size_t k;
-    for (k = 0; k < 3; ++k) {
-        if (!scriptPubKeyIn.GetOp(pc1, opcode, vch1)) {
-            break;
-        }
-        if (k == 0) {
-            if (0 <= opcode && opcode <= OP_PUSHDATA4) {
-            } else {
-                break;
-            }
-        } else
-        if (k == 1) {
-            if (opcode != OP_CHECKLOCKTIMEVERIFY
-                && opcode != OP_CHECKSEQUENCEVERIFY) {
-                break;
-            }
-        } else
-        if (k == 2) {
-             if (opcode != OP_DROP) {
-                break;
-            }
-        }
-    }
-    bool fIsTimeLocked = k == 3;
-
-    CScript scriptPubKeyTemp;
-    if (fIsTimeLocked) {
-        scriptPubKeyTemp.insert(scriptPubKeyTemp.end(), pc1, scriptPubKeyIn.end());
-    }
-    const CScript& scriptPubKey = !fIsTimeLocked ? scriptPubKeyIn : scriptPubKeyTemp;
 
     // Shortcut for pay-to-script-hash, which are more constrained than the other types:
     // it is always OP_HASH160 20 [20 byte hash] OP_EQUAL
     if (scriptPubKey.IsPayToScriptHash()) {
         std::vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
         vSolutionsRet.push_back(hashBytes);
-        return fIsTimeLocked ? TxoutType::TIMELOCKED_SCRIPTHASH : TxoutType::SCRIPTHASH;
+        return TxoutType::SCRIPTHASH;
     }
 
     if (scriptPubKey.IsPayToScriptHash256()) {
         std::vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+34);
         vSolutionsRet.push_back(hashBytes);
-        return fIsTimeLocked ? TxoutType::TIMELOCKED_SCRIPTHASH256 : TxoutType::SCRIPTHASH256;
+        return TxoutType::SCRIPTHASH256;
     }
 
     int witnessversion;
@@ -232,12 +198,12 @@ TxoutType Solver(const CScript& scriptPubKeyIn, std::vector<std::vector<unsigned
 
     if (MatchPayToPubkeyHash(scriptPubKey, data)) {
         vSolutionsRet.push_back(std::move(data));
-        return fIsTimeLocked ? TxoutType::TIMELOCKED_PUBKEYHASH : TxoutType::PUBKEYHASH;
+        return TxoutType::PUBKEYHASH;
     }
 
     if (MatchPayToPubkeyHash256(scriptPubKey, data)) {
         vSolutionsRet.push_back(std::move(data));
-        return fIsTimeLocked ? TxoutType::TIMELOCKED_PUBKEYHASH256 : TxoutType::PUBKEYHASH256;
+        return TxoutType::PUBKEYHASH256;
     }
 
     unsigned int required;
@@ -246,7 +212,7 @@ TxoutType Solver(const CScript& scriptPubKeyIn, std::vector<std::vector<unsigned
         vSolutionsRet.push_back({static_cast<unsigned char>(required)}); // safe as required is in range 1..16
         vSolutionsRet.insert(vSolutionsRet.end(), keys.begin(), keys.end());
         vSolutionsRet.push_back({static_cast<unsigned char>(keys.size())}); // safe as size is in range 1..16
-        return fIsTimeLocked ? TxoutType::TIMELOCKED_MULTISIG : TxoutType::MULTISIG;
+        return TxoutType::MULTISIG;
     }
 
     vSolutionsRet.clear();
@@ -277,13 +243,11 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = PKHash(pubKey);
         return true;
     }
-    case TxoutType::PUBKEYHASH:
-    case TxoutType::TIMELOCKED_PUBKEYHASH: {
+    case TxoutType::PUBKEYHASH: {
         addressRet = PKHash(uint160(vSolutions[0]));
         return true;
     }
-    case TxoutType::SCRIPTHASH:
-    case TxoutType::TIMELOCKED_SCRIPTHASH: {
+    case TxoutType::SCRIPTHASH: {
         addressRet = ScriptHash(uint160(vSolutions[0]));
         return true;
     }
@@ -308,21 +272,23 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = unk;
         return true;
     }
-    case TxoutType::PUBKEYHASH256:
-    case TxoutType::TIMELOCKED_PUBKEYHASH256: {
+    case TxoutType::PUBKEYHASH256: {
         addressRet = CKeyID256(uint256(vSolutions[0]));
         return true;
     }
-    case TxoutType::SCRIPTHASH256:
-    case TxoutType::TIMELOCKED_SCRIPTHASH256: {
+    case TxoutType::SCRIPTHASH256: {
         addressRet = CScriptID256(uint256(vSolutions[0]));
         return true;
     }
     case TxoutType::MULTISIG:
-    case TxoutType::TIMELOCKED_MULTISIG:
         // Multisig txns have more than one address...
     case TxoutType::NULL_DATA:
     case TxoutType::NONSTANDARD:
+    case TxoutType::TIMELOCKED_SCRIPTHASH:
+    case TxoutType::TIMELOCKED_SCRIPTHASH256:
+    case TxoutType::TIMELOCKED_PUBKEYHASH:
+    case TxoutType::TIMELOCKED_PUBKEYHASH256:
+    case TxoutType::TIMELOCKED_MULTISIG:
         return false;
     } // no default case, so the compiler can warn about missing cases
     assert(false);
@@ -351,7 +317,7 @@ bool ExtractDestinations(const CScript& scriptPubKey, TxoutType& typeRet, std::v
         return false;
     }
 
-    if (typeRet == TxoutType::MULTISIG || typeRet == TxoutType::TIMELOCKED_MULTISIG)
+    if (typeRet == TxoutType::MULTISIG)
     {
         nRequiredRet = vSolutions.front()[0];
         for (unsigned int i = 1; i < vSolutions.size()-1; i++)

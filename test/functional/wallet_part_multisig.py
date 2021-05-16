@@ -169,60 +169,6 @@ class MultiSigTest(ParticlTestFramework):
         ro = nodes[0].getblock(block2_hash)
         assert(txnid_spendMultisig2 in ro['tx'])
 
-        ro = nodes[0].getaddressinfo(msAddr)
-        scriptPubKey = ro['scriptPubKey']
-        redeemScript = ro['hex']
-
-        opts = {"recipe":"abslocktime","time":946684800,"addr":msAddr}
-        scriptTo = nodes[0].buildscript(opts)['hex']
-
-        outputs = [{'address':'script', 'amount':8, 'script':scriptTo},]
-        mstxid3 = nodes[0].sendtypeto('part', 'part', outputs)
-
-        hexfund = nodes[0].gettransaction(mstxid3)['hex']
-        ro = nodes[0].decoderawtransaction(hexfund)
-
-        fundscriptpubkey = ''
-        fundoutid = -1
-        for vout in ro['vout']:
-            if not isclose(vout['value'], 8.0):
-                continue
-            fundoutid = vout['n']
-            fundscriptpubkey = vout['scriptPubKey']['hex']
-            assert('OP_CHECKLOCKTIMEVERIFY' in vout['scriptPubKey']['asm'])
-        assert(fundoutid >= 0), "fund output not found"
-
-
-        inputs = [{
-            "txid": mstxid3,
-            "vout": fundoutid,
-            "scriptPubKey": fundscriptpubkey,
-            "redeemScript": redeemScript,
-            "amount": 8.0, # Must specify amount
-            }]
-
-        addrTo = nodes[2].getnewaddress()
-        outputs = {addrTo:2, msAddr:5.99}
-        locktime = 946684801
-
-        hexRaw = nodes[0].createrawtransaction(inputs, outputs, locktime)
-
-        vk0 = nodes[0].dumpprivkey(addrs[0])
-        signkeys = [vk0,]
-        hexRaw1 = nodes[0].signrawtransactionwithkey(hexRaw, signkeys, inputs)['hex']
-
-        vk1 = nodes[0].dumpprivkey(addrs[1])
-        signkeys = [vk1,]
-        hexRaw2 = nodes[0].signrawtransactionwithkey(hexRaw1, signkeys, inputs)['hex']
-
-        txnid_spendMultisig3 = nodes[0].sendrawtransaction(hexRaw2)
-
-        self.stakeBlocks(1)
-        block3_hash = nodes[0].getblockhash(3)
-        ro = nodes[0].getblock(block3_hash)
-        assert(txnid_spendMultisig3 in ro['tx'])
-
-
         self.log.info("Coldstake script")
 
         stakeAddr = nodes[0].getnewaddress()
@@ -300,8 +246,8 @@ class MultiSigTest(ParticlTestFramework):
         txid = nodes[0].sendrawtransaction(hexRawSigned)
 
         self.stakeBlocks(1)
-        block5_hash = nodes[0].getblockhash(5)
-        ro = nodes[0].getblock(block5_hash)
+        block4_hash = nodes[0].getblockhash(4)
+        ro = nodes[0].getblock(block4_hash)
         assert(txid in ro['tx'])
 
 

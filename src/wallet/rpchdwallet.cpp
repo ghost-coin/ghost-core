@@ -7326,9 +7326,7 @@ static RPCHelpMan buildscript()
 return RPCHelpMan{"buildscript",
                 "\nCreate a script from inputs.\n"
                 "\nRecipes:\n"
-                " {\"recipe\":\"ifcoinstake\", \"addrstake\":\"addrA\", \"addrspend\":\"addrB\"}\n"
-                " {\"recipe\":\"abslocktime\", \"time\":timestamp, \"addr\":\"addr\"}\n"
-                " {\"recipe\":\"rellocktime\", \"time\":timestamp, \"addr\":\"addr\"}\n",
+                " {\"recipe\":\"ifcoinstake\", \"addrstake\":\"addrA\", \"addrspend\":\"addrB\"}\n",
                 {
                     {"recipe", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
                         {
@@ -7402,46 +7400,6 @@ return RPCHelpMan{"buildscript",
         scriptOut << OP_ELSE;
         scriptOut.append(scriptFalse);
         scriptOut << OP_ENDIF;
-    } else
-    if (sRecipe == "abslocktime") {
-        RPCTypeCheckObj(params,
-        {
-            {"time", UniValueType(UniValue::VNUM)},
-            {"addr", UniValueType(UniValue::VSTR)},
-        });
-
-        CBitcoinAddress addr(params["addr"].get_str());
-        if (!addr.IsValid()) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid addr.");
-        }
-
-        CScript scriptAddr = GetScriptForDestination(addr.Get());
-        if (scriptAddr.size() == 0) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid destination.");
-        }
-
-        scriptOut = CScript() << params["time"].get_int64() << OP_CHECKLOCKTIMEVERIFY << OP_DROP;
-        scriptOut.append(scriptAddr);
-    } else
-    if (sRecipe == "rellocktime") {
-        RPCTypeCheckObj(params,
-        {
-            {"time", UniValueType(UniValue::VNUM)},
-            {"addr", UniValueType(UniValue::VSTR)},
-        });
-
-        CBitcoinAddress addr(params["addr"].get_str());
-        if (!addr.IsValid()) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid addr.");
-        }
-
-        CScript scriptAddr = GetScriptForDestination(addr.Get());
-        if (scriptAddr.size() == 0) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid destination.");
-        }
-
-        scriptOut = CScript() << params["time"].get_int64() << OP_CHECKSEQUENCEVERIFY << OP_DROP;
-        scriptOut.append(scriptAddr);
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown recipe.");
     }

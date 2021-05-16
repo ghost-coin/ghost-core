@@ -1980,7 +1980,6 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
             return mine;
         break;
     case TxoutType::PUBKEYHASH:
-    case TxoutType::TIMELOCKED_PUBKEYHASH:
     case TxoutType::PUBKEYHASH256:
         if (vSolutions[0].size() == 20)
             keyID = CKeyID(uint160(vSolutions[0]));
@@ -2001,7 +2000,6 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
         }
         break;
     case TxoutType::SCRIPTHASH:
-    case TxoutType::TIMELOCKED_SCRIPTHASH:
     case TxoutType::SCRIPTHASH256:
     {
         CScriptID scriptID;
@@ -2030,7 +2028,6 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
         return ISMINE_NO;
 
     case TxoutType::MULTISIG:
-    case TxoutType::TIMELOCKED_MULTISIG:
     {
         // Only consider transactions "mine" if we own ALL the
         // keys involved. Multi-signature transactions that are

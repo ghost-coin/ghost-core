@@ -122,15 +122,18 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:
     case TxoutType::WITNESS_V1_TAPROOT:
+    case TxoutType::TIMELOCKED_SCRIPTHASH:
+    case TxoutType::TIMELOCKED_SCRIPTHASH256:
+    case TxoutType::TIMELOCKED_PUBKEYHASH:
+    case TxoutType::TIMELOCKED_PUBKEYHASH256:
+    case TxoutType::TIMELOCKED_MULTISIG:
         return false;
     case TxoutType::PUBKEY:
         if (!CreateSig(creator, sigdata, provider, sig, CPubKey(vSolutions[0]), scriptPubKey, sigversion)) return false;
         ret.push_back(std::move(sig));
         return true;
     case TxoutType::PUBKEYHASH:
-    case TxoutType::TIMELOCKED_PUBKEYHASH:
-    case TxoutType::PUBKEYHASH256:
-    case TxoutType::TIMELOCKED_PUBKEYHASH256: {
+    case TxoutType::PUBKEYHASH256: {
         CKeyID keyID = vSolutions[0].size() == 32 ? CKeyID(uint256(vSolutions[0])) : CKeyID(uint160(vSolutions[0]));
         CPubKey pubkey;
         if (!GetPubKey(provider, sigdata, keyID, pubkey)) {
@@ -144,9 +147,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return true;
     }
     case TxoutType::SCRIPTHASH:
-    case TxoutType::TIMELOCKED_SCRIPTHASH:
-    case TxoutType::SCRIPTHASH256:
-    case TxoutType::TIMELOCKED_SCRIPTHASH256: {
+    case TxoutType::SCRIPTHASH256: {
         CScriptID idScript;
         if (vSolutions[0].size() == 20) {
             idScript = CScriptID(uint160(vSolutions[0]));
@@ -165,8 +166,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         }
         return false;
 
-    case TxoutType::MULTISIG:
-    case TxoutType::TIMELOCKED_MULTISIG: {
+    case TxoutType::MULTISIG: {
         size_t required = vSolutions.front()[0];
         ret.push_back(valtype()); // workaround CHECKMULTISIG bug
         for (size_t i = 1; i < vSolutions.size() - 1; ++i) {
@@ -232,7 +232,7 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
     sigdata.scriptWitness.stack.clear();
 
     bool fIsP2SH = creator.IsParticlVersion()
-        ? (whichType == TxoutType::SCRIPTHASH || whichType == TxoutType::SCRIPTHASH256 || whichType == TxoutType::TIMELOCKED_SCRIPTHASH)
+        ? (whichType == TxoutType::SCRIPTHASH || whichType == TxoutType::SCRIPTHASH256)
         : whichType == TxoutType::SCRIPTHASH;
     if (solved && fIsP2SH)
     {
@@ -242,7 +242,7 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         subscript = CScript(result[0].begin(), result[0].end());
         sigdata.redeem_script = subscript;
         solved = solved && SignStep(provider, creator, subscript, result, whichType, SigVersion::BASE, sigdata) && whichType != TxoutType::SCRIPTHASH
-            && whichType != TxoutType::SCRIPTHASH256 && whichType != TxoutType::TIMELOCKED_SCRIPTHASH;
+            && whichType != TxoutType::SCRIPTHASH256;
         P2SH = true;
     }
 
@@ -360,10 +360,10 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
     CScript next_script = scriptPubKey;
 
     if (tx.IsParticlVersion()) {
-        if (script_type == TxoutType::PUBKEY || script_type == TxoutType::PUBKEYHASH || script_type == TxoutType::PUBKEYHASH256 || script_type == TxoutType::TIMELOCKED_PUBKEYHASH)
+        if (script_type == TxoutType::PUBKEY || script_type == TxoutType::PUBKEYHASH || script_type == TxoutType::PUBKEYHASH256)
             script_type = TxoutType::WITNESS_V0_KEYHASH;
         else
-        if (script_type == TxoutType::SCRIPTHASH || script_type == TxoutType::SCRIPTHASH256 || script_type == TxoutType::TIMELOCKED_SCRIPTHASH)
+        if (script_type == TxoutType::SCRIPTHASH || script_type == TxoutType::SCRIPTHASH256)
             script_type = TxoutType::WITNESS_V0_SCRIPTHASH;
     }
 

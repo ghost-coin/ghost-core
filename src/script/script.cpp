@@ -214,7 +214,7 @@ bool CScript::IsPayToScriptHashAny(bool fIsTxCoinstake) const
 {
     if (!fIsTxCoinstake && (IsPayToScriptHash256_CS() || IsPayToScriptHash_CS()))
         return true;
-    return IsPayToScriptHash() || IsPayToScriptHash256() || IsPayToTimeLockedScriptHash();
+    return IsPayToScriptHash() || IsPayToScriptHash256();
 };
 
 bool CScript::IsPayToScriptHash() const
@@ -276,16 +276,6 @@ bool CScript::MatchPayToScriptHash256(size_t ofs) const
         (*this)[ofs+0] == OP_SHA256 &&
         (*this)[ofs+1] == 0x20 &&
         (*this)[ofs+34] == OP_EQUAL);
-}
-
-bool CScript::IsPayToTimeLockedScriptHash() const
-{
-    // Extra-fast test for pay-to-script-hash CScripts:
-    int offset = 7;
-    return (this->size() == 30 &&
-            (*this)[offset + 0] == OP_HASH160 &&
-            (*this)[offset + 1] == 0x14 &&
-            (*this)[offset + 22] == OP_EQUAL);
 }
 
 bool CScript::IsPayToWitnessScriptHash() const
