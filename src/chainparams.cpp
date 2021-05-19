@@ -27,11 +27,11 @@ int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
     static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
 
     if (strNetworkID != "regtest") {
-        // After HF2: 8, 7, 6%
+        // After HF2: 8%, 8%, 7%, 7%, 6%
         if (nTime >= consensus.exploit_fix_2_time) {
-            int64_t nYearsSinceHF2 = (nTime - consensus.exploit_fix_2_time) / nSecondsInYear;
-            if (nYearsSinceHF2 >= 0 && nYearsSinceHF2 < 2) {
-                return (8 - nYearsSinceHF2) * CENT;
+            int64_t nPeriodsSinceHF2 = (nTime - consensus.exploit_fix_2_time) / (nSecondsInYear * 2);
+            if (nPeriodsSinceHF2 >= 0 && nPeriodsSinceHF2 < 2) {
+                return (8 - nPeriodsSinceHF2) * CENT;
             }
             return 6 * CENT;
         }
