@@ -2565,6 +2565,7 @@ static RPCHelpMan deriverangekeys()
             }
         } else
         if (sInKey == "stealthv1" || sInKey == "stealthv2") {
+            EnsureWalletIsUnlocked(pwallet);
             bool stealth_v2 = sInKey == "stealthv2";
             if (fHardened) {
                 throw JSONRPCError(RPC_WALLET_ERROR, "Hardened option is invalid when deriving stealth addresses.");
