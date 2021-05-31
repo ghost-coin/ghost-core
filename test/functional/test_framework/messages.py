@@ -32,7 +32,7 @@ from test_framework.siphash import siphash256
 from test_framework.util import hex_str_to_bytes, assert_equal
 
 MIN_VERSION_SUPPORTED = 60001
-#MY_VERSION = 70014  # past bip-31 for ping/pong
+#MY_VERSION = 70016  # past wtxid relay
 MY_VERSION = 90009
 MY_SUBVERSION = b"/python-p2p-tester:0.0.3/"
 MY_RELAY = 1 # from version 70001 onwards, fRelay should be appended to version messages (BIP37)
@@ -1062,7 +1062,7 @@ class msg_version:
         self.addrFrom = CAddress()
         self.addrFrom.deserialize(f, with_time=False)
         self.nNonce = struct.unpack("<Q", f.read(8))[0]
-        self.strSubVer = deser_string(f)
+        self.strSubVer = deser_string(f).decode('utf-8')
 
         self.nStartingHeight = struct.unpack("<i", f.read(4))[0]
 
@@ -1076,6 +1076,7 @@ class msg_version:
             self.nRelay = 0
 
     def serialize(self):
+        print('[rm] self.strSubVer', self.strSubVer)
         r = b""
         r += struct.pack("<i", self.nVersion)
         r += struct.pack("<Q", self.nServices)
@@ -1083,7 +1084,10 @@ class msg_version:
         r += self.addrTo.serialize(with_time=False)
         r += self.addrFrom.serialize(with_time=False)
         r += struct.pack("<Q", self.nNonce)
-        r += ser_string(self.strSubVer)
+        if isinstance(self.strSubVer, bytes):
+            r += ser_string(self.strSubVer)
+        else:
+            r += ser_string(self.strSubVer.encode('utf-8'))
         r += struct.pack("<i", self.nStartingHeight)
         r += struct.pack("<b", self.nRelay)
         return r

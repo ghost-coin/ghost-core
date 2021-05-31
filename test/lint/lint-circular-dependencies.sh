@@ -20,7 +20,9 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "txmempool -> validation -> txmempool"
     "wallet/fees -> wallet/wallet -> wallet/fees"
     "wallet/wallet -> wallet/walletdb -> wallet/wallet"
+    "node/coinstats -> validation -> node/coinstats"
 
+# Particl
     "anon -> txmempool -> anon"
     "anon -> validation -> anon"
     "consensus/tx_verify -> validation -> consensus/tx_verify"

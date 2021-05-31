@@ -11,10 +11,12 @@
 #endif
 
 #include <amount.h>
+#include <attributes.h>
 #include <coins.h>
 #include <consensus/validation.h>
 #include <crypto/common.h> // for ReadLE64
 #include <fs.h>
+#include <node/utxo_snapshot.h>
 #include <optional.h>
 #include <policy/feerate.h>
 #include <protocol.h> // For CMessageHeader::MessageStartChars
@@ -53,6 +55,7 @@ struct ChainTxData;
 struct DisconnectedBlockTransactions;
 struct PrecomputedTransactionData;
 struct LockPoints;
+struct AssumeutxoData;
 
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000;
@@ -899,9 +902,7 @@ private:
     //! using this pointer (e.g. net_processing).
     //!
     //! Once this pointer is set to a corresponding chainstate, it will not
-    //! be reset until init.cpp:Shutdown(). This means it is safe to acquire
-    //! the contents of this pointer with ::cs_main held, release the lock,
-    //! and then use the reference without concern of it being deconstructed.
+    //! be reset until init.cpp:Shutdown().
     //!
     //! This is especially important when, e.g., calling ActivateBestChain()
     //! on all chainstates because we are not able to hold ::cs_main going into
@@ -912,9 +913,7 @@ private:
     //! non-null, it is always our active chainstate.
     //!
     //! Once this pointer is set to a corresponding chainstate, it will not
-    //! be reset until init.cpp:Shutdown(). This means it is safe to acquire
-    //! the contents of this pointer with ::cs_main held, release the lock,
-    //! and then use the reference without concern of it being deconstructed.
+    //! be reset until init.cpp:Shutdown().
     //!
     //! This is especially important when, e.g., calling ActivateBestChain()
     //! on all chainstates because we are not able to hold ::cs_main going into
@@ -925,9 +924,7 @@ private:
     //! most-work chain.
     //!
     //! Once this pointer is set to a corresponding chainstate, it will not
-    //! be reset until init.cpp:Shutdown(). This means it is safe to acquire
-    //! the contents of this pointer with ::cs_main held, release the lock,
-    //! and then use the reference without concern of it being deconstructed.
+    //! be reset until init.cpp:Shutdown().
     //!
     //! This is especially important when, e.g., calling ActivateBestChain()
     //! on all chainstates because we are not able to hold ::cs_main going into
@@ -937,6 +934,12 @@ private:
     //! If true, the assumed-valid chainstate has been fully validated
     //! by the background validation chainstate.
     bool m_snapshot_validated{false};
+
+    //! Internal helper for ActivateSnapshot().
+    [[nodiscard]] bool PopulateAndValidateSnapshot(
+        CChainState& snapshot_chainstate,
+        CAutoFile& coins_file,
+        const SnapshotMetadata& metadata);
 
     // For access to m_active_chainstate.
     friend CChainState& ChainstateActive();
@@ -967,6 +970,22 @@ public:
 
     //! Get all chainstates currently being used.
     std::vector<CChainState*> GetAll();
+
+    //! Construct and activate a Chainstate on the basis of UTXO snapshot data.
+    //!
+    //! Steps:
+    //!
+    //! - Initialize an unused CChainState.
+    //! - Load its `CoinsViews` contents from `coins_file`.
+    //! - Verify that the hash of the resulting coinsdb matches the expected hash
+    //!   per assumeutxo chain parameters.
+    //! - Wait for our headers chain to include the base block of the snapshot.
+    //! - "Fast forward" the tip of the new chainstate to the base of the snapshot,
+    //!   faking nTx* block index data along the way.
+    //! - Move the new chainstate to `m_snapshot_chainstate` and make it our
+    //!   ChainstateActive().
+    [[nodiscard]] bool ActivateSnapshot(
+        CAutoFile& coins_file, const SnapshotMetadata& metadata, bool in_memory);
 
     //! The most-work chain.
     CChainState& ActiveChainstate() const;
@@ -1083,6 +1102,15 @@ inline bool IsBlockPruned(const CBlockIndex* pblockindex)
 {
     return (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0);
 }
+
+/**
+ * Return the expected assumeutxo value for a given height, if one exists.
+ *
+ * @param height[in] Get the assumeutxo value for this height.
+ *
+ * @returns empty if no assumeutxo configuration exists for the given height.
+ */
+const AssumeutxoData* ExpectedAssumeutxo(const int height, const CChainParams& params);
 
 DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
 bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);

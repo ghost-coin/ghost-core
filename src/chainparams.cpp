@@ -8,7 +8,6 @@
 #include <chainparamsseeds.h>
 #include <consensus/merkle.h>
 #include <hash.h> // for signet block challenge hash
-#include <tinyformat.h>
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <util/moneystr.h>
@@ -587,6 +586,10 @@ public:
             }
         };
 
+        m_assumeutxo_data = MapAssumeutxo{
+         // TODO to be specified in a future patch.
+        };
+
         chainTxData = ChainTxData {
             // Data from rpc: getchaintxstats 4096 f9f1e91f82e73d4781052e42c8b814b8265e0929d4c16284db3feb354bfc317c
             /* nTime    */ 1614622864,
@@ -755,6 +758,10 @@ public:
                 {728858, uint256S("0xd71157e5a929a2aba06b23566932ffaba05d1a063b2ab71d2807b8e2efcf765c")},
                 {808059, uint256S("0x89de981a2cca262ae52ff5e69a0915c9083fb7cd4aba44e39f83c12a6b6602a9")},
             }
+        };
+
+        m_assumeutxo_data = MapAssumeutxo{
+            // TODO to be specified in a future patch.
         };
 
         chainTxData = ChainTxData{
@@ -972,6 +979,17 @@ public:
             }
         };
 
+        m_assumeutxo_data = MapAssumeutxo{
+            {
+                110,
+                {uint256S("0xf8162bf26afaec291cd15112cb0d1582d4280037a90f93ee9b9c9caffc24dff8"), 110},
+            },
+            {
+                210,
+                {uint256S("0x9c5ed99ef98544b34f8920b6d1802f72ac28ae6e2bd2bd4c316ff10c230df3f2"), 210},
+            },
+        };
+
         base58Prefixes[PUBKEY_ADDRESS]     = {0x76}; // p
         base58Prefixes[SCRIPT_ADDRESS]     = {0x7a};
         base58Prefixes[PUBKEY_ADDRESS_256] = {0x77};
@@ -1115,6 +1133,11 @@ void SelectParams(const std::string& network)
     globalChainParams = CreateChainParams(gArgs, network);
 }
 
+std::ostream& operator<<(std::ostream& o, const AssumeutxoData& aud)
+{
+    o << strprintf("AssumeutxoData(%s, %s)", aud.hash_serialized.ToString(), aud.nChainTx);
+    return o;
+}
 
 void SetOldParams(std::unique_ptr<CChainParams> &params)
 {
