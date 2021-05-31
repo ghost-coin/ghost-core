@@ -32,8 +32,11 @@ struct CNodeStateStats {
     int nCommonHeight = -1;
 
     int m_starting_height = -1;
-    int m_chain_height = -1;
+    int64_t m_ping_wait_usec;
     std::vector<int> vHeightInFlight;
+
+    // Particl
+    int m_chain_height = -1;
     int nDuplicateCount = 0;
     int nLooseHeadersCount = 0;
 };
@@ -51,6 +54,9 @@ public:
 
     /** Whether this node ignores txs received over p2p. */
     virtual bool IgnoresIncomingTxs() = 0;
+
+    /** Send ping message to all peers */
+    virtual void SendPings() = 0;
 
     /** Set the best height */
     virtual void SetBestHeight(int height) = 0;
@@ -77,6 +83,7 @@ public:
     virtual void DecMisbehaving(NodeId nodeid, int howmuch) = 0;
     virtual void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const std::string& message="") = 0;
     virtual bool IncDuplicateHeaders(NodeId node_id, const CService &node_address) = 0;
+    virtual NodeId GetBlockSource(const uint256 &hash) = 0;
 };
 
 extern PeerManager *g_peerman;
@@ -84,7 +91,7 @@ extern PeerManager *g_peerman;
 /** Decrease a node's misbehavior score. */
 void DecMisbehaving(NodeId nodeid, int howmuch);
 
-NodeId GetBlockSource(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+NodeId GetBlockSource(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 int GetNumDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);

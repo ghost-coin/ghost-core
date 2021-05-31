@@ -6675,7 +6675,7 @@ void ChainstateManager::MaybeRebalanceCaches()
     }
 }
 
-extern NodeId GetBlockSource(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+extern NodeId GetBlockSource(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 namespace particl {
 
 int StakeConflict::Add(NodeId id)
