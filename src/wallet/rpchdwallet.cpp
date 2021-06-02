@@ -5220,7 +5220,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         if (!mempool) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get mempool");
         }
-        const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(*mempool, wtx.tx,
+        const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(::ChainstateActive(), *mempool, wtx.tx,
                                                   false /* bypass_limits */, /* test_accept */ true, /* ignore_locks */ false));
         if (accept_result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
             mempool_allowed = true;

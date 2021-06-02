@@ -1708,7 +1708,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         if (!was_enabled) {
             LOCK(pfrom->cs_vRecv);
             // Init counters
-            size_t num_types = ARRAYLEN(SMSGMsgType::allTypes);
+            size_t num_types = std::size(SMSGMsgType::allTypes);
             for (size_t t = 0; t < num_types; ++t) {
                 mapMsgCmdSize::iterator i = pfrom->mapRecvBytesPerMsgCmd.find(SMSGMsgType::allTypes[t]);
                 if (i == pfrom->mapRecvBytesPerMsgCmd.end()) {

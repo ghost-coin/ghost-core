@@ -2393,6 +2393,9 @@ static RPCHelpMan smsgdebug()
     };
 }
 
+void RegisterSmsgRPCCommands(CRPCTable &t)
+{
+// clang-format off
 static const CRPCCommand commands[] =
 { //  category              actor (function)
   //  --------------------- -----------------------
@@ -2424,9 +2427,8 @@ static const CRPCCommand commands[] =
     { "smsg",               &smsgzmqpush                },
     { "smsg",               &smsgdebug                  },
 };
-
-void RegisterSmsgRPCCommands(CRPCTable &tableRPC)
-{
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+// clang-format on
+    for (const auto& c : commands) {
+        t.appendCommand(c.name, &c);
+    }
 }

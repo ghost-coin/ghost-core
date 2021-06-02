@@ -2605,7 +2605,7 @@ void PeerManagerImpl::ProcessOrphanTx(std::set<uint256>& orphan_work_set)
         if (orphan_it == mapOrphanTransactions.end()) continue;
 
         const CTransactionRef porphanTx = orphan_it->second.tx;
-        const MempoolAcceptResult result = AcceptToMemoryPool(m_mempool, porphanTx, false /* bypass_limits */);
+        const MempoolAcceptResult result = AcceptToMemoryPool(::ChainstateActive(), m_mempool, porphanTx, false /* bypass_limits */);
         const TxValidationState& state = result.m_state;
 
         if (result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
@@ -3642,7 +3642,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             return;
         }
 
-        const MempoolAcceptResult result = AcceptToMemoryPool(m_mempool, ptx, false /* bypass_limits */);
+        const MempoolAcceptResult result = AcceptToMemoryPool(::ChainstateActive(), m_mempool, ptx, false /* bypass_limits */);
         const TxValidationState& state = result.m_state;
 
         if (result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
@@ -4821,7 +4821,9 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
         // Address refresh broadcast
         auto current_time = GetTime<std::chrono::microseconds>();
 
-        if (pto->RelayAddrsWithConn() && !::ChainstateActive().IsInitialBlockDownload() && pto->m_next_local_addr_send < current_time) {
+        if (fListen && pto->RelayAddrsWithConn() &&
+            !::ChainstateActive().IsInitialBlockDownload() &&
+            pto->m_next_local_addr_send < current_time) {
             // If we've sent before, clear the bloom filter for the peer, so that our
             // self-announcement will actually go out.
             // This might be unnecessary if the bloom filter has already rolled
@@ -4831,7 +4833,10 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
             if (pto->m_next_local_addr_send != 0us) {
                 pto->m_addr_known->reset();
             }
-            AdvertiseLocal(pto);
+            if (Optional<CAddress> local_addr = GetLocalAddrForPeer(pto)) {
+                FastRandomContext insecure_rand;
+                pto->PushAddress(*local_addr, insecure_rand);
+            }
             pto->m_next_local_addr_send = PoissonNextSend(current_time, AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL);
         }
 

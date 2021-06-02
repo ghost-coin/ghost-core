@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(logargs)
     BOOST_CHECK(str.find("Command-line arg: okaylog-negbool=false") != std::string::npos);
     BOOST_CHECK(str.find("Command-line arg: okaylog=\"public\"") != std::string::npos);
     BOOST_CHECK(str.find("dontlog=****") != std::string::npos);
-    BOOST_CHECK(str.find("private") == std::string::npos);
+    BOOST_CHECK(str.find("okaylog=\"private") == std::string::npos);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

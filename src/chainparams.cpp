@@ -9,9 +9,6 @@
 #include <consensus/merkle.h>
 #include <hash.h> // for signet block challenge hash
 #include <util/system.h>
-#include <util/strencodings.h>
-#include <util/moneystr.h>
-#include <key/keyutil.h>
 #include <versionbitsinfo.h>
 
 #include <chain/chainparamsimport.h>
@@ -20,6 +17,9 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+
+// Particl
+#include <key/keyutil.h>
 
 int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
 {
@@ -561,7 +561,7 @@ public:
         bech32Prefixes[STAKE_ONLY_PKADDR].assign    ("pcs",(const char*)"pcs"+3);
 
         bech32_hrp = "pw";
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
+        vFixedSeeds = std::vector<SeedSpec6>(std::begin(pnSeed6_main), std::end(pnSeed6_main));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -741,7 +741,7 @@ public:
 
         bech32_hrp = "tpw";
 
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
+        vFixedSeeds = std::vector<SeedSpec6>(std::begin(pnSeed6_test), std::end(pnSeed6_test));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -951,7 +951,7 @@ public:
 
         SetLastImportHeight();
 
-        nPruneAfterHeight = 1000;
+        nPruneAfterHeight = gArgs.GetBoolArg("-fastprune", false) ? 100 : 1000;
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 

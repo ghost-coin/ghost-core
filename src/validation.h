@@ -259,7 +259,7 @@ struct MempoolAcceptResult {
  * @param[in]  bypass_limits   When true, don't enforce mempool fee limits.
  * @param[in]  test_accept     When true, run validation checks but don't submit to mempool.
  */
-MempoolAcceptResult AcceptToMemoryPool(CTxMemPool& pool, const CTransactionRef& tx,
+MempoolAcceptResult AcceptToMemoryPool(CChainState& active_chainstate, CTxMemPool& pool, const CTransactionRef& tx,
                                        bool bypass_limits, bool test_accept=false, bool ignore_locks=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Get the BIP9 state for a given deployment at the current tip. */
@@ -281,12 +281,12 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight);
  *
  * See consensus/consensus.h for flag definitions.
  */
-bool CheckFinalTx(const CTransaction &tx, int flags = -1) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool CheckFinalTx(const CBlockIndex* active_chain_tip, const CTransaction &tx, int flags = -1) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /**
  * Test whether the LockPoints height and time are still valid on the current chain
  */
-bool TestLockPointValidity(const LockPoints* lp) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool TestLockPointValidity(CChain& active_chain, const LockPoints* lp) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /**
  * Check if transaction will be BIP 68 final in the next block to be created.
@@ -299,7 +299,12 @@ bool TestLockPointValidity(const LockPoints* lp) EXCLUSIVE_LOCKS_REQUIRED(cs_mai
  *
  * See consensus/consensus.h for flag definitions.
  */
-bool CheckSequenceLocks(const CTxMemPool& pool, const CTransaction& tx, int flags, LockPoints* lp = nullptr, bool useExistingLockPoints = false) EXCLUSIVE_LOCKS_REQUIRED(::cs_main, pool.cs);
+bool CheckSequenceLocks(CChainState& active_chainstate,
+                        const CTxMemPool& pool,
+                        const CTransaction& tx,
+                        int flags,
+                        LockPoints* lp = nullptr,
+                        bool useExistingLockPoints = false) EXCLUSIVE_LOCKS_REQUIRED(::cs_main, pool.cs);
 
 /**
  * Closure representing one script verification
@@ -466,7 +471,7 @@ private:
      *
      * @param[out]   setFilesToPrune   The set of file indices that can be unlinked will be returned
      */
-    void FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPruneAfterHeight, int chain_tip_height, bool is_ibd);
+    void FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPruneAfterHeight, int chain_tip_height, int prune_height, bool is_ibd);
 
 public:
     BlockMap m_block_index GUARDED_BY(cs_main);
@@ -1095,7 +1100,7 @@ CBlockFileInfo* GetBlockFileInfo(size_t n);
 bool DumpMempool(const CTxMemPool& pool);
 
 /** Load the mempool from disk. */
-bool LoadMempool(CTxMemPool& pool);
+bool LoadMempool(CTxMemPool& pool, CChainState& active_chainstate);
 
 //! Check whether the block associated with this index entry is pruned or not.
 inline bool IsBlockPruned(const CBlockIndex* pblockindex)

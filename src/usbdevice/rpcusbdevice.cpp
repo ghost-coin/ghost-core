@@ -1158,6 +1158,9 @@ static RPCHelpMan devicegetnewstealthaddress()
 };
 #endif
 
+void RegisterUSBDeviceRPC(CRPCTable &t)
+{
+// clang-format off
 static const CRPCCommand commands[] =
 { //  category              actor (function)
   //  --------------------- -----------------------
@@ -1176,9 +1179,8 @@ static const CRPCCommand commands[] =
     { "usbdevice",          &devicegetnewstealthaddress     },
 #endif
 };
-
-void RegisterUSBDeviceRPC(CRPCTable &t)
-{
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        t.appendCommand(commands[vcidx].name, &commands[vcidx]);
+// clang-format on
+    for (const auto& c : commands) {
+        t.appendCommand(c.name, &c);
+    }
 }

@@ -255,15 +255,16 @@ static RPCHelpMan mnemonicrpc()
     };
 };
 
+void RegisterMnemonicRPCCommands(CRPCTable &t)
+{
+// clang-format off
 static const CRPCCommand commands[] =
 { //  category              actor (function)
   //  --------------------- -----------------------
     { "mnemonic",           &mnemonicrpc                },
 };
-
-
-void RegisterMnemonicRPCCommands(CRPCTable &tableRPC)
-{
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+// clang-format on
+    for (const auto& c : commands) {
+        t.appendCommand(c.name, &c);
+    }
 }
