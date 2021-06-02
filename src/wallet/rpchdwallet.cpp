@@ -39,7 +39,6 @@
 #include <warnings.h>
 #include <shutdown.h>
 #include <txmempool.h>
-#include <index/txindex.h>
 
 #include <univalue.h>
 
@@ -6660,74 +6659,6 @@ static RPCHelpMan debugwallet()
                 UniValue tmp(UniValue::VOBJ);
                 tmp.pushKV("type", "Wallet has coldstaking outputs with coldstakingaddress unset.");
                 warnings.push_back(tmp);
-            }
-        }
-
-
-        if (!g_txindex) {
-            warnings.push_back("Skipping tx total checks, Tx index is not enabled.");
-        } else {
-            CHDWalletDB wdb(pwallet->GetDatabase());
-            pwallet->WalletLogPrintf("Checking for incorrect transaction totals.\n");
-            for (const auto &ri : pwallet->mapRecords) {
-                const uint256 &txid = ri.first;
-                const CTransactionRecord &rtx = ri.second;
-                CStoredTransaction stx;
-
-                if (!pwallet->IsTrusted(txid, rtx)) {
-                    continue;
-                }
-                if (rtx.nFlags & ORF_ANON_IN) {
-                    continue;
-                }
-
-                if (!wdb.ReadStoredTx(txid, stx)) {
-                    errors.push_back(strprintf("Missing stored txn %s", txid.ToString()));
-                    continue;
-                }
-
-                CAmount tx_fee = 0, total_out = 0, total_in = 0;
-                if (!stx.tx->GetCTFee(tx_fee)) {
-                    continue;
-                }
-                size_t num_value_outputs = 0;
-                for (const auto &txout : stx.tx->vpout) {
-                    if (txout->IsType(OUTPUT_STANDARD)
-                        || txout->IsType(OUTPUT_CT)
-                        || txout->IsType(OUTPUT_RINGCT)) {
-                        num_value_outputs += 1;
-                    }
-                }
-                if (num_value_outputs != rtx.vout.size()) {
-                    continue;
-                }
-                for (const auto &r : rtx.vout) {
-                    total_out += r.nValue;
-                }
-
-                bool abort_test = false;
-                for (const auto &txin : stx.tx->vin) {
-                    uint256 hash_block;
-                    CTransactionRef txn = GetTransaction(nullptr, nullptr, txin.prevout.hash, Params().GetConsensus(), hash_block);
-                    if (!txn || txin.prevout.n >= txn->GetNumVOuts()) {
-                        errors.push_back(strprintf("Could not get txn %s. Input for %s %d", txin.prevout.hash.ToString(), txid.ToString(), txin.prevout.n));
-                        abort_test = true;
-                        break;
-                    }
-                    const auto &txout = txn->vpout[txin.prevout.n];
-                    if (!txout->IsType(OUTPUT_STANDARD)) {
-                        abort_test = true;
-                        break;
-                    }
-                    total_in += txout->GetValue();
-                }
-                if (abort_test) {
-                    continue;
-                }
-                if (total_out + tx_fee != total_in) {
-                    errors.push_back(strprintf("Bad total for txn %s", txid.ToString()));
-                    LogPrintf("Bad total for txn %s: total_out, tx_fee, total_in %d, %d, %d\n", txid.ToString(), total_out, tx_fee, total_in);
-                }
             }
         }
     }
