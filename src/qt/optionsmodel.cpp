@@ -172,11 +172,19 @@ void OptionsModel::Init(bool resetSettings)
         addOverriddenOption("-lang");
     language = settings.value("language").toString();
 
+    if (!settings.contains("UseEmbeddedMonospacedFont")) {
+        settings.setValue("UseEmbeddedMonospacedFont", "true");
+    }
+    m_use_embedded_monospaced_font = settings.value("UseEmbeddedMonospacedFont").toBool();
+    Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
+
     // Reserve Balance
-    if (!settings.contains("reservebalance"))
+    if (!settings.contains("reservebalance")) {
         settings.setValue("reservebalance", "0");
-    if (!gArgs.SoftSetArg("-reservebalance", FormatMoney(settings.value("reservebalance").toLongLong())))
+    }
+    if (!gArgs.SoftSetArg("-reservebalance", FormatMoney(settings.value("reservebalance").toLongLong()))) {
         addOverriddenOption("-reservebalance");
+    }
     nReserveBalance = settings.value("reservebalance").toLongLong();
 }
 
@@ -345,6 +353,8 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return strThirdPartyTxUrls;
         case Language:
             return settings.value("language");
+        case UseEmbeddedMonospacedFont:
+            return m_use_embedded_monospaced_font;
         case CoinControlFeatures:
             return fCoinControlFeatures;
         case Prune:
@@ -483,6 +493,10 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
                 setRestartRequired(true);
             }
             break;
+        case UseEmbeddedMonospacedFont:
+            m_use_embedded_monospaced_font = value.toBool();
+            settings.setValue("UseEmbeddedMonospacedFont", m_use_embedded_monospaced_font);
+            Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
         case ReserveBalance:
             if (settings.value("reservebalance") != value) {
                 settings.setValue("reservebalance", value);

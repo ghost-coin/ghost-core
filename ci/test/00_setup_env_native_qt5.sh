@@ -13,7 +13,6 @@ export DEP_OPTS="NO_QT=1 NO_UPNP=1 NO_NATPMP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
 # Exclude --bitcoin and --coverage to prevent timeouts
 export TEST_RUNNER_EXTRA="--previous-releases --extended --exclude feature_dbcrash,feature_block"  # Run extended tests so that coverage does not fail, but exclude the very slow dbcrash
 #export TEST_RUNNER_BITCOIN="--bitcoin"
-export RUN_SECURITY_TESTS="true"
 export RUN_UNIT_TESTS_SEQUENTIAL="true"
 export RUN_UNIT_TESTS="false"
 export GOAL="install"
