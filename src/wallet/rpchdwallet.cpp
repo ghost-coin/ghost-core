@@ -1568,6 +1568,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     std::string sPassphrase = "";
     std::string sError;
     int64_t nScanFrom = 1;
+    int create_extkeys = 0;
 
     if (request.params.size() > 1) {
         sPassphrase = request.params[1].get_str();
@@ -1589,7 +1590,49 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     if (request.params[5].isNum()) {
         nScanFrom = request.params[5].get_int64();
     }
-    if (request.params.size() > 6) {
+    if (!request.params[6].isNull()) {
+        LOCK(pwallet->cs_wallet);
+        const UniValue &options = request.params[6].get_obj();
+
+        RPCTypeCheckObj(options,
+            {
+                {"createextkeys", UniValueType(UniValue::VNUM)},
+                {"lookaheadsize", UniValueType(UniValue::VNUM)},
+                {"stealthv1lookaheadsize", UniValueType(UniValue::VNUM)},
+                {"stealthv2lookaheadsize", UniValueType(UniValue::VNUM)},
+            },
+            true, true);
+
+        if (options.exists("createextkeys")) {
+            create_extkeys = options["createextkeys"].get_int();
+            if (create_extkeys < 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "createextkeys must be positive.");
+            }
+        }
+        if (options.exists("lookaheadsize")) {
+            int override_lookaheadsize = options["lookaheadsize"].get_int();
+            if (override_lookaheadsize < 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "lookaheadsize must be positive.");
+            }
+            pwallet->m_default_lookahead = override_lookaheadsize;
+            pwallet->PrepareLookahead();
+        }
+        if (options.exists("stealthv1lookaheadsize")) {
+            int override_stealthv1lookaheadsize = options["stealthv1lookaheadsize"].get_int();
+            if (override_stealthv1lookaheadsize < 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "stealthv1lookaheadsize must be positive.");
+            }
+            pwallet->m_rescan_stealth_v1_lookahead = override_stealthv1lookaheadsize;
+        }
+        if (options.exists("stealthv2lookaheadsize")) {
+            int override_stealthv2lookaheadsize = options["stealthv2lookaheadsize"].get_int();
+            if (override_stealthv2lookaheadsize < 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "stealthv2lookaheadsize must be positive.");
+            }
+            pwallet->m_rescan_stealth_v2_lookahead = override_stealthv2lookaheadsize;
+        }
+    }
+    if (request.params.size() > 7) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[6].get_str()));
     }
 
@@ -1692,11 +1735,31 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
         }
     } // cs_wallet
 
+    for (int k = 0; k < create_extkeys; ++k) {
+        CStoredExtKey *sek = new CStoredExtKey();
+        std::string str_label = "Imported";
+        const char *plabel = str_label.c_str();
+        if (0 != pwallet->NewExtKeyFromAccount(str_label, sek, plabel)) {
+            delete sek;
+            throw JSONRPCError(RPC_WALLET_ERROR, "NewExtKeyFromAccount failed.");
+        }
+    }
+
     if (nScanFrom >= 0) {
         pwallet->RescanFromTime(nScanFrom, reserver, true);
         pwallet->MarkDirty();
         LOCK(pwallet->cs_wallet);
         pwallet->ReacceptWalletTransactions();
+    }
+
+    // Reset to defaults
+    {
+        LOCK(pwallet->cs_wallet);
+        pwallet->m_rescan_stealth_v1_lookahead = gArgs.GetArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
+        pwallet->m_rescan_stealth_v2_lookahead = gArgs.GetArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
+
+        pwallet->m_default_lookahead = gArgs.GetArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
+        pwallet->PrepareLookahead();
     }
 
     UniValue warnings(UniValue::VARR);
@@ -1743,6 +1806,14 @@ static RPCHelpMan extkeyimportmaster()
                     {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
                     {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                        {
+                            {"createextkeys", RPCArg::Type::NUM, /* default */ "", "Run getnewextaddress \"createextkeys\" times before rescanning the wallet."},
+                            {"lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the defaultlookaheadsize parameter."},
+                            {"stealthv1lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv1lookaheadsize parameter."},
+                            {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
+                        },
+                        "options"},
                 },
             RPCResults{},
             RPCExamples{
@@ -1777,6 +1848,14 @@ static RPCHelpMan extkeygenesisimport()
                     {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
                     {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                        {
+                            {"createextkeys", RPCArg::Type::NUM, /* default */ "", "Run getnewextaddress \"createextkeys\" times before rescanning the wallet."},
+                            {"lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the defaultlookaheadsize parameter."},
+                            {"stealthv1lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv1lookaheadsize parameter."},
+                            {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
+                        },
+                        "options"},
                 },
             RPCResults{},
             RPCExamples{

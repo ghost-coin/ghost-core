@@ -51,6 +51,8 @@ Next Major Version
 ==============
 
 - Add -lookuptorcontrolhost option, disabled by default.
+- extkeyimportmaster rpc command has new options parameter:
+  - Can adjust default lookahead sizes and create extkeys before the initial scan.
 
 
 0.19.2.11

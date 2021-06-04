@@ -268,6 +268,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
     { "pruneorphanedblocks", 0, "testonly" },
     { "extkeyimportmaster", 2, "save_bip44_root" },
+    { "extkeyimportmaster", 6, "options" },
+    { "extkeygenesisimport", 2, "save_bip44_root" },
+    { "extkeygenesisimport", 6, "options" },
     { "filteraddresses", 4, "match_owned" },
     { "debugwallet", 0, "options" },
     { "reservebalance", 1, "amount" },
@@ -285,7 +288,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "devicegetnewstealthaddress", 1, "num_prefix_bits" },
     { "devicegetnewstealthaddress", 3, "bech32" },
 
-    { "extkeygenesisimport", 2, "save_bip44_root" },
     { "filteraddresses", 2, "sort_code" },
     { "filteraddresses", 5, "show_path" },
     { "getaddresstxids", 1, "start" },
