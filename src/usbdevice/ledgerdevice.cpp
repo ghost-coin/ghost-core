@@ -240,10 +240,10 @@ int CLedgerDevice::GetPubKey(const std::vector<uint32_t> &vPath, CPubKey &pk, bo
     } else {
         in[apduSize++] = 0x00;
     }
-    in[apduSize++] = 0x00;      // segwit
+    in[apduSize++] = 0x00; // segwit
     in[apduSize++] = 1 + 4 * lenPath; // num bytes to follow
     in[apduSize++] = lenPath;
-    for (size_t k = 0; k < vPath.size(); k++, apduSize+=4) {
+    for (size_t k = 0; k < vPath.size(); k++, apduSize += 4) {
         WriteBE32(&in[apduSize], vPath[k]);
     }
 
@@ -292,7 +292,7 @@ int CLedgerDevice::GetXPub(const std::vector<uint32_t> &vPath, CExtPubKey &ekp, 
     in[apduSize++] = 0x00;      // segwit
     in[apduSize++] = 1 + 4 * lenPath; // num bytes to follow
     in[apduSize++] = lenPath;
-    for (size_t k = 0; k < vPath.size(); k++, apduSize+=4) {
+    for (size_t k = 0; k < vPath.size(); k++, apduSize += 4) {
         WriteBE32(&in[apduSize], vPath[k]);
     }
 
@@ -304,7 +304,7 @@ int CLedgerDevice::GetXPub(const std::vector<uint32_t> &vPath, CExtPubKey &ekp, 
         size_t lenPathParent = lenPath-1;
         in[4] = 1 + 4 * lenPathParent; // num bytes to follow
         in[5] = lenPathParent;
-        apduSize-=4;
+        apduSize -= 4;
 
         result = sendApduHidHidapi(handle, 1, in, apduSize, outB, sizeof(outB), &sw);
     }
@@ -374,7 +374,7 @@ int CLedgerDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::st
     in[apduSize++] = 0x00;
     in[apduSize++] = 0x00;
     in[apduSize++] = lenPath;
-    for (size_t k = 0; k < vPath.size(); k++, apduSize+=4) {
+    for (size_t k = 0; k < vPath.size(); k++, apduSize += 4) {
         WriteBE32(&in[apduSize], vPath[k]);
     }
     size_t slen = sMessage.size();
@@ -441,9 +441,9 @@ int CLedgerDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::st
         memcpy(&vchSig[1], &out[5], 32);
     }
     if (lenS == 32) {
-        memcpy(&vchSig[33], &out[4+lenR+2], 32);
+        memcpy(&vchSig[33], &out[4 + lenR + 2], 32);
     } else {
-        memcpy(&vchSig[33], &out[4+lenR+3], 32);
+        memcpy(&vchSig[33], &out[4 + lenR + 3], 32);
     }
 
     return 0;
@@ -516,7 +516,7 @@ int CLedgerDevice::PrepareTransaction(CMutableTransaction &tx, const CCoinsViewC
             apduSize += 4;
         }
 
-        in[ofslen] = apduSize - (ofslen+1);
+        in[ofslen] = apduSize - (ofslen + 1);
 
         result = sendApduHidHidapi(handle, 1, in, apduSize, out, sizeof(out), &sw);
         if (sw != SW_OK) {
@@ -569,7 +569,7 @@ int CLedgerDevice::PrepareTransaction(CMutableTransaction &tx, const CCoinsViewC
         in[apduSize++] = 0x00;
         in[apduSize++] = 1 + 4 * change_path.size(); // num bytes to follow
         in[apduSize++] = change_path.size();
-        for (size_t k = 0; k < change_path.size(); k++, apduSize+=4) {
+        for (size_t k = 0; k < change_path.size(); k++, apduSize += 4) {
             WriteBE32(&in[apduSize], change_path[k]);
         }
 
@@ -597,7 +597,7 @@ int CLedgerDevice::PrepareTransaction(CMutableTransaction &tx, const CCoinsViewC
         }
 
         if (!txout->IsStandardOutput()) {
-            return errorN(1, m_error, __func__, "all outputs must be standard.");
+            return errorN(1, m_error, __func__, "All outputs must be standard.");
         }
         CAmount nValue = txout->GetValue();
         part::SetAmount(vchAmount, nValue);
@@ -608,7 +608,6 @@ int CLedgerDevice::PrepareTransaction(CMutableTransaction &tx, const CCoinsViewC
         vOutputData.insert(vOutputData.end(), pScript->begin(), pScript->end());
     }
 
-    //std::vector<uint8_t> vEncryptedOutput;
     size_t offset = 0;
     const size_t scriptBlockLength = 50;
     while (offset < vOutputData.size()) {
@@ -696,7 +695,7 @@ int CLedgerDevice::SignTransaction(const std::vector<uint32_t> &vPath, const std
 
     apduSize += part::PutVarInt(&in[apduSize], scriptCode.size());
 
-    in[ofslen] = apduSize - (ofslen+1);
+    in[ofslen] = apduSize - (ofslen + 1);
 
     result = sendApduHidHidapi(handle, 1, in, apduSize, out, sizeof(out), &sw);
     if (sw != SW_OK) {
@@ -723,8 +722,7 @@ int CLedgerDevice::SignTransaction(const std::vector<uint32_t> &vPath, const std
             apduSize += 4;
         }
 
-        in[ofslen] = apduSize - (ofslen+1);
-
+        in[ofslen] = apduSize - (ofslen + 1);
         result = sendApduHidHidapi(handle, 1, in, apduSize, out, sizeof(out), &sw);
         if (sw != SW_OK) {
             return errorN(1, sError, __func__, "Dongle error: %.4x %s", sw, GetLedgerString(sw));
@@ -741,7 +739,7 @@ int CLedgerDevice::SignTransaction(const std::vector<uint32_t> &vPath, const std
     in[apduSize++] = 0x00;
     ofslen = apduSize++;
     in[apduSize++] = vPath.size();
-    for (size_t k = 0; k < vPath.size(); k++, apduSize+=4) {
+    for (size_t k = 0; k < vPath.size(); k++, apduSize += 4) {
         WriteBE32(&in[apduSize], vPath[k]);
     }
 
