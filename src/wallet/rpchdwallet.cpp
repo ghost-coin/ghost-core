@@ -827,7 +827,7 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
             if (uvi["pubkey"].isStr()) {
                 std::string s = uvi["pubkey"].get_str();
                 if (!IsHex(s) || !(s.size() == 66)) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Commitment must be 33 bytes and hex encoded.");
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 33 bytes and hex encoded.");
                 }
                 std::vector<uint8_t> v = ParseHex(s);
                 im.pubkey = CCmpPubKey(v.begin(), v.end());
@@ -4517,6 +4517,7 @@ static RPCHelpMan listunspentanon()
                             {"include_immature", RPCArg::Type::BOOL, /* default */ "false", "Include immature staked outputs"},
                             {"frozen", RPCArg::Type::BOOL, /* default */ "false", "Show frozen outputs only"},
                             {"include_tainted_frozen", RPCArg::Type::BOOL, /* default */ "false", "Show tainted frozen outputs"},
+                            {"show_pubkeys", RPCArg::Type::BOOL, /* default */ "false", "Show anon output public keys"},
                         },
                         "query_options"},
                 },
@@ -4530,12 +4531,14 @@ static RPCHelpMan listunspentanon()
                             {RPCResult::Type::STR, "label", "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "the transaction output amount in " + CURRENCY_UNIT},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
+                            {RPCResult::Type::STR_HEX, "pubkey", "If \"show_pubkeys\""},
                         }},
                     }
                 },
                 RPCExamples{
             HelpExampleCli("listunspentanon", "")
-            + HelpExampleCli("listunspentanon", "6 9999999 \"[\\\"PfqK97PXYfqRFtdYcZw82x3dzPrZbEAcYa\\\",\\\"Pka9M2Bva8WetQhQ4ngC255HAbMJf5P5Dc\\\"]\"") +
+            + HelpExampleCli("listunspentanon", "6 9999999 \"[\\\"PfqK97PXYfqRFtdYcZw82x3dzPrZbEAcYa\\\",\\\"Pka9M2Bva8WetQhQ4ngC255HAbMJf5P5Dc\\\"]\"")
+            + HelpExampleCli("listunspentanon", "0 9999999 \"[]\" true \"{\\\"show_pubkeys\\\":true}\"") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("listunspentanon", "6, 9999999, \"[\\\"PfqK97PXYfqRFtdYcZw82x3dzPrZbEAcYa\\\",\\\"Pka9M2Bva8WetQhQ4ngC255HAbMJf5P5Dc\\\"]\"")
                 },
@@ -4581,6 +4584,7 @@ static RPCHelpMan listunspentanon()
     CCoinControl cctl;
     bool fCCFormat = false;
     bool fIncludeImmature = false;
+    bool show_pubkeys = false;
     CAmount nMinimumAmount = 0;
     CAmount nMaximumAmount = MAX_MONEY;
     CAmount nMinimumSumAmount = MAX_MONEY;
@@ -4595,7 +4599,7 @@ static RPCHelpMan listunspentanon()
                 {"cc_format",               UniValueType(UniValue::VBOOL)},
                 {"frozen",                  UniValueType(UniValue::VBOOL)},
                 {"include_tainted_frozen",  UniValueType(UniValue::VBOOL)},
-
+                {"show_pubkeys",            UniValueType(UniValue::VBOOL)},
             }, true, false);
 
         if (options.exists("minimumAmount")) {
@@ -4622,6 +4626,9 @@ static RPCHelpMan listunspentanon()
         if (options.exists("include_tainted_frozen")) {
             cctl.m_include_tainted_frozen = options["include_tainted_frozen"].get_bool();
         }
+        if (options.exists("show_pubkeys")) {
+            show_pubkeys = options["show_pubkeys"].get_bool();
+        }
     }
 
     // Make sure the results are valid at least up to the most recent block
@@ -4641,6 +4648,8 @@ static RPCHelpMan listunspentanon()
     }
 
     LOCK(pwallet->cs_wallet);
+
+    CHDWalletDB wdb(pwallet->GetDatabase());
 
     for (const auto &out : vecOutputs)
     {
@@ -4697,8 +4706,22 @@ static RPCHelpMan listunspentanon()
         //entry.pushKV("spendable", out.fSpendable);
         //entry.pushKV("solvable", out.fSolvable);
         entry.pushKV("safe", out.fSafe);
-        if (fIncludeImmature)
+        if (fIncludeImmature) {
             entry.pushKV("mature", out.fMature);
+        }
+
+        if (show_pubkeys) {
+            CStoredTransaction stx;
+            CCmpPubKey anon_pubkey;
+            if (!wdb.ReadStoredTx(out.txhash, stx)) {
+                entry.pushKV("error", "Missing stored txn.");
+            } else
+            if (!stx.GetAnonPubkey(out.i, anon_pubkey)) {
+                entry.pushKV("error", "Could not get anon pubkey.");
+            } else {
+                entry.pushKV("pubkey", HexStr(anon_pubkey));
+            }
+        }
 
         results.push_back(entry);
     }
@@ -7232,6 +7255,58 @@ static RPCHelpMan derivefromstealthaddress()
     };
 }
 
+static RPCHelpMan getkeyimage()
+{
+    return RPCHelpMan{"getkeyimage",
+            "\nShow the keyimage for an anon output pubkey if owned." +
+            HELP_REQUIRING_PASSPHRASE,
+            {
+                {"pubkey", RPCArg::Type::STR, RPCArg::Optional::NO, "The pubkey of the anon output."},
+            },
+            RPCResult{
+                RPCResult::Type::OBJ, "", "", {
+                    {RPCResult::Type::STR_HEX, "keyimage", "The derived public key"},
+            }},
+            RPCExamples{
+        HelpExampleCli("getkeyimage", "\"pubkey\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("getkeyimage", "\"pubkey\"")
+            },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    RPCTypeCheck(request.params, {UniValue::VSTR}, true);
+
+    std::string s = request.params[0].get_str();
+    if (!IsHex(s) || !(s.size() == 66)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 33 bytes and hex encoded.");
+    }
+    std::vector<uint8_t> v = ParseHex(s);
+    CCmpPubKey ki, anon_pubkey(v.begin(), v.end());
+
+    UniValue result(UniValue::VOBJ);
+
+    CKey spend_key;
+    CKeyID apkid = anon_pubkey.GetID();
+    if (!pwallet->GetKey(apkid, spend_key)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Private key not found.");
+    }
+    if (0 != GetKeyImage(ki, anon_pubkey, spend_key)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Could not get keyimage.");
+    }
+
+    result.pushKV("keyimage", HexStr(ki));
+    result.pushKV("warning", "Sharing keyimages could impact privacy.");  // Although knowledge of a keyimage does not prove ownership of an anon output.
+
+    return result;
+},
+    };
+}
 
 static RPCHelpMan setvote()
 {
@@ -9341,6 +9416,8 @@ static const CRPCCommand commands[] =
 
     { "wallet",             &transactionblinds              },
     { "wallet",             &derivefromstealthaddress       },
+
+    { "wallet",             &getkeyimage                    },
 
 
     { "governance",         &setvote                        },

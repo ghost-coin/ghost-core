@@ -66,7 +66,7 @@ RPCHelpMan anonoutput()
         if (!pblocktree->ReadRCTOutputLink(pk, nIndex)) {
             throw JSONRPCError(RPC_MISC_ERROR, "Output not indexed.");
         }
-    };
+    }
 
     CAnonOutput ao;
     if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
@@ -84,6 +84,48 @@ RPCHelpMan anonoutput()
     };
 };
 
+RPCHelpMan checkkeyimage()
+{
+    return RPCHelpMan{"checkkeyimage",
+            "\nCheck if keyimage is spent in the chain.\n",
+            {
+                {"keyimage", RPCArg::Type::STR, RPCArg::Optional::NO, "Hex encoded keyimage."},
+            },
+            RPCResult{
+                RPCResult::Type::OBJ, "", "", {
+                    {RPCResult::Type::BOOL, "spent", "Keyimage found in chain or not"},
+                    {RPCResult::Type::STR_HEX, "txid", "ID of spending transaction"},
+            }},
+            RPCExamples{
+        HelpExampleCli("checkkeyimage", "\"keyimage\"")
+        + HelpExampleRpc("checkkeyimage", "\"keyimage\"")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    UniValue result(UniValue::VOBJ);
+
+    RPCTypeCheck(request.params, {UniValue::VSTR}, true);
+
+    std::string s = request.params[0].get_str();
+    if (!IsHex(s) || !(s.size() == 66)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Keyimage must be 33 bytes and hex encoded.");
+    }
+    std::vector<uint8_t> v = ParseHex(s);
+    CCmpPubKey ki(v.begin(), v.end());
+
+    uint256 txhashKI;
+    bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, txhashKI);
+
+    result.pushKV("spent", spent_in_chain);
+    if (spent_in_chain) {
+        result.pushKV("txid", txhashKI.ToString());
+    }
+
+    return result;
+},
+    };
+}
+
 void RegisterAnonRPCCommands(CRPCTable &t)
 {
 // clang-format off
@@ -91,6 +133,7 @@ static const CRPCCommand commands[] =
 { //  category              actor (function)
   //  --------------------- -----------------------
     { "anon",               &anonoutput                  },
+    { "checkkeyimage",      &checkkeyimage               },
 };
 // clang-format on
     for (const auto& c : commands) {

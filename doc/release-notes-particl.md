@@ -55,6 +55,9 @@ Next Major Version
   - Can adjust default lookahead sizes and create extkeys before the initial scan.
 - Fixed bug where dust output converted to change was added to the fee before subfee was processed.
 - Added new PID for Ledger Nano X (4015).
+- listunspentanon: New show_pubkeys option.
+- New wallet command getkeyimage returns keyimage for pubkey if owned.
+- New command checkkeyimage checks if keyimage is spent in the chain.
 
 
 0.19.2.11
