@@ -58,6 +58,7 @@ Next Major Version
 - listunspentanon: New show_pubkeys option.
 - New wallet command getkeyimage returns keyimage for pubkey if owned.
 - New command checkkeyimage checks if keyimage is spent in the chain.
+- See hardware device outputs as watch-only if not compiled with usbdevice.
 
 
 0.19.2.11
