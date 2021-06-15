@@ -573,7 +573,7 @@ void SendCoinsDialog::on_sendButton_clicked()
             //GUIUtil::setClipboard(EncodeBase64(ssTx.str()).c_str());
             //Q_EMIT message(tr("PSBT copied"), "Copied to clipboard", CClientUIInterface::MSG_INFORMATION);
 
-        //} else {
+    } else {
         hashSent.SetHex(rv.get_str());
     }
     /*
