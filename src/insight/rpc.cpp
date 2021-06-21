@@ -1062,11 +1062,11 @@ static RPCHelpMan getblockreward()
         throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
     }
 
-    const DevFundSettings *devfundconf = Params().GetDevFundSettings(pblockindex->GetBlockTime());
-    CScript devFundScriptPubKey;
-    if (devfundconf) {
-        CTxDestination dest = DecodeDestination(devfundconf->sDevFundAddresses);
-        devFundScriptPubKey = GetScriptForDestination(dest);
+    const TreasuryFundSettings *fundconf = Params().GetTreasuryFundSettings(pblockindex->GetBlockTime());
+    CScript fundScriptPubKey;
+    if (fundconf) {
+        CTxDestination dest = DecodeDestination(fundconf->sTreasuryFundAddresses);
+        fundScriptPubKey = GetScriptForDestination(dest);
     }
 
     const auto &tx = block.vtx[0];
@@ -1083,7 +1083,7 @@ static RPCHelpMan getblockreward()
         output.pushKV("value", ValueFromAmount(txout->GetValue()));
         outputs.push_back(output);
 
-        if (devfundconf && *txout->GetPScriptPubKey() == devFundScriptPubKey) {
+        if (fundconf && *txout->GetPScriptPubKey() == fundScriptPubKey) {
             value_treasury += txout->GetValue();
             continue;
         }

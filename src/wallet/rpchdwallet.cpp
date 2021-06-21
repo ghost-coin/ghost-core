@@ -3008,7 +3008,7 @@ static void ParseOutputs(
     bool                 fWithReward,
     bool                 fBech32,
     bool                 hide_zero_coinstakes,
-    std::vector<CScript> &vDevFundScripts,
+    std::vector<CScript> &vTreasuryFundScripts,
     bool                 show_change
 ) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
@@ -3156,9 +3156,9 @@ static void ParseOutputs(
         CAmount nOutput = wtx.tx->GetValueOut();
         CAmount nInput = 0;
 
-        // Remove dev fund outputs
+        // Remove treasury fund outputs
         if (wtx.tx->vpout.size() > 2 && wtx.tx->vpout[1]->IsStandardOutput()) {
-            for (const auto &s : vDevFundScripts) {
+            for (const auto &s : vTreasuryFundScripts) {
                 if (s == *wtx.tx->vpout[1]->GetPScriptPubKey()) {
                     nOutput -= wtx.tx->vpout[1]->GetValue();
                     break;
@@ -3704,16 +3704,16 @@ static RPCHelpMan filtertransactions()
         EnsureWalletIsUnlocked(pwallet);
     }
 
-    std::vector<CScript> vDevFundScripts;
+    std::vector<CScript> vTreasuryFundScripts;
     if (fWithReward) {
-        const auto v = Params().GetDevFundSettings();
+        const auto v = Params().GetTreasuryFundSettings();
         for (const auto &s : v) {
-            CTxDestination dfDest = CBitcoinAddress(s.second.sDevFundAddresses).Get();
+            CTxDestination dfDest = CBitcoinAddress(s.second.sTreasuryFundAddresses).Get();
             if (dfDest.index() == DI::_CNoDestination) {
                 continue;
             }
             CScript script = GetScriptForDestination(dfDest);
-            vDevFundScripts.push_back(script);
+            vTreasuryFundScripts.push_back(script);
         }
     }
 
@@ -3739,7 +3739,7 @@ static RPCHelpMan filtertransactions()
                 fWithReward,
                 fBech32,
                 hide_zero_coinstakes,
-                vDevFundScripts,
+                vTreasuryFundScripts,
                 show_change);
         tit++;
     }
@@ -4320,13 +4320,13 @@ static RPCHelpMan getstakinginfo()
         obj.pushKV("reserve", ValueFromAmount(pwallet->nReserveBalance));
     }
 
-    if (pwallet->nWalletDevFundCedePercent > 0) {
-        obj.pushKV("wallettreasurydonationpercent", pwallet->nWalletDevFundCedePercent);
+    if (pwallet->nWalletTreasuryFundCedePercent > 0) {
+        obj.pushKV("wallettreasurydonationpercent", pwallet->nWalletTreasuryFundCedePercent);
     }
 
-    const DevFundSettings *pDevFundSettings = Params().GetDevFundSettings(nTipTime);
-    if (pDevFundSettings && pDevFundSettings->nMinDevStakePercent > 0) {
-        obj.pushKV("treasurydonationpercent", pDevFundSettings->nMinDevStakePercent);
+    const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTipTime);
+    if (pTreasuryFundSettings && pTreasuryFundSettings->nMinTreasuryStakePercent > 0) {
+        obj.pushKV("treasurydonationpercent", pTreasuryFundSettings->nMinTreasuryStakePercent);
     }
 
     obj.pushKV("minstakeablevalue", pwallet->m_min_stakeable_value);
