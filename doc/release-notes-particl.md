@@ -50,6 +50,9 @@ Next Major Version
 0.19.2.12
 ==============
 
+- Hardfork scheduled at 2021-07-12 17:00:00 UTC
+- Raised protocol version to 90013
+- Raised min protocol version to 90012
 - Add -lookuptorcontrolhost option, disabled by default.
 - extkeyimportmaster rpc command has new options parameter:
   - Can adjust default lookahead sizes and create extkeys before the initial scan.
