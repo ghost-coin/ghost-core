@@ -133,7 +133,7 @@ static const CRPCCommand commands[] =
 { //  category              actor (function)
   //  --------------------- -----------------------
     { "anon",               &anonoutput                  },
-    { "checkkeyimage",      &checkkeyimage               },
+    { "anon",               &checkkeyimage               },
 };
 // clang-format on
     for (const auto& c : commands) {
