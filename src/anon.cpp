@@ -405,7 +405,7 @@ bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::strin
         }
 
         ::ChainActive().SetTip(pindex->pprev);
-        UpdateTip(mempool, pindex->pprev, chainparams);
+        UpdateTip(mempool, pindex->pprev, chainparams, ::ChainstateActive());
         GetMainSignals().BlockDisconnected(pblock, pindex);
     }
     nLastRCTOutput = ::ChainActive().Tip()->nAnonOutputs;

@@ -14,6 +14,7 @@
 #include <compat.h>
 #include <crypto/siphash.h>
 #include <hash.h>
+#include <i2p.h>
 #include <net_permissions.h>
 #include <netaddress.h>
 #include <optional.h>
@@ -51,10 +52,10 @@ static const bool DEFAULT_WHITELISTFORCERELAY = false;
 
 /** Time after which to disconnect, after waiting for a ping response (or inactivity). */
 static const int TIMEOUT_INTERVAL = 20 * 60;
-/** Run the feeler connection loop once every 2 minutes or 120 seconds. **/
-static const int FEELER_INTERVAL = 120;
+/** Run the feeler connection loop once every 2 minutes. **/
+static constexpr auto FEELER_INTERVAL = 2min;
 /** Run the extra block-relay-only connection loop once every 5 minutes. **/
-static const int EXTRA_BLOCK_RELAY_ONLY_PEER_INTERVAL = 300;
+static constexpr auto EXTRA_BLOCK_RELAY_ONLY_PEER_INTERVAL = 5min;
 /** The maximum number of addresses from our addrman to return in response to a getaddr message. */
 static constexpr size_t MAX_ADDR_TO_SEND = 1000;
 /** Maximum length of incoming protocol messages (no message over 4 MB is currently acceptable). */
@@ -267,8 +268,8 @@ public:
     uint64_t nRecvBytes;
     mapMsgCmdSize mapRecvBytesPerMsgCmd;
     NetPermissionFlags m_permissionFlags;
-    int64_t m_ping_usec;
-    int64_t m_min_ping_usec;
+    std::chrono::microseconds m_last_ping_time;
+    std::chrono::microseconds m_min_ping_time;
     CAmount minFeeFilter;
     // Our address, as reported by the peer
     std::string addrLocal;
@@ -579,7 +580,7 @@ public:
         /** Minimum fee rate with which to filter inv's to this node */
         std::atomic<CAmount> minFeeFilter{0};
         CAmount lastSentFeeFilter{0};
-        int64_t nextSendTimeFeeFilter{0};
+        std::chrono::microseconds m_next_send_feefilter{0};
     };
 
     // m_tx_relay == nullptr if we're not relaying transactions with this peer
@@ -599,11 +600,11 @@ public:
     std::atomic<int64_t> nLastTXTime{0};
 
     /** Last measured round-trip time. Used only for RPC/GUI stats/debugging.*/
-    std::atomic<int64_t> m_last_ping_time{0};
+    std::atomic<std::chrono::microseconds> m_last_ping_time{0us};
 
     /** Lowest measured round-trip time. Used as an inbound peer eviction
      * criterium in CConnman::AttemptToEvictConnection. */
-    std::atomic<int64_t> m_min_ping_time{std::numeric_limits<int64_t>::max()};
+    std::atomic<std::chrono::microseconds> m_min_ping_time{std::chrono::microseconds::max()};
 
     CNode(NodeId id, ServiceFlags nLocalServicesIn, SOCKET hSocketIn, const CAddress& addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const CAddress& addrBindIn, const std::string& addrNameIn, ConnectionType conn_type_in, bool inbound_onion);
     ~CNode();
@@ -725,8 +726,8 @@ public:
 
     /** A ping-pong round trip has completed successfully. Update latest and minimum ping times. */
     void PongReceived(std::chrono::microseconds ping_time) {
-        m_last_ping_time = count_microseconds(ping_time);
-        m_min_ping_time = std::min(m_min_ping_time.load(), count_microseconds(ping_time));
+        m_last_ping_time = ping_time;
+        m_min_ping_time = std::min(m_min_ping_time.load(), ping_time);
     }
 
 //private:
@@ -843,6 +844,7 @@ public:
         std::vector<std::string> m_specified_outgoing;
         std::vector<std::string> m_added_nodes;
         std::vector<bool> m_asmap;
+        bool m_i2p_accept_incoming;
     };
 
     void Init(const Options& connOptions) {
@@ -1032,7 +1034,7 @@ public:
         Works assuming that a single interval is used.
         Variable intervals will result in privacy decrease.
     */
-    int64_t PoissonNextSendInbound(int64_t now, int average_interval_seconds);
+    std::chrono::microseconds PoissonNextSendInbound(std::chrono::microseconds now, std::chrono::seconds average_interval);
 
     void SetAsmap(std::vector<bool> asmap) { addrman.m_asmap = std::move(asmap); }
 
@@ -1061,7 +1063,22 @@ public:
     void ProcessAddrFetch();
     void ThreadOpenConnections(std::vector<std::string> connect);
     void ThreadMessageHandler();
+    void ThreadI2PAcceptIncoming();
     void AcceptConnection(const ListenSocket& hListenSocket);
+
+    /**
+     * Create a `CNode` object from a socket that has just been accepted and add the node to
+     * the `vNodes` member.
+     * @param[in] hSocket Connected socket to communicate with the peer.
+     * @param[in] permissionFlags The peer's permissions.
+     * @param[in] addr_bind The address and port at our side of the connection.
+     * @param[in] addr The address and port at the peer's side of the connection.
+     */
+    void CreateNodeFromAcceptedSocket(SOCKET hSocket,
+                                      NetPermissionFlags permissionFlags,
+                                      const CAddress& addr_bind,
+                                      const CAddress& addr);
+
     void DisconnectNodes();
     void NotifyNumConnectionsChanged();
     /** Return true if the peer is inactive and should be disconnected. */
@@ -1220,13 +1237,26 @@ public:
     Mutex mutexMsgProc;
     std::atomic<bool> flagInterruptMsgProc{false};
 
+    /**
+     * This is signaled when network activity should cease.
+     * A pointer to it is saved in `m_i2p_sam_session`, so make sure that
+     * the lifetime of `interruptNet` is not shorter than
+     * the lifetime of `m_i2p_sam_session`.
+     */
     CThreadInterrupt interruptNet;
+
+    /**
+     * I2P SAM session.
+     * Used to accept incoming and make outgoing I2P connections.
+     */
+    std::unique_ptr<i2p::sam::Session> m_i2p_sam_session;
 
     std::thread threadDNSAddressSeed;
     std::thread threadSocketHandler;
     std::thread threadOpenAddedConnections;
     std::thread threadOpenConnections;
     std::thread threadMessageHandler;
+    std::thread threadI2PAcceptIncoming;
 
     /** flag for deciding to connect to an extra outbound peer,
      *  in excess of m_max_outbound_full_relay
@@ -1239,7 +1269,7 @@ public:
      */
     std::atomic_bool m_start_extra_block_relay_peers{false};
 
-    std::atomic<int64_t> m_next_send_inv_to_incoming{0};
+    std::atomic<std::chrono::microseconds> m_next_send_inv_to_incoming{0us};
 
     /**
      * A vector of -bind=<address>:<port>=onion arguments each of which is
@@ -1252,13 +1282,7 @@ public:
 };
 
 /** Return a timestamp in the future (in microseconds) for exponentially distributed events. */
-int64_t PoissonNextSend(int64_t now, int average_interval_seconds);
-
-/** Wrapper to return mockable type */
-inline std::chrono::microseconds PoissonNextSend(std::chrono::microseconds now, std::chrono::seconds average_interval)
-{
-    return std::chrono::microseconds{PoissonNextSend(now.count(), average_interval.count())};
-}
+std::chrono::microseconds PoissonNextSend(std::chrono::microseconds now, std::chrono::seconds average_interval);
 
 /** Dump binary message to file, with timestamp */
 void CaptureMessage(const CAddress& addr, const std::string& msg_type, const Span<const unsigned char>& data, bool is_incoming);
@@ -1267,7 +1291,7 @@ struct NodeEvictionCandidate
 {
     NodeId id;
     int64_t nTimeConnected;
-    int64_t m_min_ping_time;
+    std::chrono::microseconds m_min_ping_time;
     int64_t nLastBlockTime;
     int64_t nLastTXTime;
     bool fRelevantServices;

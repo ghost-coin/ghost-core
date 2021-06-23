@@ -10,8 +10,7 @@ src/particl-node
 src/particl-tx
 src/particl-util
 src/particl-wallet
-src/test/fuzz/*
-!src/test/fuzz/*.*
+src/test/fuzz/fuzz
 src/test/test_particl
 src/qt/test/test_particl-qt
 

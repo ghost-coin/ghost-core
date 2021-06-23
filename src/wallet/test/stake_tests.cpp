@@ -89,7 +89,7 @@ static void DisconnectTip(CTxMemPool& mempool, CBlock &block, CBlockIndex *pinde
     BOOST_REQUIRE(FlushView(&view, state, true));
     BOOST_REQUIRE(::ChainstateActive().FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED));
     ::ChainActive().SetTip(pindexDelete->pprev);
-    UpdateTip(mempool, pindexDelete->pprev, chainparams);
+    UpdateTip(mempool, pindexDelete->pprev, chainparams, ::ChainstateActive());
 }
 
 BOOST_AUTO_TEST_CASE(stake_test)
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_REQUIRE(FlushView(&clearview, state, false));
             BOOST_REQUIRE(::ChainstateActive().FlushStateToDisk(chainparams, clearstate, FlushStateMode::IF_NEEDED));
             ::ChainActive().SetTip(pindexDelete);
-            UpdateTip(*m_node.mempool.get(), pindexDelete, chainparams);
+            UpdateTip(*m_node.mempool.get(), pindexDelete, chainparams, ::ChainstateActive());
 
             BOOST_CHECK(tipHash == ::ChainActive().Tip()->GetBlockHash());
             BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500000118911);

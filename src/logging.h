@@ -57,6 +57,7 @@ namespace BCLog {
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
         VALIDATION  = (1 << 21),
+        I2P         = (1 << 22),
 
         SMSG        = (1 << 27),
         RINGCT      = (1 << 28),

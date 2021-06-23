@@ -156,6 +156,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
     {BCLog::VALIDATION, "validation"},
+    {BCLog::I2P, "i2p"},
 
     {BCLog::SMSG, "smsg"},
     {BCLog::RINGCT, "ringct"},
