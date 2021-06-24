@@ -4,6 +4,7 @@
 
 **2021-07-12 17:00:00 UTC**
 
+- Protocol version 90013
 - At the fork block reconcile moneysupply to the current plain balance in the system.
 - Enable new RCT and CT transactions.
 - RCT exploit fix consensus changes:
