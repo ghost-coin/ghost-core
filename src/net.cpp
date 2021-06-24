@@ -2493,11 +2493,11 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
 
     if (semOutbound == nullptr) {
         // initialize semaphore
-        semOutbound = MakeUnique<CSemaphore>(std::min(m_max_outbound, nMaxConnections));
+        semOutbound = std::make_unique<CSemaphore>(std::min(m_max_outbound, nMaxConnections));
     }
     if (semAddnode == nullptr) {
         // initialize semaphore
-        semAddnode = MakeUnique<CSemaphore>(nMaxAddnode);
+        semAddnode = std::make_unique<CSemaphore>(nMaxAddnode);
     }
 
     //
@@ -2752,15 +2752,15 @@ bool CConnman::RemoveAddedNode(const std::string& strNode)
     return false;
 }
 
-size_t CConnman::GetNodeCount(NumConnections flags)
+size_t CConnman::GetNodeCount(ConnectionDirection flags)
 {
     LOCK(cs_vNodes);
-    if (flags == CConnman::CONNECTIONS_ALL) // Shortcut if we want total
+    if (flags == ConnectionDirection::Both) // Shortcut if we want total
         return vNodes.size();
 
     int nNum = 0;
     for (const auto& pnode : vNodes) {
-        if (flags & (pnode->IsInboundConn() ? CONNECTIONS_IN : CONNECTIONS_OUT)) {
+        if (flags & (pnode->IsInboundConn() ? ConnectionDirection::In : ConnectionDirection::Out)) {
             nNum++;
         }
     }
@@ -2938,11 +2938,11 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, SOCKET hSocketIn, const
     hSocket = hSocketIn;
     addrName = addrNameIn == "" ? addr.ToStringIPPort() : addrNameIn;
     if (conn_type_in != ConnectionType::BLOCK_RELAY) {
-        m_tx_relay = MakeUnique<TxRelay>();
+        m_tx_relay = std::make_unique<TxRelay>();
     }
 
     if (RelayAddrsWithConn()) {
-        m_addr_known = MakeUnique<CRollingBloomFilter>(5000, 0.001);
+        m_addr_known = std::make_unique<CRollingBloomFilter>(5000, 0.001);
     }
 
     for (const std::string &msg : getAllNetMessageTypes())
@@ -2955,8 +2955,8 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, SOCKET hSocketIn, const
         LogPrint(BCLog::NET, "Added connection peer=%d\n", id);
     }
 
-    m_deserializer = MakeUnique<V1TransportDeserializer>(V1TransportDeserializer(Params(), GetId(), SER_NETWORK, INIT_PROTO_VERSION));
-    m_serializer = MakeUnique<V1TransportSerializer>(V1TransportSerializer());
+    m_deserializer = std::make_unique<V1TransportDeserializer>(V1TransportDeserializer(Params(), GetId(), SER_NETWORK, INIT_PROTO_VERSION));
+    m_serializer = std::make_unique<V1TransportSerializer>(V1TransportSerializer());
 }
 
 CNode::~CNode()

@@ -304,6 +304,6 @@ public:
 
 } // namespace
 
-std::unique_ptr<Node> MakeNode(NodeContext* context) { return MakeUnique<NodeImpl>(context); }
+std::unique_ptr<Node> std::make_unique(NodeContext* context) { return MakeUnique<NodeImpl>(context); }
 
 } // namespace interfaces

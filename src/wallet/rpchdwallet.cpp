@@ -882,7 +882,7 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
         coin_control.fOverrideFeeRate = true;
     }
 
-    coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(pwallet, obj["avoid_reuse"]);
+    coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(*pwallet, obj["avoid_reuse"]);
 };
 
 static RPCHelpMan extkey()

@@ -3,11 +3,9 @@ packages:=boost libevent
 protobuf_native_packages = native_protobuf
 protobuf_packages = protobuf
 
-qt_packages = zlib
-
 qrencode_packages = qrencode
 
-qt_linux_packages:=qt expat libxcb xcb_proto libXau xproto freetype fontconfig
+qt_linux_packages:=qt expat libxcb xcb_proto libXau xproto freetype fontconfig libxkbcommon
 qt_android_packages=qt
 
 qt_darwin_packages=qt
