@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 The Particl Core developers
+// Copyright (c) 2018-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,6 +27,7 @@
 #ifdef ENABLE_WALLET
 #include <wallet/hdwallet.h>
 #include <wallet/rpcwallet.h>
+#include <wallet/rpchdwallet.h>
 static const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
 #endif
 
