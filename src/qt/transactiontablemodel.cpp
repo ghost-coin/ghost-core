@@ -571,6 +571,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
             return txWatchonlyDecoration(rec);
         case Date: return {};
         case Type: return {};
+        case TypeIn: return {};
+        case TypeOut: return {};
         case ToAddress:
             return txAddressDecoration(rec);
         case Amount: return {};
