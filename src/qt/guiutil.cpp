@@ -892,4 +892,18 @@ QImage GetImage(const QLabel* label)
 #endif
 }
 
+namespace particl
+{
+    QString escapeQString(const QString& si)
+    {
+        QString sr;
+        for (const auto &c : si) {
+            if (c == '"' || c == '\\') {
+                sr += '\\';
+            }
+            sr += c;
+        }
+        return sr;
+    }
+}
 } // namespace GUIUtil

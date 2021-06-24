@@ -327,6 +327,10 @@ namespace GUIUtil
         QObject::connect(&source, &QObject::destroyed, object, std::forward<Fn>(function), connection);
     }
 
+namespace particl
+{
+    QString escapeQString(const QString& si);
+}
 } // namespace GUIUtil
 
 #endif // BITCOIN_QT_GUIUTIL_H

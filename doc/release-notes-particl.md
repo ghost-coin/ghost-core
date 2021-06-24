@@ -45,6 +45,13 @@ Next Major Version
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.13
+==============
+
+- Fixed RPC escaping in qt.
+  - Solves issue with quotes in mnemonic passwords.
+
+
 0.19.2.12
 ==============
 
