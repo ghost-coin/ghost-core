@@ -7482,10 +7482,6 @@ static RPCHelpMan votehistory()
                 }
             }
 
-            if ((v.nToken >> 16) < 1
-                || (v.nToken & 0xFFFF) < 1) {
-                continue;
-            }
             UniValue vote(UniValue::VOBJ);
             vote.pushKV("proposal", (int)(v.nToken & 0xFFFF));
             vote.pushKV("option", (int)(v.nToken >> 16));
