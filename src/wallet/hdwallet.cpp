@@ -3816,7 +3816,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             bool bnb_used;
             if (pick_new_inputs) {
                 coin_selection_params.change_spend_size = 40; // TODO
-                coin_selection_params.effective_fee = nFeeRateNeeded;
+                coin_selection_params.m_effective_feerate = nFeeRateNeeded;
                 nValueIn = 0;
                 setCoins.clear();
                 if (!SelectCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, *coinControl, coin_selection_params, bnb_used)) {
@@ -5756,7 +5756,7 @@ bool CHDWallet::LoadToWallet(const uint256& hash, const UpdateWalletTxFn& fill_w
 
 void CHDWallet::LoadToWallet(const uint256 &hash, CTransactionRecord &rtx)
 {
-    Optional<int> block_height = chain().getBlockHeight(rtx.blockHash);
+    std::optional<int> block_height = chain().getBlockHeight(rtx.blockHash);
     if (block_height) {
         rtx.block_height = *block_height;
     }
@@ -10811,7 +10811,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
     return true;
 };
 
-CWallet::ScanResult CHDWallet::ScanForWalletTransactions(const uint256& start_block, int start_height, Optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate)
+CWallet::ScanResult CHDWallet::ScanForWalletTransactions(const uint256& start_block, int start_height, std::optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate)
 {
     CExtKeyAccount *sea = nullptr;
 

@@ -216,10 +216,10 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
         pwallet_b.get()->AddToWalletIfInvolvingMe(tx, confirm, true);
     });
 
-    RemoveWallet(pwallet_a, nullopt);
+    RemoveWallet(pwallet_a, std::nullopt);
     pwallet_a.reset();
 
-    RemoveWallet(pwallet_b, nullopt);
+    RemoveWallet(pwallet_b, std::nullopt);
     pwallet_b.reset();
 
     ECC_Stop_Stealth();

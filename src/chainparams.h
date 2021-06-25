@@ -114,7 +114,7 @@ public:
 
     const Consensus::Params& GetConsensus() const { return consensus; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
-    int GetDefaultPort() const { return nDefaultPort; }
+    uint16_t GetDefaultPort() const { return nDefaultPort; }
 
     int BIP44ID() const { return nBIP44ID; }
 
@@ -194,7 +194,7 @@ protected:
 
     Consensus::Params consensus;
     CMessageHeader::MessageStartChars pchMessageStart;
-    int nDefaultPort;
+    uint16_t nDefaultPort;
     int nBIP44ID;
 
     uint32_t nModifierInterval;         // seconds to elapse before new modifier is computed

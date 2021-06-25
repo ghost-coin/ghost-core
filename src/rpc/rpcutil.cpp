@@ -74,7 +74,7 @@ UniValue CallRPC(std::string args, const util::Ref& context, std::string wallet,
     JSONRPCRequest request(context);
     request.strMethod = strMethod;
     request.params = RPCConvertValues(strMethod, vArgs);
-    request.fHelp = false;
+    //request.mode = EXECUTE;
 
     AddUri(request, wallet, force_wallet);
 

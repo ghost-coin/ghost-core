@@ -7,7 +7,6 @@
 #include <clientversion.h>
 #include <hash.h> // For Hash()
 #include <key.h>  // For CKey
-#include <optional.h>
 #include <sync.h>
 #include <test/util/logging.h>
 #include <test/util/setup_common.h>
@@ -23,6 +22,7 @@
 #include <util/vector.h>
 
 #include <array>
+#include <optional>
 #include <stdint.h>
 #include <string.h>
 #include <thread>
@@ -38,6 +38,7 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace std::literals;
+static const std::string STRING_WITH_EMBEDDED_NULL_CHAR{"1"s "\0" "1"s};
 
 /* defined in logging.cpp */
 namespace BCLog {
@@ -228,9 +229,9 @@ public:
         bool default_int = false;
         bool default_bool = false;
         const char* string_value = nullptr;
-        Optional<int64_t> int_value;
-        Optional<bool> bool_value;
-        Optional<std::vector<std::string>> list_value;
+        std::optional<int64_t> int_value;
+        std::optional<bool> bool_value;
+        std::optional<std::vector<std::string>> list_value;
         const char* error = nullptr;
 
         explicit Expect(util::SettingsValue s) : setting(std::move(s)) {}
@@ -1273,7 +1274,7 @@ BOOST_AUTO_TEST_CASE(util_ParseMoney)
 
     // Parsing strings with embedded NUL characters should fail
     BOOST_CHECK(!ParseMoney("\0-1"s, ret));
-    BOOST_CHECK(!ParseMoney("\0" "1"s, ret));
+    BOOST_CHECK(!ParseMoney(STRING_WITH_EMBEDDED_NULL_CHAR, ret));
     BOOST_CHECK(!ParseMoney("1\0"s, ret));
 }
 
@@ -1451,9 +1452,7 @@ BOOST_AUTO_TEST_CASE(test_ParseInt32)
     BOOST_CHECK(!ParseInt32("aap", &n));
     BOOST_CHECK(!ParseInt32("0x1", &n)); // no hex
     BOOST_CHECK(!ParseInt32("0x1", &n)); // no hex
-    const char test_bytes[] = {'1', 0, '1'};
-    std::string teststr(test_bytes, sizeof(test_bytes));
-    BOOST_CHECK(!ParseInt32(teststr, &n)); // no embedded NULs
+    BOOST_CHECK(!ParseInt32(STRING_WITH_EMBEDDED_NULL_CHAR, &n));
     // Overflow and underflow
     BOOST_CHECK(!ParseInt32("-2147483649", nullptr));
     BOOST_CHECK(!ParseInt32("2147483648", nullptr));
@@ -1481,9 +1480,7 @@ BOOST_AUTO_TEST_CASE(test_ParseInt64)
     BOOST_CHECK(!ParseInt64("1a", &n));
     BOOST_CHECK(!ParseInt64("aap", &n));
     BOOST_CHECK(!ParseInt64("0x1", &n)); // no hex
-    const char test_bytes[] = {'1', 0, '1'};
-    std::string teststr(test_bytes, sizeof(test_bytes));
-    BOOST_CHECK(!ParseInt64(teststr, &n)); // no embedded NULs
+    BOOST_CHECK(!ParseInt64(STRING_WITH_EMBEDDED_NULL_CHAR, &n));
     // Overflow and underflow
     BOOST_CHECK(!ParseInt64("-9223372036854775809", nullptr));
     BOOST_CHECK(!ParseInt64("9223372036854775808", nullptr));
@@ -1518,7 +1515,7 @@ BOOST_AUTO_TEST_CASE(test_ParseUInt8)
     BOOST_CHECK(!ParseUInt8("aap", &n));
     BOOST_CHECK(!ParseUInt8("0x1", &n)); // no hex
     BOOST_CHECK(!ParseUInt8("0x1", &n)); // no hex
-    BOOST_CHECK(!ParseUInt8("1"s "\0" "1"s, &n)); // no embedded NULs
+    BOOST_CHECK(!ParseUInt8(STRING_WITH_EMBEDDED_NULL_CHAR, &n));
     // Overflow and underflow
     BOOST_CHECK(!ParseUInt8("-255", &n));
     BOOST_CHECK(!ParseUInt8("256", &n));
@@ -1556,9 +1553,7 @@ BOOST_AUTO_TEST_CASE(test_ParseUInt32)
     BOOST_CHECK(!ParseUInt32("aap", &n));
     BOOST_CHECK(!ParseUInt32("0x1", &n)); // no hex
     BOOST_CHECK(!ParseUInt32("0x1", &n)); // no hex
-    const char test_bytes[] = {'1', 0, '1'};
-    std::string teststr(test_bytes, sizeof(test_bytes));
-    BOOST_CHECK(!ParseUInt32(teststr, &n)); // no embedded NULs
+    BOOST_CHECK(!ParseUInt32(STRING_WITH_EMBEDDED_NULL_CHAR, &n));
     // Overflow and underflow
     BOOST_CHECK(!ParseUInt32("-2147483648", &n));
     BOOST_CHECK(!ParseUInt32("4294967296", &n));
@@ -1587,9 +1582,7 @@ BOOST_AUTO_TEST_CASE(test_ParseUInt64)
     BOOST_CHECK(!ParseUInt64("1a", &n));
     BOOST_CHECK(!ParseUInt64("aap", &n));
     BOOST_CHECK(!ParseUInt64("0x1", &n)); // no hex
-    const char test_bytes[] = {'1', 0, '1'};
-    std::string teststr(test_bytes, sizeof(test_bytes));
-    BOOST_CHECK(!ParseUInt64(teststr, &n)); // no embedded NULs
+    BOOST_CHECK(!ParseUInt64(STRING_WITH_EMBEDDED_NULL_CHAR, &n));
     // Overflow and underflow
     BOOST_CHECK(!ParseUInt64("-9223372036854775809", nullptr));
     BOOST_CHECK(!ParseUInt64("18446744073709551616", nullptr));
@@ -1619,9 +1612,7 @@ BOOST_AUTO_TEST_CASE(test_ParseDouble)
     BOOST_CHECK(!ParseDouble("1a", &n));
     BOOST_CHECK(!ParseDouble("aap", &n));
     BOOST_CHECK(!ParseDouble("0x1", &n)); // no hex
-    const char test_bytes[] = {'1', 0, '1'};
-    std::string teststr(test_bytes, sizeof(test_bytes));
-    BOOST_CHECK(!ParseDouble(teststr, &n)); // no embedded NULs
+    BOOST_CHECK(!ParseDouble(STRING_WITH_EMBEDDED_NULL_CHAR, &n));
     // Overflow and underflow
     BOOST_CHECK(!ParseDouble("-1e10000", nullptr));
     BOOST_CHECK(!ParseDouble("1e10000", nullptr));

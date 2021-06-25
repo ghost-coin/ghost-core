@@ -8,7 +8,6 @@
 #include <consensus/consensus.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
-#include <optional.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
@@ -18,7 +17,7 @@
 #include <util/time.h>
 #include <validation.h>
 #include <validationinterface.h>
-
+#include <optional>
 
 #include <insight/insight.h>
 #include <anon.h>
@@ -168,7 +167,7 @@ bool CTxMemPool::CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntr
             if (tx.vin[i].IsAnonInput()) {
                 continue;
             }
-            Optional<txiter> piter = GetIter(tx.vin[i].prevout.hash);
+            std::optional<txiter> piter = GetIter(tx.vin[i].prevout.hash);
             if (piter) {
                 staged_ancestors.insert(**piter);
                 if (staged_ancestors.size() + 1 > limitAncestorCount) {
@@ -1141,11 +1140,11 @@ const CTransaction* CTxMemPool::GetConflictTx(const COutPoint& prevout) const
     return it == mapNextTx.end() ? nullptr : it->second;
 }
 
-Optional<CTxMemPool::txiter> CTxMemPool::GetIter(const uint256& txid) const
+std::optional<CTxMemPool::txiter> CTxMemPool::GetIter(const uint256& txid) const
 {
     auto it = mapTx.find(txid);
     if (it != mapTx.end()) return it;
-    return Optional<txiter>{};
+    return {};
 }
 
 CTxMemPool::setEntries CTxMemPool::GetIterSet(const std::set<uint256>& hashes) const

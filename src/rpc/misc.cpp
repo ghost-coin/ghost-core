@@ -64,7 +64,7 @@ static RPCHelpMan validateaddress()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     std::string error_msg, s = request.params[0].get_str();
-    bool fBech32 = bech32::Decode(s).second.size() > 0;
+    bool fBech32 = bech32::Decode(s).data.size() > 0;
     CTxDestination dest = DecodeDestination(s, error_msg);
     bool isValid = IsValidDestination(dest);
     bool is_stake_only_version = false;
@@ -823,7 +823,7 @@ static RPCHelpMan runstrings()
 
     JSONRPCRequest newrequest(request.context);
     newrequest.strMethod = strMethod;
-    newrequest.fHelp = request.fHelp;
+    newrequest.mode = request.mode;
     newrequest.params = RPCConvertValues(strMethod, vArgs);
     newrequest.id = request.id;
     newrequest.authUser = request.authUser;

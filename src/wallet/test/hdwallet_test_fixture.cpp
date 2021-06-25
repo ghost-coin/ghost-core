@@ -35,7 +35,7 @@ HDWalletTestingSetup::HDWalletTestingSetup(const std::string &chainName):
 
 HDWalletTestingSetup::~HDWalletTestingSetup()
 {
-    RemoveWallet(pwalletMain, nullopt);
+    RemoveWallet(pwalletMain, std::nullopt);
     pwalletMain->Finalise();
     pwalletMain.reset();
 

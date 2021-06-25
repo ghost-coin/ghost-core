@@ -139,7 +139,7 @@ bool TorControlConnection::Connect(const std::string& tor_control_center, const 
 
     if (gArgs.IsArgSet("-lookuptorcontrolhost")) {
         std::string lookup_protocol = gArgs.GetArg("-lookuptorcontrolhost", "");
-        int port = -1;
+        uint16_t port{0};
         char str_port[6];
         std::string host;
         SplitHostPort(tor_control_center, port, host);
