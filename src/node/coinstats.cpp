@@ -15,6 +15,7 @@
 
 #include <map>
 
+// Database-independent metric indicating the UTXO set size
 static uint64_t GetBogoSize(const CScript& scriptPubKey)
 {
     return 32 /* txid */ +
@@ -34,9 +35,10 @@ static void ApplyHash(CCoinsStats& stats, CHashWriter& ss, const uint256& hash, 
     }
 
     ss << VARINT(it->first + 1);
+    ss << it->second.nType;
     switch (it->second.nType) {
         case OUTPUT_STANDARD:
-            ss << VARINT_MODE(it->second.out.nValue, VarIntMode::NONNEGATIVE_SIGNED);
+            ss << it->second.out.nValue;
             stats.nTransactionOutputs++;
             stats.nTotalAmount += it->second.out.nValue;
             break;
@@ -47,6 +49,7 @@ static void ApplyHash(CCoinsStats& stats, CHashWriter& ss, const uint256& hash, 
         default:
             break;
     }
+    ss << it->second.out.scriptPubKey;
 
     if (it == std::prev(outputs.end())) {
         ss << VARINT(0u);
@@ -63,7 +66,23 @@ static void ApplyHash(CCoinsStats& stats, MuHash3072& muhash, const uint256& has
     CDataStream ss(SER_DISK, PROTOCOL_VERSION);
     ss << outpoint;
     ss << static_cast<uint32_t>(coin.nHeight * 2 + coin.fCoinBase);
-    ss << coin.out;
+    //ss << coin.out;
+    ss << coin.nType;
+    switch (coin.nType) {
+        case OUTPUT_STANDARD:
+            ss << coin.out.nValue;
+            stats.nTransactionOutputs++;
+            stats.nTotalAmount += coin.out.nValue;
+            break;
+        case OUTPUT_CT:
+            ss.write((char*)coin.commitment.data, 33);
+            stats.nBlindTransactionOutputs++;
+            break;
+        default:
+            break;
+    }
+    ss << coin.out.scriptPubKey;
+
     muhash.Insert(MakeUCharSpan(ss));
 }
 
