@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
 {
     SeedInsecureRand();
     CHDWallet *pwallet = pwalletMain.get();
-    util::Ref context{m_node};
+    const auto context = util::AnyPtr<NodeContext>(&m_node);
     {
         int last_height = WITH_LOCK(cs_main, return ::ChainActive().Height());
         uint256 last_hash = WITH_LOCK(cs_main, return ::ChainActive().Tip()->GetBlockHash());

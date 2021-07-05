@@ -32,7 +32,6 @@
 #include <rpc/rpcutil.h>
 #include <util/system.h>
 #include <univalue.h>
-#include <util/ref.h>
 
 #include <stdint.h>
 #include <functional>
@@ -131,7 +130,7 @@ void WalletModel::updateReservedBalanceChanged(CAmount nValue)
 
 void WalletModel::startRescan()
 {
-    std::thread t(CallRPCVoid, "rescanblockchain 0", util::Ref{m_node}, m_wallet->getWalletName(), true);
+    std::thread t(CallRPCVoid, "rescanblockchain 0", util::AnyPtr<NodeContext>(&m_node), m_wallet->getWalletName(), true);
     t.detach();
 };
 
@@ -547,7 +546,7 @@ bool WalletModel::isHardwareLinkedWallet() const {
 bool WalletModel::tryCallRpc(const QString &sCommand, UniValue &rv, bool returnError) const
 {
     try {
-        util::Ref context{m_node};
+        auto context = util::AnyPtr<NodeContext>(&m_node);
         rv = CallRPC(sCommand.toStdString(), context, m_wallet->getWalletName(), true);
     } catch (UniValue& objError) {
         if (returnError) {

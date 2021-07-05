@@ -124,11 +124,8 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(interfaces::Chain& chain, std
 
 static void AddTx(benchmark::Bench& bench, const std::string from, const std::string to, const bool owned)
 {
-    gArgs.ForceSetArg("-acceptanontxn", "1"); // TODO: remove
-    gArgs.ForceSetArg("-acceptblindtxn", "1"); // TODO: remove
-
     TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
-    util::Ref context{test_setup.m_node};
+    const auto context = util::AnyPtr<NodeContext>(&test_setup.m_node);
 
     ECC_Start_Stealth();
     ECC_Start_Blinding();

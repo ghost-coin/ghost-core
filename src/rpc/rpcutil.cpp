@@ -11,13 +11,13 @@
 
 #include <support/events.h>
 
-void CallRPCVoid(std::string args, const util::Ref& context, std::string wallet, bool force_wallet)
+void CallRPCVoid(std::string args, const std::any& context, std::string wallet, bool force_wallet)
 {
     CallRPC(args, context, wallet, force_wallet);
     return;
 };
 
-void CallRPCVoidRv(std::string args, const util::Ref& context, std::string wallet, bool *passed, UniValue *rv, bool force_wallet)
+void CallRPCVoidRv(std::string args, const std::any& context, std::string wallet, bool *passed, UniValue *rv, bool force_wallet)
 {
     try {
         *rv = CallRPC(args, context, wallet, force_wallet);
@@ -32,7 +32,7 @@ void CallRPCVoidRv(std::string args, const util::Ref& context, std::string walle
     return;
 };
 
-UniValue CallRPC(std::string args, const util::Ref& context, std::string wallet, bool force_wallet)
+UniValue CallRPC(std::string args, const std::any& context, std::string wallet, bool force_wallet)
 {
     if (args.empty()) {
         throw std::runtime_error("No input.");

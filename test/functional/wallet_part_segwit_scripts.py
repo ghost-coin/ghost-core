@@ -70,7 +70,7 @@ class SegwitScriptsTest(ParticlTestFramework):
         script = nodes[2].decodescript(ms_p2shsegwit['redeemScript'])
         assert(ms_p2shsegwit['address'] == script['segwit']['p2sh-segwit'])
         script = nodes[2].decodescript(ms_btcnative['redeemScript'])
-        assert(ms_btcnative['address'] in script['segwit']['addresses'])
+        assert(ms_btcnative['address'] == script['segwit']['address'])
 
         nodes[1].sendtoaddress(ms_standard['address'], 4)
         nodes[1].sendtoaddress(ms_p2shsegwit['address'], 5)
