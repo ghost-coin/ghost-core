@@ -47,7 +47,12 @@ static RPCHelpMan smsgenable()
                 {
                     {"walletname", RPCArg::Type::STR, /* default */ "wallet.dat", "Active smsg wallet."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "result", "Result."},
+                        {RPCResult::Type::STR, "wallet", "The active wallet."}
+                    }
+                },
                 RPCExamples{
             HelpExampleCli("smsgenable", "\"wallet_name\"") +
             "\nAs a JSON-RPC call\n"
@@ -93,7 +98,7 @@ static RPCHelpMan smsgenable()
 #else
     std::vector<std::shared_ptr<CWallet>> empty;
     result.pushKV("result", (smsgModule.Enable(pwallet, empty) ? "Enabled secure messaging." : "Failed."));
- #endif
+#endif
 
     result.pushKV("wallet", wallet_name);
 
@@ -108,15 +113,20 @@ static RPCHelpMan smsgdisable()
                 "\nDisable secure messaging.\n",
                 {
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "result", "Result."}
+                    }
+                },
                 RPCExamples{
                     HelpExampleCli("smsgdisable", "")
                     + HelpExampleRpc("smsgdisable", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    if (!smsg::fSecMsgEnabled)
+    if (!smsg::fSecMsgEnabled) {
         throw JSONRPCError(RPC_MISC_ERROR, "Secure messaging is already disabled.");
+    }
 
     UniValue result(UniValue::VOBJ);
 
@@ -136,7 +146,9 @@ static RPCHelpMan smsgsetwallet()
                 {
                     {"walletname", RPCArg::Type::STR, /* default */ "wallet.dat", "Enable smsg on a specific wallet."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgsetwallet", "\"wallet_name\"")
                     + HelpExampleRpc("smsgsetwallet", "\"wallet_name\"")
@@ -192,7 +204,9 @@ static RPCHelpMan smsgoptions()
                     {"optname", RPCArg::Type::STR, /* default */ "", "Option name."},
                     {"value", RPCArg::Type::STR, /* default */ "", "New option value."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             "\nList possible options with descriptions.\n"
             + HelpExampleCli("smsgoptions", "list 1")
@@ -287,7 +301,9 @@ static RPCHelpMan smsglocalkeys()
                     {"optype", RPCArg::Type::STR, /* default */ "", "Add or remove +/-."},
                     {"address", RPCArg::Type::STR, /* default */ "", "Address to affect."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     "\nList local keys.\n"
                     + HelpExampleCli("smsglocalkeys", "")
@@ -493,7 +509,9 @@ static RPCHelpMan smsgscanchain()
     return RPCHelpMan{"smsgscanchain",
                 "\nLook for public keys in the block chain.\n",
                 {},
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgscanchain", "")
                     + HelpExampleRpc("smsgscanchain", "")
@@ -526,7 +544,9 @@ static RPCHelpMan smsgscanbuckets()
                         },
                         "options"},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgscanbuckets", "")
                     + HelpExampleRpc("smsgscanbuckets", "")
@@ -567,7 +587,9 @@ static RPCHelpMan smsgaddaddress()
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to add."},
                     {"pubkey", RPCArg::Type::STR, RPCArg::Optional::NO, "Public key for \"address\"."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgaddaddress", "\"address\" \"public_key\"")
                     + HelpExampleRpc("smsgaddaddress", "\"address\", \"public_key\"")
@@ -601,7 +623,9 @@ static RPCHelpMan smsgaddlocaladdress()
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to add."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgaddlocaladdress", "\"address\"")
                     + HelpExampleRpc("smsgaddlocaladdress", "\"address\"")
@@ -635,7 +659,8 @@ static RPCHelpMan smsgimportprivkey()
                     {"privkey", RPCArg::Type::STR, RPCArg::Optional::NO, "The private key to import (see dumpprivkey)."},
                     {"label", RPCArg::Type::STR, /* default */ "", "An optional label."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::NONE, "", "None"},
                 RPCExamples{
             "\nDump a private key\n"
             + HelpExampleCli("dumpprivkey", "\"myaddress\"") +
@@ -996,7 +1021,9 @@ static RPCHelpMan smsgsendanon()
                     {"address_to", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to send to."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "Message to send."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -1368,7 +1395,9 @@ static RPCHelpMan smsgbuckets()
                 {
                     {"mode", RPCArg::Type::STR, /* default */ "stats", "stats|total|dump. \"dump\" will remove all buckets."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgbuckets", "")
                     + HelpExampleRpc("smsgbuckets", "")
@@ -1506,7 +1535,9 @@ static RPCHelpMan smsgview()
                     {"arg3", RPCArg::Type::STR, /* default */ "", "-from yyyy-mm-dd"},
                     {"arg4", RPCArg::Type::STR, /* default */ "", "-to yyyy-mm-dd"},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgview", "")
                     + HelpExampleRpc("smsgview", "")
@@ -2013,7 +2044,8 @@ static RPCHelpMan smsgpurge()
                 {
                     {"msgid", RPCArg::Type::STR_HEX, /* default */ "", "Id of the message to purge."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::NONE, "", "None"},
                 RPCExamples{
             HelpExampleCli("smsgpurge", "\"msgid\"") +
             "\nAs a JSON-RPC call\n"
@@ -2051,8 +2083,11 @@ static RPCHelpMan smsggetfeerate()
                 {
                     {"height", RPCArg::Type::NUM, /* default */ "", "Chain height to get fee rate for, pass a negative number for more detailed output."},
                 },
-                RPCResult{
-                    RPCResult::Type::NUM, "fee_rate", "Fee rate in satoshis"
+                {
+                    RPCResult{"Default", RPCResult::Type::NUM, "", "Fee rate in satoshis"},
+                    RPCResult{"With height", RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::NUM, "currentrate", "Fee rate in satoshis"}
+                    }}
                 },
                 RPCExamples{
             HelpExampleCli("smsggetfeerate", "1000") +
@@ -2112,7 +2147,7 @@ static RPCHelpMan smsggetdifficulty()
                     {"time", RPCArg::Type::NUM, /* default */ "", "Chain time to get smsg difficulty for."},
                 },
                 RPCResult{
-                    RPCResult::Type::STR, "difficulty", "Current smsg difficulty"
+                    RPCResult::Type::NUM, "difficulty", "Current smsg difficulty"
                 },
                 RPCExamples{
             HelpExampleCli("smsggetdifficulty", "1552688834") +
@@ -2321,7 +2356,8 @@ static RPCHelpMan smsgdebug()
             {"command", RPCArg::Type::STR, /* default */ "", "\"clearbanned\",\"dumpids\",\"dumpfundingtxids\"."},
             {"arg1", RPCArg::Type::STR, /* default */ "", ""},
         },
-        RPCResults{
+        RPCResult{
+            RPCResult::Type::ANY, "", ""
         },
         RPCExamples{
     HelpExampleCli("smsgdebug", "") +

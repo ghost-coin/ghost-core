@@ -89,7 +89,9 @@ static RPCHelpMan deviceloadmnemonic()
                     {"wordcount", RPCArg::Type::NUM, /* default */ "12", "Word count of mnemonic."},
                     {"pinprotection", RPCArg::Type::BOOL, /* default */ "false", "Make the new account the default account for the wallet."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             HelpExampleCli("deviceloadmnemonic", "")
             + HelpExampleRpc("deviceloadmnemonic", "")
@@ -127,7 +129,9 @@ static RPCHelpMan devicebackup()
                 "\nStart device backup mnemonic generator.\n",
                 {
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             HelpExampleCli("devicebackup", "")
             + HelpExampleRpc("devicebackup", "")
@@ -153,22 +157,24 @@ static RPCHelpMan devicebackup()
 static RPCHelpMan listdevices()
 {
     return RPCHelpMan{"listdevices",
-                "\nList connected hardware devices.\n",
-                {
-                },
-                RPCResult{
-                    RPCResult::Type::OBJ, "", "",  {
+            "\nList connected hardware devices.\n",
+            {
+            },
+            RPCResult{RPCResult::Type::ARR, "", "",
+            {
+                {RPCResult::Type::OBJ, "", "",
+                    {
                         {RPCResult::Type::STR, "vendor", "USB vendor string"},
                         {RPCResult::Type::STR, "product", "USB product string"},
                         {RPCResult::Type::STR, "firmwareversion", "Detected firmware version of device, if possible"},
-                    },
-                },
-                RPCExamples{
-            HelpExampleCli("listdevices", "") +
-            "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("listdevices", "")
-                },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+                    }},
+            }},
+            RPCExamples{
+        HelpExampleCli("listdevices", "") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("listdevices", "")
+            },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
     ListAllDevices(vDevices);
@@ -295,8 +301,10 @@ static RPCHelpMan getdeviceinfo()
                 "\nGet information from connected hardware device.\n",
                 {
                 },
-                RPCResults{
-                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "error", "If failed."},
+                }},
                 RPCExamples{
             HelpExampleCli("getdeviceinfo", "") +
             "\nAs a JSON-RPC call\n"

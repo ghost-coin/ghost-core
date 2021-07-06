@@ -922,7 +922,7 @@ static RPCHelpMan extkey()
         {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
         {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
     },
-    RPCResult{RPCResult::Type::NONE, "", ""},
+    RPCResult{RPCResult::Type::ANY, "", ""},
     RPCExamples{""},
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -1815,7 +1815,9 @@ static RPCHelpMan extkeyimportmaster()
                         },
                         "options"},
                 },
-            RPCResults{},
+            RPCResult{
+                RPCResult::Type::ANY, "", ""
+            },
             RPCExamples{
         HelpExampleCli("extkeyimportmaster", "-stdin -stdin false \"label_master\" \"label_account\"")
         + HelpExampleCli("extkeyimportmaster", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
@@ -1857,7 +1859,9 @@ static RPCHelpMan extkeygenesisimport()
                         },
                         "options"},
                 },
-            RPCResults{},
+            RPCResult{
+                RPCResult::Type::ANY, "", ""
+            },
             RPCExamples{
         HelpExampleCli("extkeygenesisimport", "-stdin -stdin false \"label_master\" \"label_account\"")
         + HelpExampleCli("extkeygenesisimport", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
@@ -1883,7 +1887,9 @@ static RPCHelpMan extkeyaltversion()
                 {
                     {"ext_key", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -2074,8 +2080,11 @@ static RPCHelpMan importstealthaddress()
                     {"bech32", RPCArg::Type::BOOL, /* default */ "false", "Use Bech32 encoding."},
                 },
                 RPCResult{
-                    RPCResult::Type::STR, "address", "The imported stealth address"
-                },
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "result", "Result."},
+                        {RPCResult::Type::STR, "stealth_address", "The imported stealth address"},
+                        {RPCResult::Type::BOOL, "watchonly", "Watchonly."},
+                }},
                 RPCExamples{
             HelpExampleCli("importstealthaddress", "scan_secret spend_secret \"label\" 3 \"0b101\"") +
             HelpExampleRpc("importstealthaddress", "scan_secret, spend_secret, \"label\", 3, \"0b101\"")
@@ -2503,7 +2512,9 @@ static RPCHelpMan reservebalance()
                     {"enabled", RPCArg::Type::BOOL, /* default */ "false", "Turn balance reserve on or off, leave out to display current reserve."},
                     {"amount", RPCArg::Type::AMOUNT, /* default */ "", "Amount of coin to reserve."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             HelpExampleCli("reservebalance", "true 1000") +
             "\nAs a JSON-RPC call\n"
@@ -2842,7 +2853,9 @@ static RPCHelpMan clearwallettransactions()
                 {
                     {"remove_all", RPCArg::Type::BOOL, /* default */ "false", "Remove all transactions."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             HelpExampleCli("clearwallettransactions", "") +
             "\nAs a JSON-RPC call\n"
@@ -3531,7 +3544,9 @@ static RPCHelpMan filtertransactions()
                         },
                         "options"},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             "\nList only when category is 'stake'\n"
             + HelpExampleCli("filtertransactions", "\"{\\\"category\\\":\\\"stake\\\"}\"") +
@@ -3879,7 +3894,9 @@ static RPCHelpMan filteraddresses()
                     {"match_owned", RPCArg::Type::NUM, /* default */ "0", "0: off, 1: owned, 2: non-owned"},
                     {"show_path", RPCArg::Type::BOOL, /* default */ "", ""},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -4058,7 +4075,9 @@ static RPCHelpMan manageaddressbook()
                     {"label", RPCArg::Type::STR, /* default */ "", "Optional label."},
                     {"purpose", RPCArg::Type::STR, /* default */ "", "Optional purpose label."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -5509,8 +5528,11 @@ static RPCHelpMan sendtypeto()
                         },
                     },
                 },
-                RPCResult{
-                    RPCResult::Type::STR_HEX, "", "The transaction id",
+                {
+                    RPCResult{"Default", RPCResult::Type::STR_HEX, "", "The transaction id"},
+                    RPCResult{"With certain options", RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR_HEX, "txid", "The transaction id"}
+                    }}
                 },
                 RPCExamples{
             HelpExampleCli("sendtypeto", "anon part \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\"")
@@ -6264,7 +6286,9 @@ static RPCHelpMan debugwallet()
                         },
                         "options"},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -6821,7 +6845,9 @@ static RPCHelpMan walletsettings()
                         },
                     "setting_value"},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             "Set coldstaking changeaddress extended public key:\n"
             + HelpExampleCli("walletsettings", "changeaddress \"{\\\"coldstakingaddress\\\":\\\"extpubkey\\\"}\"") + "\n"
@@ -7324,7 +7350,13 @@ static RPCHelpMan setvote()
                     {"height_start", RPCArg::Type::NUM, RPCArg::Optional::NO, "Start voting from this block height."},
                     {"height_end", RPCArg::Type::NUM, RPCArg::Optional::NO, "Stop voting after this block height."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "result", "Result."},
+                        {RPCResult::Type::ANY, "from_height", "Block from (including)."},
+                        {RPCResult::Type::ANY, "to_height", "Block to (including)."}
+                    }
+                },
                 RPCExamples{
             HelpExampleCli("setvote", "1 1 1000 2000") +
             "\nAs a JSON-RPC call\n"
@@ -9159,7 +9191,13 @@ static RPCHelpMan rewindchain()
                     {"height", RPCArg::Type::NUM, /* default */ "1", "Chain height to rewind to."},
                     //{"removeheaders", RPCArg::Type::BOOL, /* default */ "false", "Remove block headers too."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::NUM, "to_height", "Height rewound to."},
+                        {RPCResult::Type::NUM, "nBlocks", "Blocks removed."},
+                        {RPCResult::Type::STR, "error", "Error, if failed."}
+                    }
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -9214,7 +9252,9 @@ static RPCHelpMan pruneorphanedblocks()
                 {
                     {"testonly", RPCArg::Type::BOOL, /* default */ "true", "Apply changes if false."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             HelpExampleCli("pruneorphanedblocks", "\"myhex\"") +
             "\nAs a JSON-RPC call\n"

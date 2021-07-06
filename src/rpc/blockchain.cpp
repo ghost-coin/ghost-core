@@ -1134,23 +1134,24 @@ static RPCHelpMan gettxout()
             {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "vout number"},
             {"include_mempool", RPCArg::Type::BOOL, /* default */ "true", "Whether to include the mempool. Note that an unspent output that is spent in the mempool won't appear."},
         },
-        RPCResult{
-            RPCResult::Type::OBJ, "", "",
-            {
+        {
+            RPCResult{"If the UTXO was not found", RPCResult::Type::NONE, "", ""},
+            RPCResult{"Otherwise", RPCResult::Type::OBJ, "", "", {
                 {RPCResult::Type::STR_HEX, "bestblock", "The hash of the block at the tip of the chain"},
                 {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
                 {RPCResult::Type::STR_AMOUNT, "value", "The transaction value in " + CURRENCY_UNIT},
                 {RPCResult::Type::OBJ, "scriptPubKey", "", {
-                    {RPCResult::Type::STR_HEX, "asm", ""},
+                    {RPCResult::Type::STR, "asm", ""},
                     {RPCResult::Type::STR_HEX, "hex", ""},
-                    {RPCResult::Type::NUM, "reqSigs", "Number of required signatures"},
-                    {RPCResult::Type::STR_HEX, "type", "The type, eg pubkeyhash"},
+                    {RPCResult::Type::NUM, "reqSigs", /* optional */ true, "(DEPRECATED, returned only if config option -deprecatedrpc=addresses is passed) Number of required signatures"},
+                    {RPCResult::Type::STR, "type", "The type, eg pubkeyhash"},
                     {RPCResult::Type::STR, "address", /* optional */ true, "particl address (only if a well-defined address exists)"},
                     {RPCResult::Type::ARR, "addresses", /* optional */ true, "(DEPRECATED, returned only if config option -deprecatedrpc=addresses is passed) Array of particl addresses",
                         {{RPCResult::Type::STR, "address", "particl address"}}},
                 }},
                 {RPCResult::Type::BOOL, "coinbase", "Coinbase or not"},
             }},
+        },
         RPCExamples{
             "\nGet unspent transactions\n"
             + HelpExampleCli("listunspent", "") +

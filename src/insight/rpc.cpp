@@ -199,17 +199,22 @@ return RPCHelpMan{"getaddressutxos",
                     },
                     {"chainInfo", RPCArg::Type::BOOL, /* default */ "false", "Include chain info in results, only applies if start and end specified."},
                 },
-                RPCResult{
-                    RPCResult::Type::ARR, "", "", {
-                        {RPCResult::Type::OBJ, "", "", {
-                            {RPCResult::Type::STR, "address", "The base58check encoded address"},
-                            {RPCResult::Type::STR_HEX, "txid", "The output txid"},
-                            {RPCResult::Type::NUM, "height", "The block height"},
-                            {RPCResult::Type::NUM, "outputIndex", "The output index"},
-                            {RPCResult::Type::STR_HEX, "script", "The script hex encoded"},
-                            {RPCResult::Type::NUM, "satoshis", "The number of satoshis of the output"},
-                        }}
-                    }
+                {
+                    RPCResult{"Default",
+                        RPCResult::Type::ARR, "", "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::STR, "address", "The base58check encoded address"},
+                                {RPCResult::Type::STR_HEX, "txid", "The output txid"},
+                                {RPCResult::Type::NUM, "height", "The block height"},
+                                {RPCResult::Type::NUM, "outputIndex", "The output index"},
+                                {RPCResult::Type::STR_HEX, "script", "The script hex encoded"},
+                                {RPCResult::Type::NUM, "satoshis", "The number of satoshis of the output"},
+                            }}
+                        }
+                    },
+                    RPCResult{"With chainInfo", RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR_HEX, "hash", "Start hash"}
+                    }}
                 },
                 RPCExamples{
             HelpExampleCli("getaddressutxos", "'{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}'") +
@@ -291,15 +296,20 @@ static RPCHelpMan getaddressdeltas()
                     {"end", RPCArg::Type::NUM, /* default */ "0", "The end block height."},
                     {"chainInfo", RPCArg::Type::BOOL, /* default */ "false", "Include chain info in results, only applies if start and end specified."},
                 },
-                RPCResult{
-                    RPCResult::Type::ARR, "", "", {
-                        {RPCResult::Type::OBJ, "", "", {
-                            {RPCResult::Type::NUM, "satoshis", "The difference of satoshis"},
-                            {RPCResult::Type::STR_HEX, "txid", "The related txid"},
-                            {RPCResult::Type::NUM, "index", "The block height"},
-                            {RPCResult::Type::STR, "address", "The base58check encoded address"},
-                        }}
-                    }
+                {
+                    RPCResult{"Default",
+                        RPCResult::Type::ARR, "", "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::NUM, "satoshis", "The difference of satoshis"},
+                                {RPCResult::Type::STR_HEX, "txid", "The related txid"},
+                                {RPCResult::Type::NUM, "index", "The block height"},
+                                {RPCResult::Type::STR, "address", "The base58check encoded address"},
+                            }}
+                        }
+                    },
+                    RPCResult{"With chainInfo", RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR_HEX, "hash", "Start hash"}
+                    }}
                 },
                 RPCExamples{
             HelpExampleCli("getaddressdeltas", "'{\"addresses\": [\"Pb7FLL3DyaAVP2eGfRiEkj4U8ZJ3RHLY9g\"]}'") +
@@ -759,7 +769,9 @@ return RPCHelpMan{"getblockdeltas",
         {
             {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash"},
         },
-        RPCResults{},
+        RPCResult{
+            RPCResult::Type::ANY, "", ""
+        },
         RPCExamples{
         HelpExampleCli("getblockdeltas", "\"fd6c0e5f7444a9e09a5fa1652db73d5b8628aeabe162529a5356be700509aa80\"") +
         "\nAs a JSON-RPC call\n"
@@ -1152,7 +1164,13 @@ return RPCHelpMan{"getblockbalances",
                 },
                 "options"},
         },
-        RPCResults{},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                {RPCResult::Type::STR_AMOUNT, "plain", "Total in plain balance."},
+                {RPCResult::Type::STR_AMOUNT, "blind", "Total in blind balance."},
+                {RPCResult::Type::STR_AMOUNT, "anon", "Total in anon balance."}
+            }
+        },
         RPCExamples{
         HelpExampleCli("getblockbalances", "\"fd6c0e5f7444a9e09a5fa1652db73d5b8628aeabe162529a5356be700509aa80\"") +
         "\nAs a JSON-RPC call\n"

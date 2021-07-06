@@ -64,7 +64,13 @@ static RPCHelpMan getnewzmqserverkeypair()
     return RPCHelpMan{"getnewzmqserverkeypair",
                 "\nReturns a newly generated server keypair for use with zmq.\n",
                 {},
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "server_secret_key", ""},
+                        {RPCResult::Type::STR, "server_public_key", ""},
+                        {RPCResult::Type::STR_HEX, "server_secret_key_b64", ""}
+                    }
+                },
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {

@@ -47,7 +47,7 @@ static RPCHelpMan mnemonicrpc()
         {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
         {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
     },
-    RPCResult{RPCResult::Type::NONE, "", ""},
+    RPCResult{RPCResult::Type::ANY, "", ""},
     RPCExamples{
         HelpExampleCli("mnemonic", "\"new\" \"my pass phrase\" french 64 true") +
         HelpExampleRpc("smsgpurge", "\"new\", \"my pass phrase\", french, 64, true")
