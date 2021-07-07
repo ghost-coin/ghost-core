@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     ScriptError serror = SCRIPT_ERR_OK;
     int nFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
     CScript scriptSig;
-    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount), &serror));
+    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
 
     txn.nVersion = PARTICL_TXN_VERSION;
@@ -603,12 +603,12 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     BOOST_CHECK(!txn.IsCoinStake());
 
     // This should fail anyway as the txn changed
-    BOOST_CHECK(!VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount), &serror));
+    BOOST_CHECK(!VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
     BOOST_CHECK(!ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataC));
     BOOST_CHECK(ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
 
-    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataB.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount), &serror));
+    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataB.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
 
     CScript script_h160 = CScript()

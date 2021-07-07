@@ -572,7 +572,7 @@ public:
         bech32Prefixes[STAKE_ONLY_PKADDR].assign    ("pcs",(const char*)"pcs"+3);
 
         bech32_hrp = "pw";
-        vFixedSeeds = std::vector<SeedSpec6>(std::begin(pnSeed6_main), std::end(pnSeed6_main));
+        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -753,7 +753,7 @@ public:
 
         bech32_hrp = "tpw";
 
-        vFixedSeeds = std::vector<SeedSpec6>(std::begin(pnSeed6_test), std::end(pnSeed6_test));
+        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -996,7 +996,7 @@ public:
         m_assumeutxo_data = MapAssumeutxo{
             {
                 110,
-                {uint256S("0x63acf3c028631a56c6cd51c3bf2aa0cbd45548b75efa01fcbacd6ad75a83a327"), 110},
+                {uint256S("0xd98b6865564c85700442c2df34cf379d97ac4c157b3eb25780ca916183620376"), 110},
             },
             {
                 210,

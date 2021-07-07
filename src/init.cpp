@@ -16,7 +16,6 @@
 #include <chain.h>
 #include <chainparams.h>
 #include <compat/sanity.h>
-#include <consensus/validation.h>
 #include <fs.h>
 #include <hash.h>
 #include <httprpc.h>
@@ -32,6 +31,7 @@
 #include <net_permissions.h>
 #include <net_processing.h>
 #include <netbase.h>
+#include <node/blockstorage.h>
 #include <node/context.h>
 #include <node/ui_interface.h>
 #include <policy/feerate.h>
@@ -61,7 +61,6 @@
 #include <util/threadnames.h>
 #include <util/translation.h>
 #include <validation.h>
-
 #include <validationinterface.h>
 #include <blind.h>
 #include <smsg/smessage.h>
@@ -107,7 +106,6 @@
 
 static const bool DEFAULT_PROXYRANDOMIZE = true;
 static const bool DEFAULT_REST_ENABLE = false;
-static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -245,8 +243,6 @@ bool ShutdownRequestedMainThread()
 
 static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
 
-static std::thread g_load_block;
-
 void Interrupt(NodeContext& node)
 {
     InterruptHTTPServer();
@@ -314,7 +310,7 @@ void Shutdown(NodeContext& node)
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue, scheduler and load block thread.
     if (node.scheduler) node.scheduler->stop();
-    if (g_load_block.joinable()) g_load_block.join();
+    if (node.chainman && node.chainman->m_load_block.joinable()) node.chainman->m_load_block.join();
     StopScriptCheckWorkerThreads();
 
     // After the threads that potentially access these pointers have been stopped,
@@ -780,20 +776,6 @@ static void BlockNotifyGenesisWait(const CBlockIndex* pBlockIndex)
     }
 }
 
-struct CImportingNow
-{
-    CImportingNow() {
-        assert(fImporting == false);
-        fImporting = true;
-    }
-
-    ~CImportingNow() {
-        assert(fImporting == true);
-        fImporting = false;
-    }
-};
-
-
 // If we're using -prune with -reindex, then delete block files that will be ignored by the
 // reindex.  Since reindexing works by starting at block file 0 and looping until a blockfile
 // is missing, do the same here to delete any later block files after a gap.  Also delete all
@@ -846,79 +828,6 @@ static void StartupNotify(const ArgsManager& args)
 }
 #endif
 
-static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFiles, const ArgsManager& args)
-{
-    const CChainParams& chainparams = Params();
-    ScheduleBatchPriority();
-
-    fBusyImporting = true;
-    {
-    CImportingNow imp;
-
-    // -reindex
-    if (fReindex) {
-        int nFile = 0;
-        while (true) {
-            FlatFilePos pos(nFile, 0);
-            if (!fs::exists(GetBlockPosFilename(pos)))
-                break; // No block files left to reindex
-            FILE *file = OpenBlockFile(pos, true);
-            if (!file)
-                break; // This error is logged in OpenBlockFile
-            LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
-            ::ChainstateActive().LoadExternalBlockFile(chainparams, file, &pos);
-            if (ShutdownRequested()) {
-                LogPrintf("Shutdown requested. Exit %s\n", __func__);
-                return;
-            }
-            nFile++;
-        }
-        pblocktree->WriteReindexing(false);
-        fReindex = false;
-        LogPrintf("Reindexing finished\n");
-        // To avoid ending up in a situation without genesis block, re-try initializing (no-op if reindexing worked):
-        ::ChainstateActive().LoadGenesisBlock(chainparams);
-    }
-
-    // -loadblock=
-    for (const fs::path& path : vImportFiles) {
-        FILE *file = fsbridge::fopen(path, "rb");
-        if (file) {
-            LogPrintf("Importing blocks file %s...\n", path.string());
-            ::ChainstateActive().LoadExternalBlockFile(chainparams, file);
-            if (ShutdownRequested()) {
-                LogPrintf("Shutdown requested. Exit %s\n", __func__);
-                return;
-            }
-        } else {
-            LogPrintf("Warning: Could not open blocks file %s\n", path.string());
-        }
-    }
-
-    // scan for better chains in the block chain database, that are not yet connected in the active best chain
-
-    // We can't hold cs_main during ActivateBestChain even though we're accessing
-    // the chainman unique_ptrs since ABC requires us not to be holding cs_main, so retrieve
-    // the relevant pointers before the ABC call.
-    for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
-        BlockValidationState state;
-        if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
-            LogPrintf("Failed to connect best block (%s)\n", state.ToString());
-            //StartShutdown();
-            //return;
-        }
-    }
-
-    if (args.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
-        LogPrintf("Stopping after block import\n");
-        StartShutdown();
-        return;
-    }
-    } // End scope of CImportingNow
-    chainman.ActiveChainstate().LoadMempool(args);
-    fBusyImporting = false;
-}
-
 /** Sanity checks
  *  Ensure that Bitcoin is running in a usable environment with all
  *  necessary library support.
@@ -943,7 +852,7 @@ static bool InitSanityCheck()
     return true;
 }
 
-static bool AppInitServers(const std::any& context, NodeContext& node)
+static bool AppInitServers(NodeContext& node)
 {
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
@@ -952,9 +861,9 @@ static bool AppInitServers(const std::any& context, NodeContext& node)
         return false;
     StartRPC();
     node.rpc_interruption_point = RpcInterruptionPoint;
-    if (!StartHTTPRPC(context))
+    if (!StartHTTPRPC(&node))
         return false;
-    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST(context);
+    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST(&node);
     StartHTTPServer();
     return true;
 }
@@ -1462,7 +1371,7 @@ bool AppInitInterfaces(NodeContext& node)
     return true;
 }
 
-bool AppInitMain(const std::any& context, NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
+bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 {
     const ArgsManager& args = *Assert(node.args);
     const CChainParams& chainparams = Params();
@@ -1572,7 +1481,7 @@ bool AppInitMain(const std::any& context, NodeContext& node, interfaces::BlockAn
      */
     if (args.GetBoolArg("-server", false)) {
         uiInterface.InitMessage_connect(SetRPCWarmupStatus);
-        if (!AppInitServers(context, node))
+        if (!AppInitServers(node))
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
 
@@ -2138,7 +2047,7 @@ bool AppInitMain(const std::any& context, NodeContext& node, interfaces::BlockAn
         vImportFiles.push_back(strFile);
     }
 
-    g_load_block = std::thread(&TraceThread<std::function<void()>>, "loadblk", [=, &chainman, &args] {
+    chainman.m_load_block = std::thread(&TraceThread<std::function<void()>>, "loadblk", [=, &chainman, &args] {
         ThreadImport(chainman, vImportFiles, args);
     });
 

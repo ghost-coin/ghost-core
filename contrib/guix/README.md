@@ -131,7 +131,7 @@ export JOBS=1 ADDITIONAL_GUIX_COMMON_FLAGS='--max-jobs=8'
 From the top of a clean Bitcoin Core repository:
 
 ```sh
-./contrib/guix/guix-build.sh
+./contrib/guix/guix-build
 ```
 
 After the build finishes successfully (check the status code please), compare
@@ -295,7 +295,7 @@ rebuild _just_ this derivation in a single-threaded fashion:
 $ guix build --cores=1 /gnu/store/...-foo-3.6.12.drv
 ```
 
-If the single-threaded rebuild stil did not succeed, you may need to dig deeper.
+If the single-threaded rebuild did not succeed, you may need to dig deeper.
 You may view `foo`'s build logs in `less` like so (please replace paths with the
 path you see in the build failure output):
 

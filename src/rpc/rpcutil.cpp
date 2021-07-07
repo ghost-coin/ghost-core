@@ -71,7 +71,8 @@ UniValue CallRPC(std::string args, const std::any& context, std::string wallet, 
     std::string strMethod = vArgs[0];
     vArgs.erase(vArgs.begin());
 
-    JSONRPCRequest request(context);
+    JSONRPCRequest request;
+    request.context = context;
     request.strMethod = strMethod;
     request.params = RPCConvertValues(strMethod, vArgs);
     //request.mode = EXECUTE;

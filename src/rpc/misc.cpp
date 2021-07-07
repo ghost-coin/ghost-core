@@ -821,7 +821,8 @@ static RPCHelpMan runstrings()
         vArgs.push_back(request.params[i].get_str());
     }
 
-    JSONRPCRequest newrequest(request.context);
+    JSONRPCRequest newrequest;
+    newrequest.context = request.context;
     newrequest.strMethod = strMethod;
     newrequest.mode = request.mode;
     newrequest.params = RPCConvertValues(strMethod, vArgs);

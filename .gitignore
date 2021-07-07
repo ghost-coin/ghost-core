@@ -159,6 +159,8 @@ osx_volname
 dist/
 *.background.tiff
 
+/guix-build-*
+
 sanitizer-output
 ci/scratch
 *~

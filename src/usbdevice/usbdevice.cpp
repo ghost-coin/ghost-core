@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 The Particl Core developers
+// Copyright (c) 2018-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -194,7 +194,7 @@ CUSBDevice *SelectDevice(std::vector<std::unique_ptr<CUSBDevice> > &vDevices, st
 
 DeviceSignatureCreator::DeviceSignatureCreator(CUSBDevice *pDeviceIn, const CMutableTransaction *txToIn,
     unsigned int nInIn, const std::vector<uint8_t> &amountIn, int nHashTypeIn)
-    : BaseSignatureCreator(), txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn), pDevice(pDeviceIn)
+    : BaseSignatureCreator(), txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn, MissingDataBehavior::FAIL), pDevice(pDeviceIn)
 {
 };
 

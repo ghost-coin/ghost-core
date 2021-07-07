@@ -19,11 +19,12 @@ void RegisterMiscRPCCommands(CRPCTable &tableRPC);
 void RegisterMiningRPCCommands(CRPCTable &tableRPC);
 /** Register raw transaction RPC commands */
 void RegisterRawTransactionRPCCommands(CRPCTable &tableRPC);
+/** Register raw transaction RPC commands */
+void RegisterSignerRPCCommands(CRPCTable &tableRPC);
 /** Register mnemonic RPC commands */
 void RegisterMnemonicRPCCommands(CRPCTable &tableRPC);
 /** Register anon RPC commands */
 void RegisterAnonRPCCommands(CRPCTable &tableRPC);
-
 
 static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
 {
@@ -32,6 +33,9 @@ static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
     RegisterMiscRPCCommands(t);
     RegisterMiningRPCCommands(t);
     RegisterRawTransactionRPCCommands(t);
+#ifdef ENABLE_EXTERNAL_SIGNER
+    RegisterSignerRPCCommands(t);
+#endif // ENABLE_EXTERNAL_SIGNER
     RegisterMnemonicRPCCommands(t);
     RegisterAnonRPCCommands(t);
 }

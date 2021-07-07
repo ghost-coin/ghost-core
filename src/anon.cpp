@@ -20,6 +20,7 @@
 #include <consensus/validation.h>
 #include <chainparams.h>
 #include <txmempool.h>
+#include <node/blockstorage.h>
 
 
 bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTxMemPool *pmempool, TxValidationState &state)

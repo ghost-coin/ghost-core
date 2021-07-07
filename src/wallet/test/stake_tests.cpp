@@ -15,7 +15,7 @@
 #include <rpc/rpcutil.h>
 #include <util/string.h>
 #include <util/translation.h>
-
+#include <node/blockstorage.h>
 #include <consensus/validation.h>
 
 #include <chrono>

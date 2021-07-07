@@ -12,6 +12,7 @@
 #include <smsg/db.h>
 #include <wallet/ismine.h>
 #include <util/strencodings.h>
+#include <node/blockstorage.h>
 #include <core_io.h>
 #include <base58.h>
 #include <rpc/util.h>

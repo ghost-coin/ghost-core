@@ -6,12 +6,11 @@
 
 #include <chain.h>
 #include <chainparams.h>
+#include <node/blockstorage.h>
 #include <rpc/server.h>
 #include <streams.h>
 #include <util/system.h>
-#include <util/strencodings.h>
-#include <smsg/smessage.h>
-#include <validation.h>
+#include <validation.h> // For cs_main
 #include <zmq/zmqutil.h>
 
 #include <zmq.h>
@@ -22,6 +21,10 @@
 #include <optional>
 #include <string>
 #include <utility>
+
+// Particl
+#include <util/strencodings.h>
+#include <smsg/smessage.h>
 
 static std::multimap<std::string, CZMQAbstractPublishNotifier*> mapPublishNotifiers;
 

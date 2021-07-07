@@ -113,7 +113,8 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         strHTML += "<b>" + tr("Transaction ID") + ":</b> " + QString::fromStdString(wtx.irtx->first.ToString()) + "<br>";
 
         auto context = util::AnyPtr<NodeContext>(&node);
-        JSONRPCRequest request(context);
+        JSONRPCRequest request;
+        request.context = context;
         QByteArray encodedName = QUrl::toPercentEncoding(QString::fromStdString(wallet.getWalletName()));
         request.URI = "/wallet/" + std::string(encodedName.constData(), encodedName.length());
         //request.mode = EXECUTE;

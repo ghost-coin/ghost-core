@@ -1180,6 +1180,15 @@ inline void SetAmount(std::vector<uint8_t> &v, int64_t amount)
     amount = (int64_t) htole64((uint64_t)amount);
     memcpy(v.data(), &amount, 8);
 };
+
+inline std::vector<uint8_t> VectorFromAmount(int64_t amount)
+{
+    std::vector<uint8_t> v(8);
+    amount = (int64_t) htole64((uint64_t)amount);
+    memcpy(v.data(), &amount, 8);
+    return v;
+};
+
 } // namespace part
 
 #endif // BITCOIN_SERIALIZE_H

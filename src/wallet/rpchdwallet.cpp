@@ -16,6 +16,7 @@
 #include <rpc/util.h>
 #include <rpc/blockchain.h>
 #include <node/context.h>
+#include <node/blockstorage.h>
 #include <rpc/rawtransaction_util.h>
 #include <script/sign.h>
 #include <script/descriptor.h>
@@ -9091,7 +9092,7 @@ static RPCHelpMan verifyrawtransaction()
         }
 
         ScriptError serror = SCRIPT_ERR_OK;
-        if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, vchAmount), &serror)) {
+        if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, vchAmount, MissingDataBehavior::FAIL), &serror)) {
             TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
         } else {
             num_valid++;

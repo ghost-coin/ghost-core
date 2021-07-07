@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(signature_test)
     BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(&txn2, 0, vchAmount, SIGHASH_ALL), script, sigdata));
 
     ScriptError serror = SCRIPT_ERR_OK;
-    BOOST_CHECK(VerifyScript(txn2.vin[0].scriptSig, out1->scriptPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txn2, 0, vchAmount), &serror));
+    BOOST_CHECK(VerifyScript(txn2.vin[0].scriptSig, out1->scriptPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txn2, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
     BOOST_CHECK(serror == SCRIPT_ERR_OK);
 }
 

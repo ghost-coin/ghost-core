@@ -141,7 +141,10 @@ bool CheckSignetBlockSolution(const CBlock& block, const Consensus::Params& cons
 
     std::vector<uint8_t> vchAmount(8);
     part::SetAmount(vchAmount, signet_txs->m_to_spend.vout[0].nValue);
-    TransactionSignatureChecker sigcheck(&signet_txs->m_to_sign, /*nIn=*/ 0, /*amount=*/ vchAmount);
+    PrecomputedTransactionData txdata;
+    CTxOutSign txoSign(vchAmount, signet_txs->m_to_spend.vout[0].scriptPubKey);
+    txdata.Init(signet_txs->m_to_sign, {txoSign});
+    TransactionSignatureChecker sigcheck(&signet_txs->m_to_sign, /*nIn=*/ 0, /*amount=*/ vchAmount, txdata, MissingDataBehavior::ASSERT_FAIL);
 
     if (!VerifyScript(scriptSig, signet_txs->m_to_spend.vout[0].scriptPubKey, &witness, BLOCK_SCRIPT_VERIFY_FLAGS, sigcheck)) {
         LogPrint(BCLog::VALIDATION, "CheckSignetBlockSolution: Errors in block (block solution invalid)\n");

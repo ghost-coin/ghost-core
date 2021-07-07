@@ -10,6 +10,7 @@
 #include <insight/insight.h>
 #include <insight/csindex.h>
 #include <index/txindex.h>
+#include <node/blockstorage.h>
 #include <validation.h>
 #include <txmempool.h>
 #include <key_io.h>

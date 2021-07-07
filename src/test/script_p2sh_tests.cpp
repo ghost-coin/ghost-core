@@ -46,7 +46,7 @@ Verify(const CScript& scriptSig, const CScript& scriptPubKey, bool fStrict, Scri
 
     std::vector<uint8_t> vchAmount(8);
     part::SetAmount(vchAmount, txFrom.vout[0].nValue);
-    return VerifyScript(scriptSig, scriptPubKey, nullptr, fStrict ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE, MutableTransactionSignatureChecker(&txTo, 0, vchAmount), &err);
+    return VerifyScript(scriptSig, scriptPubKey, nullptr, fStrict ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE, MutableTransactionSignatureChecker(&txTo, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &err);
 }
 
 

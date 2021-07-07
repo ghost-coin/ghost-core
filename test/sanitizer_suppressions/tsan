@@ -29,13 +29,7 @@ deadlock:condWaitFor
 deadlock:smsg::CSMSG::Start
 deadlock:smsg::CSMSG::Shutdown
 
-
 # race (TODO fix)
-race:CConnman::WakeMessageHandler
-race:CConnman::ThreadMessageHandler
-race:fHaveGenesis
-race:ProcessNewBlock
-race:ThreadImport
 race:LoadWallet
 race:WalletBatch::WriteHDChain
 race:BerkeleyBatch

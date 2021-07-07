@@ -44,6 +44,7 @@ Notes:
 #include <streams.h>
 #include <univalue.h>
 #include <node/context.h>
+#include <node/blockstorage.h>
 #include <util/string.h>
 #include <util/system.h>
 
