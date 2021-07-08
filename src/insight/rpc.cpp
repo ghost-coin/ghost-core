@@ -142,7 +142,8 @@ static RPCHelpMan getaddressmempool()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    const CTxMemPool& mempool = EnsureMemPool(request.context);
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    const CTxMemPool& mempool = EnsureMemPool(node);
 
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
@@ -591,7 +592,8 @@ static RPCHelpMan getspentinfo()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    const CTxMemPool& mempool = EnsureMemPool(request.context);
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    const CTxMemPool& mempool = EnsureMemPool(node);
 
     UniValue txidValue = find_value(request.params[0].get_obj(), "txid");
     UniValue indexValue = find_value(request.params[0].get_obj(), "index");
@@ -782,7 +784,8 @@ return RPCHelpMan{"getblockdeltas",
 {
     LOCK(cs_main);
 
-    const CTxMemPool& mempool = EnsureMemPool(request.context);
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    const CTxMemPool& mempool = EnsureMemPool(node);
 
     uint256 hash(ParseHashV(request.params[0], "blockhash"));
 
@@ -1051,7 +1054,7 @@ static RPCHelpMan getblockreward()
 {
     RPCTypeCheck(request.params, {UniValue::VNUM});
 
-    NodeContext& node = EnsureNodeContext(request.context);
+    NodeContext& node = EnsureAnyNodeContext(request.context);
     if (!g_txindex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requires -txindex enabled");
     }

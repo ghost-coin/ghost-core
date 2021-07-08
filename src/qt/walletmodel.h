@@ -239,6 +239,8 @@ Q_SIGNALS:
     // Notify that there are now keys in the keypool
     void canGetAddressesChanged();
 
+    void timerTimeout();
+
     // Signal that reserved balance in wallet changed
     void notifyReservedBalanceChanged(CAmount nValue);
 
