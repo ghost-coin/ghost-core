@@ -67,7 +67,7 @@
     </message>
     <message>
         <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Dit zijn uw Particladressen om betalingen mee te verzenden. Controleer altijd het bedrag en het ontvangstadres voordat u uw particls verzendt.</translation>
+        <translation>Dit zijn uw Particladressen om betalingen mee te verzenden. Controleer altijd het bedrag en het ontvangstadres voordat u uw particl verzendt.</translation>
     </message>
     <message>
         <source>These are your Particl addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
@@ -191,7 +191,7 @@ Ondertekenen is alleen mogelijk met adressen van het type 'legacy'.</translation
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Onthoud dat het versleutelen van uw portemonnee uw particls niet volledig kan beschermen tegen diefstal, bijvoorbeeld door malware die uw computer infecteert.</translation>
+        <translation>Onthoud dat het versleutelen van uw portemonnee uw particl niet volledig kan beschermen tegen diefstal, bijvoorbeeld door malware die uw computer infecteert.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -1074,7 +1074,7 @@ Dit is ideaal voor alleen-lezen portommonees.</translation>
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Poging om particls te besteden die door "nog niet weergegeven" transacties worden beïnvloed, worden niet door het netwerk geaccepteerd.</translation>
+        <translation>Poging om particl te besteden die door "nog niet weergegeven" transacties worden beïnvloed, worden niet door het netwerk geaccepteerd.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -2591,7 +2591,7 @@ Notitie: Omdat de vergoeding per byte wordt gerekend, zal een vergoeding van "10
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>De transactiekosten zal worden afgetrokken van het bedrag dat verstuurd wordt. De ontvangers zullen minder particls ontvangen dan ingevoerd is in het hoeveelheidsveld. Als er meerdere ontvangers geselecteerd zijn, dan worden de transactiekosten gelijk verdeeld.</translation>
+        <translation>De transactiekosten zal worden afgetrokken van het bedrag dat verstuurd wordt. De ontvangers zullen minder particl ontvangen dan ingevoerd is in het hoeveelheidsveld. Als er meerdere ontvangers geselecteerd zijn, dan worden de transactiekosten gelijk verdeeld.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>

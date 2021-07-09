@@ -185,7 +185,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Θυμίσου ότι το να κρυπτογραφείς το πορτοφόλι σου δεν μπορεί να προστατέψει πλήρως τα particls σου από κλοπή από  κακόβουλο λογισμικό που έχει μολύνει τον υπολογιστή σου</translation>
+        <translation>Θυμίσου ότι το να κρυπτογραφείς το πορτοφόλι σου δεν μπορεί να προστατέψει πλήρως τα particl σου από κλοπή από  κακόβουλο λογισμικό που έχει μολύνει τον υπολογιστή σου</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -1011,7 +1011,7 @@
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Η προσπάθεια να δαπανήσετε particls που επηρεάζονται από τις μη εμφανιζόμενες ακόμη συναλλαγές δεν θα γίνει αποδεκτή από το δίκτυο.</translation>
+        <translation>Η προσπάθεια να δαπανήσετε particl που επηρεάζονται από τις μη εμφανιζόμενες ακόμη συναλλαγές δεν θα γίνει αποδεκτή από το δίκτυο.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -2488,7 +2488,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Το τέλος θα αφαιρεθεί από το ποσό που αποστέλλεται. Ο παραλήπτης θα λάβει λιγότερα particls από ό,τι εισάγετε στο πεδίο ποσό. Εάν επιλεγούν πολλοί παραλήπτες, το έξοδο διαιρείται εξίσου.</translation>
+        <translation>Το τέλος θα αφαιρεθεί από το ποσό που αποστέλλεται. Ο παραλήπτης θα λάβει λιγότερα particl από ό,τι εισάγετε στο πεδίο ποσό. Εάν επιλεγούν πολλοί παραλήπτες, το έξοδο διαιρείται εξίσου.</translation>
     </message>
     <message>
         <source>Use available balance</source>
@@ -2546,7 +2546,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
     </message>
     <message>
         <source>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Μπορείτε να υπογράψετε μηνύματα/συμφωνίες με τις διευθύνσεις σας για να αποδείξετε ότι μπορείτε να λάβετε τα particls που τους αποστέλλονται. Προσέξτε να μην υπογράψετε τίποτα ασαφές ή τυχαίο, καθώς οι επιθέσεις ηλεκτρονικού "ψαρέματος" ενδέχεται να σας εξαπατήσουν να υπογράψετε την ταυτότητά σας σε αυτούς. Υπογράψτε μόνο πλήρως λεπτομερείς δηλώσεις που συμφωνείτε.</translation>
+        <translation>Μπορείτε να υπογράψετε μηνύματα/συμφωνίες με τις διευθύνσεις σας για να αποδείξετε ότι μπορείτε να λάβετε τα particl που τους αποστέλλονται. Προσέξτε να μην υπογράψετε τίποτα ασαφές ή τυχαίο, καθώς οι επιθέσεις ηλεκτρονικού "ψαρέματος" ενδέχεται να σας εξαπατήσουν να υπογράψετε την ταυτότητά σας σε αυτούς. Υπογράψτε μόνο πλήρως λεπτομερείς δηλώσεις που συμφωνείτε.</translation>
     </message>
     <message>
         <source>The Particl address to sign the message with</source>

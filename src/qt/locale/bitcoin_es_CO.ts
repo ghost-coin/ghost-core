@@ -872,7 +872,7 @@
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>La red no aceptará el intentar gastar particls que están afectados por transacciones aún no mostradas.</translation>
+        <translation>La red no aceptará el intentar gastar particl que están afectados por transacciones aún no mostradas.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>

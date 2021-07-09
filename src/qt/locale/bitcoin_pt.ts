@@ -185,7 +185,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Lembra se que encrostar a sua carteira não o pode defender na totalidade os seus particls de serem roubados por um malware que possa infectar o seu computador.</translation>
+        <translation>Lembra se que encrostar a sua carteira não o pode defender na totalidade os seus particl de serem roubados por um malware que possa infectar o seu computador.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -1043,7 +1043,7 @@
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Tentar enviar particls que estão afetadas por transações ainda não exibidas não será aceite pela rede.</translation>
+        <translation>Tentar enviar particl que estão afetadas por transações ainda não exibidas não será aceite pela rede.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -2666,7 +2666,7 @@ Nota: como a taxa é calculada por byte, uma taxa de "100 satoshis por kB" por u
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>A taxa será deduzida ao valor que está a ser enviado. O destinatário irá receber menos particls do que as que inseridas no campo do valor. Se estiverem selecionados múltiplos destinatários, a taxa será repartida equitativamente.</translation>
+        <translation>A taxa será deduzida ao valor que está a ser enviado. O destinatário irá receber menos particl do que as que inseridas no campo do valor. Se estiverem selecionados múltiplos destinatários, a taxa será repartida equitativamente.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>

@@ -41,7 +41,7 @@ static RPCHelpMan validateaddress()
                 "\nReturn information about the given bitcoin address.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address to validate"},
-                    {"showaltversions", RPCArg::Type::BOOL, /* default */ "false", "Display all alternative encodings and versions"},
+                    {"showaltversions", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display all alternative encodings and versions"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -122,7 +122,7 @@ static RPCHelpMan createmultisig()
                         {
                             {"key", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex-encoded public key"},
                         }},
-                    {"address_type", RPCArg::Type::STR, /* default */ "legacy", "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::Default{"legacy"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -312,7 +312,7 @@ static RPCHelpMan verifymessage()
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address to use for the signature."},
                     {"signature", RPCArg::Type::STR, RPCArg::Optional::NO, "The signature provided by the signer in base 64 encoding (see signmessage)."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message that was signed."},
-                    {"message_magic", RPCArg::Type::STR, /* default */ "Bitcoin Signed Message:\\n", "The magic string to use."},
+                    {"message_magic", RPCArg::Type::STR, RPCArg::Default{"Bitcoin Signed Message:\\n"}, "The magic string to use."},
                 },
                 RPCResult{
                     RPCResult::Type::BOOL, "", "If the signature is verified or not."
@@ -402,7 +402,7 @@ static RPCHelpMan setmocktime()
         {
             {"timestamp", RPCArg::Type::NUM, RPCArg::Optional::NO, UNIX_EPOCH_TIME + "\n"
              "Pass 0 to go back to using the system time."},
-            {"is_offset", RPCArg::Type::BOOL, /* default */ "false", "Clock keeps moving if set to true."},
+            {"is_offset", RPCArg::Type::BOOL, RPCArg::Default{false}, "Clock keeps moving if set to true."},
         },
         RPCResult{RPCResult::Type::NONE, "", ""},
         RPCExamples{""},
@@ -560,7 +560,7 @@ static RPCHelpMan getmemoryinfo()
     return RPCHelpMan{"getmemoryinfo",
                 "Returns an object containing information about memory usage.\n",
                 {
-                    {"mode", RPCArg::Type::STR, /* default */ "\"stats\"", "determines what kind of information is returned.\n"
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"stats"}, "determines what kind of information is returned.\n"
             "  - \"stats\" returns general statistics about memory usage in the daemon.\n"
             "  - \"mallocinfo\" returns an XML string describing low-level heap state (only available if compiled with glibc 2.10+)."},
                 },

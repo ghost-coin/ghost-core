@@ -110,6 +110,23 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="verifyAddress">
+       <property name="toolTip">
+        <string>Verify the currently selected address</string>
+       </property>
+       <property name="text">
+        <string>&amp;Verify</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../bitcoin.qrc">
+         <normaloff>:/icons/remove</normaloff>:/icons/editcopy</iconset>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>

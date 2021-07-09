@@ -299,11 +299,11 @@ static RPCHelpMan getnewaddress()
                 "If 'label' is specified, it is added to the address book \n"
                 "so payments received with the address will be associated with 'label'.\n",
                 {
-                    {"label", RPCArg::Type::STR, /* default */ "\"\"", "The label name for the address to be linked to. If not provided, the default label \"\" is used. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
-                    {"bech32", RPCArg::Type::BOOL, /* default */ "false", "Use Bech32 encoding."},
-                    {"hardened", RPCArg::Type::BOOL, /* default */ "false", "Derive a hardened key."},
-                    {"256bit", RPCArg::Type::BOOL, /* default */ "false", "Use 256bit hash type."},
-                    {"address_type", RPCArg::Type::STR, /* default */ "set by -addresstype", "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. If not provided, the default label \"\" is used. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
+                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
+                    {"hardened", RPCArg::Type::BOOL, RPCArg::Default{false}, "Derive a hardened key."},
+                    {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The new particl address"
@@ -407,7 +407,7 @@ static RPCHelpMan getrawchangeaddress()
                 "\nReturns a new Particl address, for receiving change.\n"
                 "This is for use with raw transactions, NOT normal use.\n",
                 {
-                    {"address_type", RPCArg::Type::STR, /* default */ "set by -changetype", "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The address"
@@ -570,18 +570,18 @@ static RPCHelpMan sendtoaddress()
                     {"comment_to", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A comment to store the name of the person or organization\n"
                                          "to which you're sending the transaction. This is not part of the \n"
                                          "transaction, just kept in your wallet."},
-                    {"subtractfeefromamount", RPCArg::Type::BOOL, /* default */ "false", "The fee will be deducted from the amount being sent.\n"
+                    {"subtractfeefromamount", RPCArg::Type::BOOL, RPCArg::Default{false}, "The fee will be deducted from the amount being sent.\n"
                                          "The recipient will receive less particl than you enter in the amount field."},
-                    {"narration", RPCArg::Type::STR, /* default */ "", "Up to 24 characters sent with the transaction.\n"
+                    {"narration", RPCArg::Type::STR, RPCArg::Default{""}, "Up to 24 characters sent with the transaction.\n"
                                          "Plaintext if sending to standard address type, encrypted when sending to stealthaddresses."},
-                    {"replaceable", RPCArg::Type::BOOL, /* default */ "wallet default", "Allow this transaction to be replaced by a transaction with higher fees via BIP 125"},
-                    {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks"},
-                    {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::DefaultHint{"wallet default"}, "Allow this transaction to be replaced by a transaction with higher fees via BIP 125"},
+                    {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
+                    {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
             "       \"" + FeeModes("\"\n\"") + "\""},
-                    {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "true", "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
+                    {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
                                          "dirty if they have previously been used in a transaction."},
-                    {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                    {"verbose", RPCArg::Type::BOOL, /* default */ "false", "If true, return extra information about the transaction."},
+                    {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                    {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra information about the transaction."},
                 },
                 {
                     RPCResult{"if verbose is not set or set to false",
@@ -907,7 +907,7 @@ static RPCHelpMan getreceivedbyaddress()
                 "\nReturns the total amount received by the given address in transactions with at least minconf confirmations.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address for transactions."},
-                    {"minconf", RPCArg::Type::NUM, /* default */ "1", "Only include transactions confirmed at least this many times."},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "Only include transactions confirmed at least this many times."},
                 },
                 RPCResult{
                     RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received at this address."
@@ -945,7 +945,7 @@ static RPCHelpMan getreceivedbylabel()
                 "\nReturns the total amount received by addresses with <label> in transactions with at least [minconf] confirmations.\n",
                 {
                     {"label", RPCArg::Type::STR, RPCArg::Optional::NO, "The selected label, may be the default label using \"\"."},
-                    {"minconf", RPCArg::Type::NUM, /* default */ "1", "Only include transactions confirmed at least this many times."},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "Only include transactions confirmed at least this many times."},
                 },
                 RPCResult{
                     RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received for this label."
@@ -985,9 +985,9 @@ static RPCHelpMan getbalance()
                 "thus affected by options which limit spendability such as -spendzeroconfchange.\n",
                 {
                     {"dummy", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Remains for backward compatibility. Must be excluded or set to \"*\"."},
-                    {"minconf", RPCArg::Type::NUM, /* default */ "0", "Only include transactions confirmed at least this many times."},
-                    {"include_watchonly", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Also include balance in watch-only addresses (see 'importaddress')"},
-                    {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "true", "(only available if avoid_reuse wallet flag is set) Do not include balance in dirty outputs; addresses are considered dirty if they have previously been used in a transaction."},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Default{0}, "Only include transactions confirmed at least this many times."},
+                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Also include balance in watch-only addresses (see 'importaddress')"},
+                    {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Do not include balance in dirty outputs; addresses are considered dirty if they have previously been used in a transaction."},
                 },
                 RPCResult{
                     RPCResult::Type::STR_AMOUNT, "amount", "The total amount in " + CURRENCY_UNIT + " received for this wallet."
@@ -1078,12 +1078,12 @@ static RPCHelpMan sendmany()
                             {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Subtract fee from this address"},
                         },
                     },
-                    {"replaceable", RPCArg::Type::BOOL, /* default */ "wallet default", "Allow this transaction to be replaced by a transaction with higher fees via BIP 125"},
-                    {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks"},
-                    {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::DefaultHint{"wallet default"}, "Allow this transaction to be replaced by a transaction with higher fees via BIP 125"},
+                    {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
+                    {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
             "       \"" + FeeModes("\"\n\"") + "\""},
-                    {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                    {"verbose", RPCArg::Type::BOOL, /* default */ "false", "If true, return extra infomration about the transaction."},
+                    {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                    {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra infomration about the transaction."},
                 },
                 {
                     RPCResult{"if verbose is not set or set to false",
@@ -1267,9 +1267,9 @@ static RPCHelpMan addmultisigaddress()
                         },
                         },
                     {"label", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A label to assign the addresses to."},
-                    {"bech32", RPCArg::Type::BOOL, /* default */ "false", "Use Bech32 encoding."},
-                    {"256bit", RPCArg::Type::BOOL, /* default */ "false", "Use 256bit hash type."},
-                    {"address_type", RPCArg::Type::STR, /* default_val */ "set by -addresstype", "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\". Default is set by -addresstype."},
+                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
+                    {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -1532,9 +1532,9 @@ static RPCHelpMan listreceivedbyaddress()
     return RPCHelpMan{"listreceivedbyaddress",
                 "\nList balances by receiving address.\n",
                 {
-                    {"minconf", RPCArg::Type::NUM, /* default */ "1", "The minimum number of confirmations before payments are included."},
-                    {"include_empty", RPCArg::Type::BOOL, /* default */ "false", "Whether to include addresses that haven't received any payments."},
-                    {"include_watchonly", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Whether to include watch-only addresses (see 'importaddress')"},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum number of confirmations before payments are included."},
+                    {"include_empty", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to include addresses that haven't received any payments."},
+                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Whether to include watch-only addresses (see 'importaddress')"},
                     {"address_filter", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "If present, only return information on this address."},
                 },
                 RPCResult{
@@ -1581,9 +1581,9 @@ static RPCHelpMan listreceivedbylabel()
     return RPCHelpMan{"listreceivedbylabel",
                 "\nList received transactions by label.\n",
                 {
-                    {"minconf", RPCArg::Type::NUM, /* default */ "1", "The minimum number of confirmations before payments are included."},
-                    {"include_empty", RPCArg::Type::BOOL, /* default */ "false", "Whether to include labels that haven't received any payments."},
-                    {"include_watchonly", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Whether to include watch-only addresses (see 'importaddress')"},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum number of confirmations before payments are included."},
+                    {"include_empty", RPCArg::Type::BOOL, RPCArg::Default{false}, "Whether to include labels that haven't received any payments."},
+                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Whether to include watch-only addresses (see 'importaddress')"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -1934,9 +1934,9 @@ static RPCHelpMan listtransactions()
                 {
                     {"label|dummy", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "If set, should be a valid label name to return only incoming transactions\n"
                           "with the specified label, or \"*\" to disable filtering and return all transactions."},
-                    {"count", RPCArg::Type::NUM, /* default */ "10", "The number of transactions to return"},
-                    {"skip", RPCArg::Type::NUM, /* default */ "0", "The number of transactions to skip"},
-                    {"include_watchonly", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Include transactions to watch-only addresses (see 'importaddress')"},
+                    {"count", RPCArg::Type::NUM, RPCArg::Default{10}, "The number of transactions to return"},
+                    {"skip", RPCArg::Type::NUM, RPCArg::Default{0}, "The number of transactions to skip"},
+                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Include transactions to watch-only addresses (see 'importaddress')"},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -2083,9 +2083,9 @@ static RPCHelpMan listsinceblock()
                 "Additionally, if include_removed is set, transactions affecting the wallet which were removed are returned in the \"removed\" array.\n",
                 {
                     {"blockhash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "If set, the block hash to list transactions since, otherwise list all transactions."},
-                    {"target_confirmations", RPCArg::Type::NUM, /* default */ "1", "Return the nth block hash from the main chain. e.g. 1 would mean the best block hash. Note: this is not used as a filter, but only affects [lastblock] in the return value"},
-                    {"include_watchonly", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Include transactions to watch-only addresses (see 'importaddress')"},
-                    {"include_removed", RPCArg::Type::BOOL, /* default */ "true", "Show transactions that were removed due to a reorg in the \"removed\" array\n"
+                    {"target_confirmations", RPCArg::Type::NUM, RPCArg::Default{1}, "Return the nth block hash from the main chain. e.g. 1 would mean the best block hash. Note: this is not used as a filter, but only affects [lastblock] in the return value"},
+                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Include transactions to watch-only addresses (see 'importaddress')"},
+                    {"include_removed", RPCArg::Type::BOOL, RPCArg::Default{true}, "Show transactions that were removed due to a reorg in the \"removed\" array\n"
                                                                        "(not guaranteed to work on pruned nodes)"},
                 },
                 RPCResult{
@@ -2330,9 +2330,9 @@ static RPCHelpMan gettransaction()
                 "\nGet detailed information about in-wallet transaction <txid>\n",
                 {
                     {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction id"},
-                    {"include_watchonly", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false",
+                    {"include_watchonly", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"},
                             "Whether to include watch-only addresses in balance calculation and details[]"},
-                    {"verbose", RPCArg::Type::BOOL, /* default */ "false",
+                    {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false},
                             "Whether to include a `decoded` field containing the decoded transaction (equivalent to RPC decoderawtransaction)"},
                 },
                 RPCResult{
@@ -2477,7 +2477,7 @@ static RPCHelpMan keypoolrefill()
                 "\nFills the keypool."+
         HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"newsize", RPCArg::Type::NUM, /* default */ "100", "The new keypool size"},
+                    {"newsize", RPCArg::Type::NUM, RPCArg::Default{100}, "The new keypool size"},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{
@@ -2527,7 +2527,7 @@ static RPCHelpMan walletpassphrase()
                 {
                     {"passphrase", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet passphrase"},
                     {"timeout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The time to keep the decryption key in seconds; capped at 100000000 (~3 years)."},
-                    {"stakingonly", RPCArg::Type::NUM, /* default */ "false", "If true, sending functions are disabled."},
+                    {"stakingonly", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, sending functions are disabled."},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{
@@ -2795,7 +2795,7 @@ static RPCHelpMan lockunspent()
                 "Also see the listunspent call\n",
                 {
                     {"unlock", RPCArg::Type::BOOL, RPCArg::Optional::NO, "Whether to unlock (true) or lock (false) the specified transactions"},
-                    {"transactions", RPCArg::Type::ARR, /* default */ "empty array", "The transaction outputs and within each, the txid (string) vout (numeric).",
+                    {"transactions", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The transaction outputs and within each, the txid (string) vout (numeric).",
                         {
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                                 {
@@ -2805,7 +2805,7 @@ static RPCHelpMan lockunspent()
                             },
                         },
                     },
-                    {"permanent", RPCArg::Type::BOOL, /* default */ "false", "If true the lock/s are recorded in the wallet database and restored at startup"},
+                    {"permanent", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true the lock/s are recorded in the wallet database and restored at startup"},
                 },
                 RPCResult{
                     RPCResult::Type::BOOL, "", "Whether the command was successful or not"
@@ -3388,7 +3388,7 @@ static RPCHelpMan loadwallet()
                 "\napplied to the new wallet (eg -rescan, etc).\n",
                 {
                     {"filename", RPCArg::Type::STR, RPCArg::Optional::NO, "The wallet directory or .dat file."},
-                    {"load_on_startup", RPCArg::Type::BOOL, /* default */ "null", "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
+                    {"load_on_startup", RPCArg::Type::BOOL, RPCArg::Default{UniValue::VNULL}, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -3451,7 +3451,7 @@ static RPCHelpMan setwalletflag()
                 "\nChange the state of the given wallet flag for a wallet.\n",
                 {
                     {"flag", RPCArg::Type::STR, RPCArg::Optional::NO, "The name of the flag to change. Current available flags: " + flags},
-                    {"value", RPCArg::Type::BOOL, /* default */ "true", "The new state."},
+                    {"value", RPCArg::Type::BOOL, RPCArg::Default{true}, "The new state."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -3514,13 +3514,13 @@ static RPCHelpMan createwallet()
         "\nCreates and loads a new wallet.\n",
         {
             {"wallet_name", RPCArg::Type::STR, RPCArg::Optional::NO, "The name for the new wallet. If this is a path, the wallet will be created at the path location."},
-            {"disable_private_keys", RPCArg::Type::BOOL, /* default */ "false", "Disable the possibility of private keys (only watchonlys are possible in this mode)."},
-            {"blank", RPCArg::Type::BOOL, /* default */ "false", "Create a blank wallet. A blank wallet has no keys or HD seed. One can be set using sethdseed."},
+            {"disable_private_keys", RPCArg::Type::BOOL, RPCArg::Default{false}, "Disable the possibility of private keys (only watchonlys are possible in this mode)."},
+            {"blank", RPCArg::Type::BOOL, RPCArg::Default{false}, "Create a blank wallet. A blank wallet has no keys or HD seed. One can be set using sethdseed."},
             {"passphrase", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Encrypt the wallet with this passphrase."},
-            {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "false", "Keep track of coin reuse, and treat dirty and clean coins differently with privacy considerations in mind."},
-            {"descriptors", RPCArg::Type::BOOL, /* default */ "false", "Create a native descriptor wallet. The wallet will use descriptors internally to handle address creation"},
-            {"load_on_startup", RPCArg::Type::BOOL, /* default */ "null", "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
-            {"external_signer", RPCArg::Type::BOOL, /* default */ "false", "Use an external signer such as a hardware wallet. Requires -signer to be configured. Wallet creation will fail if keys cannot be fetched. Requires disable_private_keys and descriptors set to true."},
+            {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{false}, "Keep track of coin reuse, and treat dirty and clean coins differently with privacy considerations in mind."},
+            {"descriptors", RPCArg::Type::BOOL, RPCArg::Default{false}, "Create a native descriptor wallet. The wallet will use descriptors internally to handle address creation"},
+            {"load_on_startup", RPCArg::Type::BOOL, RPCArg::Default{UniValue::VNULL}, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
+            {"external_signer", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use an external signer such as a hardware wallet. Requires -signer to be configured. Wallet creation will fail if keys cannot be fetched. Requires disable_private_keys and descriptors set to true."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -3609,8 +3609,8 @@ static RPCHelpMan unloadwallet()
                 "Unloads the wallet referenced by the request endpoint otherwise unloads the wallet specified in the argument.\n"
                 "Specifying the wallet name on a wallet endpoint is invalid.",
                 {
-                    {"wallet_name", RPCArg::Type::STR, /* default */ "the wallet name from the RPC endpoint", "The name of the wallet to unload. If provided both here and in the RPC endpoint, the two must be identical."},
-                    {"load_on_startup", RPCArg::Type::BOOL, /* default */ "null", "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
+                    {"wallet_name", RPCArg::Type::STR, RPCArg::DefaultHint{"the wallet name from the RPC endpoint"}, "The name of the wallet to unload. If provided both here and in the RPC endpoint, the two must be identical."},
+                    {"load_on_startup", RPCArg::Type::BOOL, RPCArg::Default{UniValue::VNULL}, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
                 },
                 RPCResult{RPCResult::Type::OBJ, "", "", {
                     {RPCResult::Type::STR, "warning", "Warning message if wallet was not unloaded cleanly."},
@@ -3709,23 +3709,23 @@ static RPCHelpMan listunspent()
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n",
                 {
-                    {"minconf", RPCArg::Type::NUM, /* default */ "1", "The minimum confirmations to filter"},
-                    {"maxconf", RPCArg::Type::NUM, /* default */ "9999999", "The maximum confirmations to filter"},
-                    {"addresses", RPCArg::Type::ARR, /* default */ "empty array", "The particl addresses to filter",
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum confirmations to filter"},
+                    {"maxconf", RPCArg::Type::NUM, RPCArg::Default{9999999}, "The maximum confirmations to filter"},
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The particl addresses to filter",
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "particl address"},
                         },
                     },
-                    {"include_unsafe", RPCArg::Type::BOOL, /* default */ "true", "Include outputs that are not safe to spend\n"
+                    {"include_unsafe", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include outputs that are not safe to spend\n"
                               "See description of \"safe\" attribute below."},
                     {"query_options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "JSON with query options",
                         {
-                            {"minimumAmount", RPCArg::Type::AMOUNT, /* default */ "0", "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
-                            {"maximumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Maximum value of each UTXO in " + CURRENCY_UNIT + ""},
-                            {"maximumCount", RPCArg::Type::NUM, /* default */ "unlimited", "Maximum number of UTXOs"},
-                            {"minimumSumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Minimum sum value of all UTXOs in " + CURRENCY_UNIT + ""},
-                            {"cc_format", RPCArg::Type::BOOL, /* default */ "false", "Format output for coincontrol"},
-                            {"include_immature", RPCArg::Type::BOOL, /* default */ "false", "Include immature staked outputs"},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO in " + CURRENCY_UNIT + ""},
+                            {"maximumCount", RPCArg::Type::NUM, RPCArg::DefaultHint{"unlimited"}, "Maximum number of UTXOs"},
+                            {"minimumSumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Minimum sum value of all UTXOs in " + CURRENCY_UNIT + ""},
+                            {"cc_format", RPCArg::Type::BOOL, RPCArg::Default{false}, "Format output for coincontrol"},
+                            {"include_immature", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature staked outputs"},
                         },
                         "query_options"},
                 },
@@ -4145,17 +4145,17 @@ static RPCHelpMan fundrawtransaction()
                     {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
                     {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "for backward compatibility: passing in a true instead of an object will result in {\"includeWatching\":true}",
                         {
-                            {"add_inputs", RPCArg::Type::BOOL, /* default */ "true", "For a transaction with existing inputs, automatically include more if they are not enough."},
-                            {"changeAddress", RPCArg::Type::STR, /* default */ "pool address", "The particl address to receive the change"},
-                            {"changePosition", RPCArg::Type::NUM, /* default */ "random", "The index of the change output"},
-                            {"change_type", RPCArg::Type::STR, /* default */ "set by -changetype", "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
-                            {"includeWatching", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Also select inputs which are watch only.\n"
+                            {"add_inputs", RPCArg::Type::BOOL, RPCArg::Default{true}, "For a transaction with existing inputs, automatically include more if they are not enough."},
+                            {"changeAddress", RPCArg::Type::STR, RPCArg::DefaultHint{"pool address"}, "The particl address to receive the change"},
+                            {"changePosition", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
+                            {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                            {"includeWatching", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Also select inputs which are watch only.\n"
                                                           "Only solvable inputs can be used. Watch-only destinations are solvable if the public key and/or output script was imported,\n"
                                                           "e.g. with 'importpubkey' or 'importmulti' with the 'pubkeys' or 'desc' field."},
-                            {"lockUnspents", RPCArg::Type::BOOL, /* default */ "false", "Lock selected unspent outputs"},
-                            {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                            {"feeRate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
-                            {"subtractFeeFromOutputs", RPCArg::Type::ARR, /* default */ "empty array", "The integers.\n"
+                            {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
+                            {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                            {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
+                            {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The integers.\n"
                                                           "The fee will be equally deducted from the amount of each specified output.\n"
                                                           "Those recipients will receive less particl than you enter in their corresponding amount field.\n"
                                                           "If no outputs are specified here, the sender pays the fee.",
@@ -4163,14 +4163,14 @@ static RPCHelpMan fundrawtransaction()
                                     {"vout_index", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "The zero-based output index, before a change output is added."},
                                 },
                             },
-                            {"replaceable", RPCArg::Type::BOOL, /* default */ "wallet default", "Marks this transaction as BIP125 replaceable.\n"
+                            {"replaceable", RPCArg::Type::BOOL, RPCArg::DefaultHint{"wallet default"}, "Marks this transaction as BIP125 replaceable.\n"
                                                           "Allows this transaction to be replaced by a transaction with higher fees"},
-                            {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks"},
-                            {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+                            {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
+                            {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
                             "       \"" + FeeModes("\"\n\"") + "\""},
                         },
                         "options"},
-                    {"iswitness", RPCArg::Type::BOOL, /* default */ "depends on heuristic tests", "Whether the transaction hex is a serialized witness transaction.\n"
+                    {"iswitness", RPCArg::Type::BOOL, RPCArg::DefaultHint{"depends on heuristic tests"}, "Whether the transaction hex is a serialized witness transaction.\n"
                         "If iswitness is not present, heuristic tests will be used in decoding.\n"
                         "If true, only witness deserialization will be tried.\n"
                         "If false, only non-witness deserialization will be tried.\n"
@@ -4251,7 +4251,7 @@ RPCHelpMan signrawtransactionwithwallet()
                             },
                         },
                     },
-                    {"sighashtype", RPCArg::Type::STR, /* default */ "ALL", "The signature hash type. Must be one of\n"
+                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"ALL"}, "The signature hash type. Must be one of\n"
             "       \"ALL\"\n"
             "       \"NONE\"\n"
             "       \"SINGLE\"\n"
@@ -4343,19 +4343,19 @@ static RPCHelpMan bumpfee_helper(std::string method_name)
             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The txid to be bumped"},
             {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
                 {
-                    {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks\n"},
-                    {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation",
+                    {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks\n"},
+                    {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"},
                              "\nSpecify a fee rate in " + CURRENCY_ATOM + "/vB instead of relying on the built-in fee estimator.\n"
                              "Must be at least " + incremental_fee + " higher than the current transaction fee rate.\n"
                              "WARNING: before version 0.21, fee_rate was in " + CURRENCY_UNIT + "/kvB. As of 0.21, fee_rate is in " + CURRENCY_ATOM + "/vB.\n"},
-                    {"replaceable", RPCArg::Type::BOOL, /* default */ "true", "Whether the new transaction should still be\n"
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether the new transaction should still be\n"
                              "marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
                              "be left unchanged from the original. If false, any input sequence numbers in the\n"
                              "original transaction that were less than 0xfffffffe will be increased to 0xfffffffe\n"
                              "so the new transaction will not be explicitly bip-125 replaceable (though it may\n"
                              "still be replaceable in practice, for example if it has unconfirmed ancestors which\n"
                              "are replaceable).\n"},
-                    {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+                    {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, "The fee estimate mode, must be one of (case insensitive):\n"
                              "\"" + FeeModes("\"\n\"") + "\""},
                 },
                 "options"},
@@ -4510,7 +4510,7 @@ static RPCHelpMan rescanblockchain()
                 "\nRescan the local blockchain for wallet related transactions.\n"
                 "Note: Use \"getwalletinfo\" to query the scanning progress.\n",
                 {
-                    {"start_height", RPCArg::Type::NUM, /* default */ "0", "block height where the rescan should start"},
+                    {"start_height", RPCArg::Type::NUM, RPCArg::Default{0}, "block height where the rescan should start"},
                     {"stop_height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "the last block height that should be scanned. If none is provided it will rescan up to the tip at return time of this call."},
                 },
                 RPCResult{
@@ -5092,35 +5092,35 @@ static RPCHelpMan send()
                     },
                 },
             },
-            {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks"},
-            {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+            {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
+            {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
                         "       \"" + FeeModes("\"\n\"") + "\""},
-            {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+            {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
             {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
                 {
-                    {"add_inputs", RPCArg::Type::BOOL, /* default */ "false", "If inputs are specified, automatically include more if they are not enough."},
-                    {"add_to_wallet", RPCArg::Type::BOOL, /* default */ "true", "When false, returns a serialized transaction which will not be added to the wallet or broadcast"},
-                    {"change_address", RPCArg::Type::STR_HEX, /* default */ "pool address", "The particl address to receive the change"},
-                    {"change_position", RPCArg::Type::NUM, /* default */ "random", "The index of the change output"},
-                    {"change_type", RPCArg::Type::STR, /* default */ "set by -changetype", "The output type to use. Only valid if change_address is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
-                    {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks"},
-                    {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+                    {"add_inputs", RPCArg::Type::BOOL, RPCArg::Default{false}, "If inputs are specified, automatically include more if they are not enough."},
+                    {"add_to_wallet", RPCArg::Type::BOOL, RPCArg::Default{true}, "When false, returns a serialized transaction which will not be added to the wallet or broadcast"},
+                    {"change_address", RPCArg::Type::STR_HEX, RPCArg::DefaultHint{"pool address"}, "The particl address to receive the change"},
+                    {"change_position", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
+                    {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if change_address is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                    {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
+                    {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
             "       \"" + FeeModes("\"\n\"") + "\""},
-                    {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                    {"include_watching", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Also select inputs which are watch only.\n"
+                    {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                    {"include_watching", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Also select inputs which are watch only.\n"
                                           "Only solvable inputs can be used. Watch-only destinations are solvable if the public key and/or output script was imported,\n"
                                           "e.g. with 'importpubkey' or 'importmulti' with the 'pubkeys' or 'desc' field."},
-                    {"inputs", RPCArg::Type::ARR, /* default */ "empty array", "Specify inputs instead of adding them automatically. A JSON array of JSON objects",
+                    {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Specify inputs instead of adding them automatically. A JSON array of JSON objects",
                         {
                             {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                             {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output number"},
                             {"sequence", RPCArg::Type::NUM, RPCArg::Optional::NO, "The sequence number"},
                         },
                     },
-                    {"locktime", RPCArg::Type::NUM, /* default */ "0", "Raw locktime. Non-0 value also locktime-activates inputs"},
-                    {"lock_unspents", RPCArg::Type::BOOL, /* default */ "false", "Lock selected unspent outputs"},
-                    {"psbt", RPCArg::Type::BOOL,  /* default */ "automatic", "Always return a PSBT, implies add_to_wallet=false."},
-                    {"subtract_fee_from_outputs", RPCArg::Type::ARR, /* default */ "empty array", "Outputs to subtract the fee from, specified as integer indices.\n"
+                    {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
+                    {"lock_unspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
+                    {"psbt", RPCArg::Type::BOOL,  RPCArg::DefaultHint{"automatic"}, "Always return a PSBT, implies add_to_wallet=false."},
+                    {"subtract_fee_from_outputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "Outputs to subtract the fee from, specified as integer indices.\n"
                     "The fee will be equally deducted from the amount of each specified output.\n"
                     "Those recipients will receive less particl than you enter in their corresponding amount field.\n"
                     "If no outputs are specified here, the sender pays the fee.",
@@ -5128,7 +5128,7 @@ static RPCHelpMan send()
                             {"vout_index", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "The zero-based output index, before a change output is added."},
                         },
                     },
-                    {"replaceable", RPCArg::Type::BOOL, /* default */ "wallet default", "Marks this transaction as BIP125 replaceable.\n"
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::DefaultHint{"wallet default"}, "Marks this transaction as BIP125 replaceable.\n"
                                                   "Allows this transaction to be replaced by a transaction with higher fees"},
                 },
                 "options"},
@@ -5276,11 +5276,11 @@ static RPCHelpMan sethdseed()
                 "\nNote that you will need to MAKE A NEW BACKUP of your wallet after setting the HD wallet seed." +
         HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"newkeypool", RPCArg::Type::BOOL, /* default */ "true", "Whether to flush old unused addresses, including change addresses, from the keypool and regenerate it.\n"
+                    {"newkeypool", RPCArg::Type::BOOL, RPCArg::Default{true}, "Whether to flush old unused addresses, including change addresses, from the keypool and regenerate it.\n"
                                          "If true, the next address from getnewaddress and change address from getrawchangeaddress will be from this new seed.\n"
                                          "If false, addresses (including change addresses if the wallet already had HD Chain Split enabled) from the existing\n"
                                          "keypool will be used until it has been depleted."},
-                    {"seed", RPCArg::Type::STR, /* default */ "random seed", "The WIF private key to use as the new HD seed.\n"
+                    {"seed", RPCArg::Type::STR, RPCArg::DefaultHint{"random seed"}, "The WIF private key to use as the new HD seed.\n"
                                          "The seed value can be retrieved using the dumpwallet command. It is the private key marked hdseed=1"},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
@@ -5350,15 +5350,15 @@ static RPCHelpMan walletprocesspsbt()
         HELP_REQUIRING_PASSPHRASE,
                 {
                     {"psbt", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction base64 string"},
-                    {"sign", RPCArg::Type::BOOL, /* default */ "true", "Also sign the transaction when updating"},
-                    {"sighashtype", RPCArg::Type::STR, /* default */ "ALL", "The signature hash type to sign with if not specified by the PSBT. Must be one of\n"
+                    {"sign", RPCArg::Type::BOOL, RPCArg::Default{true}, "Also sign the transaction when updating"},
+                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"ALL"}, "The signature hash type to sign with if not specified by the PSBT. Must be one of\n"
             "       \"ALL\"\n"
             "       \"NONE\"\n"
             "       \"SINGLE\"\n"
             "       \"ALL|ANYONECANPAY\"\n"
             "       \"NONE|ANYONECANPAY\"\n"
             "       \"SINGLE|ANYONECANPAY\""},
-                    {"bip32derivs", RPCArg::Type::BOOL, /* default */ "true", "Include BIP 32 derivation paths for public keys if we know them"},
+                    {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include BIP 32 derivation paths for public keys if we know them"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -5419,7 +5419,7 @@ static RPCHelpMan walletcreatefundedpsbt()
                                 {
                                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                                     {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output number"},
-                                    {"sequence", RPCArg::Type::NUM, /* default */ "depends on the value of the 'locktime' and 'options.replaceable' arguments", "The sequence number"},
+                                    {"sequence", RPCArg::Type::NUM, RPCArg::DefaultHint{"depends on the value of the 'locktime' and 'options.replaceable' arguments"}, "The sequence number"},
                                 },
                             },
                         },
@@ -5441,18 +5441,18 @@ static RPCHelpMan walletcreatefundedpsbt()
                             },
                         },
                     },
-                    {"locktime", RPCArg::Type::NUM, /* default */ "0", "Raw locktime. Non-0 value also locktime-activates inputs"},
+                    {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
                     {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "",
                         {
-                            {"add_inputs", RPCArg::Type::BOOL, /* default */ "false", "If inputs are specified, automatically include more if they are not enough."},
-                            {"changeAddress", RPCArg::Type::STR_HEX, /* default */ "pool address", "The particl address to receive the change"},
-                            {"changePosition", RPCArg::Type::NUM, /* default */ "random", "The index of the change output"},
-                            {"change_type", RPCArg::Type::STR, /* default */ "set by -changetype", "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
-                            {"includeWatching", RPCArg::Type::BOOL, /* default */ "true for watch-only wallets, otherwise false", "Also select inputs which are watch only"},
-                            {"lockUnspents", RPCArg::Type::BOOL, /* default */ "false", "Lock selected unspent outputs"},
-                            {"fee_rate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
-                            {"feeRate", RPCArg::Type::AMOUNT, /* default */ "not set, fall back to wallet fee estimation", "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
-                            {"subtractFeeFromOutputs", RPCArg::Type::ARR, /* default */ "empty array", "The outputs to subtract the fee from.\n"
+                            {"add_inputs", RPCArg::Type::BOOL, RPCArg::Default{false}, "If inputs are specified, automatically include more if they are not enough."},
+                            {"changeAddress", RPCArg::Type::STR_HEX, RPCArg::DefaultHint{"pool address"}, "The particl address to receive the change"},
+                            {"changePosition", RPCArg::Type::NUM, RPCArg::DefaultHint{"random"}, "The index of the change output"},
+                            {"change_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                            {"includeWatching", RPCArg::Type::BOOL, RPCArg::DefaultHint{"true for watch-only wallets, otherwise false"}, "Also select inputs which are watch only"},
+                            {"lockUnspents", RPCArg::Type::BOOL, RPCArg::Default{false}, "Lock selected unspent outputs"},
+                            {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
+                            {"feeRate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_UNIT + "/kvB."},
+                            {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "The outputs to subtract the fee from.\n"
                                                           "The fee will be equally deducted from the amount of each specified output.\n"
                                                           "Those recipients will receive less particl than you enter in their corresponding amount field.\n"
                                                           "If no outputs are specified here, the sender pays the fee.",
@@ -5460,14 +5460,14 @@ static RPCHelpMan walletcreatefundedpsbt()
                                     {"vout_index", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "The zero-based output index, before a change output is added."},
                                 },
                             },
-                            {"replaceable", RPCArg::Type::BOOL, /* default */ "wallet default", "Marks this transaction as BIP125 replaceable.\n"
+                            {"replaceable", RPCArg::Type::BOOL, RPCArg::DefaultHint{"wallet default"}, "Marks this transaction as BIP125 replaceable.\n"
                                                           "Allows this transaction to be replaced by a transaction with higher fees"},
-                            {"conf_target", RPCArg::Type::NUM, /* default */ "wallet -txconfirmtarget", "Confirmation target in blocks"},
-                            {"estimate_mode", RPCArg::Type::STR, /* default */ "unset", std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
+                            {"conf_target", RPCArg::Type::NUM, RPCArg::DefaultHint{"wallet -txconfirmtarget"}, "Confirmation target in blocks"},
+                            {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"unset"}, std::string() + "The fee estimate mode, must be one of (case insensitive):\n"
                             "         \"" + FeeModes("\"\n\"") + "\""},
                         },
                         "options"},
-                    {"bip32derivs", RPCArg::Type::BOOL, /* default */ "true", "Include BIP 32 derivation paths for public keys if we know them"},
+                    {"bip32derivs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include BIP 32 derivation paths for public keys if we know them"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -5540,7 +5540,7 @@ static RPCHelpMan upgradewallet()
         "\nUpgrade the wallet. Upgrades to the latest version if no version number is specified.\n"
         "New keys may be generated and a new wallet backup will need to be made.",
         {
-            {"version", RPCArg::Type::NUM, /* default */ strprintf("%d", FEATURE_LATEST), "The version number to upgrade to. Default is the latest wallet version."}
+            {"version", RPCArg::Type::NUM, RPCArg::Default{FEATURE_LATEST}, "The version number to upgrade to. Default is the latest wallet version."}
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -5604,7 +5604,7 @@ static RPCHelpMan walletdisplayaddress()
     return RPCHelpMan{"walletdisplayaddress",
         "Display address on an external signer for verification.",
         {
-            {"address",     RPCArg::Type::STR, RPCArg::Optional::NO, /* default_val */ "", "bitcoin address to display"},
+            {"address",     RPCArg::Type::STR, RPCArg::Optional::NO, "particl address to display"},
         },
         RPCResult{
             RPCResult::Type::OBJ,"","",

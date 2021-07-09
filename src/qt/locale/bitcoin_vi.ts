@@ -1015,7 +1015,7 @@
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Cố gắng spend các particls bị ảnh hưởng bởi các giao dịch chưa được hiển thị sẽ không được chấp nhận bởi mạng.</translation>
+        <translation>Cố gắng spend các particl bị ảnh hưởng bởi các giao dịch chưa được hiển thị sẽ không được chấp nhận bởi mạng.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -2480,7 +2480,7 @@ Lưu ý: Vì phí được tính trên cơ sở mỗi byte, nên phí "100 satos
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>The fee sẽ được khấu trừ từ số tiền đang gửi. Người nhận sẽ receive ít particls hơn bạn gõ vào khoảng trống. Nếu nhiều người gửi được chọn, fee sẽ được chia đều.</translation>
+        <translation>The fee sẽ được khấu trừ từ số tiền đang gửi. Người nhận sẽ receive ít particl hơn bạn gõ vào khoảng trống. Nếu nhiều người gửi được chọn, fee sẽ được chia đều.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>

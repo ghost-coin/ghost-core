@@ -191,7 +191,7 @@ Il n’est possible de signer qu’avec les adresses de type « legacy ».</tr
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>N’oubliez pas que le chiffrement de votre porte-monnaie ne peut pas protéger entièrement vos particls contre le vol par des programmes malveillants qui infecteraient votre ordinateur.</translation>
+        <translation>N’oubliez pas que le chiffrement de votre porte-monnaie ne peut pas protéger entièrement vos particl contre le vol par des programmes malveillants qui infecteraient votre ordinateur.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -1073,7 +1073,7 @@ Il n’est possible de signer qu’avec les adresses de type « legacy ».</tr
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Toute tentative de dépense de particls affectés par des transactions qui ne sont pas encore affichées ne sera pas acceptée par le réseau.</translation>
+        <translation>Toute tentative de dépense de particl affectés par des transactions qui ne sont pas encore affichées ne sera pas acceptée par le réseau.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -2451,7 +2451,7 @@ Note : Les frais étant calculés par octet, des frais de « 100 satoshis par
     </message>
     <message>
         <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for particl transactions than the network can process.</source>
-        <translation>Quand le volume des transactions est inférieur à l’espace dans les blocs, les mineurs et les nœuds de relais peuvent imposer des frais minimaux. Il est correct de payer ces frais minimaux, mais soyez conscient que cette transaction pourrait n’être jamais confirmée si la demande en transactions de particls dépassait la capacité de traitement du réseau.</translation>
+        <translation>Quand le volume des transactions est inférieur à l’espace dans les blocs, les mineurs et les nœuds de relais peuvent imposer des frais minimaux. Il est correct de payer ces frais minimaux, mais soyez conscient que cette transaction pourrait n’être jamais confirmée si la demande en transactions de particl dépassait la capacité de traitement du réseau.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2710,7 +2710,7 @@ Note : Les frais étant calculés par octet, des frais de « 100 satoshis par
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Les frais seront déduits du montant envoyé. Le destinataire recevra moins de particls que le montant saisi dans le champ de montant. Si plusieurs destinataires sont sélectionnés, les frais seront partagés également.</translation>
+        <translation>Les frais seront déduits du montant envoyé. Le destinataire recevra moins de particl que le montant saisi dans le champ de montant. Si plusieurs destinataires sont sélectionnés, les frais seront partagés également.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2772,7 +2772,7 @@ Note : Les frais étant calculés par octet, des frais de « 100 satoshis par
     </message>
     <message>
         <source>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Vous pouvez signer des messages ou des accords avec vos adresses pour prouver que vous pouvez recevoir des particls à ces dernières. Faites attention de ne rien signer de vague ou au hasard, car des attaques d’hameçonnage pourraient essayer de vous faire signer avec votre identité afin de l’usurper. Ne signez que des déclarations entièrement détaillées et avec lesquelles vous êtes d’accord.</translation>
+        <translation>Vous pouvez signer des messages ou des accords avec vos adresses pour prouver que vous pouvez recevoir des particl à ces dernières. Faites attention de ne rien signer de vague ou au hasard, car des attaques d’hameçonnage pourraient essayer de vous faire signer avec votre identité afin de l’usurper. Ne signez que des déclarations entièrement détaillées et avec lesquelles vous êtes d’accord.</translation>
     </message>
     <message>
         <source>The Particl address to sign the message with</source>

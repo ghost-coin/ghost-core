@@ -86,8 +86,8 @@ static RPCHelpMan deviceloadmnemonic()
     return RPCHelpMan{"deviceloadmnemonic",
                 "\nStart mnemonic loader.\n",
                 {
-                    {"wordcount", RPCArg::Type::NUM, /* default */ "12", "Word count of mnemonic."},
-                    {"pinprotection", RPCArg::Type::BOOL, /* default */ "false", "Make the new account the default account for the wallet."},
+                    {"wordcount", RPCArg::Type::NUM, RPCArg::Default{12}, "Word count of mnemonic."},
+                    {"pinprotection", RPCArg::Type::BOOL, RPCArg::Default{false}, "Make the new account the default account for the wallet."},
                 },
                 RPCResult{
                     RPCResult::Type::ANY, "", ""
@@ -246,8 +246,8 @@ static RPCHelpMan unlockdevice()
     return RPCHelpMan{"unlockdevice",
                 "\nList connected hardware devices.\n",
                 {
-                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase to unlock the device."},
-                    {"pin", RPCArg::Type::NUM, /* default */ "", "PIN to unlock the device."},
+                    {"passphrase", RPCArg::Type::STR, RPCArg::Default{""}, "Passphrase to unlock the device."},
+                    {"pin", RPCArg::Type::NUM, RPCArg::DefaultHint{""}, "PIN to unlock the device."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -333,7 +333,7 @@ static RPCHelpMan getdevicepublickey()
                 {
                     {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the key to sign with.\n"
             "                           The full path is \"accountpath\"/\"path\"."},
-                    {"accountpath", RPCArg::Type::STR, /* default */ GetDefaultAccountPath(), "Account path, set to empty string to ignore."},
+                    {"accountpath", RPCArg::Type::STR, RPCArg::Default{GetDefaultAccountPath()}, "Account path, set to empty string to ignore."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -385,7 +385,7 @@ static RPCHelpMan getdevicexpub()
                 {
                     {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the key to sign with.\n"
             "                           The full path is \"accountpath\"/\"path\"."},
-                    {"accountpath", RPCArg::Type::STR, /* default */ GetDefaultAccountPath(), "Account path, set to empty string to ignore."},
+                    {"accountpath", RPCArg::Type::STR, RPCArg::Default{GetDefaultAccountPath()}, "Account path, set to empty string to ignore."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The particl extended public key"
@@ -422,7 +422,7 @@ static RPCHelpMan devicesignmessage()
                     {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the key to sign with.\n"
             "                           The full path is \"accountpath\"/\"path\"."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message to sign for."},
-                    {"accountpath", RPCArg::Type::STR, /* default */ GetDefaultAccountPath(), "Account path, set to empty string to ignore."},
+                    {"accountpath", RPCArg::Type::STR, RPCArg::Default{GetDefaultAccountPath()}, "Account path, set to empty string to ignore."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "signature", "The signature of the message encoded in base 64"
@@ -466,32 +466,32 @@ static RPCHelpMan devicesignrawtransaction()
                 "that, if given, will be the only keys derived to sign the transaction.\n",
                 {
                     {"hexstring", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction hex string."},
-                    {"prevtxs", RPCArg::Type::ARR, /* default */ "", "A json array of previous dependent transaction outputs",
+                    {"prevtxs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of previous dependent transaction outputs",
                         {
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
                                 {
                                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
                                     {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output number"},
                                     {"scriptPubKey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "script key"},
-                                    {"redeemScript", RPCArg::Type::STR_HEX, /* default */ "", "(required for P2SH or P2WSH)"},
+                                    {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "(required for P2SH or P2WSH)"},
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount spent"},
                                 },
                             },
                         },
                     },
-                    {"paths", RPCArg::Type::ARR, /* default */ "", "A json array of key paths for signing",
+                    {"paths", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of key paths for signing",
                         {
                             {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "bip44 path."},
                         },
                     },
-                    {"sighashtype", RPCArg::Type::STR, /* default */ "ALL", "The signature hash type. Must be one of\n"
+                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"ALL"}, "The signature hash type. Must be one of\n"
             "       \"ALL\"\n"
             "       \"NONE\"\n"
             "       \"SINGLE\"\n"
             "       \"ALL|ANYONECANPAY\"\n"
             "       \"NONE|ANYONECANPAY\"\n"
             "       \"SINGLE|ANYONECANPAY\""},
-                    {"accountpath", RPCArg::Type::STR, /* default */ GetDefaultAccountPath(), "Account path, set to empty string to ignore."},
+                    {"accountpath", RPCArg::Type::STR, RPCArg::Default{GetDefaultAccountPath()}, "Account path, set to empty string to ignore."},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -767,11 +767,11 @@ static RPCHelpMan initaccountfromdevice()
                 "\nInitialise an extended key account from a hardware device." +
                 HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"label", RPCArg::Type::STR, /* default */ "", "A label for the account."},
-                    {"path", RPCArg::Type::STR, /* default */ "", "The path to derive the key from (default=\""+GetDefaultAccountPath()+"\")."},
-                    {"makedefault", RPCArg::Type::BOOL, /* default */ "true", "Make the new account the default account for the wallet."},
-                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Timestamp, scan the chain for incoming txns only on blocks after time, negative number to skip."},
-                    {"initstealthchain", RPCArg::Type::BOOL, /* default */ "true", "Prepare the account to generate stealthaddresses (default=true).\n"
+                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "A label for the account."},
+                    {"path", RPCArg::Type::STR, RPCArg::Default{""}, "The path to derive the key from (default=\""+GetDefaultAccountPath()+"\")."},
+                    {"makedefault", RPCArg::Type::BOOL, RPCArg::Default{true}, "Make the new account the default account for the wallet."},
+                    {"scan_chain_from", RPCArg::Type::NUM, RPCArg::Default{0}, "Timestamp, scan the chain for incoming txns only on blocks after time, negative number to skip."},
+                    {"initstealthchain", RPCArg::Type::BOOL, RPCArg::Default{true}, "Prepare the account to generate stealthaddresses (default=true).\n"
             "                           The hardware device will need to sign a fake transaction to use as the seed for the scan chain."},
                 },
                 RPCResult{
@@ -1018,14 +1018,14 @@ static RPCHelpMan devicegetnewstealthaddress()
                 "\nReturns a new Particl stealth address for receiving payments." +
                     HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"label", RPCArg::Type::STR, /* default */ "", "If \"label\" is specified the new address will be added to the address book."},
-                    {"num_prefix_bits", RPCArg::Type::NUM, /* default */ "0", "If specified and > 0, the stealth address is created with a prefix."},
-                    {"prefix_num", RPCArg::Type::NUM, /* default */ "", "If prefix_num is not specified the prefix will be selected deterministically.\n"
+                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "If \"label\" is specified the new address will be added to the address book."},
+                    {"num_prefix_bits", RPCArg::Type::NUM, RPCArg::Default{0}, "If specified and > 0, the stealth address is created with a prefix."},
+                    {"prefix_num", RPCArg::Type::STR, RPCArg::Default{""}, "If prefix_num is not specified the prefix will be selected deterministically.\n"
             "           prefix_num can be specified in base2, 10 or 16, for base 2 prefix_num must begin with 0b, 0x for base16.\n"
             "           A 32bit integer will be created from prefix_num and the least significant num_prefix_bits will become the prefix.\n"
             "           A stealth address created without a prefix will scan all incoming stealth transactions, irrespective of transaction prefixes.\n"
             "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix."},
-                    {"bech32", RPCArg::Type::BOOL, /* default */ "true", "Use Bech32 encoding."},
+                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{true}, "Use Bech32 encoding."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The generated particl stealth address"

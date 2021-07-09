@@ -186,7 +186,7 @@ Försök igen.</translation>
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Kom ihåg att kryptering av din plånbok inte helt kan skydda dig från stöld av dina particls om skadlig kod infekterat din dator.</translation>
+        <translation>Kom ihåg att kryptering av din plånbok inte helt kan skydda dig från stöld av dina particl om skadlig kod infekterat din dator.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -3150,7 +3150,7 @@ Notera: Då avgiften beräknas per byte kommer en avgift på 50 satoshi tas ut f
     <name>WalletModel</name>
     <message>
         <source>Send Coins</source>
-        <translation>Skicka Particls</translation>
+        <translation>Skicka Particl</translation>
     </message>
     <message>
         <source>Fee bump error</source>
@@ -3670,7 +3670,7 @@ Notera: Då avgiften beräknas per byte kommer en avgift på 50 satoshi tas ut f
     </message>
     <message>
         <source>Insufficient funds</source>
-        <translation>Otillräckligt med particls</translation>
+        <translation>Otillräckligt med particl</translation>
     </message>
     <message>
         <source>Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.</source>

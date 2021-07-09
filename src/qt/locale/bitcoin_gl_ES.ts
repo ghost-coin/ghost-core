@@ -185,7 +185,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Recorda que encriptar a tua carteira non protexe completamente que os teus particls poidan ser roubados por malware que afecte ó teu computador.</translation>
+        <translation>Recorda que encriptar a tua carteira non protexe completamente que os teus particl poidan ser roubados por malware que afecte ó teu computador.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>

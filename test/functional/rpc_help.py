@@ -66,9 +66,6 @@ class HelpRpcTest(BitcoinTestFramework):
 
         # Particl: Some arguments are converted internally and can be multiple types.
         mapping_client += [
-            ('importstealthaddress', 4, 'prefix_num'),
-            ('devicegetnewstealthaddress', 2, 'prefix_num'),
-            ('getnewstealthaddress', 2, 'prefix_num'),
             ('extkeygenesisimport', 5, 'scan_chain_from'),
             ('extkeyimportmaster', 5, 'scan_chain_from'),
             ('getnewaddress', 1, 'bech32'),
@@ -137,6 +134,7 @@ class HelpRpcTest(BitcoinTestFramework):
         os.mkdir(dump_dir)
         calls = [line.split(' ', 1)[0] for line in self.nodes[0].help().splitlines() if line and not line.startswith('==')]
         for call in calls:
+            print(self.nodes[0].help())
             with open(os.path.join(dump_dir, call), 'w', encoding='utf-8') as f:
                 # Make sure the node can generate the help at runtime without crashing
                 f.write(self.nodes[0].help(call))

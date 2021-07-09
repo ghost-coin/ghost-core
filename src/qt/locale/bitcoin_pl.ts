@@ -2611,7 +2611,7 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Opłata zostanie odjęta od kwoty wysyłane.Odbiorca otrzyma mniej niż particls wpisz w polu kwoty. Jeśli wybrano kilku odbiorców, opłata jest podzielona równo.</translation>
+        <translation>Opłata zostanie odjęta od kwoty wysyłane.Odbiorca otrzyma mniej niż particl wpisz w polu kwoty. Jeśli wybrano kilku odbiorców, opłata jest podzielona równo.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>

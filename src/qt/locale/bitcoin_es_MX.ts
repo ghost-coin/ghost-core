@@ -191,7 +191,7 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Recuerda que encriptar tu billetera no puede proteger completamente tus particls de ser robadas por malware que haya infectado tu computadora.</translation>
+        <translation>Recuerda que encriptar tu billetera no puede proteger completamente tus particl de ser robadas por malware que haya infectado tu computadora.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -1076,7 +1076,7 @@ Solicitar pagos (genera códigos QR y particl: URI)
     </message>
     <message>
         <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Los intentos de gastar particls que se vean afectados por transacciones aún no mostradas no serán aceptados por la red.</translation>
+        <translation>Los intentos de gastar particl que se vean afectados por transacciones aún no mostradas no serán aceptados por la red.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>

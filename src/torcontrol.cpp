@@ -143,7 +143,7 @@ bool TorControlConnection::Connect(const std::string& tor_control_center, const 
         char str_port[6];
         std::string host;
         SplitHostPort(tor_control_center, port, host);
-        if (port == -1) {
+        if (port == 0) {
             LogPrintf("tor: Error parsing socket address %s.  Port must be specified.\n", tor_control_center);
             return false;
         }
