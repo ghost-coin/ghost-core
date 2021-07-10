@@ -80,6 +80,7 @@ EXTRA_LIBRARIES += \
   $(LIBPARTICL_CONSENSUS) \
   $(LIBPARTICL_SERVER) \
   $(LIBPARTICL_CLI) \
+  $(LIBPARTICL_IPC) \
   $(LIBPARTICL_WALLET) \
   $(LIBPARTICL_WALLET_TOOL) \
   $(LIBPARTICL_USBDEVICE) \
@@ -166,14 +167,19 @@ BITCOIN_CORE_H = \
   i2p.h \
   index/base.h \
   index/blockfilterindex.h \
+  index/coinstatsindex.h \
   index/disktxpos.h \
   index/txindex.h \
   indirectmap.h \
   init.h \
   anon.h \
   blind.h \
+  init/common.h \
   interfaces/chain.h \
+  interfaces/echo.h \
   interfaces/handler.h \
+  interfaces/init.h \
+  interfaces/ipc.h \
   interfaces/node.h \
   interfaces/wallet.h \
   key.h \
@@ -340,6 +346,8 @@ obj/build.h: FORCE
 	  $(abs_top_srcdir)
 libparticl_util_a-clientversion.$(OBJEXT): obj/build.h
 
+ipc/capnp/libparticl_ipc_a-ipc.$(OBJEXT): $(libparticl_ipc_mpgen_input:=.h)
+
 # server: shared between bitcoind and bitcoin-qt
 # Contains code accessing mempool and chain state that is meant to be separated
 # from wallet and gui code (see node/README.md). Shared code should go in
@@ -361,6 +369,7 @@ libparticl_server_a_SOURCES = \
   i2p.cpp \
   index/base.cpp \
   index/blockfilterindex.cpp \
+  index/coinstatsindex.cpp \
   index/txindex.cpp \
   init.cpp \
   mapport.cpp \
@@ -614,6 +623,7 @@ libparticl_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   external_signer.cpp \
+  init/common.cpp \
   key.cpp \
   anon.cpp \
   blind.cpp \
@@ -655,7 +665,9 @@ libparticl_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
   fs.cpp \
+  interfaces/echo.cpp \
   interfaces/handler.cpp \
+  interfaces/init.cpp \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
@@ -776,17 +788,17 @@ if ENABLE_USBDEVICE
 particl_bin_ldadd += $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
 
-particld_SOURCES = $(particl_daemon_sources)
+particld_SOURCES = $(particl_daemon_sources) init/bitcoind.cpp
 particld_CPPFLAGS = $(particl_bin_cppflags)
 particld_CXXFLAGS = $(particl_bin_cxxflags)
 particld_LDFLAGS = $(particl_bin_ldflags)
 particld_LDADD = $(LIBPARTICL_SERVER) $(particl_bin_ldadd)
 
-particl_node_SOURCES = $(particl_daemon_sources)
+particl_node_SOURCES = $(particl_daemon_sources) init/bitcoin-node.cpp
 particl_node_CPPFLAGS = $(particl_bin_cppflags)
 particl_node_CXXFLAGS = $(particl_bin_cxxflags)
 particl_node_LDFLAGS = $(particl_bin_ldflags)
-particl_node_LDADD = $(LIBPARTICL_SERVER) $(particl_bin_ldadd)
+particl_node_LDADD = $(LIBPARTICL_SERVER) $(particl_bin_ldadd) $(LIBPARTICL_IPC) $(LIBMULTIPROCESS_LIBS)
 
 # bitcoin-cli binary #
 particl_cli_SOURCES = bitcoin-cli.cpp
@@ -975,6 +987,39 @@ if ENABLE_USBDEVICE
 %.pb.cc %.pb.h: %.proto
 	@test -f $(PROTOC)
 	$(AM_V_GEN) $(PROTOC) --cpp_out=$(@D) --proto_path=$(<D) $<
+endif
+
+libparticl_ipc_mpgen_input = \
+  ipc/capnp/echo.capnp \
+  ipc/capnp/init.capnp
+EXTRA_DIST += $(libparticl_ipc_mpgen_input)
+%.capnp:
+
+if BUILD_MULTIPROCESS
+libparticl_IPC=libparticl_ipc.a
+libparticl_ipc_a_SOURCES = \
+  ipc/capnp/init-types.h \
+  ipc/capnp/protocol.cpp \
+  ipc/capnp/protocol.h \
+  ipc/exception.h \
+  ipc/interfaces.cpp \
+  ipc/process.cpp \
+  ipc/process.h \
+  ipc/protocol.h
+libparticl_ipc_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libparticl_ipc_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) $(LIBMULTIPROCESS_CFLAGS)
+
+include $(MPGEN_PREFIX)/include/mpgen.mk
+libparticl_ipc_mpgen_output = \
+  $(libparticl_ipc_mpgen_input:=.c++) \
+  $(libparticl_ipc_mpgen_input:=.h) \
+  $(libparticl_ipc_mpgen_input:=.proxy-client.c++) \
+  $(libparticl_ipc_mpgen_input:=.proxy-server.c++) \
+  $(libparticl_ipc_mpgen_input:=.proxy-types.c++) \
+  $(libparticl_ipc_mpgen_input:=.proxy-types.h) \
+  $(libparticl_ipc_mpgen_input:=.proxy.h)
+nodist_libparticl_ipc_a_SOURCES = $(libparticl_ipc_mpgen_output)
+CLEANFILES += $(libparticl_ipc_mpgen_output)
 endif
 
 if EMBEDDED_LEVELDB
