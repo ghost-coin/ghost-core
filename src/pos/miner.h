@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,9 +11,10 @@
 #include <vector>
 #include <string>
 
-class CHDWallet;
-class CWallet;
+class CBlockIndex;
 class CBlock;
+class CWallet;
+class CHDWallet;
 
 class StakeThread
 {
@@ -31,8 +32,6 @@ extern std::atomic<bool> fIsStaking;
 extern int nMinStakeInterval;
 extern int nMinerSleep;
 
-double GetPoSKernelPS();
-
 bool CheckStake(CBlock *pblock);
 
 void StartThreadStakeMiner();
@@ -43,4 +42,3 @@ bool ThreadStakeMinerStopped();
 void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd);
 
 #endif // PARTICL_POS_MINER_H
-

@@ -308,6 +308,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "rehashblock", 2, "addtxns" },
     { "verifycommitment", 2, "amount" },
 
+    { "getposdifficulty", 0, "height" },
+
 
     { "logging", 0, "include" },
     { "logging", 1, "exclude" },

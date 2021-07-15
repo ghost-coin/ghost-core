@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2021 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -79,7 +79,11 @@ class PosTest(ParticlTestFramework):
         assert(ro[0]['amount'] == 10)
         assert(ro[0]['category'] == 'receive')
 
+        pos_difficulty1 = nodes[0].getposdifficulty()
         self.stakeBlocks(1)
+        pos_difficulty = nodes[0].getposdifficulty(1)
+        assert(pos_difficulty == pos_difficulty1)
+
         block2_hash = nodes[0].getblockhash(2)
         ro = nodes[0].getblock(block2_hash)
         assert(txnHash in ro['tx'])
