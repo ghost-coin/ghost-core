@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,45 +31,6 @@ std::atomic<bool> fIsStaking(false);
 int nMinStakeInterval = 0;  // Minimum stake interval in seconds
 int nMinerSleep = 500;  // In milliseconds
 std::atomic<int64_t> nTimeLastStake(0);
-
-extern double GetDifficulty(const CBlockIndex* blockindex);
-
-double GetPoSKernelPS()
-{
-    LOCK(cs_main);
-
-    CBlockIndex *pindex = ::ChainActive().Tip();
-    CBlockIndex *pindexPrevStake = nullptr;
-
-    int nBestHeight = pindex->nHeight;
-
-    int nPoSInterval = 72; // blocks sampled
-    double dStakeKernelsTriedAvg = 0;
-    int nStakesHandled = 0, nStakesTime = 0;
-
-    while (pindex && nStakesHandled < nPoSInterval) {
-        if (pindex->IsProofOfStake()) {
-            if (pindexPrevStake) {
-                dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake) * 4294967296.0;
-                nStakesTime += pindexPrevStake->nTime - pindex->nTime;
-                nStakesHandled++;
-            }
-            pindexPrevStake = pindex;
-        }
-        pindex = pindex->pprev;
-    }
-
-    double result = 0;
-
-    if (nStakesTime) {
-        result = dStakeKernelsTriedAvg / nStakesTime;
-    }
-
-    //if (IsProtocolV2(nBestHeight))
-        result *= Params().GetStakeTimestampMask(nBestHeight) + 1;
-
-    return result;
-}
 
 bool CheckStake(CBlock *pblock)
 {
@@ -459,4 +420,3 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
         condWaitFor(nThreadID, nWaitFor);
     }
 };
-

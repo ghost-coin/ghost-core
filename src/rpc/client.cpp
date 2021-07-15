@@ -309,6 +309,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "initaccountfromdevice", 3, "scan_chain_from" },
     { "initaccountfromdevice", 4, "initstealthchain" },
 
+    { "getposdifficulty", 0, "height" },
+
 
     { "logging", 0, "include" },
     { "logging", 1, "exclude" },

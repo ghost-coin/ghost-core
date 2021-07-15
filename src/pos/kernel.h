@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,7 +11,11 @@
 
 static const int MAX_REORG_DEPTH = 1024;
 
-// Compute the hash modifier for proof-of-stake
+double GetPoSKernelPS(CBlockIndex *pindex);
+
+/**
+ * Compute the hash modifier for proof-of-stake
+ */
 uint256 ComputeStakeModifierV2(const CBlockIndex *pindexPrev, const uint256 &kernel);
 
 /**

@@ -46,6 +46,7 @@
 #include <mutex>
 
 #include <pos/kernel.h>
+#include <pos/miner.h>
 
 struct CUpdatedBlock
 {
@@ -2403,6 +2404,53 @@ static RPCHelpMan getblockfilter()
     };
 }
 
+static RPCHelpMan getposdifficulty()
+{
+    return RPCHelpMan{"getposdifficulty",
+            "\nReturns the proof-of-stake difficulty and estimated network stake weight.\n",
+            {
+                {"height", RPCArg::Type::NUM, /*default*/ "current height", "The block height to return outputs for."},
+            },
+            RPCResult{
+                RPCResult::Type::OBJ, "", "",
+                {
+                    {RPCResult::Type::NUM, "height", "the block height"},
+                    {RPCResult::Type::STR_HEX, "hash", "the block hash"},
+                    {RPCResult::Type::NUM, "difficulty", "the block difficulty"},
+                    {RPCResult::Type::NUM, "netstakeweight", "the stake weight of the network"},
+                }},
+            RPCExamples{
+                HelpExampleCli("getposdifficulty", "")
+        + HelpExampleRpc("getposdifficulty", "")
+    },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman = EnsureChainman(request.context);
+    LOCK(cs_main);
+
+    CChain &active_chain = chainman.ActiveChain();
+    CBlockIndex *pblockindex = active_chain.Tip();
+    if (!request.params[0].isNull()) {
+        int height = request.params[0].get_int();
+        if (height < 0 || height > active_chain.Height()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+        }
+        pblockindex = active_chain[height];
+    }
+
+    double network_weight = GetPoSKernelPS(pblockindex);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("height", pblockindex->nHeight);
+    result.pushKV("hash", pblockindex->GetBlockHash().GetHex());
+    result.pushKV("difficulty", GetDifficulty(pblockindex));
+    result.pushKV("netstakeweight", (uint64_t)network_weight);
+
+    return result;
+},
+    };
+}
+
 /**
  * Serialize the UTXO set to a file for loading elsewhere.
  *
@@ -2541,6 +2589,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
     { "blockchain",         "scantxoutset",           &scantxoutset,           {"action", "scanobjects"} },
     { "blockchain",         "getblockfilter",         &getblockfilter,         {"blockhash", "filtertype"} },
+    { "blockchain",         "getposdifficulty",       &getposdifficulty,       {"height"} },
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        {"blockhash"} },

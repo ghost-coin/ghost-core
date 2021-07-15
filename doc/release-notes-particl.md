@@ -1,4 +1,10 @@
 
+0.21.1.3
+==============
+
+- rpc: New command getposdifficulty, returns the network weight at block heights.
+
+
 0.21.1.2
 ==============
 

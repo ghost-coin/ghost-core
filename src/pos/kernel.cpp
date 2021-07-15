@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,6 +18,43 @@
 #include <coins.h>
 #include <insight/insight.h>
 #include <txmempool.h>
+
+extern double GetDifficulty(const CBlockIndex* blockindex);
+
+double GetPoSKernelPS(CBlockIndex *pindex)
+{
+    LOCK(cs_main);
+
+    CBlockIndex *pindexPrevStake = nullptr;
+
+    int nBestHeight = pindex->nHeight;
+
+    int nPoSInterval = 72; // blocks sampled
+    double dStakeKernelsTriedAvg = 0;
+    int nStakesHandled = 0, nStakesTime = 0;
+
+    while (pindex && nStakesHandled < nPoSInterval) {
+        if (pindex->IsProofOfStake()) {
+            if (pindexPrevStake) {
+                dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake) * 4294967296.0;
+                nStakesTime += pindexPrevStake->nTime - pindex->nTime;
+                nStakesHandled++;
+            }
+            pindexPrevStake = pindex;
+        }
+        pindex = pindex->pprev;
+    }
+
+    double result = 0;
+
+    if (nStakesTime) {
+        result = dStakeKernelsTriedAvg / nStakesTime;
+    }
+
+    result *= Params().GetStakeTimestampMask(nBestHeight) + 1;
+
+    return result;
+}
 
 /**
  * Stake Modifier (hash modifier of proof-of-stake):

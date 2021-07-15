@@ -34,6 +34,7 @@
 #include <wallet/rpcwallet.h>
 #include <chainparams.h>
 #include <key/mnemonic.h>
+#include <pos/kernel.h>
 #include <pos/miner.h>
 #include <crypto/sha256.h>
 #include <warnings.h>
@@ -4261,16 +4262,18 @@ static UniValue getstakinginfo(const JSONRPCRequest &request)
     int64_t nTipTime;
     float rCoinYearReward;
     CAmount nMoneySupply;
+    CBlockIndex *pblockindex = nullptr;
     {
         LOCK(cs_main);
-        nTipTime = ::ChainActive().Tip()->nTime;
+        pblockindex = ::ChainActive().Tip();
+        nTipTime = pblockindex->nTime;
         rCoinYearReward = Params().GetCoinYearReward(nTipTime) / CENT;
-        nMoneySupply = ::ChainActive().Tip()->nMoneySupply;
+        nMoneySupply = pblockindex->nMoneySupply;
     }
 
     uint64_t nWeight = pwallet->GetStakeWeight();
 
-    uint64_t nNetworkWeight = GetPoSKernelPS();
+    uint64_t nNetworkWeight = GetPoSKernelPS(pblockindex);
 
     bool fStaking = nWeight && fIsStaking;
     uint64_t nExpectedTime = fStaking ? (Params().GetTargetSpacing() * nNetworkWeight / nWeight) : 0;
