@@ -717,7 +717,6 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     s >> bv;
     tx.nVersion |= bv<<24;
 
-
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();

@@ -274,8 +274,6 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
  */
 bool ExtractDestinations(const CScript& scriptPubKey, TxoutType& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet);
 
-bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
-
 /**
  * Generate a Bitcoin scriptPubKey for the given CTxDestination. Returns a P2PKH
  * script for a CKeyID destination, a P2SH script for a CScriptID, and an empty
@@ -289,8 +287,10 @@ CScript GetScriptForRawPubKey(const CPubKey& pubkey);
 /** Generate a multisig script. */
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys);
 
-// Particl
+namespace particl {
 TxoutType ToTxoutType(uint8_t type_byte);
 uint8_t FromTxoutType(TxoutType type_class);
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
+}
 
 #endif // BITCOIN_SCRIPT_STANDARD_H

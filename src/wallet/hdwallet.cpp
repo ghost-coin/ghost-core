@@ -62,7 +62,7 @@ static uint8_t GetOutputType(const COutPoint &prevout)
     }
 
     uint256 hash_block;
-    const CTransactionRef tx = GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hash_block);
+    const CTransactionRef tx = ::GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hash_block);
     if (tx) {
         if (tx->vpout.size() > prevout.n) {
             return tx->vpout[prevout.n]->GetType();
@@ -1159,6 +1159,28 @@ bool CHDWallet::GetExtKey(const CKeyID &keyID, CStoredExtKey &extKeyOut) const
 bool CHDWallet::HaveTransaction(const uint256 &txhash) const
 {
     return mapWallet.count(txhash) || mapRecords.count(txhash);
+};
+
+bool CHDWallet::GetTransaction(const uint256 &txhash, CTransactionRef &tx) const
+{
+    const auto mi = mapWallet.find(txhash);
+    if (mi != mapWallet.end()) {
+        tx = mi->second.tx;
+        return true;
+    }
+    const auto mri = mapRecords.find(txhash);
+    if (mri != mapRecords.end()) {
+        CStoredTransaction stx;
+        if (!CHDWalletDB(*database).ReadStoredTx(txhash, stx)) {
+            WalletLogPrintf("%s: ReadStoredTx failed for %s.\n", __func__, txhash.ToString());
+            return false;
+        }
+        tx = stx.tx;  // CTransactionRef is a shared_ptr, should persist after stx is destroyed
+        return true;
+    }
+
+    // TODO: Check ::GetTransaction
+    return false;
 };
 
 int CHDWallet::GetKey(const CKeyID &address, CKey &keyOut, CExtKeyAccount *&pa, CEKAKey &ak, CKeyID &idStealth) const
@@ -2297,7 +2319,7 @@ CAmount CHDWallet::GetOutputValue(const COutPoint &op, bool fAllowTXIndex) const
     }
 
     uint256 hash_block;
-    const CTransactionRef txOut = GetTransaction(nullptr, nullptr, op.hash, Params().GetConsensus(), hash_block);
+    const CTransactionRef txOut = ::GetTransaction(nullptr, nullptr, op.hash, Params().GetConsensus(), hash_block);
     if (txOut) {
         if (txOut->GetNumVOuts() > op.n) {
             return txOut->vpout[op.n]->GetValue();
@@ -4130,7 +4152,6 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             }
 
 #if ENABLE_USBDEVICE
-
             if (coinControl->fNeedHardwareKey) {
                 CCoinsView viewDummy;
                 CCoinsViewCache view(&viewDummy);
@@ -4151,7 +4172,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 auto spk_man = GetLegacyScriptPubKeyMan();
                 if (!spk_man) {
-                    pDevice->Close();
+                    pDevice->Cleanup();
                     uiInterface.NotifyWaitingForDevice(true);
                     return wserrorN(1, sError, __func__, _("GetLegacyScriptPubKeyMan failed.").translated);
                 }
@@ -4165,9 +4186,24 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     }
                 }
 
+                if (pDevice->RequirePrevTxns()) {
+                    for (const auto &coin : setCoins) {
+                        const auto &prevout = coin.outpoint;
+                        if (pDevice->HavePrevTxn(prevout.hash)) {
+                            continue;
+                        }
+                        CTransactionRef tx_prev;
+                        if (GetTransaction(prevout.hash, tx_prev)) {
+                            pDevice->AddPrevTxn(tx_prev);
+                        } else {
+                            WalletLogPrintf("%s: Could not find input txn %s\n", __func__, prevout.hash.ToString());
+                        }
+                    }
+                }
+
                 pDevice->PrepareTransaction(txNew, view, *spk_man, SIGHASH_ALL, hw_change_pos, hw_change_path);
                 if (!pDevice->m_error.empty()) {
-                    pDevice->Close();
+                    pDevice->Cleanup();
                     uiInterface.NotifyWaitingForDevice(true);
                     return wserrorN(1, sError, __func__, _("PrepareTransaction for device failed: %s").translated, pDevice->m_error);
                 }
@@ -4189,7 +4225,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     ProduceSignature(*spk_man, usb_device::DeviceSignatureCreator(pDevice, &txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata);
 
                     if (!pDevice->m_error.empty()) {
-                        pDevice->Close();
+                        pDevice->Cleanup();
                         uiInterface.NotifyWaitingForDevice(true);
                         return wserrorN(1, sError, __func__, _("ProduceSignature from device failed: %s").translated, pDevice->m_error);
                     }
@@ -4210,7 +4246,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     nIn++;
                 }
 
-                pDevice->Close();
+                pDevice->Cleanup();
 
                 uiInterface.NotifyWaitingForDevice(true);
             }
@@ -12611,7 +12647,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
 
                 const CScript *pscriptPubKey = txout->GetPScriptPubKey();
                 CKeyID keyID;
-                if (!ExtractStakingKeyID(*pscriptPubKey, keyID)) {
+                if (!particl::ExtractStakingKeyID(*pscriptPubKey, keyID)) {
                     continue;
                 }
 
@@ -12663,7 +12699,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                 }
 
                 CKeyID keyID;
-                if (!ExtractStakingKeyID(r.scriptPubKey, keyID)) {
+                if (!particl::ExtractStakingKeyID(r.scriptPubKey, keyID)) {
                     continue;
                 }
 
@@ -12807,7 +12843,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             whichType = Solver(*pscriptPubKey, vSolutions);
 
             if (LogAcceptCategory(BCLog::POS)) {
-                WalletLogPrintf("%s: Parsed kernel type=%d.\n", __func__, FromTxoutType(whichType));
+                WalletLogPrintf("%s: Parsed kernel type=%d.\n", __func__, particl::FromTxoutType(whichType));
             }
             CKeyID spendId;
             if (whichType == TxoutType::PUBKEYHASH) {
@@ -12817,14 +12853,14 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                 spendId = CKeyID(uint256(vSolutions[0]));
             } else {
                 if (LogAcceptCategory(BCLog::POS)) {
-                    WalletLogPrintf("%s: No support for kernel type=%d.\n", __func__, FromTxoutType(whichType));
+                    WalletLogPrintf("%s: No support for kernel type=%d.\n", __func__, particl::FromTxoutType(whichType));
                 }
                 break;  // only support pay to address (pay to pubkey hash)
             }
 
             if (!GetKey(spendId, key)) {
                 if (LogAcceptCategory(BCLog::POS)) {
-                    WalletLogPrintf("%s: Failed to get key for kernel type=%d.\n", __func__, FromTxoutType(whichType));
+                    WalletLogPrintf("%s: Failed to get key for kernel type=%d.\n", __func__, particl::FromTxoutType(whichType));
                 }
                 break;  // unable to find corresponding key
             }

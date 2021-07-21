@@ -369,28 +369,6 @@ bool ExtractDestinations(const CScript& scriptPubKey, TxoutType& typeRet, std::v
     return true;
 }
 
-bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID)
-{
-    if (scriptPubKey.IsPayToPublicKeyHash()) {
-        keyID = CKeyID(uint160(&scriptPubKey[3], 20));
-        return true;
-    }
-
-    if (scriptPubKey.IsPayToPublicKeyHash256()) {
-        keyID = CKeyID(uint256(&scriptPubKey[3], 32));
-        return true;
-    }
-
-    if (scriptPubKey.IsPayToPublicKeyHash256_CS()
-        || scriptPubKey.IsPayToScriptHash256_CS()
-        || scriptPubKey.IsPayToScriptHash_CS()) {
-        keyID = CKeyID(uint160(&scriptPubKey[5], 20));
-        return true;
-    }
-
-    return false;
-};
-
 namespace
 {
 class CScriptVisitor : public boost::static_visitor<CScript>
@@ -469,7 +447,7 @@ bool IsValidDestination(const CTxDestination& dest) {
     return dest.which() != 0;
 }
 
-
+namespace particl {
 TxoutType ToTxoutType(uint8_t type_byte)
 {
     switch (type_byte) {
@@ -517,3 +495,24 @@ uint8_t FromTxoutType(TxoutType type_class)
     }
     return 0;
 }
+
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID)
+{
+    if (scriptPubKey.IsPayToPublicKeyHash()) {
+        keyID = CKeyID(uint160(&scriptPubKey[3], 20));
+        return true;
+    }
+    if (scriptPubKey.IsPayToPublicKeyHash256()) {
+        keyID = CKeyID(uint256(&scriptPubKey[3], 32));
+        return true;
+    }
+    if (scriptPubKey.IsPayToPublicKeyHash256_CS()
+        || scriptPubKey.IsPayToScriptHash256_CS()
+        || scriptPubKey.IsPayToScriptHash_CS()) {
+        keyID = CKeyID(uint160(&scriptPubKey[5], 20));
+        return true;
+    }
+    return false;
+}
+
+} // namespace particl

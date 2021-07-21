@@ -100,6 +100,7 @@ public:
     bool GetExtKey(const CKeyID &keyID, CStoredExtKey &extKeyOut) const;
 
     bool HaveTransaction(const uint256 &txhash) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetTransaction(const uint256 &txhash, CTransactionRef &tx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     int GetKey(const CKeyID &address, CKey &keyOut, CExtKeyAccount *&pa, CEKAKey &ak, CKeyID &idStealth) const;
     bool GetKey(const CKeyID &address, CKey &keyOut) const override;

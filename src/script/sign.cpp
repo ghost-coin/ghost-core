@@ -111,7 +111,6 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         if (!GetColdStakeScriptPath(creator.IsCoinStake(), scriptPubKey, scriptPath)) {
             return false;
         }
-
         whichTypeRet = Solver(scriptPath, vSolutions);
     } else {
         whichTypeRet = Solver(scriptPubKey, vSolutions);
@@ -610,7 +609,6 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
         SignatureData sigdata = DataFromTransaction(mtx, i, vchAmount, prevPubKey);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
         if (!fHashSingle || (i < mtx.GetNumVOuts())) {
-
             ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, vchAmount, nHashType), prevPubKey, sigdata);
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 The Particl Core developers
+// Copyright (c) 2018-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -115,6 +115,8 @@ public:
         nInterface = nInterface_;
     };
 
+    /** Close open connections and clear all cached data */
+    virtual void Cleanup() {};
     virtual int Open() { return 0; };
     virtual int Close() { return 0; };
 
@@ -140,7 +142,11 @@ public:
     virtual int OpenIfUnlocked(std::string &sError) { return 0; }
     virtual int PromptUnlock(std::string &sError) { return 0; }
     virtual int Unlock(std::string pin, std::string passphraseword, std::string &sError) { return 0; };
-    virtual int GenericUnlock(std::vector<uint8_t>* msg_in, uint16_t msg_type_in) { return 0; };
+    virtual int GenericUnlock(const std::vector<uint8_t> *msg_in, uint16_t msg_type_in) { return 0; };
+
+    virtual bool RequirePrevTxns() { return false; };
+    virtual bool HavePrevTxn(const uint256 &txid) { return false; };
+    virtual int AddPrevTxn(CTransactionRef tx) { return 0; };
 
     const DeviceType *pType = nullptr;
     char cPath[512];
@@ -177,4 +183,3 @@ public:
 } // usb_device
 
 #endif // PARTICL_USBDEVICE_USBDEVICE_H
-

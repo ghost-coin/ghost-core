@@ -3969,7 +3969,7 @@ static RPCHelpMan listunspent()
             const CHDWallet *phdw = GetParticlWallet(pwallet);
             LOCK_ASSERTION(phdw->cs_wallet);
             CKeyID stakingKeyID;
-            bool fStakeable = ExtractStakingKeyID(*scriptPubKey, stakingKeyID);
+            bool fStakeable = particl::ExtractStakingKeyID(*scriptPubKey, stakingKeyID);
             if (fStakeable) {
                 isminetype mine = phdw->IsMine(stakingKeyID);
                 if (!(mine & ISMINE_SPENDABLE)

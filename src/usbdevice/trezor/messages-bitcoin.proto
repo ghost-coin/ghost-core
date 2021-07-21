@@ -19,6 +19,14 @@ enum InputScriptType {
 }
 
 /**
+ * Type of script which will be used for decred stake transaction input
+ */
+enum DecredStakingSpendType {
+    SSGen = 0;
+    SSRTX = 1;
+}
+
+/**
  * Type of redeem script used in input
  * @embed
  */
@@ -151,6 +159,8 @@ message TxRequest {
         TXMETA = 2;
         TXFINISHED = 3;
         TXEXTRADATA = 4;
+        TXORIGINPUT = 5;
+        TXORIGOUTPUT = 6;
     }
     /**
     * Structure representing request details
@@ -205,10 +215,17 @@ message TxAck {
             optional MultisigRedeemScriptType multisig = 7;                     // Filled if input is going to spend multisig tx
             optional uint64 amount = 8;                                         // amount of previous transaction output (for segwit only)
             optional uint32 decred_tree = 9;
-            optional uint32 decred_script_version = 10;
-            optional bytes prev_block_hash_bip115 = 11;                         // block hash of previous transaction output (for bip115 implementation)
-            optional uint32 prev_block_height_bip115 = 12;                      // block height of previous transaction output (for bip115 implementation)
-            optional bytes particl_shared_secret = 13;
+            // optional uint32 decred_script_version = 10;                         // only for Decred  // deprecated -> only 0 is supported
+            // optional bytes prev_block_hash_bip115 = 11;     // BIP-115 support dropped
+            // optional uint32 prev_block_height_bip115 = 12;  // BIP-115 support dropped
+            optional bytes witness = 13;                                        // witness data, only set for EXTERNAL inputs
+            optional bytes ownership_proof = 14;                                // SLIP-0019 proof of ownership, only set for EXTERNAL inputs
+            optional bytes commitment_data = 15;                                // optional commitment data for the SLIP-0019 proof of ownership
+            optional bytes orig_hash = 16;                                      // tx_hash of the original transaction where this input was spent (used when creating a replacement transaction)
+            optional uint32 orig_index = 17;                                    // index of the input in the original transaction (used when creating a replacement transaction)
+            optional DecredStakingSpendType decred_staking_spend = 18;          // if not None this holds the type of stake spend: revocation or stake generation
+            optional bytes particl_shared_secret = 19;                          // only for Particl
+            optional bytes particl_script_extra = 20;                           // only for Particl
         }
         /**
         * Structure representing compiled transaction output
@@ -226,12 +243,14 @@ message TxAck {
             optional string address = 1;                    // target coin address in Base58 encoding
             repeated uint32 address_n = 2;                  // BIP-32 path to derive the key from master node; has higher priority than "address"
             required uint64 amount = 3;                     // amount to spend in satoshis
-            required OutputScriptType script_type = 4;      // output script type
+            optional OutputScriptType script_type = 4 [default=PAYTOADDRESS];      // output script type
             optional MultisigRedeemScriptType multisig = 5; // defines multisig address; script_type must be PAYTOMULTISIG
             optional bytes op_return_data = 6;              // defines op_return data; script_type must be PAYTOOPRETURN, amount must be 0
-            optional uint32 decred_script_version = 7;
-            optional bytes block_hash_bip115 = 8;           // block hash of existing block (recommended current_block - 300) (for bip115 implementation)
-            optional uint32 block_height_bip115 = 9;        // block height of existing block (recommended current_block - 300) (for bip115 implementation)
+            // optional uint32 decred_script_version = 7;      // only for Decred  // deprecated -> only 0 is supported
+            // optional bytes block_hash_bip115 = 8;        // BIP-115 support dropped
+            // optional uint32 block_height_bip115 = 9;     // BIP-115 support dropped
+            optional bytes orig_hash = 10;                  // tx_hash of the original transaction where this output was present (used when creating a replacement transaction)
+            optional uint32 orig_index = 11;                // index of the output in the original transaction (used when creating a replacement transaction)
             enum OutputScriptType {
                 PAYTOADDRESS = 0;       // used for all addresses (bitcoin, p2sh, witness)
                 PAYTOSCRIPTHASH = 1;    // p2sh address (deprecated; use PAYTOADDRESS)
@@ -239,7 +258,7 @@ message TxAck {
                 PAYTOOPRETURN = 3;      // op_return
                 PAYTOWITNESS = 4;       // only for change output
                 PAYTOP2SHWITNESS = 5;   // only for change output
-                PAYTOPARTICLDATA = 6;
+                PAYTOPARTICLDATA = 6;   // only for Particl
             }
         }
     }

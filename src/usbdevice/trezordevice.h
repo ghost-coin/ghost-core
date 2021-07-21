@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 The Particl Core developers
+// Copyright (c) 2018-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -40,6 +40,9 @@ public:
     CTrezorDevice(const DeviceType *pType_, const char *cPath_, const char *cSerialNo_, int nInterface_)
         : CUSBDevice(pType_, cPath_, cSerialNo_, nInterface_) {};
 
+    /** Close open connections and clear all cached data */
+    void Cleanup() override;
+
     int Open() override;
     int Close() override;
 
@@ -58,21 +61,26 @@ public:
         int nIn, const CScript &scriptCode, int hashType, const std::vector<uint8_t> &amount, SigVersion sigversion,
         std::vector<uint8_t> &vchSig, std::string &sError) override;
 
-    int CompleteTransaction(CMutableTransaction *tx);
+    int CompleteTransaction(int change_pos, const std::vector<uint32_t> &change_path, CMutableTransaction *tx);
 
     int LoadMnemonic(uint32_t wordcount, bool pinprotection, std::string &sError) override;
     int Backup(std::string &sError) override;
 
-    int OpenIfUnlocked(std::string& sError) override;
-    int PromptUnlock(std::string& sError) override;
+    int OpenIfUnlocked(std::string &sError) override;
+    int PromptUnlock(std::string &sError) override;
     int Unlock(std::string pin, std::string passphraseword, std::string &sError) override;
-    int GenericUnlock(std::vector<uint8_t>* msg_in, uint16_t msg_type_in) override;
+    int GenericUnlock(const std::vector<uint8_t> *msg_in, uint16_t msg_type_in) override;
+
+    bool RequirePrevTxns() override { return true; }
+    bool HavePrevTxn(const uint256 &txid) override;
+    int AddPrevTxn(CTransactionRef tx) override;
 
     bool m_preparing = false;
     std::map<int, SignData> m_cache;
+    std::map<uint256, CMutableTransaction> m_tx_cache;
 private:
-    int WriteV1(uint16_t msg_type, std::vector<uint8_t>& vec);
-    int ReadV1(uint16_t& msg_type, std::vector<uint8_t>& vec);
+    int WriteV1(uint16_t msg_type, const std::vector<uint8_t> &vec);
+    int ReadV1(uint16_t &msg_type, std::vector<uint8_t> &vec);
 protected:
     webusb_device *handle = nullptr;
 };
