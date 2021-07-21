@@ -2224,18 +2224,16 @@ bool IsSpendScriptP2PKH(const CScript &script)
     valtype vchPushValue;
 
     bool fFoundOp = false;
-    while (pc < pend)
-    {
-        if (!script.GetOp(pc, opcode, vchPushValue))
+    while (pc < pend) {
+        if (!script.GetOp(pc, opcode, vchPushValue)) {
             break;
-
+        }
         if (!fFoundOp
-            && opcode == OP_ELSE)
-        {
+            && opcode == OP_ELSE) {
             size_t ofs = pc - script.begin();
             return script.MatchPayToPublicKeyHash(ofs);
-        };
-    };
+        }
+    }
 
     return false;
 };
@@ -2250,28 +2248,24 @@ bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut)
     valtype vchPushValue;
 
     bool fFoundOp = false;
-    while (pc < pend)
-    {
-        if (!scriptIn.GetOp(pc, opcode, vchPushValue))
+    while (pc < pend) {
+        if (!scriptIn.GetOp(pc, opcode, vchPushValue)) {
             break;
-
+        }
         if (!fFoundOp
-            && opcode == OP_ISCOINSTAKE)
-        {
+            && opcode == OP_ISCOINSTAKE) {
             pc++; // skip over if
 
             pcStart = pc;
             fFoundOp = true;
             continue;
-        };
-
-        if (fFoundOp && opcode == OP_ELSE)
-        {
+        }
+        if (fFoundOp && opcode == OP_ELSE) {
             pc--;
             scriptOut = CScript(pcStart, pc);
             return true;
-        };
-    };
+        }
+    }
 
     return false;
 };
@@ -2286,26 +2280,22 @@ bool GetNonCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut)
     valtype vchPushValue;
 
     bool fFoundOp = false;
-    while (pc < pend)
-    {
-        if (!scriptIn.GetOp(pc, opcode, vchPushValue))
+    while (pc < pend) {
+        if (!scriptIn.GetOp(pc, opcode, vchPushValue)) {
             break;
-
+        }
         if (!fFoundOp
-            && opcode == OP_ELSE)
-        {
+            && opcode == OP_ELSE) {
             pcStart = pc;
             fFoundOp = true;
             continue;
-        };
-
-        if (fFoundOp && opcode == OP_ENDIF)
-        {
+        }
+        if (fFoundOp && opcode == OP_ENDIF) {
             pc--;
             scriptOut = CScript(pcStart, pc);
             return true;
-        };
-    };
+        }
+    }
 
     return false;
 };

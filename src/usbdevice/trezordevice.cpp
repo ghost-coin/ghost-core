@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 The Particl Core developers
+// Copyright (c) 2018-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,16 +24,24 @@
 
 namespace usb_device {
 
+namespace tzr_proto = hw::trezor::messages::bitcoin;
+
+void CTrezorDevice::Cleanup()
+{
+    Close();
+
+    m_cache.clear();
+    m_tx_cache.clear();
+}
+
 int CTrezorDevice::Open()
 {
     if (!pType) {
         return 1;
     }
-
     if (webusb_init()) {
         return 1;
     }
-
     if (!(handle = webusb_open_path(cPath))) {
         webusb_exit();
         return 1;
@@ -53,7 +61,7 @@ int CTrezorDevice::Close()
     return 0;
 };
 
-int CTrezorDevice::WriteV1(uint16_t msg_type, std::vector<uint8_t>& vec)
+int CTrezorDevice::WriteV1(uint16_t msg_type, const std::vector<uint8_t> &vec)
 {
     static const size_t BUFFER_LEN = 64;
     uint8_t buffer[BUFFER_LEN];
@@ -138,12 +146,12 @@ static int ReadWithTimeoutV1(webusb_device* handle, uint16_t& msg_type, std::vec
     return 0;
 };
 
-int CTrezorDevice::ReadV1(uint16_t& msg_type, std::vector<uint8_t>& vec)
+int CTrezorDevice::ReadV1(uint16_t &msg_type, std::vector<uint8_t> &vec)
 {
     return ReadWithTimeoutV1(handle, msg_type, vec, 60000);
 };
 
-int CTrezorDevice::OpenIfUnlocked(std::string& sError)
+int CTrezorDevice::OpenIfUnlocked(std::string &sError)
 {
     hw::trezor::messages::management::GetFeatures msg_in;
     hw::trezor::messages::management::Features msg_out;
@@ -211,7 +219,7 @@ int CTrezorDevice::OpenIfUnlocked(std::string& sError)
     return Open();
 };
 
-int CTrezorDevice::GetFirmwareVersion(std::string& sFirmware, std::string& sError)
+int CTrezorDevice::GetFirmwareVersion(std::string &sFirmware, std::string &sError)
 {
     hw::trezor::messages::management::GetFeatures msg_in;
     hw::trezor::messages::management::Features msg_out;
@@ -297,8 +305,8 @@ int CTrezorDevice::GetInfo(UniValue& info, std::string& sError)
 
 int CTrezorDevice::GetPubKey(const std::vector<uint32_t>& vPath, CPubKey& pk, bool display, std::string& sError)
 {
-    hw::trezor::messages::bitcoin::GetPublicKey msg_in;
-    hw::trezor::messages::bitcoin::PublicKey msg_out;
+    tzr_proto::GetPublicKey msg_in;
+    tzr_proto::PublicKey msg_out;
 
     for (const auto i : vPath) {
         msg_in.add_address_n(i);
@@ -347,8 +355,8 @@ int CTrezorDevice::GetXPub(const std::vector<uint32_t>& vPath, CExtPubKey& ekp, 
     }
     size_t lenPath = vPath.size();
 
-    hw::trezor::messages::bitcoin::GetPublicKey msg_in;
-    hw::trezor::messages::bitcoin::PublicKey msg_out;
+    tzr_proto::GetPublicKey msg_in;
+    tzr_proto::PublicKey msg_out;
 
     for (const auto i : vPath) {
         msg_in.add_address_n(i);
@@ -416,8 +424,8 @@ int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::st
         return errorN(1, sError, __func__, "Path depth out of range.");
     }
 
-    hw::trezor::messages::bitcoin::SignMessage msg_in;
-    hw::trezor::messages::bitcoin::MessageSignature msg_out;
+    tzr_proto::SignMessage msg_in;
+    tzr_proto::MessageSignature msg_out;
 
     for (const auto i : vPath) {
         msg_in.add_address_n(i);
@@ -490,8 +498,8 @@ int CTrezorDevice::PrepareTransaction(CMutableTransaction& mtx, const CCoinsView
 
     m_preparing = true;
     for (unsigned int i = 0; i < mtx.vin.size(); i++) {
-        CTxIn& txin = mtx.vin[i];
-        const Coin& coin = view.AccessCoin(txin.prevout);
+        const CTxIn &txin = mtx.vin[i];
+        const Coin &coin = view.AccessCoin(txin.prevout);
         if (coin.IsSpent() || coin.nType != OUTPUT_STANDARD) {
             continue;
         }
@@ -511,7 +519,7 @@ int CTrezorDevice::PrepareTransaction(CMutableTransaction& mtx, const CCoinsView
 
     m_preparing = false;
 
-    return CompleteTransaction(&mtx);
+    return CompleteTransaction(change_pos, change_path, &mtx);
 };
 
 int CTrezorDevice::SignTransaction(const std::vector<uint32_t>& vPath, const std::vector<uint8_t>& vSharedSecret, const CMutableTransaction* tx, int nIn, const CScript& scriptCode, int hashType, const std::vector<uint8_t>& amount, SigVersion sigversion, std::vector<uint8_t>& vchSig, std::string& sError)
@@ -528,10 +536,46 @@ int CTrezorDevice::SignTransaction(const std::vector<uint32_t>& vPath, const std
     return 0;
 };
 
-int CTrezorDevice::CompleteTransaction(CMutableTransaction* tx)
+static int SetAddressFromScript(std::string &addr, std::string &str_error, const CScript *pscript)
 {
-    hw::trezor::messages::bitcoin::SignTx msg_in;
-    hw::trezor::messages::bitcoin::TxRequest req;
+    if (pscript->StartsWithICS()) {
+        CScript scriptA, scriptB;
+        if (!SplitConditionalCoinstakeScript(*pscript, scriptA, scriptB)) {
+            return errorN(1, str_error, __func__, "SplitConditionalCoinstakeScript failed.");
+        }
+        CTxDestination addrStake, addrSpend;
+        if (!ExtractDestination(scriptA, addrStake)) {
+            return errorN(1, str_error, __func__, "ExtractDestination failed.");
+        }
+        if (!ExtractDestination(scriptB, addrSpend)) {
+            return errorN(1, str_error, __func__, "ExtractDestination failed.");
+        }
+        if (addrStake.index() != DI::_PKHash || addrSpend.index() != DI::_CKeyID256) {
+            return errorN(1, str_error, __func__, "Unsupported coldstake script types.");
+        }
+        PKHash idStake = std::get<PKHash>(addrStake);
+        CKeyID256 idSpend = std::get<CKeyID256>(addrSpend);
+
+        // Construct joined address, p2pkh prefix +2
+        std::vector<uint8_t> addr_raw(53);
+        addr_raw[0] = Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS)[0] + 2;
+        memcpy(&addr_raw[1], idStake.begin(), 20);
+        memcpy(&addr_raw[21], idSpend.begin(), 32);
+        addr = EncodeBase58Check(addr_raw);
+        return 0;
+    }
+    CTxDestination address;
+    if (!ExtractDestination(*pscript, address)) {
+        return errorN(1, str_error, __func__, "ExtractDestination failed.");
+    }
+    addr = EncodeDestination(address);
+    return 0;
+}
+
+int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_t> &change_path, CMutableTransaction *tx)
+{
+    tzr_proto::SignTx msg_in;
+    tzr_proto::TxRequest req;
     uint16_t msg_type_out = 0;
 
     msg_in.set_outputs_count(tx->vpout.size());
@@ -592,7 +636,6 @@ int CTrezorDevice::CompleteTransaction(CMutableTransaction* tx)
                 size_t i = msg_serialized.signature_index();
 
                 std::string signature = msg_serialized.signature();
-
                 const auto& ci = m_cache.find(i);
                 if (ci == m_cache.end()) {
                     return errorN(1, m_error, __func__, "No information for input %d.", i);
@@ -605,107 +648,206 @@ int CTrezorDevice::CompleteTransaction(CMutableTransaction* tx)
             }
         }
 
-        hw::trezor::messages::bitcoin::TxAck msg;
-        if (req.request_type() == hw::trezor::messages::bitcoin::TxRequest::TXINPUT) {
-            const auto msg_tx = msg.mutable_tx();
-            uint32_t i = req.details().request_index();
-
-            if (i >= tx->vin.size()) {
-                return errorN(1, m_error, __func__, "Requested input %d out of range.", i);
-            }
-            auto msg_input = msg_tx->add_inputs();
-
-            const auto& ci = m_cache.find(i);
-            if (ci == m_cache.end()) {
-                return errorN(1, m_error, __func__, "No information for input %d.", i);
-            }
-            const auto& txin = tx->vin[i];
-
-            for (const auto i : ci->second.m_path) {
-                msg_input->add_address_n(i);
-            }
-
-            if (ci->second.m_shared_secret.size() == 32) {
-                const std::vector<uint8_t>& shared_secret = ci->second.m_shared_secret;
-                std::string s(shared_secret.begin(), shared_secret.end());
-                msg_input->set_particl_shared_secret(s);
-            }
-
-            std::string hash;
-            hash.resize(32);
-            for (size_t k = 0; k < 32; ++k) {
-                hash[k] = *(txin.prevout.hash.begin() + (31 - k));
-            }
-
-            msg_input->set_prev_hash(hash);
-            msg_input->set_prev_index(txin.prevout.n);
-
-            msg_input->set_sequence(txin.nSequence);
-            msg_input->set_script_type(hw::trezor::messages::bitcoin::SPENDWITNESS);
-            if (ci->second.m_amount.size() != 8) {
-                return errorN(1, m_error, __func__, "Non-standard amount size for input %d.", i);
-            }
-            int64_t amount;
-            memcpy(&amount, ci->second.m_amount.data(), 8);
-            msg_input->set_amount(amount);
-        } else if (req.request_type() == hw::trezor::messages::bitcoin::TxRequest::TXOUTPUT) {
-            const auto msg_tx = msg.mutable_tx();
-            uint32_t i = req.details().request_index();
-            if (i >= tx->vpout.size()) {
-                return errorN(1, m_error, __func__, "Requested output %d out of range.", i);
-            }
-            auto msg_output = msg_tx->add_outputs();
-
-            if (tx->vpout[i]->IsType(OUTPUT_STANDARD)) {
-                CTxDestination address;
-                const CScript* pscript = tx->vpout[i]->GetPScriptPubKey();
-                if (!pscript) {
-                    return errorN(1, m_error, __func__, "GetPScriptPubKey failed.");
+        tzr_proto::TxAck msg;
+        if (req.request_type() == tzr_proto::TxRequest::TXINPUT) {
+            if (req.details().has_tx_hash()) {
+                // Send an input from a prevout tx
+                std::string s = req.details().tx_hash();
+                if (s.length() < 32) {
+                    return errorN(1, m_error, __func__, "TXINPUT tx_hash is too short %d.", s.length());
                 }
+                std::reverse(s.begin(), s.end());
+                uint256 req_txhash;
+                memcpy(req_txhash.data(), s.data(), 32);
+                uint32_t n = req.details().request_index();
+                const auto msg_tx = msg.mutable_tx();
+                auto msg_input = msg_tx->add_inputs();
 
-                if (pscript->StartsWithICS()) {
-                    CScript scriptA, scriptB;
-                    if (!SplitConditionalCoinstakeScript(*pscript, scriptA, scriptB)) {
-                        return errorN(1, m_error, __func__, "Output %d, failed to split script.", i);
-                    }
-                    CTxDestination addrStake, addrSpend;
-                    if (!ExtractDestination(scriptA, addrStake)) {
-                        return errorN(1, m_error, __func__, "ExtractDestination failed.");
-                    }
-                    if (!ExtractDestination(scriptB, addrSpend)) {
-                        return errorN(1, m_error, __func__, "ExtractDestination failed.");
-                    }
-                    if (addrStake.index() != DI::_PKHash || addrSpend.index() != DI::_CKeyID256) {
-                        return errorN(1, m_error, __func__, "Unsupported coldstake script types.");
-                    }
-                    PKHash idStake = std::get<PKHash>(addrStake);
-                    CKeyID256 idSpend = std::get<CKeyID256>(addrSpend);
-
-                    // Construct joined address, p2pkh prefix +2
-                    std::vector<uint8_t> addr_raw(53);
-                    addr_raw[0] = Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS)[0] + 2;
-                    memcpy(&addr_raw[1], idStake.begin(), 20);
-                    memcpy(&addr_raw[21], idSpend.begin(), 32);
-                    msg_output->set_address(EncodeBase58Check(addr_raw));
-                } else {
-                    if (!ExtractDestination(*pscript, address)) {
-                        return errorN(1, m_error, __func__, "ExtractDestination failed.");
-                    }
-                    msg_output->set_address(EncodeDestination(address));
+                const auto &cti = m_tx_cache.find(req_txhash);
+                if (cti == m_tx_cache.end()) {
+                    return errorN(1, m_error, __func__, "TXINPUT: Unknown prevout txn requested %s.", req_txhash.ToString());
                 }
-
-                msg_output->set_amount(tx->vpout[i]->GetValue());
-                msg_output->set_script_type(hw::trezor::messages::bitcoin::TxAck::TransactionType::TxOutputType::PAYTOADDRESS);
-            } else if (tx->vpout[i]->IsType(OUTPUT_DATA)) {
-                CTxOutData* txd = (CTxOutData*)tx->vpout[i].get();
-                std::string s(txd->vData.begin(), txd->vData.end());
-                msg_output->set_op_return_data(s);
-                msg_output->set_amount(0);
-                msg_output->set_script_type(hw::trezor::messages::bitcoin::TxAck::TransactionType::TxOutputType::PAYTOPARTICLDATA);
+                const CMutableTransaction &prev_tx = cti->second;
+                if (n >= prev_tx.vin.size()) {
+                    return errorN(1, m_error, __func__, "TXINPUT req_tx has too few inputs %d.", n);
+                }
+                const auto &txin = tx->vin[n];
+                // Set hash reversed
+                std::string hash(32, '0');
+                for (size_t k = 0; k < 32; ++k) {
+                    hash[k] = *(txin.prevout.hash.begin() + (31 - k));
+                }
+                msg_input->set_prev_hash(hash);
+                msg_input->set_prev_index(txin.prevout.n);
+                msg_input->set_sequence(txin.nSequence);
+                msg_input->add_address_n(0);  // Unknown
             } else {
-                return errorN(1, m_error, __func__, "Unknown type of output %d.", i);
+                // Send an input from the tx being signed
+                const auto msg_tx = msg.mutable_tx();
+                uint32_t i = req.details().request_index();
+
+                if (i >= tx->vin.size()) {
+                    return errorN(1, m_error, __func__, "Requested input %d out of range.", i);
+                }
+                auto msg_input = msg_tx->add_inputs();
+
+                const auto &ci = m_cache.find(i);
+                if (ci == m_cache.end()) {
+                    return errorN(1, m_error, __func__, "No information for input %d.", i);
+                }
+                const auto &txin = tx->vin[i];
+                const auto &cached_data = ci->second;
+
+                for (const auto path_i : cached_data.m_path) {
+                    msg_input->add_address_n(path_i);
+                }
+
+                if (cached_data.m_scriptCode.IsPayToPublicKeyHash256()) {
+                    std::vector<uint8_t> script_data(1);
+                    script_data[0] = 1;
+                    std::string s(script_data.begin(), script_data.end());
+                    msg_input->set_particl_script_extra(s);
+                } else
+                if (cached_data.m_scriptCode.IsPayToPublicKeyHash256_CS()) {
+                    std::vector<uint8_t> script_data(21);
+                    script_data[0] = 2;
+                    CKeyID pkh_stake;
+                    if (!particl::ExtractStakingKeyID(cached_data.m_scriptCode, pkh_stake)) {
+                        return errorN(1, m_error, __func__, "ExtractStakingKeyID failed for output %d.", i);
+                    }
+                    memcpy(script_data.data() + 1, pkh_stake.data(), 20);
+                    std::string s(script_data.begin(), script_data.end());
+                    msg_input->set_particl_script_extra(s);
+                }
+
+                if (cached_data.m_shared_secret.size() == 32) {
+                    const std::vector<uint8_t> &shared_secret = cached_data.m_shared_secret;
+                    std::string s(shared_secret.begin(), shared_secret.end());
+                    msg_input->set_particl_shared_secret(s);
+                }
+
+                // Set hash reversed
+                std::string hash(32, '0');
+                for (size_t k = 0; k < 32; ++k) {
+                    hash[k] = *(txin.prevout.hash.begin() + (31 - k));
+                }
+
+                msg_input->set_prev_hash(hash);
+                msg_input->set_prev_index(txin.prevout.n);
+
+                msg_input->set_sequence(txin.nSequence);
+                msg_input->set_script_type(tzr_proto::SPENDWITNESS);
+                if (cached_data.m_amount.size() != 8) {
+                    return errorN(1, m_error, __func__, "Non-standard amount size for input %d.", i);
+                }
+                int64_t amount;
+                memcpy(&amount, cached_data.m_amount.data(), 8);
+                msg_input->set_amount(amount);
             }
-        } else if (req.request_type() == hw::trezor::messages::bitcoin::TxRequest::TXFINISHED) {
+        } else if (req.request_type() == tzr_proto::TxRequest::TXOUTPUT) {
+            if (req.details().has_tx_hash()) {
+                // Send an output from a prevout tx
+                std::string s = req.details().tx_hash();
+                if (s.length() < 32) {
+                    return errorN(1, m_error, __func__, "TXOUTPUT tx_hash is too short %d.", s.length());
+                }
+                std::reverse(s.begin(), s.end());
+                COutPoint prevout;
+                memcpy(prevout.hash.data(), s.data(), 32);
+                prevout.n = req.details().request_index();
+                const auto &cti = m_tx_cache.find(prevout.hash);
+                if (cti == m_tx_cache.end()) {
+                    return errorN(1, m_error, __func__, "TXOUTPUT: Unknown prevout txn requested %s.", prevout.hash.ToString());
+                }
+                const CMutableTransaction &prev_tx = cti->second;
+
+                if (prevout.n >= prev_tx.vpout.size()) {
+                    return errorN(1, m_error, __func__, "TXOUTPUT: Unknown prevout requested %s.", prevout.ToString());
+                }
+                const auto msg_tx = msg.mutable_tx();
+                auto msg_output = msg_tx->add_bin_outputs();
+
+                const auto &send_output = prev_tx.vpout[prevout.n];
+                if (send_output->IsType(OUTPUT_STANDARD)) {
+                    msg_output->set_amount(send_output->GetValue());
+                    const auto &pscript = send_output->GetPScriptPubKey();
+                    std::string str_script(pscript->begin(), pscript->end());
+                    msg_output->set_script_pubkey(str_script);
+                } else if (send_output->IsType(OUTPUT_DATA)) {
+                    CTxOutData* txd = (CTxOutData*)send_output.get();
+                    std::string s(txd->vData.begin(), txd->vData.end());
+                    msg_output->set_script_pubkey(s);
+                    msg_output->set_particl_output_type(1); // tzr_proto::TxAck::TransactionType::TxOutputType::PAYTOPARTICLDATA
+                    msg_output->set_amount(0);
+                } else {
+                    // TODO: Send fake data?
+                    return errorN(1, m_error, __func__, "Unknown output type.");
+                }
+            } else {
+                // Send an output from tx being signed
+                uint32_t i = req.details().request_index();
+                if (i >= tx->vpout.size()) {
+                    return errorN(1, m_error, __func__, "Requested output %d out of range.", i);
+                }
+                const auto msg_tx = msg.mutable_tx();
+                auto msg_output = msg_tx->add_outputs();
+
+                const auto &send_output = tx->vpout[i];
+                if (send_output->IsType(OUTPUT_STANDARD)) {
+                    const CScript *pscript = send_output->GetPScriptPubKey();
+                    if (!pscript) {
+                        return errorN(1, m_error, __func__, "GetPScriptPubKey failed.");
+                    }
+
+                    msg_output->set_amount(send_output->GetValue());
+                    msg_output->set_script_type(tzr_proto::TxAck::TransactionType::TxOutputType::PAYTOADDRESS);
+
+                    if ((int)i == change_pos) {
+                        // Set the path for the change output
+                        for (const auto path_i : change_path) {
+                            msg_output->add_address_n(path_i);
+                        }
+                    } else {
+                        std::string addr;
+                        int rv = SetAddressFromScript(addr, m_error, pscript);
+                        if (0 != rv) {
+                            return rv; // m_error is set
+                        }
+                        msg_output->set_address(addr);
+                    }
+
+                } else if (send_output->IsType(OUTPUT_DATA)) {
+                    CTxOutData* txd = (CTxOutData*)send_output.get();
+                    std::string s(txd->vData.begin(), txd->vData.end());
+                    msg_output->set_op_return_data(s);
+                    msg_output->set_amount(0);
+                    msg_output->set_script_type(tzr_proto::TxAck::TransactionType::TxOutputType::PAYTOPARTICLDATA);
+                } else {
+                    return errorN(1, m_error, __func__, "Unknown type of output %d.", i);
+                }
+            }
+        } else if (req.request_type() == tzr_proto::TxRequest::TXMETA) {
+            std::string s = req.details().tx_hash();
+            if (s.length() < 32) {
+                return errorN(1, m_error, __func__, "TXMETA tx_hash is too short %d.", s.length());
+            }
+            std::reverse(s.begin(), s.end());
+            uint256 req_txhash;
+            memcpy(req_txhash.data(), s.data(), 32);
+
+            const auto &cti = m_tx_cache.find(req_txhash);
+            if (cti == m_tx_cache.end()) {
+                return errorN(1, m_error, __func__, "TXMETA: Unknown prevout txn requested %s.", req_txhash.ToString());
+            }
+            const CMutableTransaction &prev_tx = cti->second;
+
+            const auto msg_tx = msg.mutable_tx();
+
+            msg_tx->set_version(prev_tx.nVersion);
+            msg_tx->set_lock_time(prev_tx.nLockTime);
+            msg_tx->set_inputs_cnt(prev_tx.vin.size());
+            msg_tx->set_outputs_cnt(prev_tx.vpout.size());
+        } else if (req.request_type() == tzr_proto::TxRequest::TXFINISHED) {
             if (LogAcceptCategory(BCLog::HDWALLET)) {
                 LogPrintf("%s: Debug, serialised_tx %s.\n", __func__, HexStr(serialised_tx));
             }
@@ -943,7 +1085,8 @@ int CTrezorDevice::Unlock(std::string pin, std::string passphraseword, std::stri
     return 0;
 };
 
-int CTrezorDevice::GenericUnlock(std::vector<uint8_t>* vec_in, uint16_t msg_type_in) {
+int CTrezorDevice::GenericUnlock(const std::vector<uint8_t> *vec_in, uint16_t msg_type_in)
+{
     uint16_t msg_type_out = 0;
     std::vector<uint8_t> vec_out;
 
@@ -973,6 +1116,17 @@ int CTrezorDevice::GenericUnlock(std::vector<uint8_t>* vec_in, uint16_t msg_type
         return errorN(1, m_error, __func__, "Unlocking returned failure.");
     }
 
+    return 0;
+};
+
+bool CTrezorDevice::HavePrevTxn(const uint256 &txid)
+{
+    return m_tx_cache.count(txid);
+};
+
+int CTrezorDevice::AddPrevTxn(CTransactionRef tx)
+{
+    m_tx_cache.emplace(tx->GetHash(), *tx);
     return 0;
 };
 

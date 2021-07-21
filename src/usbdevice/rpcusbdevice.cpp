@@ -688,7 +688,7 @@ static RPCHelpMan devicesignrawtransaction()
     }
 
     if (!pDevice->m_error.empty()) {
-        pDevice->Close();
+        pDevice->Cleanup();
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("error", pDevice->m_error);
         vErrors.push_back(entry);
@@ -709,7 +709,7 @@ static RPCHelpMan devicesignrawtransaction()
             continue;
         }
         if (coin.nType != OUTPUT_STANDARD && coin.nType != OUTPUT_CT) {
-            pDevice->Close();
+            pDevice->Cleanup();
             throw JSONRPCError(RPC_MISC_ERROR, strprintf("Bad input type: %d", coin.nType));
         }
 
@@ -744,7 +744,7 @@ static RPCHelpMan devicesignrawtransaction()
         }
     }
 
-    pDevice->Close();
+    pDevice->Cleanup();
 
     bool fComplete = vErrors.empty();
 
@@ -1011,7 +1011,6 @@ static RPCHelpMan initaccountfromdevice()
     };
 };
 
-
 static RPCHelpMan devicegetnewstealthaddress()
 {
     return RPCHelpMan{"devicegetnewstealthaddress",
@@ -1042,7 +1041,6 @@ static RPCHelpMan devicegetnewstealthaddress()
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
 
     EnsureWalletIsUnlocked(pwallet);
-
 
     std::string sError, sLabel;
     if (request.params.size() > 0) {
