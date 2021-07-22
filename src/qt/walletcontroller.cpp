@@ -249,7 +249,7 @@ void CreateWalletActivity::askPassphrase()
 void CreateWalletActivity::createWallet()
 {
     if (!fParticlMode) {
-        showProgressDialog(tr("Creating Wallet <b>%1</b>...").arg(m_create_wallet_dialog->walletName().toHtmlEscaped()));
+        showProgressDialog(tr("Creating Wallet <b>%1</b>…").arg(m_create_wallet_dialog->walletName().toHtmlEscaped()));
     }
 
     std::string name = m_create_wallet_dialog->walletName().toStdString();
@@ -333,7 +333,7 @@ void OpenWalletActivity::open(const std::string& path)
 {
     QString name = path.empty() ? QString("["+tr("default wallet")+"]") : QString::fromStdString(path);
 
-    showProgressDialog(tr("Opening Wallet <b>%1</b>...").arg(name.toHtmlEscaped()));
+    showProgressDialog(tr("Opening Wallet <b>%1</b>…").arg(name.toHtmlEscaped()));
 
     QTimer::singleShot(0, worker(), [this, path] {
         std::unique_ptr<interfaces::Wallet> wallet = node().walletClient().loadWallet(path, m_error_message, m_warning_message);

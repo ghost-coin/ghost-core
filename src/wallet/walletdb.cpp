@@ -14,6 +14,7 @@
 #include <util/system.h>
 #include <util/time.h>
 #include <util/translation.h>
+#include <util/threadnames.h>
 #ifdef USE_BDB
 #include <wallet/bdb.h>
 #endif

@@ -23,6 +23,7 @@
 #include <scheduler.h>
 #include <util/sock.h>
 #include <util/strencodings.h>
+#include <util/thread.h>
 #include <util/translation.h>
 
 #ifdef WIN32
@@ -685,19 +686,19 @@ int V1TransportDeserializer::readHeader(Span<const uint8_t> msg_bytes)
         hdrbuf >> hdr;
     }
     catch (const std::exception&) {
-        LogPrint(BCLog::NET, "HEADER ERROR - UNABLE TO DESERIALIZE, peer=%d\n", m_node_id);
+        LogPrint(BCLog::NET, "Header error: Unable to deserialize, peer=%d\n", m_node_id);
         return -1;
     }
 
     // Check start string, network magic
     if (memcmp(hdr.pchMessageStart, m_chain_params.MessageStart(), CMessageHeader::MESSAGE_START_SIZE) != 0) {
-        LogPrint(BCLog::NET, "HEADER ERROR - MESSAGESTART (%s, %u bytes), received %s, peer=%d\n", hdr.GetCommand(), hdr.nMessageSize, HexStr(hdr.pchMessageStart), m_node_id);
+        LogPrint(BCLog::NET, "Header error: Wrong MessageStart %s received, peer=%d\n", HexStr(hdr.pchMessageStart), m_node_id);
         return -1;
     }
 
     // reject messages larger than MAX_SIZE or MAX_PROTOCOL_MESSAGE_LENGTH
     if (hdr.nMessageSize > MAX_SIZE || hdr.nMessageSize > MAX_PROTOCOL_MESSAGE_LENGTH) {
-        LogPrint(BCLog::NET, "HEADER ERROR - SIZE (%s, %u bytes), peer=%d\n", hdr.GetCommand(), hdr.nMessageSize, m_node_id);
+        LogPrint(BCLog::NET, "Header error: Size too large (%s, %u bytes), peer=%d\n", SanitizeString(hdr.GetCommand()), hdr.nMessageSize, m_node_id);
         return -1;
     }
 
@@ -750,7 +751,7 @@ std::optional<CNetMessage> V1TransportDeserializer::GetMessage(const std::chrono
 
     // Check checksum and header command string
     if (memcmp(hash.begin(), hdr.pchChecksum, CMessageHeader::CHECKSUM_SIZE) != 0) {
-        LogPrint(BCLog::NET, "CHECKSUM ERROR (%s, %u bytes), expected %s was %s, peer=%d\n",
+        LogPrint(BCLog::NET, "Header error: Wrong checksum (%s, %u bytes), expected %s was %s, peer=%d\n",
                  SanitizeString(msg->m_command), msg->m_message_size,
                  HexStr(Span<uint8_t>(hash.begin(), hash.begin() + CMessageHeader::CHECKSUM_SIZE)),
                  HexStr(hdr.pchChecksum),
@@ -758,8 +759,8 @@ std::optional<CNetMessage> V1TransportDeserializer::GetMessage(const std::chrono
         out_err_raw_size = msg->m_raw_message_size;
         msg = std::nullopt;
     } else if (!hdr.IsCommandValid()) {
-        LogPrint(BCLog::NET, "HEADER ERROR - COMMAND (%s, %u bytes), peer=%d\n",
-                 hdr.GetCommand(), msg->m_message_size, m_node_id);
+        LogPrint(BCLog::NET, "Header error: Invalid message type (%s, %u bytes), peer=%d\n",
+                 SanitizeString(hdr.GetCommand()), msg->m_message_size, m_node_id);
         out_err_raw_size = msg->m_raw_message_size;
         msg.reset();
     }
@@ -2426,8 +2427,9 @@ NodeId CConnman::GetNewNodeId()
 
 
 bool CConnman::Bind(const CService &addr, unsigned int flags, NetPermissionFlags permissions) {
-    if (!(flags & BF_EXPLICIT) && !IsReachable(addr))
+    if (!(flags & BF_EXPLICIT) && !IsReachable(addr)) {
         return false;
+    }
     bilingual_str strError;
     if (!BindListenPort(addr, strError, permissions)) {
         if ((flags & BF_REPORT_ERROR) && clientInterface) {
@@ -2436,7 +2438,7 @@ bool CConnman::Bind(const CService &addr, unsigned int flags, NetPermissionFlags
         return false;
     }
 
-    if (addr.IsRoutable() && fDiscover && !(flags & BF_DONT_ADVERTISE) && !(permissions & PF_NOBAN)) {
+    if (addr.IsRoutable() && fDiscover && !(flags & BF_DONT_ADVERTISE) && !NetPermissions::HasFlag(permissions, NetPermissionFlags::PF_NOBAN)) {
         AddLocal(addr, LOCAL_BIND);
     }
 
@@ -2494,7 +2496,7 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
     }
 
     if (clientInterface) {
-        clientInterface->InitMessage(_("Loading P2P addresses...").translated);
+        clientInterface->InitMessage(_("Loading P2P addresses…").translated);
     }
     // Load addresses from peers.dat
     int64_t nStart = GetTimeMillis();
@@ -2518,7 +2520,7 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
         LogPrintf("%i block-relay-only anchors will be tried for connections.\n", m_anchors.size());
     }
 
-    uiInterface.InitMessage(_("Starting network threads...").translated);
+    uiInterface.InitMessage(_("Starting network threads…").translated);
 
     fAddressesInitialized = true;
 
@@ -2545,15 +2547,15 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
     }
 
     // Send and receive from sockets, accept connections
-    threadSocketHandler = std::thread(&TraceThread<std::function<void()> >, "net", std::function<void()>(std::bind(&CConnman::ThreadSocketHandler, this)));
+    threadSocketHandler = std::thread(&util::TraceThread, "net", [this] { ThreadSocketHandler(); });
 
     if (!gArgs.GetBoolArg("-dnsseed", DEFAULT_DNSSEED))
         LogPrintf("DNS seeding disabled\n");
     else
-        threadDNSAddressSeed = std::thread(&TraceThread<std::function<void()> >, "dnsseed", std::function<void()>(std::bind(&CConnman::ThreadDNSAddressSeed, this)));
+        threadDNSAddressSeed = std::thread(&util::TraceThread, "dnsseed", [this] { ThreadDNSAddressSeed(); });
 
     // Initiate manual connections
-    threadOpenAddedConnections = std::thread(&TraceThread<std::function<void()> >, "addcon", std::function<void()>(std::bind(&CConnman::ThreadOpenAddedConnections, this)));
+    threadOpenAddedConnections = std::thread(&util::TraceThread, "addcon", [this] { ThreadOpenAddedConnections(); });
 
     if (connOptions.m_use_addrman_outgoing && !connOptions.m_specified_outgoing.empty()) {
         if (clientInterface) {
@@ -2563,16 +2565,18 @@ bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
         }
         return false;
     }
-    if (connOptions.m_use_addrman_outgoing || !connOptions.m_specified_outgoing.empty())
-        threadOpenConnections = std::thread(&TraceThread<std::function<void()> >, "opencon", std::function<void()>(std::bind(&CConnman::ThreadOpenConnections, this, connOptions.m_specified_outgoing)));
+    if (connOptions.m_use_addrman_outgoing || !connOptions.m_specified_outgoing.empty()) {
+        threadOpenConnections = std::thread(
+            &util::TraceThread, "opencon",
+            [this, connect = connOptions.m_specified_outgoing] { ThreadOpenConnections(connect); });
+    }
 
     // Process messages
-    threadMessageHandler = std::thread(&TraceThread<std::function<void()> >, "msghand", std::function<void()>(std::bind(&CConnman::ThreadMessageHandler, this)));
+    threadMessageHandler = std::thread(&util::TraceThread, "msghand", [this] { ThreadMessageHandler(); });
 
     if (connOptions.m_i2p_accept_incoming && m_i2p_sam_session.get() != nullptr) {
         threadI2PAcceptIncoming =
-            std::thread(&TraceThread<std::function<void()>>, "i2paccept",
-                        std::function<void()>(std::bind(&CConnman::ThreadI2PAcceptIncoming, this)));
+            std::thread(&util::TraceThread, "i2paccept", [this] { ThreadI2PAcceptIncoming(); });
     }
 
     // Dump network addresses

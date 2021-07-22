@@ -30,6 +30,7 @@ Notes:
 #include <crypto/sha512.h>
 #include <wallet/ismine.h>
 #include <support/allocators/secure.h>
+#include <util/thread.h>
 #include <util/strencodings.h>
 #include <consensus/validation.h>
 #include <validation.h>
@@ -956,8 +957,8 @@ bool CSMSG::Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_pt
     start_time = GetAdjustedTime();
 
     m_thread_interrupt.reset();
-    thread_smsg = std::thread(&TraceThread<std::function<void()> >, "smsg", std::function<void()>(std::bind(&ThreadSecureMsg, this)));
-    thread_smsg_pow = std::thread(&TraceThread<std::function<void()> >, "smsg-pow", std::function<void()>(std::bind(&ThreadSecureMsgPow, this)));
+    thread_smsg = std::thread(&util::TraceThread, "smsg", std::function<void()>(std::bind(&ThreadSecureMsg, this)));
+    thread_smsg_pow = std::thread(&util::TraceThread, "smsg-pow", std::function<void()>(std::bind(&ThreadSecureMsgPow, this)));
 
 #ifdef ENABLE_WALLET
     m_wallet_load_handler = interfaces::MakeHandler(NotifyWalletAdded.connect(std::bind(&ListenWalletAdded, this, std::placeholders::_1)));

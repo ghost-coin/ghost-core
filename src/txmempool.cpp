@@ -17,6 +17,8 @@
 #include <util/time.h>
 #include <validation.h>
 #include <validationinterface.h>
+
+#include <cmath>
 #include <optional>
 
 #include <insight/insight.h>

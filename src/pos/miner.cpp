@@ -7,6 +7,7 @@
 #include <pos/kernel.h>
 #include <miner.h>
 #include <chainparams.h>
+#include <util/thread.h>
 #include <util/moneystr.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -199,7 +200,7 @@ void StartThreadStakeMiner()
             vStakeThreads.push_back(t);
             GetParticlWallet(vpwallets[i].get())->nStakeThread = i;
             t->sName = strprintf("miner%d", i);
-            t->thread = std::thread(&TraceThread<std::function<void()> >, t->sName.c_str(), std::function<void()>(std::bind(&ThreadStakeMiner, i, vpwallets, nStart, nEnd)));
+            t->thread = std::thread(&util::TraceThread, t->sName.c_str(), std::function<void()>(std::bind(&ThreadStakeMiner, i, vpwallets, nStart, nEnd)));
         }
     }
 

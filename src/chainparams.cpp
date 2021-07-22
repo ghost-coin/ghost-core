@@ -1006,11 +1006,11 @@ public:
         m_assumeutxo_data = MapAssumeutxo{
             {
                 110,
-                {uint256S("0xd98b6865564c85700442c2df34cf379d97ac4c157b3eb25780ca916183620376"), 110},
+                {AssumeutxoHash{uint256S("0xd98b6865564c85700442c2df34cf379d97ac4c157b3eb25780ca916183620376")}, 110},
             },
             {
                 210,
-                {uint256S("0x9c5ed99ef98544b34f8920b6d1802f72ac28ae6e2bd2bd4c316ff10c230df3f2"), 210},
+                {AssumeutxoHash{uint256S("0x9c5ed99ef98544b34f8920b6d1802f72ac28ae6e2bd2bd4c316ff10c230df3f2")}, 210},
             },
         };
 
@@ -1162,12 +1162,6 @@ void SelectParams(const std::string& network)
     globalChainParams = CreateChainParams(gArgs, network);
 }
 
-std::ostream& operator<<(std::ostream& o, const AssumeutxoData& aud)
-{
-    o << strprintf("AssumeutxoData(%s, %s)", aud.hash_serialized.ToString(), aud.nChainTx);
-    return o;
-}
-
 void SetOldParams(std::unique_ptr<CChainParams> &params)
 {
     if (params->NetworkID() == CBaseChainParams::MAIN) {
@@ -1187,9 +1181,6 @@ void ResetParams(std::string sNetworkId, bool fParticlModeIn)
     }
 };
 
-/**
- * Mutable handle to regtest params
- */
 CChainParams &RegtestParams()
 {
     return *globalChainParams.get();

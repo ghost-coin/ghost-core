@@ -68,7 +68,7 @@ src/qt/particl-qt.includes
 .dirstamp
 .libs
 .*.swp
-*.*~*
+*~
 *.bak
 *.rej
 *.orig

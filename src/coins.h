@@ -25,8 +25,6 @@
 
 extern bool fParticlMode;
 
-class ChainstateManager;
-
 /**
  * A UTXO entry.
  *

@@ -11,6 +11,7 @@
 #include <validation.h>
 #include <util/system.h>
 #include <netbase.h>
+#include <util/thread.h>
 
 
 bool CZMQNotificationInterface::IsWhitelistedRange(const CNetAddr &addr) {
@@ -166,7 +167,7 @@ bool CZMQNotificationInterface::Initialize()
 
     if (vWhitelistedRange.size() > 0) {
         zapActive = false;
-        threadZAP = std::thread(&TraceThread<std::function<void()> >, "zap", std::function<void()>(std::bind(&CZMQNotificationInterface::ThreadZAP, this)));
+        threadZAP = std::thread(&util::TraceThread, "zap", std::function<void()>(std::bind(&CZMQNotificationInterface::ThreadZAP, this)));
 
         for (size_t nTries = 1000; nTries > 0; nTries--) {
             if (zapActive) {
