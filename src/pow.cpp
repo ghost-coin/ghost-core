@@ -104,7 +104,7 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     {
         bnProofOfWorkLimit = UintToArith256(params.powLimit);
     };
-    
+
     bool fNegative;
     bool fOverflow;
     arith_uint256 bnTarget;

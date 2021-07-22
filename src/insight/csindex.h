@@ -7,9 +7,9 @@
 
 #include <script/standard.h>
 
-constexpr char DB_TXINDEX_CSOUTPUT = 'O';
-constexpr char DB_TXINDEX_CSLINK = 'L';
-constexpr char DB_TXINDEX_CSBESTBLOCK = 'C';
+constexpr uint8_t DB_TXINDEX_CSOUTPUT{'O'};
+constexpr uint8_t DB_TXINDEX_CSLINK{'L'};
+constexpr uint8_t DB_TXINDEX_CSBESTBLOCK{'C'};
 
 enum CSIndexFlags
 {

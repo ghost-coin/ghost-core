@@ -15,6 +15,7 @@
 #include <net.h>
 #include <validation.h>
 #include <consensus/validation.h>
+#include <node/blockstorage.h>
 
 #include <wallet/hdwallet.h>
 

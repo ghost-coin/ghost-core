@@ -42,6 +42,14 @@ if test -n "$enable_usbdevice" && test -n "@enable_usbdevice@"; then
   enable_usbdevice=no
 fi
 
+if test -z "$with_bdb" && test -n "@no_bdb@"; then
+  with_bdb=no
+fi
+
+if test -z "$with_sqlite" && test -n "@no_sqlite@"; then
+  with_sqlite=no
+fi
+
 if test -z "$enable_multiprocess" && test -n "@multiprocess@"; then
   enable_multiprocess=yes
 fi

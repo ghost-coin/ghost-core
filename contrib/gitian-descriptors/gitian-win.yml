@@ -23,6 +23,7 @@ packages:
 - "zip"
 - "ca-certificates"
 - "python3"
+- "python3-pip"
 remotes:
 - "url": "https://github.com/particl/particl-core.git"
   "dir": "particl-core"
@@ -87,8 +88,7 @@ script: |
   done
   }
 
-  rm -r ${WRAP_DIR}
-  mkdir -p ${WRAP_DIR}
+  pip3 install lief==0.11.4
 
   # Faketime for depends so intermediate results are comparable
   export PATH_orig=${PATH}

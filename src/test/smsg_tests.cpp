@@ -18,7 +18,6 @@ struct SmsgTestingSetup : public TestingSetup {
         smsgModule.m_node = &m_node;
     }
 };
-
 BOOST_FIXTURE_TEST_SUITE(smsg_tests, SmsgTestingSetup)
 
 const std::string sTestMessage = "A short test message 0123456789 !@#$%^&*()_+-=";
