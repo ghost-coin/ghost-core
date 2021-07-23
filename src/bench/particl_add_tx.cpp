@@ -117,7 +117,7 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(interfaces::Chain& chain, std
     std::vector<bilingual_str> warnings;
     options.create_flags = WALLET_FLAG_BLANK_WALLET;
     auto database = MakeWalletDatabase(wallet_name, options, status, error);
-    auto wallet = CWallet::Create(chain, wallet_name, std::move(database), options.create_flags, error, warnings);
+    auto wallet = CWallet::Create(&chain, wallet_name, std::move(database), options.create_flags, error, warnings);
 
     return std::static_pointer_cast<CHDWallet>(wallet);
 }

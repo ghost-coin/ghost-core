@@ -20,6 +20,7 @@
 #include <hash.h>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <set>
 #include <stdint.h>
 #include <streams.h>
@@ -172,11 +173,10 @@ static const int64_t ADDRMAN_TEST_WINDOW = 40*60; // 40 minutes
 class CAddrMan
 {
 friend class CAddrManTest;
-protected:
+private:
     //! critical section to protect the inner data structures
     mutable RecursiveMutex cs;
 
-private:
     //! Serialization versions.
     enum Format : uint8_t {
         V0_HISTORICAL = 0,    //!< historic format, before commit e6b343d88
@@ -236,6 +236,7 @@ protected:
     //! Source of random numbers for randomization in inner loops
     FastRandomContext insecure_rand;
 
+private:
     //! Find an entry.
     CAddrInfo* Find(const CNetAddr& addr, int *pnId = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
@@ -278,8 +279,15 @@ protected:
     int Check_() EXCLUSIVE_LOCKS_REQUIRED(cs);
 #endif
 
-    //! Select several addresses at once.
-    void GetAddr_(std::vector<CAddress> &vAddr, size_t max_addresses, size_t max_pct) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    /**
+     * Return all or many randomly selected addresses, optionally by network.
+     *
+     * @param[out] vAddr         Vector of randomly selected addresses from vRandom.
+     * @param[in] max_addresses  Maximum number of addresses to return (0 = all).
+     * @param[in] max_pct        Maximum percentage of addresses to return (0 = all).
+     * @param[in] network        Select only addresses of this network (nullopt = all).
+     */
+    void GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size_t max_pct, std::optional<Network> network) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     /** We have successfully connected to this peer. Calling this function
      *  updates the CAddress's nTime, which is used in our IsTerrible()
@@ -715,14 +723,20 @@ public:
         return addrRet;
     }
 
-    //! Return a bunch of addresses, selected at random.
-    std::vector<CAddress> GetAddr(size_t max_addresses, size_t max_pct)
+    /**
+     * Return all or many randomly selected addresses, optionally by network.
+     *
+     * @param[in] max_addresses  Maximum number of addresses to return (0 = all).
+     * @param[in] max_pct        Maximum percentage of addresses to return (0 = all).
+     * @param[in] network        Select only addresses of this network (nullopt = all).
+     */
+    std::vector<CAddress> GetAddr(size_t max_addresses, size_t max_pct, std::optional<Network> network)
     {
         Check();
         std::vector<CAddress> vAddr;
         {
             LOCK(cs);
-            GetAddr_(vAddr, max_addresses, max_pct);
+            GetAddr_(vAddr, max_addresses, max_pct, network);
         }
         Check();
         return vAddr;

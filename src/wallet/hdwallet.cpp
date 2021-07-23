@@ -327,6 +327,11 @@ bool CHDWallet::ProcessWalletSettings(std::string &sError)
     return true;
 };
 
+bool CHDWallet::IsInitialised() const
+{
+    return pEKMaster || !idDefaultAccount.IsNull();
+}
+
 bool CHDWallet::IsHDEnabled() const
 {
     return mapExtAccounts.find(idDefaultAccount) != mapExtAccounts.end();
@@ -1435,7 +1440,7 @@ bool CHDWallet::AddressBookChangedNotify(const CTxDestination &address, ChangeTy
     return true;
 };
 
-DBErrors CHDWallet::LoadWallet(bool& fFirstRunRet)
+DBErrors CHDWallet::LoadWallet()
 {
     if (!ParseMoney(gArgs.GetArg("-reservebalance", "0"), nReserveBalance)) {
         InitError(_("Invalid amount for -reservebalance=<amount>"));
@@ -1461,17 +1466,15 @@ DBErrors CHDWallet::LoadWallet(bool& fFirstRunRet)
         PrepareLookahead(); // Must happen after ExtKeyLoadAccountPacks
     }
 
-    auto rv = CWallet::LoadWallet(fFirstRunRet);
-    if (pEKMaster || !idDefaultAccount.IsNull()) {
-        fFirstRunRet = false; // if fFirstRun is true, CreateWalletFromFile -> upgrade -> ChainStateFlushed -> WriteBestBlock before catch-up rescan tries to run
-    }
-
+    auto rv = CWallet::LoadWallet();
     if (rv != DBErrors::LOAD_OK) {
         return rv;
     }
 
-    auto spk_man = GetOrCreateLegacyScriptPubKeyMan();
-    assert(spk_man);
+    if (!IsWalletFlagSet(WALLET_FLAG_BLANK_WALLET)) {
+        auto spk_man = GetOrCreateLegacyScriptPubKeyMan();
+        assert(spk_man);
+    }
 
     if (secp256k1_ctx_blind) {
         m_blind_scratch = secp256k1_scratch_space_create(secp256k1_ctx_blind, 1024 * 1024);

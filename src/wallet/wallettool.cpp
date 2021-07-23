@@ -28,6 +28,7 @@ static void WalletCreate(CWallet* wallet_instance, uint64_t wallet_creation_flag
     LOCK(wallet_instance->cs_wallet);
 
     if (fParticlMode) {
+        wallet_instance->AddWalletFlags(wallet_creation_flags);
         return;
     }
 
@@ -61,8 +62,7 @@ static std::shared_ptr<CWallet> MakeWallet(const std::string& name, const fs::pa
         : std::shared_ptr<CWallet>(new CWallet(nullptr /* chain */, name, std::move(database)), WalletToolReleaseWallet));
     DBErrors load_wallet_ret;
     try {
-        bool first_run;
-        load_wallet_ret = wallet_instance->LoadWallet(first_run);
+        load_wallet_ret = wallet_instance->LoadWallet();
     } catch (const std::runtime_error&) {
         tfm::format(std::cerr, "Error loading %s. Is wallet being used by another process?\n", name);
         return nullptr;

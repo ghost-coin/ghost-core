@@ -25,10 +25,9 @@ HDWalletTestingSetup::HDWalletTestingSetup(const std::string &chainName):
     ECC_Start_Stealth();
     ECC_Start_Blinding();
 
-    bool fFirstRun;
     pwalletMain = std::make_shared<CHDWallet>(m_chain.get(), "", CreateMockWalletDatabase());
     AddWallet(pwalletMain);
-    pwalletMain->LoadWallet(fFirstRun);
+    pwalletMain->LoadWallet();
     m_chain_notifications_handler = m_chain->handleNotifications({ pwalletMain.get(), [](CHDWallet*) {} });
     m_wallet_client->registerRpcs();
 }
