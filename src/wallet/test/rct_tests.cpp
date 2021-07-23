@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Pick inputs so two are used
     CCoinControl cctl;
     std::vector<COutputR> vAvailableCoins;
-    pwallet->AvailableAnonCoins(vAvailableCoins, true, &cctl, 100000);
+    pwallet->AvailableAnonCoins(vAvailableCoins, &cctl, 100000);
     BOOST_REQUIRE(vAvailableCoins.size() > 2);
     CAmount prevouts_sum = 0;
     for (const auto &output : vAvailableCoins) {
@@ -323,7 +323,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     LOCK(pwallet->cs_wallet);
     CCoinControl cctl;
     std::vector<COutputR> vAvailableCoins;
-    pwallet->AvailableAnonCoins(vAvailableCoins, true, &cctl, 100000);
+    pwallet->AvailableAnonCoins(vAvailableCoins, &cctl, 100000);
     BOOST_REQUIRE(vAvailableCoins.size() > 1);
     CAmount prevouts_sum = 0;
     for (const auto &output : vAvailableCoins) {

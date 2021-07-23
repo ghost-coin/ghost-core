@@ -4425,11 +4425,12 @@ static RPCHelpMan getcoldstakinginfo()
         cctl.m_avoid_address_reuse = false;
         cctl.m_min_depth = 0;
         cctl.m_max_depth = 0x7FFFFFFF;
+        cctl.m_include_unsafe_inputs = include_unsafe;
         cctl.m_include_immature = true;
         LOCK(pwallet->cs_wallet);
         nHeight = ::ChainActive().Tip()->nHeight;
         nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations()-1), (int)(nHeight / 2));
-        pwallet->AvailableCoins(vecOutputs, !include_unsafe, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
+        pwallet->AvailableCoins(vecOutputs, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
 
     LOCK(pwallet->cs_wallet);
@@ -4665,9 +4666,10 @@ static RPCHelpMan listunspentanon()
         cctl.m_min_depth = nMinDepth;
         cctl.m_max_depth = nMaxDepth;
         cctl.m_include_immature = fIncludeImmature;
+        cctl.m_include_unsafe_inputs = include_unsafe;
         LOCK(pwallet->cs_wallet);
         // TODO: filter on stealth address
-        pwallet->AvailableAnonCoins(vecOutputs, !include_unsafe, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
+        pwallet->AvailableAnonCoins(vecOutputs, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
 
     LOCK(pwallet->cs_wallet);
@@ -4905,8 +4907,9 @@ static RPCHelpMan listunspentblind()
     {
         cctl.m_min_depth = nMinDepth;
         cctl.m_max_depth = nMaxDepth;
+        cctl.m_include_unsafe_inputs = include_unsafe;
         LOCK(pwallet->cs_wallet);
-        pwallet->AvailableBlindedCoins(vecOutputs, !include_unsafe, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
+        pwallet->AvailableBlindedCoins(vecOutputs, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
 
     LOCK(pwallet->cs_wallet);

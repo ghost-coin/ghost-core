@@ -2769,7 +2769,7 @@ CAmount CHDWallet::GetAvailableBalance(const CCoinControl* coinControl) const
 
     CAmount balance = 0;
     std::vector<COutput> vCoins;
-    AvailableCoins(vCoins, true, coinControl);
+    AvailableCoins(vCoins, coinControl);
     for (const COutput& out : vCoins) {
         if (out.fSpendable) {
             balance += out.tx->tx->vpout[out.i]->GetValue();
@@ -2784,7 +2784,7 @@ CAmount CHDWallet::GetAvailableAnonBalance(const CCoinControl* coinControl) cons
 
     CAmount balance = 0;
     std::vector<COutputR> vCoins;
-    AvailableAnonCoins(vCoins, true, coinControl);
+    AvailableAnonCoins(vCoins, coinControl);
     for (const COutputR &out : vCoins) {
         if (out.fSpendable) {
             const COutputRecord *oR = out.rtx->second.GetOutput(out.i);
@@ -2802,7 +2802,7 @@ CAmount CHDWallet::GetAvailableBlindBalance(const CCoinControl* coinControl) con
 
     CAmount balance = 0;
     std::vector<COutputR> vCoins;
-    AvailableBlindedCoins(vCoins, true, coinControl);
+    AvailableBlindedCoins(vCoins, coinControl);
     for (const COutputR &out : vCoins) {
         if (out.fSpendable) {
             const COutputRecord *oR = out.rtx->second.GetOutput(out.i);
@@ -3806,7 +3806,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         std::set<CInputCoin> setCoins;
         std::vector<COutput> vAvailableCoins;
-        AvailableCoins(vAvailableCoins, true, coinControl);
+        AvailableCoins(vAvailableCoins, coinControl);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
 
         CFeeRate discard_rate = GetDiscardRate(*this);
@@ -4409,7 +4409,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> > setCoins;
         std::vector<COutputR> vAvailableCoins;
-        AvailableBlindedCoins(vAvailableCoins, true, coinControl);
+        AvailableBlindedCoins(vAvailableCoins, coinControl);
 
         CAmount nValueOutPlain = 0;
         int nChangePosInOut = -1;
@@ -5222,7 +5222,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> > setCoins;
         std::vector<COutputR> vAvailableCoins;
-        AvailableAnonCoins(vAvailableCoins, true, coinControl);
+        AvailableAnonCoins(vAvailableCoins, coinControl);
 
         CAmount nValueOutPlain = 0;
         int nChangePosInOut = -1;
@@ -11010,7 +11010,7 @@ void CHDWallet::ResendWalletTransactions()
     }
 };
 
-void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount) const
+void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl *coinControl, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount) const
 {
     AssertLockHeld(cs_wallet);
 
@@ -11023,6 +11023,7 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, con
     const int max_depth = {coinControl ? coinControl->m_max_depth : DEFAULT_MAX_DEPTH};
     const bool fIncludeImmature = {coinControl ? coinControl->m_include_immature : false};
     const bool allow_locked = {coinControl ? coinControl->fAllowLocked : false};
+    const bool only_safe = {coinControl ? !coinControl->m_include_unsafe_inputs : true};
 
     for (const auto& item : mapWallet) {
         const uint256& wtxid = item.first;
@@ -11085,7 +11086,7 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, con
             safeTx = false;
         }
 
-        if (fOnlySafe && !safeTx) {
+        if (only_safe && !safeTx) {
             continue;
         }
 
@@ -11177,7 +11178,7 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, con
             safeTx = false;
         }
 
-        if (fOnlySafe && !safeTx) {
+        if (only_safe && !safeTx) {
             continue;
         }
 
@@ -11334,7 +11335,7 @@ bool CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const C
     return res;
 };
 
-void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount) const
+void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount) const
 {
     AssertLockHeld(cs_wallet);
 
@@ -11346,6 +11347,7 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlyS
     const bool allow_locked = {coinControl ? coinControl->fAllowLocked : false};
     const bool spend_frozen = {coinControl ? coinControl->m_spend_frozen_blinded : false};
     const bool include_tainted_frozen = {coinControl ? coinControl->m_include_tainted_frozen : false};
+    const bool only_safe = {coinControl ? !coinControl->m_include_unsafe_inputs : true};
 
     if (coinControl && coinControl->HasSelected()) {
         // Add specified coins which may not be in the chain
@@ -11414,7 +11416,7 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlyS
             safeTx = false;
         }
 
-        if (fOnlySafe && !safeTx) {
+        if (only_safe && !safeTx) {
             continue;
         }
 
@@ -11611,7 +11613,7 @@ bool CHDWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins,
     return res;
 };
 
-void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount) const
+void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount) const
 {
     AssertLockHeld(cs_wallet);
 
@@ -11624,6 +11626,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
     const bool allow_locked = {coinControl ? coinControl->fAllowLocked : false};
     const bool spend_frozen = {coinControl ? coinControl->m_spend_frozen_blinded : false};
     const bool include_tainted_frozen = {coinControl ? coinControl->m_include_tainted_frozen : false};
+    const bool only_safe = {coinControl ? !coinControl->m_include_unsafe_inputs : true};
 
     CHDWalletDB wdb(*m_database);
 
@@ -11661,7 +11664,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
 
         bool safeTx = IsTrusted(txid, rtx);
 
-        if (fOnlySafe && !safeTx) {
+        if (only_safe && !safeTx) {
             continue;
         }
 
@@ -11758,7 +11761,7 @@ std::map<CTxDestination, std::vector<COutput>> CHDWallet::ListCoins() const
 
     CCoinControl coinControl;
     coinControl.fAllowLocked = true;
-    AvailableCoins(availableCoins, true, &coinControl);
+    AvailableCoins(availableCoins, &coinControl);
 
     for (const auto& coin : availableCoins) {
         CTxDestination address;
@@ -11802,10 +11805,10 @@ std::map<CTxDestination, std::vector<COutputR>> CHDWallet::ListCoins(OutputTypes
     CCoinControl coinControl;
     coinControl.fAllowLocked = true;
     if (nType == OUTPUT_CT) {
-        AvailableBlindedCoins(availableCoins, true, &coinControl);
+        AvailableBlindedCoins(availableCoins, &coinControl);
     } else
     if (nType == OUTPUT_RINGCT) {
-        AvailableAnonCoins(availableCoins, true, &coinControl);
+        AvailableAnonCoins(availableCoins, &coinControl);
     }
 
     for (const auto& coin : availableCoins) {
@@ -12467,7 +12470,8 @@ size_t CHDWallet::CountColdstakeOutputs()
 
     CCoinControl coinControl;
     coinControl.m_include_immature = true;
-    AvailableCoins(vAvailableCoins, false, &coinControl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
+    coinControl.m_include_unsafe_inputs = true;
+    AvailableCoins(vAvailableCoins, &coinControl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     for (const auto &coin : vAvailableCoins) {
         assert(coin.i < (int)coin.tx->tx->GetNumVOuts());
         auto txoutBase = coin.tx->tx->vpout[coin.i];

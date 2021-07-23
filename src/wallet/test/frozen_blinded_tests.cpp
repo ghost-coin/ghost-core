@@ -44,10 +44,10 @@ std::vector<COutputR> GetAvailable(CHDWallet *pwallet, OutputTypes output_type, 
     cctl.m_include_tainted_frozen = include_tainted_frozen;
     std::vector<COutputR> vAvailableCoins;
     if (output_type == OUTPUT_CT) {
-        pwallet->AvailableBlindedCoins(vAvailableCoins, true, &cctl);
+        pwallet->AvailableBlindedCoins(vAvailableCoins, &cctl);
     } else
     if (output_type == OUTPUT_RINGCT) {
-        pwallet->AvailableAnonCoins(vAvailableCoins, true, &cctl);
+        pwallet->AvailableAnonCoins(vAvailableCoins, &cctl);
     } else {
         // unknown type
         BOOST_REQUIRE(false);
