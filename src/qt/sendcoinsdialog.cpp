@@ -232,6 +232,18 @@ void SendCoinsDialog::setModel(WalletModel *_model)
         else
             ui->confTargetSelector->setCurrentIndex(getIndexForConfTarget(settings.value("nConfTarget").toInt()));
     }
+
+    if (_model) {
+        if (_model->isHardwareLinkedWallet()) {
+            ui->cbxTypeFrom->setCurrentIndex(ui->cbxTypeFrom->findText("Part"));
+            ui->cbxTypeTo->setCurrentIndex(ui->cbxTypeTo->findText("Part"));
+            ui->cbxTypeFrom->setEnabled(false);
+            ui->cbxTypeTo->setEnabled(false);
+        } else {
+            ui->cbxTypeFrom->setEnabled(true);
+            ui->cbxTypeTo->setEnabled(true);
+        }
+    }
 }
 
 SendCoinsDialog::~SendCoinsDialog()

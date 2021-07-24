@@ -3,6 +3,7 @@
 ==============
 
 - rpc: New command getposdifficulty, returns the network weight at block heights.
+- qt: Disable balance type combo boxes on the send dialog when wallet is linked to a hardware wallet.
 
 
 0.21.1.2
@@ -44,6 +45,86 @@
   - New 'blind_watchonly_visible' option for coincontrol on sendtypeto command.
   - When 'blind_watchonly_visible' is set blinded outputs sent to stealth addresses can be uncovered with the scan secret only.
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
+
+
+0.19.2.13
+==============
+
+- Fixed RPC escaping in qt.
+  - Solves issue with quotes in mnemonic passwords.
+- rpc: Include null votes in votehistory current/future results.
+- qt: Disable balance type combo boxes on the send dialog when wallet is linked to a hardware wallet.
+
+
+0.19.2.12
+==============
+
+- Hardfork scheduled at 2021-07-12 17:00:00 UTC
+- Raised protocol version to 90013
+- Raised min protocol version to 90012
+- Add -lookuptorcontrolhost option, disabled by default.
+- extkeyimportmaster rpc command has new options parameter:
+  - Can adjust default lookahead sizes and create extkeys before the initial scan.
+- Fixed bug where dust output converted to change was added to the fee before subfee was processed.
+- Added new PID for Ledger Nano X (4015).
+- listunspentanon: New show_pubkeys option.
+- New wallet command getkeyimage returns keyimage for pubkey if owned.
+- New command checkkeyimage checks if keyimage is spent in the chain.
+- See hardware device outputs as watch-only if not compiled with usbdevice.
+
+
+0.19.2.11
+==============
+
+- Fix bug preventing syncing chain from genesis.
+
+
+0.19.2.10
+==============
+
+- Add show_anon_spends option to filtertransactions.
+- Remove spurious "ExtractDestination failed" log messages.
+- Add show_change option to filtertransactions.
+- Transaction record format changed.
+  - Owned anon prevouts stored in vin, new vkeyimages attribute.
+  - Breaks backwards compatibility, to downgrade run `debugwallet {\"downgrade_wallet\":true}`.
+- Improved filtertransactions total amount for internal_transfer with anon inputs.
+- Display blocktime if < timereceived.
+- SaveStealthAddress updates counters.
+  - If wallet rescans lookahead removal code would remove existing stealth addresses.
+- debugwallet inputs moved to a json object, new options:
+  - downgrade_wallets: Downgrade wallet formatfor previous releases.
+  - list_frozen_outputs: List all spendable and unspendable frozen blinded outputs.
+  - spend_frozen_output: Spends the largest spendable frozen blinded output, after next hard fork.
+  - trace_frozen_outputs: Dumps amounts, blinding values and optionally spent anon keys to aid in validating frozen outputs.
+    - See: https://github.com/tecnovert/particl_debug_scripts/blob/main/trace_frozen.py
+  - detects missing anon spends.
+- New insight -balancesindex
+  - New rpc command: getblockbalances
+  - balancesindex tracks the amount of plain coin sent to and from blind and anon.
+  - Coins can move between anon and blind but the sums should match.
+- New walletsettings stakingoptions minstakeablevalue option.
+  - Wallet won't try stake outputs with values lower than.
+- New walletsettings other minownedvalue option.
+  - Wallet won't track outputs with values lower than.
+- setvote will clear all vote settings when all parameters are set to 0.
+- votehistory, new include_future parameter.
+  - If current_only and include_future are true, future scheduled votes will be displayed.
+- Fixed bug in wallet stealth address lookahead when rescanning.
+- deriverangekeys
+  - Can derive and save stealth addresses.
+  - Added shortcut for internal chain.
+- liststealthaddresses: New verbose parameter displays key paths and count of received addresses.
+- sendtypeto: New stakeaddress parameter on output, avoids buildscript step when sending to coldstaking scripts.
+- trace_frozen_outputs traces blacklisted outputs.
+
+
+0.19.2.5
+==============
+
+- Allow anon and blinded transaction on testnet.
+- filtertransactions can display blinding factors.
+- New mainnet checkpoint.
 
 
 0.19.2.4
