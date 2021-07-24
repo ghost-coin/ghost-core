@@ -1446,7 +1446,7 @@ static RPCHelpMan smsgbuckets()
                     objM.pushKV("last changed", part::GetTimeString(it->second.timeChanged, cbuf, sizeof(cbuf)));
                 }
 
-                fs::path fullPath = GetDataDir() / smsg::STORE_DIR / sFile;
+                fs::path fullPath = gArgs.GetDataDirNet() / smsg::STORE_DIR / sFile;
                 if (!fs::exists(fullPath)) {
                     if (tokenSet.size() == 0) {
                         objM.pushKV("file size", "Empty bucket.");
@@ -1489,7 +1489,7 @@ static RPCHelpMan smsgbuckets()
                 std::string sFile = ToString(it->first) + "_01.dat";
 
                 try {
-                    fs::path fullPath = GetDataDir() / smsg::STORE_DIR / sFile;
+                    fs::path fullPath = gArgs.GetDataDirNet() / smsg::STORE_DIR / sFile;
                     fs::remove(fullPath);
                 } catch (const fs::filesystem_error& ex) {
                     //objM.push_back(Pair("file size, error", ex.what()));

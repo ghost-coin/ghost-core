@@ -93,7 +93,7 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
         return error("%s: Malformed block.", __func__);
     }
 
-    fs::path fPath = GetDataDir() / "genesisOutputs.txt";
+    fs::path fPath = gArgs.GetDataDirNet() / "genesisOutputs.txt";
     if (!fs::exists(fPath)) {
         return error("%s: File not found 'genesisOutputs.txt'.", __func__);
     }
@@ -284,8 +284,8 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
             LOCK(cs_main);
             nBestHeight = ::ChainActive().Height();
             nBestTime = ::ChainActive().Tip()->nTime;
-            num_blocks_of_peers = GetNumBlocksOfPeers();
-            num_nodes = GetNumPeers();
+            num_blocks_of_peers = particl::GetNumBlocksOfPeers();
+            num_nodes = particl::GetNumPeers();
         }
 
         if (fTryToSync) {

@@ -220,7 +220,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
 
                     std::string fileName = ToString(it->first);
 
-                    fs::path fullPath = GetDataDir() / STORE_DIR / (fileName + "_01.dat");
+                    fs::path fullPath = gArgs.GetDataDirNet() / STORE_DIR / (fileName + "_01.dat");
                     if (fs::exists(fullPath)) {
                         try { fs::remove(fullPath);
                         } catch (const fs::filesystem_error &ex) {
@@ -231,7 +231,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
                     }
 
                     // Look for a wl file, it stores incoming messages when wallet is locked
-                    fullPath = GetDataDir() / STORE_DIR / (fileName + "_01_wl.dat");
+                    fullPath = gArgs.GetDataDirNet() / STORE_DIR / (fileName + "_01_wl.dat");
                     if (fs::exists(fullPath)) {
                         try { fs::remove(fullPath);
                         } catch (const fs::filesystem_error &ex) {
@@ -505,7 +505,7 @@ int CSMSG::BuildBucketSet()
     uint32_t nMessages      = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = GetDataDir() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
     fs::directory_iterator itend;
 
     if (!fs::exists(pathSmsgDir)
@@ -743,7 +743,7 @@ int CSMSG::ReadIni()
 
     LogPrint(BCLog::SMSG, "%s\n", __func__);
 
-    fs::path fullpath = GetDataDir() / "smsg.ini";
+    fs::path fullpath = gArgs.GetDataDirNet() / "smsg.ini";
 
     FILE *fp;
     errno = 0;
@@ -813,7 +813,7 @@ int CSMSG::WriteIni()
 
     LogPrint(BCLog::SMSG, "%s\n", __func__);
 
-    fs::path fullpath = GetDataDir() / "smsg.ini~";
+    fs::path fullpath = gArgs.GetDataDirNet() / "smsg.ini~";
 
     FILE *fp;
     errno = 0;
@@ -860,7 +860,7 @@ int CSMSG::WriteIni()
     fclose(fp);
 
     try {
-        fs::path finalpath = GetDataDir() / "smsg.ini";
+        fs::path finalpath = gArgs.GetDataDirNet() / "smsg.ini";
         fs::rename(fullpath, finalpath);
     } catch (const fs::filesystem_error &ex) {
         LogPrintf("Error renaming file %s, %s.\n", fullpath.string(), ex.what());
@@ -2135,7 +2135,7 @@ bool CSMSG::ScanBuckets(bool scan_all)
     uint32_t nFoundMessages = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = GetDataDir() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
     fs::directory_iterator itend;
 
     if (!fs::exists(pathSmsgDir)
@@ -2315,7 +2315,7 @@ int CSMSG::WalletUnlocked(CWallet *pwallet)
     uint32_t nFoundMessages = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = GetDataDir() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
     fs::directory_iterator itend;
 
     if (!fs::exists(pathSmsgDir)
@@ -2923,7 +2923,7 @@ int CSMSG::Retrieve(const SecMsgToken &token, std::vector<uint8_t> &vchData)
     LogPrint(BCLog::SMSG, "%s: %d.\n", __func__, token.timestamp);
     AssertLockHeld(cs_smsg);
 
-    fs::path pathSmsgDir = GetDataDir() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
 
     int64_t bucket = token.timestamp - (token.timestamp % SMSG_BUCKET_LEN);
     std::string fileName = ToString(bucket) + "_01.dat";
@@ -2975,7 +2975,7 @@ int CSMSG::Remove(const SecMsgToken &token)
 
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = GetDataDir() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
 
     int64_t bucket = token.timestamp - (token.timestamp % SMSG_BUCKET_LEN);
     std::string fileName = ToString(bucket) + "_01.dat";
@@ -3224,7 +3224,7 @@ int CSMSG::StoreUnscanned(const uint8_t *pHeader, const uint8_t *pPayload, uint3
 
     fs::path pathSmsgDir;
     try {
-        pathSmsgDir = GetDataDir() / STORE_DIR;
+        pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
         fs::create_directory(pathSmsgDir);
     } catch (const fs::filesystem_error &ex) {
         return errorN(SMSG_GENERAL_ERROR, "%s - Failed to create directory %s - %s.", __func__, pathSmsgDir.string(), ex.what());
@@ -3278,7 +3278,7 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
     long int ofs;
     fs::path pathSmsgDir;
     try {
-        pathSmsgDir = GetDataDir() / STORE_DIR;
+        pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
         fs::create_directory(pathSmsgDir);
     } catch (const fs::filesystem_error &ex) {
         return errorN(SMSG_GENERAL_ERROR, "Failed to create directory %s - %s.", pathSmsgDir.string(), ex.what());

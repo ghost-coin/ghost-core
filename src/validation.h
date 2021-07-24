@@ -82,12 +82,6 @@ static constexpr bool DEFAULT_COINSTATSINDEX{false};
 static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 /** Default for -persistmempool */
 static const bool DEFAULT_PERSIST_MEMPOOL = true;
-/** Default for using fee filter */
-static const bool DEFAULT_FEEFILTER = true;
-
-static const size_t MAX_STAKE_SEEN_SIZE = 1000;
-
-inline int64_t FutureDrift(int64_t nTime) { return nTime + 15; } // FutureDriftV2
 
 typedef int64_t NodeId;
 
@@ -107,19 +101,6 @@ static const unsigned int DEFAULT_CHECKLEVEL = 3;
 // one 128MB block file + added 15% undo data = 147MB greater for a total of 545MB
 // Setting the target to >= 550 MiB will make it likely we can respect the target.
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
-
-/** Particl */
-static const bool DEFAULT_CSINDEX = false;
-static const bool DEFAULT_ADDRESSINDEX = false;
-static const bool DEFAULT_TIMESTAMPINDEX = false;
-static const bool DEFAULT_SPENTINDEX = false;
-static const bool DEFAULT_BALANCESINDEX = false;
-static const unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
-static const bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
-static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
-static const bool DEFAULT_ACCEPT_ANON_TX = false;
-static const bool DEFAULT_ACCEPT_BLIND_TX = false;
-
 
 /** Current sync state passed to tip changed callbacks. */
 enum class SynchronizationState {
@@ -167,13 +148,35 @@ void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman);
 void StartScriptCheckWorkerThreads(int threads_num);
 /** Stop all of the script checking worker threads */
 void StopScriptCheckWorkerThreads();
+
+namespace particl {
+static constexpr size_t MAX_STAKE_SEEN_SIZE = 1000;
+inline int64_t FutureDrift(int64_t nTime) { return nTime + 15; } // FutureDriftV2
+
+static constexpr bool DEFAULT_CSINDEX = false;
+static constexpr bool DEFAULT_ADDRESSINDEX = false;
+static constexpr bool DEFAULT_TIMESTAMPINDEX = false;
+static constexpr bool DEFAULT_SPENTINDEX = false;
+static constexpr bool DEFAULT_BALANCESINDEX = false;
+static constexpr unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
+static constexpr bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
+static constexpr unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
+static constexpr bool DEFAULT_ACCEPT_ANON_TX = false;
+static constexpr bool DEFAULT_ACCEPT_BLIND_TX = false;
+
+/** Return the median number of connected nodes */
+int GetNumPeers();
 /** Return the median number of blocks that other nodes claim to have */
 int GetNumBlocksOfPeers();
 /** Set the median number of blocks that other nodes claim to have - debug only */
 void SetNumBlocksOfPeers(int num_blocks);
-/** Return the median number of connected nodes */
-int GetNumPeers();
+
+/** Return the current utxo sum */
 CAmount GetUTXOSum();
+/** Update num blocks of peers vector */
+void UpdateNumBlocksOfPeers(NodeId id, int height);
+} // namespace particl
+
 /**
  * Return transaction from the block at block_index.
  * If block_index is not provided, fall back to mempool.

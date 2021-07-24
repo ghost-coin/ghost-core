@@ -78,12 +78,6 @@ QT_TRANSLATE_NOOP("bitcoin-core", ""
 "Prune: last wallet synchronisation goes beyond pruned data. You need to -"
 "reindex (download the whole blockchain again in case of pruned node)"),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
-"SQLiteDatabase: Failed to prepare the statement to fetch sqlite wallet "
-"schema version: %s"),
-QT_TRANSLATE_NOOP("bitcoin-core", ""
-"SQLiteDatabase: Failed to prepare the statement to fetch the application id: "
-"%s"),
-QT_TRANSLATE_NOOP("bitcoin-core", ""
 "SQLiteDatabase: Unknown sqlite wallet schema version %d. Only version %d is "
 "supported"),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
@@ -230,8 +224,6 @@ QT_TRANSLATE_NOOP("bitcoin-core", "Rescanning…"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Ring size out of range [%d, %d]"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Ring size out of range"),
 QT_TRANSLATE_NOOP("bitcoin-core", "SQLiteDatabase: Failed to execute statement to verify database: %s"),
-QT_TRANSLATE_NOOP("bitcoin-core", "SQLiteDatabase: Failed to fetch sqlite wallet schema version: %s"),
-QT_TRANSLATE_NOOP("bitcoin-core", "SQLiteDatabase: Failed to fetch the application id: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "SQLiteDatabase: Failed to prepare statement to verify database: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "SQLiteDatabase: Failed to read database verification error: %s"),
 QT_TRANSLATE_NOOP("bitcoin-core", "SQLiteDatabase: Unexpected application id. Expected %u, got %u"),
@@ -252,7 +244,6 @@ QT_TRANSLATE_NOOP("bitcoin-core", "This is the transaction fee you will pay if y
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amount too small"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amounts must not be negative"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction amounts must not be negative."),
-QT_TRANSLATE_NOOP("bitcoin-core", "Transaction fee and change calculation failed"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction fee and change calculation failed."),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction has too long of a mempool chain"),
 QT_TRANSLATE_NOOP("bitcoin-core", "Transaction must have at least one recipient"),

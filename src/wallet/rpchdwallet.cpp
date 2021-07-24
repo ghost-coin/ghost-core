@@ -5030,8 +5030,8 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
-    bool default_accept_anon = exploit_fix_2_active ? true : DEFAULT_ACCEPT_ANON_TX;
-    bool default_accept_blind = exploit_fix_2_active ? true : DEFAULT_ACCEPT_BLIND_TX;
+    bool default_accept_anon = exploit_fix_2_active ? true : particl::DEFAULT_ACCEPT_ANON_TX;
+    bool default_accept_blind = exploit_fix_2_active ? true : particl::DEFAULT_ACCEPT_BLIND_TX;
     if (!gArgs.GetBoolArg("-acceptanontxn", default_accept_anon) &&
         (typeIn == OUTPUT_RINGCT || typeOut == OUTPUT_RINGCT)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Disabled output type.");

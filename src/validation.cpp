@@ -765,9 +765,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     if (state.m_has_anon_input
-         && (::ChainActive().Height() < GetNumBlocksOfPeers()-1)) {
+         && (::ChainActive().Height() < particl::GetNumBlocksOfPeers()-1)) {
         LogPrintf("%s: Ignoring anon transaction while chain syncs height %d - peers %d.\n",
-            __func__, ::ChainActive().Height(), GetNumBlocksOfPeers());
+            __func__, ::ChainActive().Height(), particl::GetNumBlocksOfPeers());
         return state.Error("Syncing");
     }
 
@@ -1321,125 +1321,12 @@ CBlockIndex* BlockManager::GetLastCheckpoint(const CCheckpointData& data)
     return nullptr;
 }
 
-
-class HeightEntry {
-public:
-    HeightEntry(int height, NodeId id, int64_t time) : m_height(height), m_id(id), m_time(time)  {};
-    int m_height;
-    NodeId m_id;
-    int64_t m_time;
-};
-static std::atomic_int nPeerBlocks(std::numeric_limits<int>::max());
-static std::atomic_int nPeers(0);
-static std::list<HeightEntry> peer_blocks;
-const size_t max_peer_blocks = 9;
-
-void UpdateNumPeers(int num_peers)
-{
-    nPeers = num_peers;
-}
-
-int GetNumPeers()
-{
-    return nPeers;
-}
-
-CAmount GetUTXOSum()
-{
-    // GetUTXOStats is fragile
-    LOCK(cs_main);
-    ::ChainstateActive().ForceFlushStateToDisk();
-    CCoinsView *coins_view = &::ChainstateActive().CoinsDB();
-    CAmount total = 0;
-    std::unique_ptr<CCoinsViewCursor> pcursor(coins_view->Cursor());
-    while (pcursor->Valid()) {
-        COutPoint key;
-        Coin coin;
-        if (pcursor->GetKey(key) && pcursor->GetValue(coin)) {
-            if (coin.nType == OUTPUT_STANDARD) {
-                total += coin.out.nValue;
-            }
-        } else {
-            break;
-        }
-        pcursor->Next();
-    }
-    return total;
-}
-
-void UpdateNumBlocksOfPeers(NodeId id, int height) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    // Select median value. Only one sample per peer. Remove oldest sample.
-    int new_value = 0;
-
-    bool inserted = false;
-    size_t num_elements = 0;
-    std::list<HeightEntry>::iterator oldest = peer_blocks.end();
-    for (auto it = peer_blocks.begin(); it != peer_blocks.end(); ) {
-        if (id == it->m_id) {
-            if (height == it->m_height) {
-                inserted = true;
-            } else {
-                it = peer_blocks.erase(it);
-                continue;
-            }
-        }
-        if (!inserted && it->m_height > height) {
-            peer_blocks.emplace(it, height, id, GetTime());
-            inserted = true;
-        }
-        if (oldest == peer_blocks.end() || oldest->m_time > it->m_time) {
-            oldest = it;
-        }
-        it++;
-        num_elements++;
-    }
-
-    if (!inserted) {
-        peer_blocks.emplace_back(height, id, GetTime());
-        num_elements++;
-    }
-    if (num_elements > max_peer_blocks && oldest != peer_blocks.end()) {
-        peer_blocks.erase(oldest);
-        num_elements--;
-    }
-
-    size_t stop = num_elements / 2;
-    num_elements = 0;
-    for (auto it = peer_blocks.begin(); it != peer_blocks.end(); ++it) {
-        if (num_elements >= stop) {
-            new_value = it->m_height;
-            break;
-        }
-        num_elements++;
-    }
-
-    static const CBlockIndex *pcheckpoint = g_chainman.m_blockman.GetLastCheckpoint(Params().Checkpoints());
-    if (pcheckpoint) {
-        if (new_value < pcheckpoint->nHeight) {
-            new_value = std::numeric_limits<int>::max();
-        }
-    }
-    nPeerBlocks = new_value;
-}
-
-int GetNumBlocksOfPeers()
-{
-    return nPeerBlocks;
-}
-
-void SetNumBlocksOfPeers(int num_blocks)
-{
-    assert(Params().IsMockableChain());
-    nPeerBlocks = num_blocks;
-}
-
 CoinsViews::CoinsViews(
     std::string ldb_name,
     size_t cache_size_bytes,
     bool in_memory,
     bool should_wipe) : m_dbview(
-                            GetDataDir() / ldb_name, cache_size_bytes, in_memory, should_wipe),
+                            gArgs.GetDataDirNet() / ldb_name, cache_size_bytes, in_memory, should_wipe),
                         m_catcherview(&m_dbview) {}
 
 void CoinsViews::InitCache()
@@ -1499,8 +1386,8 @@ bool CChainState::IsInitialBlockDownload() const
         && m_chain.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
         return true;
     if (fParticlMode && check_peer_height
-        && (GetNumPeers() < 1
-            || m_chain.Tip()->nHeight < GetNumBlocksOfPeers()-10))
+        && (particl::GetNumPeers() < 1
+            || m_chain.Tip()->nHeight < particl::GetNumBlocksOfPeers()-10))
         return true;
 
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
@@ -2798,7 +2685,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     if (block.nTime >= consensus.exploit_fix_2_time && pindex->pprev && pindex->pprev->nTime < consensus.exploit_fix_2_time) {
         // TODO: Set to block height after fork
         // Set moneysupply to utxoset sum
-        pindex->nMoneySupply = GetUTXOSum() + nMoneyCreated;
+        pindex->nMoneySupply = particl::GetUTXOSum() + nMoneyCreated;
         LogPrintf("RCT mint fix HF2, set nMoneySupply to: %d\n", pindex->nMoneySupply);
         reset_balances = true;
         block_balances[BAL_IND_PLAIN] = pindex->nMoneySupply;
@@ -3009,7 +2896,7 @@ bool CChainState::FlushStateToDisk(
             // twice (once in the log, and once in the tables). This is already
             // an overestimation, as most will delete an existing entry or
             // overwrite one. Still, use a conservative safety factor of 2.
-            if (!CheckDiskSpace(GetDataDir(), 48 * 2 * 2 * CoinsTip().GetCacheSize())) {
+            if (!CheckDiskSpace(gArgs.GetDataDirNet(), 48 * 2 * 2 * CoinsTip().GetCacheSize())) {
                 return AbortNode(state, "Disk space is too low!", _("Disk space is too low!"));
             }
             // Flush the chainstate (which may refer to block index entries).
@@ -3991,7 +3878,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
     // Check timestamp
     if (fParticlMode
         && !block.hashPrevBlock.IsNull() // allow genesis block to be created in the future
-        && block.GetBlockTime() > FutureDrift(GetAdjustedTime()))
+        && block.GetBlockTime() > particl::FutureDrift(GetAdjustedTime()))
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "block-timestamp", "block timestamp too far in the future");
 
     // Check proof of work matches claimed amount
@@ -4377,7 +4264,7 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
             }
 
             // Check timestamp against prev
-            if (block.GetBlockTime() <= pindexPrev->GetPastTimeLimit() || FutureDrift(block.GetBlockTime()) < pindexPrev->GetBlockTime()) {
+            if (block.GetBlockTime() <= pindexPrev->GetPastTimeLimit() || particl::FutureDrift(block.GetBlockTime()) < pindexPrev->GetBlockTime()) {
                 return state.Invalid(BlockValidationResult::DOS_50, "bad-block-time", strprintf("%s: block's timestamp is too early", __func__));
             }
 
@@ -5452,16 +5339,16 @@ bool ChainstateManager::LoadBlockIndex(const CChainParams& chainparams)
         pblocktree->WriteFlag("v2", true);
 
         // Use the provided setting for indices in the new database
-        fAddressIndex = gArgs.GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX);
+        fAddressIndex = gArgs.GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX);
         pblocktree->WriteFlag("addressindex", fAddressIndex);
         LogPrintf("%s: address index %s\n", __func__, fAddressIndex ? "enabled" : "disabled");
-        fTimestampIndex = gArgs.GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX);
+        fTimestampIndex = gArgs.GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
         pblocktree->WriteFlag("timestampindex", fTimestampIndex);
         LogPrintf("%s: timestamp index %s\n", __func__, fTimestampIndex ? "enabled" : "disabled");
-        fSpentIndex = gArgs.GetBoolArg("-spentindex", DEFAULT_SPENTINDEX);
+        fSpentIndex = gArgs.GetBoolArg("-spentindex", particl::DEFAULT_SPENTINDEX);
         pblocktree->WriteFlag("spentindex", fSpentIndex);
         LogPrintf("%s: spent index %s\n", __func__, fSpentIndex ? "enabled" : "disabled");
-        fBalancesIndex = gArgs.GetBoolArg("-balancesindex", DEFAULT_BALANCESINDEX);
+        fBalancesIndex = gArgs.GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
         pblocktree->WriteFlag("balancesindex", fBalancesIndex);
         LogPrintf("%s: balances index %s\n", __func__, fBalancesIndex ? "enabled" : "disabled");
     }
@@ -5501,10 +5388,10 @@ void CChainState::LoadExternalBlockFile(const CChainParams& chainparams, FILE* f
     static std::multimap<uint256, FlatFilePos> mapBlocksUnknownParent;
     int64_t nStart = GetTimeMillis();
 
-    fAddressIndex = gArgs.GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX);
-    fTimestampIndex = gArgs.GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX);
-    fSpentIndex = gArgs.GetBoolArg("-spentindex", DEFAULT_SPENTINDEX);
-    fBalancesIndex = gArgs.GetBoolArg("-balancesindex", DEFAULT_BALANCESINDEX);
+    fAddressIndex = gArgs.GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX);
+    fTimestampIndex = gArgs.GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
+    fSpentIndex = gArgs.GetBoolArg("-spentindex", particl::DEFAULT_SPENTINDEX);
+    fBalancesIndex = gArgs.GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
 
     int nLoaded = 0;
     try {
@@ -5857,7 +5744,7 @@ bool LoadMempool(CTxMemPool& pool, CChainState& active_chainstate, FopenFn mocka
 {
     const CChainParams& chainparams = Params();
     int64_t nExpiryTimeout = gArgs.GetArg("-mempoolexpiry", DEFAULT_MEMPOOL_EXPIRY) * 60 * 60;
-    FILE* filestr{mockable_fopen_function(GetDataDir() / "mempool.dat", "rb")};
+    FILE* filestr{mockable_fopen_function(gArgs.GetDataDirNet() / "mempool.dat", "rb")};
     CAutoFile file(filestr, SER_DISK, CLIENT_VERSION);
     if (file.IsNull()) {
         LogPrintf("Failed to open mempool file from disk. Continuing anyway.\n");
@@ -5961,7 +5848,7 @@ bool DumpMempool(const CTxMemPool& pool, FopenFn mockable_fopen_function, bool s
     int64_t mid = GetTimeMicros();
 
     try {
-        FILE* filestr{mockable_fopen_function(GetDataDir() / "mempool.dat.new", "wb")};
+        FILE* filestr{mockable_fopen_function(gArgs.GetDataDirNet() / "mempool.dat.new", "wb")};
         if (!filestr) {
             return false;
         }
@@ -5986,7 +5873,7 @@ bool DumpMempool(const CTxMemPool& pool, FopenFn mockable_fopen_function, bool s
         if (!skip_file_commit && !FileCommit(file.Get()))
             throw std::runtime_error("FileCommit failed");
         file.fclose();
-        if (!RenameOver(GetDataDir() / "mempool.dat.new", GetDataDir() / "mempool.dat")) {
+        if (!RenameOver(gArgs.GetDataDirNet() / "mempool.dat.new", gArgs.GetDataDirNet() / "mempool.dat")) {
             throw std::runtime_error("Rename failed");
         }
         int64_t last = GetTimeMicros();
@@ -6419,6 +6306,118 @@ void ChainstateManager::MaybeRebalanceCaches()
 extern NodeId GetBlockSource(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 namespace particl {
 
+class HeightEntry {
+public:
+    HeightEntry(int height, NodeId id, int64_t time) : m_height(height), m_id(id), m_time(time)  {};
+    int m_height;
+    NodeId m_id;
+    int64_t m_time;
+};
+static std::atomic_int nPeerBlocks(std::numeric_limits<int>::max());
+static std::atomic_int nPeers(0);
+static std::list<HeightEntry> peer_blocks;
+const size_t max_peer_blocks = 9;
+
+void UpdateNumPeers(int num_peers)
+{
+    nPeers = num_peers;
+}
+
+int GetNumPeers()
+{
+    return nPeers;
+}
+
+CAmount GetUTXOSum()
+{
+    // GetUTXOStats is fragile
+    LOCK(cs_main);
+    ::ChainstateActive().ForceFlushStateToDisk();
+    CCoinsView *coins_view = &::ChainstateActive().CoinsDB();
+    CAmount total = 0;
+    std::unique_ptr<CCoinsViewCursor> pcursor(coins_view->Cursor());
+    while (pcursor->Valid()) {
+        COutPoint key;
+        Coin coin;
+        if (pcursor->GetKey(key) && pcursor->GetValue(coin)) {
+            if (coin.nType == OUTPUT_STANDARD) {
+                total += coin.out.nValue;
+            }
+        } else {
+            break;
+        }
+        pcursor->Next();
+    }
+    return total;
+}
+
+void UpdateNumBlocksOfPeers(NodeId id, int height) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    // Select median value. Only one sample per peer. Remove oldest sample.
+    int new_value = 0;
+
+    bool inserted = false;
+    size_t num_elements = 0;
+    std::list<HeightEntry>::iterator oldest = peer_blocks.end();
+    for (auto it = peer_blocks.begin(); it != peer_blocks.end(); ) {
+        if (id == it->m_id) {
+            if (height == it->m_height) {
+                inserted = true;
+            } else {
+                it = peer_blocks.erase(it);
+                continue;
+            }
+        }
+        if (!inserted && it->m_height > height) {
+            peer_blocks.emplace(it, height, id, GetTime());
+            inserted = true;
+        }
+        if (oldest == peer_blocks.end() || oldest->m_time > it->m_time) {
+            oldest = it;
+        }
+        it++;
+        num_elements++;
+    }
+
+    if (!inserted) {
+        peer_blocks.emplace_back(height, id, GetTime());
+        num_elements++;
+    }
+    if (num_elements > max_peer_blocks && oldest != peer_blocks.end()) {
+        peer_blocks.erase(oldest);
+        num_elements--;
+    }
+
+    size_t stop = num_elements / 2;
+    num_elements = 0;
+    for (auto it = peer_blocks.begin(); it != peer_blocks.end(); ++it) {
+        if (num_elements >= stop) {
+            new_value = it->m_height;
+            break;
+        }
+        num_elements++;
+    }
+
+    static const CBlockIndex *pcheckpoint = g_chainman.m_blockman.GetLastCheckpoint(Params().Checkpoints());
+    if (pcheckpoint) {
+        if (new_value < pcheckpoint->nHeight) {
+            new_value = std::numeric_limits<int>::max();
+        }
+    }
+    nPeerBlocks = new_value;
+}
+
+int GetNumBlocksOfPeers()
+{
+    return nPeerBlocks;
+}
+
+void SetNumBlocksOfPeers(int num_blocks)
+{
+    assert(Params().IsMockableChain());
+    nPeerBlocks = num_blocks;
+}
+
 int StakeConflict::Add(NodeId id)
 {
     nLastUpdated = GetAdjustedTime();
@@ -6700,7 +6699,7 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate)
         return true;
     }
 
-    while (listStakeSeen.size() > MAX_STAKE_SEEN_SIZE) {
+    while (listStakeSeen.size() > particl::MAX_STAKE_SEEN_SIZE) {
         const COutPoint &oldest = listStakeSeen.front();
         if (1 != mapStakeSeen.erase(oldest)) {
             LogPrintf("%s: Warning: mapStakeSeen did not erase %s %n\n", __func__, oldest.hash.ToString(), oldest.n);

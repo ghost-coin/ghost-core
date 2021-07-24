@@ -35,7 +35,7 @@ bool SecMsgDB::Open(const char *pszMode)
 
     bool fCreate = strchr(pszMode, 'c');
 
-    fs::path fullpath = GetDataDir() / "smsgdb";
+    fs::path fullpath = gArgs.GetDataDirNet() / "smsgdb";
 
     if (!fCreate
         && (!fs::exists(fullpath)

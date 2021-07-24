@@ -68,8 +68,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     }
     UniValue rv;
 
-    int peer_blocks = GetNumBlocksOfPeers();
-    SetNumBlocksOfPeers(0);
+    int peer_blocks = particl::GetNumBlocksOfPeers();
+    particl::SetNumBlocksOfPeers(0);
 
     // Disable rct mint fix
     RegtestParams().GetConsensus_nc().exploit_fix_1_time = 0xffffffff;
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK(blockbalances.anon() == 0);
     uint256 tip_hash = ::ChainActive().Tip()->GetBlockHash();
     BOOST_CHECK(GetBlockBalances(tip_hash, blockbalances));
-    BOOST_CHECK(blockbalances.plain() == GetUTXOSum());
+    BOOST_CHECK(blockbalances.plain() == particl::GetUTXOSum());
     BOOST_CHECK(blockbalances.blind() == 1111 * COIN);
     BOOST_CHECK(blockbalances.anon() < -49770 * COIN);
 
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK_NO_THROW(rv = CallRPC("listunspentblind 1 9999999 [] true {\"frozen\":true,\"include_tainted_frozen\":true}", context));
     BOOST_REQUIRE(rv.size() == num_prefork_blind);
 
-    CAmount utxo_sum_before_fork = GetUTXOSum();
+    CAmount utxo_sum_before_fork = particl::GetUTXOSum();
     BOOST_REQUIRE(utxo_sum_before_fork > moneysupply_before_fork + 48000 * COIN);
 
     // Test that moneysupply is updated
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     pwallet->GetBalances(balances);
     CAmount balance_before = balances.nPart + balances.nPartStaked;
-    CAmount utxo_sum_after_fork = GetUTXOSum();
+    CAmount utxo_sum_after_fork = particl::GetUTXOSum();
     BOOST_REQUIRE(moneysupply_post_fork == balance_before);
     BOOST_REQUIRE(moneysupply_post_fork == utxo_sum_after_fork);
     BOOST_REQUIRE(utxo_sum_before_fork + stake_reward == utxo_sum_after_fork);
@@ -452,7 +452,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     pwallet->GetBalances(balances);
     CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
-    BOOST_REQUIRE(GetUTXOSum() == moneysupply_before_post_fork_to_blinded);
+    BOOST_REQUIRE(particl::GetUTXOSum() == moneysupply_before_post_fork_to_blinded);
 
     BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == moneysupply_before_post_fork_to_blinded);
@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     pwallet->GetBalances(balances);
     CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    CAmount utxosum = GetUTXOSum();
+    CAmount utxosum = particl::GetUTXOSum();
     BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
     BOOST_REQUIRE(balances.nPart + balances.nPartStaked + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
 
@@ -624,7 +624,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK(anon_spendable < blockbalances.anon()); // anon -> blind
     BOOST_CHECK(anon_spendable + blind_trusted == blockbalances.blind() + blockbalances.anon());
 
-    SetNumBlocksOfPeers(peer_blocks);
+    particl::SetNumBlocksOfPeers(peer_blocks);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

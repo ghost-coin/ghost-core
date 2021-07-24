@@ -455,8 +455,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
-        bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
-        bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
+        bool default_accept_anon = state.m_exploit_fix_2 ? true : particl::DEFAULT_ACCEPT_ANON_TX;
+        bool default_accept_blind = state.m_exploit_fix_2 ? true : particl::DEFAULT_ACCEPT_BLIND_TX;
         if (state.m_exploit_fix_1 &&
             nRingCTOutputs > 0 &&
             !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
