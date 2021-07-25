@@ -3772,6 +3772,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
     assert(coinControl);
+    const CCoinControl &coin_control = *coinControl;
     nFeeRet = 0;
     CAmount nValue;
     size_t nSubtractFeeFromAmount;
@@ -3812,10 +3813,39 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         AvailableCoins(vAvailableCoins, coinControl);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
 
-        CFeeRate discard_rate = GetDiscardRate(*this);
+        // Set discard feerate
+        coin_selection_params.m_discard_feerate = GetDiscardRate(*this);
 
         // Get the fee rate to use effective values in coin selection
-        CFeeRate nFeeRateNeeded = GetMinimumFeeRate(*this, *coinControl, &feeCalc);
+        coin_selection_params.m_effective_feerate = GetMinimumFeeRate(*this, coin_control, &feeCalc);
+
+        // Do not, ever, assume that it's fine to change the fee rate if the user has explicitly
+        // provided one
+        if (coin_control.m_feerate && coin_selection_params.m_effective_feerate > *coin_control.m_feerate) {
+            sError = strprintf(_("Fee rate (%s) is lower than the minimum fee rate setting (%s)").translated, coin_control.m_feerate->ToString(FeeEstimateMode::SAT_VB), coin_selection_params.m_effective_feerate.ToString(FeeEstimateMode::SAT_VB));
+            return false;
+        }
+        if (feeCalc.reason == FeeReason::FALLBACK && !m_allow_fallback_fee) {
+            // eventually allow a fallback fee
+            sError = _("Fee estimation failed. Fallbackfee is disabled. Wait a few blocks or enable -fallbackfee.").translated;
+            return false;
+        }
+
+        // Get long term estimate
+        CCoinControl cc_temp;
+        cc_temp.m_confirm_target = chain().estimateMaxBlocks();
+        coin_selection_params.m_long_term_feerate = GetMinimumFeeRate(*this, cc_temp, nullptr);
+
+        // Calculate the cost of change
+        // Cost of change is the cost of creating the change output + cost of spending the change output in the future.
+        // For creating the change output now, we use the effective feerate.
+        // For spending the change output in the future, we use the discard feerate for now.
+        // So cost of change = (change output size * effective feerate) + (size of spending change output * discard feerate)
+        coin_selection_params.m_change_fee = coin_selection_params.m_effective_feerate.GetFee(coin_selection_params.change_output_size);
+        coin_selection_params.m_cost_of_change = coin_selection_params.m_discard_feerate.GetFee(coin_selection_params.change_spend_size) + coin_selection_params.m_change_fee;
+
+        coin_selection_params.m_subtract_fee_outputs = nSubtractFeeFromAmount != 0; // If we are doing subtract fee from recipient, don't use effective values
+
 
         nFeeRet = 0;
         size_t nSubFeeTries = 100;
@@ -3871,7 +3901,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 // Never create dust outputs; if we would, just
                 // add the dust to the fee.
-                if (IsDust(&tempOut, discard_rate)) {
+                if (IsDust(&tempOut, coin_selection_params.m_discard_feerate)) {
                     nChangePosInOut = -1;
                     // Raise the fee after it may be subtracted from outputs
                     extra_fee_from_change += nChange;
@@ -4044,7 +4074,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     size_t change_prototype_size = GetSerializeSize(change_prototype_txout);
                     unsigned int tx_size_with_change = nBytes + change_prototype_size + 2; // Add 2 as a buffer in case increasing # of outputs changes compact size
                     CAmount fee_needed_with_change = GetMinimumFee(*this, tx_size_with_change, *coinControl, nullptr);
-                    CAmount minimum_value_for_change = GetDustThreshold(change_prototype_txout, discard_rate);
+                    CAmount minimum_value_for_change = GetDustThreshold(change_prototype_txout, coin_selection_params.m_discard_feerate);
                     if (nFeeRet >= fee_needed_with_change + minimum_value_for_change) {
                         pick_new_inputs = false;
                         nFeeRet = fee_needed_with_change;
@@ -11309,6 +11339,7 @@ bool CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const C
     bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
 
     CAmount value_to_select = nTargetValue - nValueFromPresetInputs;
+
     // Coin Selection attempts to select inputs from a pool of eligible UTXOs to fund the
     // transaction at a target feerate. If an attempt fails, more attempts may be made using a more
     // permissive CoinEligibilityFilter.
