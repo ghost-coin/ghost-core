@@ -124,7 +124,7 @@ public:
     COutPoint prevout;
     CScript scriptSig;
     uint32_t nSequence;
-    CScriptWitness scriptData; //!< Non prunable
+    CScriptWitness scriptData; //!< Non prunable, holds key images when input is anon. TODO: refactor to use scriptWitness
     CScriptWitness scriptWitness; //!< Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction
@@ -299,7 +299,6 @@ public:
     virtual std::vector<uint8_t> *GetPData() { return nullptr; };
     virtual const std::vector<uint8_t> *GetPRangeproof() const { return nullptr; };
     virtual const std::vector<uint8_t> *GetPData() const { return nullptr; };
-
 
     virtual bool GetCTFee(CAmount &nFee) const { return false; };
     virtual bool SetCTFee(CAmount &nFee) { return false; };

@@ -574,6 +574,8 @@ static int SetAddressFromScript(std::string &addr, std::string &str_error, const
 
 int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_t> &change_path, CMutableTransaction *tx)
 {
+    LogPrint(BCLog::HDWALLET, "%s: %s\n", __func__, tx->GetHash().ToString());
+
     tzr_proto::SignTx msg_in;
     tzr_proto::TxRequest req;
     uint16_t msg_type_out = 0;
@@ -660,6 +662,8 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                 uint256 req_txhash;
                 memcpy(req_txhash.data(), s.data(), 32);
                 uint32_t n = req.details().request_index();
+                LogPrint(BCLog::HDWALLET, "%s: TXINPUT requested: %s.%d\n", __func__, req_txhash.ToString(), n);
+
                 const auto msg_tx = msg.mutable_tx();
                 auto msg_input = msg_tx->add_inputs();
 
@@ -671,7 +675,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                 if (n >= prev_tx.vin.size()) {
                     return errorN(1, m_error, __func__, "TXINPUT req_tx has too few inputs %d.", n);
                 }
-                const auto &txin = tx->vin[n];
+                const auto &txin = prev_tx.vin[n];
                 // Set hash reversed
                 std::string hash(32, '0');
                 for (size_t k = 0; k < 32; ++k) {
@@ -680,7 +684,21 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                 msg_input->set_prev_hash(hash);
                 msg_input->set_prev_index(txin.prevout.n);
                 msg_input->set_sequence(txin.nSequence);
-                msg_input->add_address_n(0);  // Unknown
+                if (txin.IsAnonInput()) {
+                    std::vector<uint8_t> extra_data(1);
+                    extra_data[0] = OUTPUT_RINGCT;
+                    std::string s(extra_data.begin(), extra_data.end());
+                    msg_input->set_particl_extra(s);
+
+                    // Send scriptData through script_sig as it's larger than particl_extra can be
+                    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+                    stream << txin.scriptData.stack;
+                    std::string s_scriptData(stream.begin(), stream.end());
+                    msg_input->set_script_sig(s_scriptData);
+                } else {
+                    std::string s_scriptSig(txin.scriptSig.begin(), txin.scriptSig.end());
+                    msg_input->set_script_sig(s_scriptSig);
+                }
             } else {
                 // Send an input from the tx being signed
                 const auto msg_tx = msg.mutable_tx();
@@ -706,7 +724,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     std::vector<uint8_t> script_data(1);
                     script_data[0] = 1;
                     std::string s(script_data.begin(), script_data.end());
-                    msg_input->set_particl_script_extra(s);
+                    msg_input->set_particl_extra(s);
                 } else
                 if (cached_data.m_scriptCode.IsPayToPublicKeyHash256_CS()) {
                     std::vector<uint8_t> script_data(21);
@@ -717,7 +735,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     }
                     memcpy(script_data.data() + 1, pkh_stake.data(), 20);
                     std::string s(script_data.begin(), script_data.end());
-                    msg_input->set_particl_script_extra(s);
+                    msg_input->set_particl_extra(s);
                 }
 
                 if (cached_data.m_shared_secret.size() == 32) {
@@ -755,6 +773,8 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                 COutPoint prevout;
                 memcpy(prevout.hash.data(), s.data(), 32);
                 prevout.n = req.details().request_index();
+                LogPrint(BCLog::HDWALLET, "%s: TXOUTPUT requested: %s.%d\n", __func__, prevout.hash.ToString(), prevout.n);
+
                 const auto &cti = m_tx_cache.find(prevout.hash);
                 if (cti == m_tx_cache.end()) {
                     return errorN(1, m_error, __func__, "TXOUTPUT: Unknown prevout txn requested %s.", prevout.hash.ToString());
@@ -769,18 +789,35 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
 
                 const auto &send_output = prev_tx.vpout[prevout.n];
                 if (send_output->IsType(OUTPUT_STANDARD)) {
+                    msg_output->set_particl_output_type(OUTPUT_STANDARD);
                     msg_output->set_amount(send_output->GetValue());
                     const auto &pscript = send_output->GetPScriptPubKey();
                     std::string str_script(pscript->begin(), pscript->end());
                     msg_output->set_script_pubkey(str_script);
-                } else if (send_output->IsType(OUTPUT_DATA)) {
-                    CTxOutData* txd = (CTxOutData*)send_output.get();
+                } else
+                if (send_output->IsType(OUTPUT_DATA)) {
+                    msg_output->set_particl_output_type(OUTPUT_DATA); // tzr_proto::TxAck::TransactionType::TxOutputType::PAYTOPARTICLDATA
+                    CTxOutData *txd = (CTxOutData*)send_output.get();
                     std::string s(txd->vData.begin(), txd->vData.end());
                     msg_output->set_script_pubkey(s);
-                    msg_output->set_particl_output_type(1); // tzr_proto::TxAck::TransactionType::TxOutputType::PAYTOPARTICLDATA
+                    msg_output->set_amount(0);
+                } else
+                if (send_output->IsType(OUTPUT_CT)) {
+                    msg_output->set_particl_output_type(OUTPUT_CT);
+                    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+                    stream << *((CTxOutCT*)send_output.get());
+                    std::string s(stream.begin(), stream.end());
+                    msg_output->set_script_pubkey(s);
+                    msg_output->set_amount(0);
+                } else
+                if (send_output->IsType(OUTPUT_RINGCT)) {
+                    msg_output->set_particl_output_type(OUTPUT_RINGCT);
+                    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+                    stream << *((CTxOutRingCT*)send_output.get());
+                    std::string s(stream.begin(), stream.end());
+                    msg_output->set_script_pubkey(s);
                     msg_output->set_amount(0);
                 } else {
-                    // TODO: Send fake data?
                     return errorN(1, m_error, __func__, "Unknown output type.");
                 }
             } else {
@@ -834,6 +871,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
             std::reverse(s.begin(), s.end());
             uint256 req_txhash;
             memcpy(req_txhash.data(), s.data(), 32);
+            LogPrint(BCLog::HDWALLET, "%s: TXMETA requested: %s\n", __func__, req_txhash.ToString());
 
             const auto &cti = m_tx_cache.find(req_txhash);
             if (cti == m_tx_cache.end()) {
@@ -847,6 +885,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
             msg_tx->set_lock_time(prev_tx.nLockTime);
             msg_tx->set_inputs_cnt(prev_tx.vin.size());
             msg_tx->set_outputs_cnt(prev_tx.vpout.size());
+            msg_tx->set_particl_tx(true);
         } else if (req.request_type() == tzr_proto::TxRequest::TXFINISHED) {
             if (LogAcceptCategory(BCLog::HDWALLET)) {
                 LogPrintf("%s: Debug, serialised_tx %s.\n", __func__, HexStr(serialised_tx));
@@ -901,7 +940,6 @@ int CTrezorDevice::LoadMnemonic(uint32_t wordcount, bool pinprotection, std::str
         Close();
         return errorN(1, sError, __func__, "WriteV1 failed.");
     }
-
 
     for (;;) {
         if (0 != ReadV1(msg_type_out, vec_out)) {
@@ -1036,11 +1074,9 @@ int CTrezorDevice::PromptUnlock(std::string& sError)
     if (msg_type_out == hw::trezor::messages::MessageType_PinMatrixRequest
         || msg_type_out == hw::trezor::messages::MessageType_PassphraseRequest
         || msg_type_out == hw::trezor::messages::MessageType_Success) {
-            return 0;
-    } else {
-        return errorN(1, sError, __func__, "Unexpected response from prompting unlock.");
+        return 0;
     }
-
+    return errorN(1, sError, __func__, "Unexpected response from prompting unlock.");
 }
 
 int CTrezorDevice::Unlock(std::string pin, std::string passphraseword, std::string &sError)

@@ -80,7 +80,8 @@ static bool MatchTrezorInterface(struct hid_device_info *cur_dev)
 
 void ListHIDDevices(std::vector<std::unique_ptr<CUSBDevice> > &vDevices)
 {
-    if (Params().NetworkIDString() == "regtest") {
+    if (Params().NetworkIDString() == "regtest" &&
+        gArgs.GetBoolArg("-debugdevice", true)) {
         vDevices.push_back(std::unique_ptr<CUSBDevice>(new CDebugDevice()));
         return;
     }
@@ -161,7 +162,8 @@ void ListWebUSBDevices(std::vector<std::unique_ptr<CUSBDevice> > &vDevices)
 
 void ListAllDevices(std::vector<std::unique_ptr<CUSBDevice> > &vDevices)
 {
-    if (Params().NetworkIDString() == "regtest") {
+    if (Params().NetworkIDString() == "regtest" &&
+        gArgs.GetBoolArg("-debugdevice", true)) {
         vDevices.push_back(std::unique_ptr<CUSBDevice>(new CDebugDevice()));
         return;
     }
@@ -174,7 +176,8 @@ void ListAllDevices(std::vector<std::unique_ptr<CUSBDevice> > &vDevices)
 
 CUSBDevice *SelectDevice(std::vector<std::unique_ptr<CUSBDevice> > &vDevices, std::string &sError)
 {
-    if (Params().NetworkIDString() == "regtest") {
+    if (Params().NetworkIDString() == "regtest" &&
+        gArgs.GetBoolArg("-debugdevice", true)) {
         vDevices.push_back(std::unique_ptr<CUSBDevice>(new CDebugDevice()));
         return vDevices[0].get();
     }
