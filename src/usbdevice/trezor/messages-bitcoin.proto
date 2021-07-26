@@ -198,10 +198,14 @@ message TxAck {
         repeated TxOutputType outputs = 5;
         optional uint32 inputs_cnt = 6;
         optional uint32 outputs_cnt = 7;
-        optional bytes extra_data = 8;          // only for Zcash
-        optional uint32 extra_data_len = 9;     // only for Zcash
+        optional bytes extra_data = 8;          // only for Dash, Zcash
+        optional uint32 extra_data_len = 9;     // only for Dash, Zcash
         optional uint32 expiry = 10;            // only for Decred and Zcash
-        optional bool overwintered = 11;        // only for Zcash
+        optional bool overwintered = 11 [deprecated=true];   // Zcash only; deprecated in 2.3.2, the field is not needed, it can be derived from `version`
+        optional uint32 version_group_id = 12;  // only for Zcash, nVersionGroupId
+        optional uint32 timestamp = 13;         // only for Peercoin
+        optional uint32 branch_id = 14;         // only for Zcash, BRANCH_ID
+        optional bool particl_tx = 15;          // only for Particl
         /**
         * Structure representing transaction input
         */
@@ -225,7 +229,7 @@ message TxAck {
             optional uint32 orig_index = 17;                                    // index of the input in the original transaction (used when creating a replacement transaction)
             optional DecredStakingSpendType decred_staking_spend = 18;          // if not None this holds the type of stake spend: revocation or stake generation
             optional bytes particl_shared_secret = 19;                          // only for Particl
-            optional bytes particl_script_extra = 20;                           // only for Particl
+            optional bytes particl_extra = 20;                                  // only for Particl
         }
         /**
         * Structure representing compiled transaction output
@@ -234,7 +238,7 @@ message TxAck {
             required uint64 amount = 1;
             required bytes script_pubkey = 2;
             optional uint32 decred_script_version = 3;
-            optional uint32 particl_output_type = 4;
+            optional uint32 particl_output_type = 4;        // only for Particl
         }
         /**
         * Structure representing transaction output
