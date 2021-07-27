@@ -345,7 +345,7 @@ public:
         std::vector<uint8_t> &vchEphemPK, uint32_t prefix, bool fHavePrefix, CKey &sShared, bool fNeedShared=false);
 
     int CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutData *pdata, std::string &sNarr);
-    bool FindStealthTransactions(const CTransaction &tx, mapValue_t &mapNarr);
+    void FindStealthTransactions(const CTransaction &tx, mapValue_t &mapNarr);
 
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

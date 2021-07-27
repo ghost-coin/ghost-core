@@ -3264,6 +3264,7 @@ static void ParseRecords(
 
         bool is_change = record.nFlags & ORF_CHANGE;
         if (is_change) {
+            nFrom++;
             if (!show_change) {
                 continue;
             }
