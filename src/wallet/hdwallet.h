@@ -400,7 +400,7 @@ public:
     std::map<CTxDestination, std::vector<COutput>> ListCoins() const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, std::vector<COutputR>> ListCoins(OutputTypes nType) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    bool SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
+    bool AttemptSelection(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
 
     bool IsSpent(const uint256& hash, unsigned int n) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

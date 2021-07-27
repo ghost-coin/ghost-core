@@ -75,6 +75,8 @@ private Q_SLOTS:
 
     void on_pasteButton2_cs_clicked();
     void on_addressBookButton2_cs_clicked();
+protected:
+    void changeEvent(QEvent* e) override;
 
 private:
     SendCoinsRecipient recipient;

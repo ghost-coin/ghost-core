@@ -47,6 +47,9 @@ Q_SIGNALS:
     void transactionClicked(const QModelIndex &index);
     void outOfSyncWarningClicked();
 
+protected:
+    void changeEvent(QEvent* e) override;
+
 private:
     Ui::OverviewPage *ui;
     ClientModel *clientModel;
@@ -54,6 +57,8 @@ private:
     interfaces::WalletBalances m_balances;
     bool m_privacy{false};
     CAmount m_reservedBalance;
+
+    const PlatformStyle* m_platform_style;
 
     TxViewDelegate *txdelegate;
     std::unique_ptr<TransactionFilterProxy> filter;

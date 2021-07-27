@@ -9,6 +9,7 @@
 #include <config/bitcoin-config.h>
 #endif
 
+#include <qt/guiutil.h>
 #include <qt/optionsdialog.h>
 
 #include <amount.h>
@@ -126,7 +127,8 @@ private:
 
     UnitDisplayStatusBarControl* unitDisplayControl = nullptr;
     GUIUtil::ClickableLabel* labelWalletEncryptionIcon = nullptr;
-    QLabel* labelWalletHDStatusIcon = nullptr;
+    //GUIUtil::ThemedLabel* labelWalletEncryptionIcon = nullptr;
+    GUIUtil::ThemedLabel* labelWalletHDStatusIcon = nullptr;
     GUIUtil::ClickableLabel* labelProxyIcon = nullptr;
     GUIUtil::ClickableLabel* connectionsControl = nullptr;
     GUIUtil::ClickableLabel* labelBlocksIcon = nullptr;
@@ -353,10 +355,12 @@ public:
 protected:
     /** So that it responds to left-button clicks */
     void mousePressEvent(QMouseEvent *event) override;
+    void changeEvent(QEvent* e) override;
 
 private:
     OptionsModel *optionsModel;
     QMenu* menu;
+    const PlatformStyle* m_platform_style;
 
     /** Shows context menu with Display Unit options by the mouse coordinates */
     void onDisplayUnitsClicked(const QPoint& point);
