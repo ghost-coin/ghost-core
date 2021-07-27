@@ -1731,16 +1731,14 @@ bool CWalletTx::SubmitMemoryPoolAndRelay(std::string& err_string, bool relay, CA
 {
     // Can't relay if wallet is not broadcasting
     if (!pwallet->GetBroadcastTransactions()) return false;
-    // Don't relay coinbase transactions outside blocks
-    if (IsCoinBase()) return false;
-    // Don't relay coinstake transactions outside blocks
-    if (IsCoinStake()) return false;
 
     // Don't relay abandoned transactions
     if (isAbandoned()) return false;
     // Don't try to submit coinbase transactions. These would fail anyway but would
     // cause log spam.
     if (IsCoinBase()) return false;
+    // Don't relay coinstake transactions outside blocks
+    if (IsCoinStake()) return false;
     // Don't try to submit conflicted or confirmed transactions.
     if (GetDepthInMainChain() != 0) return false;
 

@@ -3285,6 +3285,7 @@ static void ParseRecords(
 
         bool is_change = record.nFlags & ORF_CHANGE;
         if (is_change) {
+            nFrom++;
             if (!show_change) {
                 continue;
             }
@@ -5344,18 +5345,10 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     UniValue result(UniValue::VOBJ);
     bool mempool_allowed = false;
     if (fTestMempoolAccept) {
-        CTxMemPool *mempool = pwallet->HaveChain() ? pwallet->chain().getMempool() : nullptr;
-        if (!mempool) {
-            throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get mempool");
-        }
-        const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(::ChainstateActive(), *mempool, wtx.tx,
-                                                  false /* bypass_limits */, /* test_accept */ true, /* ignore_locks */ false));
-        if (accept_result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
-            mempool_allowed = true;
-        } else {
-            mempool_allowed = false;
-            const TxValidationState state = accept_result.m_state;
-            result.pushKV("mempool-reject-reason", state.GetRejectReason());
+        std::string mempool_test_error;
+        mempool_allowed = pwallet->TestMempoolAccept(wtx.tx, mempool_test_error);
+        if (!mempool_allowed) {
+            result.pushKV("mempool-reject-reason", mempool_test_error);
         }
         result.pushKV("mempool-allowed", mempool_allowed);
     }

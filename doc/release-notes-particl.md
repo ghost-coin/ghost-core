@@ -59,6 +59,7 @@ Next Major Version
   - Solves issue with quotes in mnemonic passwords.
 - rpc: Include null votes in votehistory current/future results.
 - qt: Disable balance type combo boxes on the send dialog when wallet is linked to a hardware wallet.
+- smsg: Fix duplicate tx entry when funding paid smsg.
 
 
 0.19.2.12

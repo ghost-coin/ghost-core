@@ -5888,6 +5888,34 @@ int CHDWallet::UnloadTransaction(const uint256 &hash)
     return 0;
 };
 
+bool CHDWallet::TestMempoolAccept(const CTransactionRef &tx, std::string &sError) const {
+    if (!GetBroadcastTransactions()) {
+        sError = "Wallet broadcast is disabled";
+        return false;
+    }
+    if (!HaveChain()) {
+        sError = "Unable to get chain";
+        return false;
+    }
+    if (!chain().isReadyToBroadcast()) {
+        //sError = "Node is not ready to broadcast";
+        //return false;
+    }
+    CTxMemPool *mempool = chain().getMempool();
+    if (!mempool) {
+        sError = "Unable to get mempool";
+        return false;
+    }
+    const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(::ChainstateActive(), *mempool, tx,
+                                                        false /* bypass_limits */, /* test_accept */ true, /* ignore_locks */ false));
+    if (accept_result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
+        const TxValidationState state = accept_result.m_state;
+        sError = state.GetRejectReason();
+        return false;
+    }
+    return true;
+}
+
 int CHDWallet::GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&sea, CStoredExtKey *&pc)
 {
     pc = nullptr;
@@ -8696,7 +8724,6 @@ void CHDWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::
     }
 }
 
-
 bool CHDWallet::CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx, TxValidationState &state)
 {
     LOCK(cs_wallet);
@@ -8764,7 +8791,6 @@ bool CHDWallet::DummySignTx(CMutableTransaction &txNew, const std::vector<CTxOut
     }
     return true;
 };
-
 
 int CHDWallet::LoadStealthAddresses()
 {
@@ -9705,11 +9731,15 @@ int CHDWallet::CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutDat
         return 2;
     }
 
+    if (vData[0] == DO_FUND_MSG) {
+        return 0;
+    }
+
     WalletLogPrintf("%s: Unknown data output type %d.\n",  __func__, vData[0]);
     return -1;
 };
 
-bool CHDWallet::FindStealthTransactions(const CTransaction &tx, mapValue_t &mapNarr)
+void CHDWallet::FindStealthTransactions(const CTransaction &tx, mapValue_t &mapNarr)
 {
     if (LogAcceptCategory(BCLog::HDWALLET)) {
         WalletLogPrintf("%s: tx: %s.\n", __func__, tx.GetHash().GetHex());
@@ -9747,7 +9777,7 @@ bool CHDWallet::FindStealthTransactions(const CTransaction &tx, mapValue_t &mapN
         }
     }
 
-    return true;
+    return;
 };
 
 bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr)
