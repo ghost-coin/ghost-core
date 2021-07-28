@@ -5343,19 +5343,10 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     UniValue result(UniValue::VOBJ);
     bool mempool_allowed = false;
     if (fTestMempoolAccept) {
-        CTxMemPool *mempool = pwallet->HaveChain() ? pwallet->chain().getMempool() : nullptr;
-        if (!mempool) {
-            throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get mempool");
-        }
-        TxValidationState state;
-        CAmount fee{0};
-        bool accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(*mempool, state, wtx.tx, nullptr,
-                                       false /* bypass_limits */, /* test_accept */ true, &fee, /* ignore_locks */ false));
-        if (accept_result) {
-            mempool_allowed = true;
-        } else {
-            mempool_allowed = false;
-            result.pushKV("mempool-reject-reason", state.GetRejectReason());
+        std::string mempool_test_error;
+        mempool_allowed = pwallet->TestMempoolAccept(wtx.tx, mempool_test_error);
+        if (!mempool_allowed) {
+            result.pushKV("mempool-reject-reason", mempool_test_error);
         }
         result.pushKV("mempool-allowed", mempool_allowed);
     }
@@ -5409,12 +5400,9 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     }
 
     TxValidationState state;
-    if (typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD) {
-        pwallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm);
-    } else {
-        if (!pwallet->CommitTransaction(wtx, rtx, state)) {
-            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", state.ToString()));
-        }
+    bool is_record = !(typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD);
+    if (!pwallet->CommitTransaction(wtx, rtx, state, wtx.mapValue, wtx.vOrderForm, is_record)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", state.ToString()));
     }
 
     /*
