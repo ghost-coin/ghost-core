@@ -230,9 +230,6 @@ public:
     void RemoveFromTxSpends(const uint256 &hash, const CTransactionRef pt) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int UnloadTransaction(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    /** Test if mempool would accept tx */
-    bool TestMempoolAccept(const CTransactionRef &tx, std::string &sError) const;
-
     int GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&sea, CStoredExtKey *&pc);
 
     int MakeDefaultAccount();
@@ -322,12 +319,30 @@ public:
     bool FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, int& nChangePosInOut, bilingual_str& error, bool lockUnspents, const std::set<int>& setSubtractFeeFromOutputs, CCoinControl) override;
     bool SignTransaction(CMutableTransaction& tx) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
+    /**
+     * Create a new transaction paying the recipients with a set of coins
+     * selected by SelectCoins(); Also create the change output, when needed
+     * @note passing nChangePosInOut as -1 will result in setting a random position
+     */
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CAmount& nFeeRet, int& nChangePosInOut,
                            bilingual_str& strFailReason, const CCoinControl& coin_control, FeeCalculation& fee_calc_out, bool sign = true) override;
     bool CreateTransaction(std::vector<CTempRecipient>& vecSend, CTransactionRef& tx, CAmount& nFeeRet, int& nChangePosInOut,
                            bilingual_str& strFailReason, const CCoinControl& coin_control, FeeCalculation& fee_calc_out, bool sign = true);
+    /** Test if mempool would accept tx */
+    bool TestMempoolAccept(const CTransactionRef &tx, std::string &sError, CAmount override_max_fee=-1) const;
+    /**
+     * Submit the transaction to the node's mempool and then relay to peers.
+     * Should be called after CreateTransaction unless you want to abort
+     * broadcasting the transaction.
+     *
+     * @param[in] tx The transaction to be broadcast.
+     * @param[in] mapValue key-values to be set on the transaction.
+     * @param[in] orderForm BIP 70 / BIP 21 order form details to be set on the transaction.
+     */
     void CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm) override;
-    bool CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx, TxValidationState &state);
+    bool CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx, TxValidationState &state,
+                           mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
+                           bool is_record=false, bool broadcast_tx=true, CAmount override_max_fee=-1);
 
     bool DummySignInput(CTxIn &tx_in, const CTxOut &txout, bool use_max_sig = false) const override;
 
@@ -359,6 +374,7 @@ public:
     void PostProcessUnloadSpent();
 
     using CWallet::AddToSpends;
+    bool HaveSpend(const COutPoint &outpoint, const uint256 &txid) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void AddToSpends(const uint256& wtxid) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool fUpdate) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

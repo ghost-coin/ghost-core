@@ -4316,13 +4316,15 @@ int CSMSG::FundMsg(SecureMessage &smsg, std::string &sError, bool fTestFee, CAmo
 
         txfundId = wtx.tx->GetHash();
 
-        if (!pactive_wallet->GetBroadcastTransactions()) {
-            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "Broadcast transactions disabled.");
+        std::string err_string;
+        if (!pw->TestMempoolAccept(wtx.tx, err_string, m_absurd_smsg_fee)) {
+            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "TestMempoolAccept failed: %s.", err_string);
         }
 
-        std::string err_string;
-        if (!wtx.SubmitMemoryPoolAndRelay(err_string, true, m_absurd_smsg_fee)) {
-            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "Transaction cannot be broadcast immediately: %s.", err_string);
+        TxValidationState state;
+        bool is_record = !(fund_from == OUTPUT_STANDARD);
+        if (!pw->CommitTransaction(wtx, rtx, state, wtx.mapValue, wtx.vOrderForm, is_record, /* broadcast_tx */ true, m_absurd_smsg_fee)) {
+            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "CommitTransaction failed.");
         }
     }
     memcpy(smsg.pPayload + (smsg.nPayload-32), txfundId.begin(), 32);

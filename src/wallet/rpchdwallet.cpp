@@ -5402,12 +5402,9 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     }
 
     TxValidationState state;
-    if (typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD) {
-        pwallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm);
-    } else {
-        if (!pwallet->CommitTransaction(wtx, rtx, state)) {
-            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", state.ToString()));
-        }
+    bool is_record = !(typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD);
+    if (!pwallet->CommitTransaction(wtx, rtx, state, wtx.mapValue, wtx.vOrderForm, is_record)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", state.ToString()));
     }
 
     /*
