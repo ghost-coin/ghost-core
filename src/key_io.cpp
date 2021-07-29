@@ -74,6 +74,14 @@ public:
         return bech32::Encode(bech32::Encoding::BECH32, m_params.Bech32HRP(), data);
     }
 
+    std::string operator()(const WitnessV1Taproot& tap) const
+    {
+        std::vector<unsigned char> data = {1};
+        data.reserve(53);
+        ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, tap.begin(), tap.end());
+        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
+
     std::string operator()(const WitnessUnknown& id) const
     {
         if (id.version < 1 || id.version > 16 || id.length < 2 || id.length > 40) {
@@ -174,6 +182,13 @@ static CTxDestination DecodeDestination(const std::string& str, const CChainPara
 
                 error_str = "Invalid Bech32 v0 address data size";
                 return CNoDestination();
+            }
+
+            if (version == 1 && data.size() == WITNESS_V1_TAPROOT_SIZE) {
+                static_assert(WITNESS_V1_TAPROOT_SIZE == WitnessV1Taproot::size());
+                WitnessV1Taproot tap;
+                std::copy(data.begin(), data.end(), tap.begin());
+                return tap;
             }
 
             if (version > 16) {
@@ -448,6 +463,11 @@ public:
     }
 
     bool operator()(const WitnessV0ScriptHash& id) const
+    {
+        return false;
+    }
+
+    bool operator()(const WitnessV1Taproot& id) const
     {
         return false;
     }

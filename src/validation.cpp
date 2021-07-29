@@ -4762,7 +4762,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
     return true;
 }
 
-bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool* fNewBlock, NodeId node_id)
+bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock>& block, bool force_processing, bool* new_block, NodeId node_id)
 {
     AssertLockNotHeld(cs_main);
     assert(std::addressof(::ChainstateActive()) == std::addressof(ActiveChainstate()));
@@ -4777,7 +4777,7 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
             return error("%s: Duplicate proof-of-stake (%s, %d) for block %s", pblock->GetProofOfStake().first.ToString(), pblock->GetProofOfStake().second, hash.ToString());
         */
 
-        if (fNewBlock) *fNewBlock = false;
+        if (new_block) *new_block = false;
         BlockValidationState state;
         if (node_id > -1) {
             state.nodeId = node_id;
@@ -4789,10 +4789,10 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
-        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
+        bool ret = CheckBlock(*block, state, chainparams.GetConsensus());
         if (ret) {
             // Store to disk
-            ret = ActiveChainstate().AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
+            ret = ActiveChainstate().AcceptBlock(block, state, chainparams, &pindex, force_processing, nullptr, new_block);
         }
         if (state.nFlags & BLOCK_DELAYED) {
             return true;
@@ -4801,10 +4801,10 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
             if (fParticlMode && state.GetResult() != BlockValidationResult::BLOCK_MISSING_PREV) {
                 // Mark block as invalid to prevent re-requesting from peer.
                 // Block will have been added to the block index in AcceptBlockHeader
-                CBlockIndex *pindex = ::ChainstateActive().m_blockman.AddToBlockIndex(*pblock);
-                ::ChainstateActive().InvalidBlockFound(pindex, *pblock, state);
+                CBlockIndex *pindex = ::ChainstateActive().m_blockman.AddToBlockIndex(*block);
+                ::ChainstateActive().InvalidBlockFound(pindex, *block, state);
             }
-            GetMainSignals().BlockChecked(*pblock, state);
+            GetMainSignals().BlockChecked(*block, state);
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.ToString());
         }
 
@@ -4812,18 +4812,18 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
             pindex->nFlags |= BLOCK_FAILED_DUPLICATE_STAKE;
             setDirtyBlockIndex.insert(pindex);
             LogPrint(BCLog::POS, "%s Marking duplicate stake: %s.\n", __func__, pindex->GetBlockHash().ToString());
-            GetMainSignals().BlockChecked(*pblock, state);
+            GetMainSignals().BlockChecked(*block, state);
         }
     }
 
     NotifyHeaderTip(ActiveChainstate());
 
     BlockValidationState state; // Only used to report errors, not invalidity - ignore it
-    if (!ActiveChainstate().ActivateBestChain(state, chainparams, pblock))
+    if (!ActiveChainstate().ActivateBestChain(state, chainparams, block))
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
 
     if (smsg::fSecMsgEnabled && gArgs.GetBoolArg("-smsgscanincoming", false)) {
-        smsgModule.ScanBlock(*pblock);
+        smsgModule.ScanBlock(*block);
     }
 
     {

@@ -816,23 +816,29 @@ void RPCConsole::clear(bool keep_prompt)
             ).arg(fixedFontInfo.family(), QString("%1pt").arg(consoleFontSize))
         );
 
-    message(CMD_REPLY,
-            tr("Welcome to the %1 RPC console.").arg(PACKAGE_NAME) +
-                "<br>" +
-                tr("Use up and down arrows to navigate history, and %1 to clear screen.")
-                    .arg("<b>" + ui->clearButton->shortcut().toString(QKeySequence::NativeText) + "</b>") +
-                "<br>" +
-                tr("Use %1 and %2 to increase or decrease the font size.")
-                    .arg("<b>" + ui->fontBiggerButton->shortcut().toString(QKeySequence::NativeText) + "</b>")
-                    .arg("<b>" + ui->fontSmallerButton->shortcut().toString(QKeySequence::NativeText) + "</b>") +
-                "<br>" +
-                tr("Type %1 for an overview of available commands.").arg("<b>help</b>") +
-                "<br>" +
-                tr("For more information on using this console type %1.").arg("<b>help-console</b>") +
-                "<br><span class=\"secwarning\"><br>" +
-                tr("WARNING: Scammers have been active, telling users to type commands here, stealing their wallet contents. Do not use this console without fully understanding the ramifications of a command.") +
-                "</span>",
-            true);
+    static const QString welcome_message =
+        /*: RPC console welcome message.
+            Placeholders %7 and %8 are style tags for the warning content, and
+            they are not space separated from the rest of the text intentionally. */
+        tr("Welcome to the %1 RPC console.\n"
+           "Use up and down arrows to navigate history, and %2 to clear screen.\n"
+           "Use %3 and %4 to increase or decrease the font size.\n"
+           "Type %5 for an overview of available commands.\n"
+           "For more information on using this console, type %6.\n"
+           "\n"
+           "%7WARNING: Scammers have been active, telling users to type"
+           " commands here, stealing their wallet contents. Do not use this console"
+           " without fully understanding the ramifications of a command.%8")
+            .arg(PACKAGE_NAME,
+                 "<b>" + ui->clearButton->shortcut().toString(QKeySequence::NativeText) + "</b>",
+                 "<b>" + ui->fontBiggerButton->shortcut().toString(QKeySequence::NativeText) + "</b>",
+                 "<b>" + ui->fontSmallerButton->shortcut().toString(QKeySequence::NativeText) + "</b>",
+                 "<b>help</b>",
+                 "<b>help-console</b>",
+                 "<span class=\"secwarning\">",
+                 "<span>");
+
+    message(CMD_REPLY, welcome_message, true);
 }
 
 void RPCConsole::keyPressEvent(QKeyEvent *event)
@@ -924,57 +930,71 @@ void RPCConsole::setMempoolSize(long numberOfTxs, size_t dynUsage)
 
 void RPCConsole::on_lineEdit_returnPressed()
 {
-    QString cmd = ui->lineEdit->text();
+    QString cmd = ui->lineEdit->text().trimmed();
 
-    if(!cmd.isEmpty())
-    {
-        std::string strFilteredCmd;
-        try {
-            std::string dummy;
-            if (!RPCParseCommandLine(nullptr, dummy, cmd.toStdString(), false, &strFilteredCmd)) {
-                // Failed to parse command, so we cannot even filter it for the history
-                throw std::runtime_error("Invalid command line");
-            }
-        } catch (const std::exception& e) {
-            QMessageBox::critical(this, "Error", QString("Error: ") + QString::fromStdString(e.what()));
-            return;
+    if (cmd.isEmpty()) {
+        return;
+    }
+
+    std::string strFilteredCmd;
+    try {
+        std::string dummy;
+        if (!RPCParseCommandLine(nullptr, dummy, cmd.toStdString(), false, &strFilteredCmd)) {
+            // Failed to parse command, so we cannot even filter it for the history
+            throw std::runtime_error("Invalid command line");
         }
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, "Error", QString("Error: ") + QString::fromStdString(e.what()));
+        return;
+    }
 
-        ui->lineEdit->clear();
+    // A special case allows to request shutdown even a long-running command is executed.
+    if (cmd == QLatin1String("stop")) {
+        std::string dummy;
+        RPCExecuteCommandLine(m_node, dummy, cmd.toStdString());
+        return;
+    }
 
-        cmdBeforeBrowsing = QString();
+    if (m_is_executing) {
+        return;
+    }
+
+    ui->lineEdit->clear();
 
 #ifdef ENABLE_WALLET
-        WalletModel* wallet_model = ui->WalletSelector->currentData().value<WalletModel*>();
+    WalletModel* wallet_model = ui->WalletSelector->currentData().value<WalletModel*>();
 
-        if (m_last_wallet_model != wallet_model) {
-            if (wallet_model) {
-                message(CMD_REQUEST, tr("Executing command using \"%1\" wallet").arg(wallet_model->getWalletName()));
-            } else {
-                message(CMD_REQUEST, tr("Executing command without any wallet"));
-            }
-            m_last_wallet_model = wallet_model;
+    if (m_last_wallet_model != wallet_model) {
+        if (wallet_model) {
+            message(CMD_REQUEST, tr("Executing command using \"%1\" wallet").arg(wallet_model->getWalletName()));
+        } else {
+            message(CMD_REQUEST, tr("Executing command without any wallet"));
         }
-#endif
-
-        message(CMD_REQUEST, QString::fromStdString(strFilteredCmd));
-        Q_EMIT cmdRequest(cmd, m_last_wallet_model);
-
-        cmd = QString::fromStdString(strFilteredCmd);
-
-        // Remove command, if already in history
-        history.removeOne(cmd);
-        // Append command to history
-        history.append(cmd);
-        // Enforce maximum history size
-        while(history.size() > CONSOLE_HISTORY)
-            history.removeFirst();
-        // Set pointer to end of history
-        historyPtr = history.size();
-
-        // Scroll console view to end
-        scrollToEnd();
+        m_last_wallet_model = wallet_model;
     }
+#endif // ENABLE_WALLET
+
+    message(CMD_REQUEST, QString::fromStdString(strFilteredCmd));
+    //: A console message indicating an entered command is currently being executed.
+    message(CMD_REPLY, tr("Executing…"));
+    m_is_executing = true;
+    Q_EMIT cmdRequest(cmd, m_last_wallet_model);
+
+    cmd = QString::fromStdString(strFilteredCmd);
+
+    // Remove command, if already in history
+    history.removeOne(cmd);
+    // Append command to history
+    history.append(cmd);
+    // Enforce maximum history size
+    while (history.size() > CONSOLE_HISTORY) {
+        history.removeFirst();
+    }
+    // Set pointer to end of history
+    historyPtr = history.size();
+
+    // Scroll console view to end
+    scrollToEnd();
 }
 
 void RPCConsole::browseHistory(int offset)
@@ -1004,7 +1024,13 @@ void RPCConsole::startExecutor()
     executor->moveToThread(&thread);
 
     // Replies from executor object must go to this object
-    connect(executor, &RPCExecutor::reply, this, qOverload<int, const QString&>(&RPCConsole::message));
+    connect(executor, &RPCExecutor::reply, this, [this](int category, const QString& command) {
+        // Remove "Executing…" message.
+        ui->messagesWidget->undo();
+        message(category, command);
+        scrollToEnd();
+        m_is_executing = false;
+    });
 
     // Requests from this object must go to executor
     connect(this, &RPCConsole::cmdRequest, executor, &RPCExecutor::request);
@@ -1079,7 +1105,7 @@ void RPCConsole::updateDetailWidget()
     if (stats->nodeStats.m_bip152_highbandwidth_from) bip152_hb_settings += (bip152_hb_settings.isEmpty() ? ts.from : QLatin1Char('/') + ts.from);
     if (bip152_hb_settings.isEmpty()) bip152_hb_settings = ts.no;
     ui->peerHighBandwidth->setText(bip152_hb_settings);
-    const int64_t time_now{GetSystemTimeInSeconds()};
+    const int64_t time_now{GetTimeSeconds()};
     ui->peerConnTime->setText(GUIUtil::formatDurationStr(time_now - stats->nodeStats.nTimeConnected));
     ui->peerLastBlock->setText(TimeDurationField(time_now, stats->nodeStats.nLastBlockTime));
     ui->peerLastTx->setText(TimeDurationField(time_now, stats->nodeStats.nLastTXTime));

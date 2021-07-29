@@ -4,8 +4,9 @@
 
 #include <key_io.h>
 #include <bech32.h>
-#include <test/util/setup_common.h>
 #include <test/util/str.h>
+#include <test/util/setup_common.h>
+#include <string>
 
 #include <boost/test/unit_test.hpp>
 
@@ -44,8 +45,7 @@ BOOST_AUTO_TEST_CASE(bech32_test)
     CBitcoinAddress addr_base58;
     CBitcoinAddress addr_bech32;
 
-    for (auto &v : testsPass)
-    {
+    for (auto &v : testsPass) {
         addr_base58.SetString(v.first);
         CTxDestination dest = addr_base58.Get();
         BOOST_CHECK(addr_bech32.Set(dest, true));
@@ -60,21 +60,20 @@ BOOST_AUTO_TEST_CASE(bech32_test)
         BOOST_CHECK(addr_bech32_2.IsValid());
         CTxDestination dest3 = addr_bech32_2.Get();
         BOOST_CHECK(dest == dest3);
-    };
+    }
 
-    for (auto &v : testsFail)
-    {
+    for (auto &v : testsFail) {
         BOOST_CHECK(!addr_bech32.SetString(v));
-    };
+    }
 
     CKeyID knull;
-    for (auto &v : testsType)
-    {
+    for (auto &v : testsType) {
         CBitcoinAddress addr;
         addr.Set(knull, v.first, true);
         BOOST_CHECK(addr.ToString() == v.second);
-    };
+    }
 }
+
 
 BOOST_AUTO_TEST_CASE(bech32_testvectors_valid)
 {

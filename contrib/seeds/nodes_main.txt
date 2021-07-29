@@ -82,8 +82,3 @@
 [2a02:2b88:2:1::666b:1]:51738
 [2a02:7b40:50d0:e667::1]:51738
 [2a0a:51c0::1:1:6]:51738
-quf7tm4gk3xn3aee.onion:51738
-4qhduj6xmk3wsu5k.onion:51738
-4ryneyn5v3yzh7bo.onion:51738
-7vusex6gv5eerqi2.onion:51738
-frlfghlielxq2ncy.onion:51738

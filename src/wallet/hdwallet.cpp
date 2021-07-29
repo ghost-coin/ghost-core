@@ -12150,7 +12150,7 @@ bool CHDWallet::IsSpent(const uint256& hash, unsigned int n) const
 bool CHDWallet::IsSpentKey(const CScript *pscript) const
 {
     CTxDestination dst;
-    return pscript && ExtractDestination(*pscript, dst) && IsMine(dst) && GetDestData(dst, "used", nullptr);
+    return pscript && ExtractDestination(*pscript, dst) && IsMine(dst) && IsAddressUsed(dst);
 }
 
 bool CHDWallet::IsSpentKey(const uint256& hash, unsigned int n) const
@@ -12170,10 +12170,8 @@ void CHDWallet::SetSpentKeyState(const CScript *pscript, bool used)
     CTxDestination dst;
     if (pscript && ExtractDestination(*pscript, dst)) {
         if (IsMine(dst)) {
-            if (used && !GetDestData(dst, "used", nullptr)) {
-                AddDestData(batch, dst, "used", "p"); // p for "present", opposite of absent (null)
-            } else if (!used && GetDestData(dst, "used", nullptr)) {
-                EraseDestData(batch, dst, "used");
+            if (used != IsAddressUsed(dst)) {
+                SetAddressUsed(batch, dst, used);
             }
         }
     }
@@ -12188,12 +12186,11 @@ void CHDWallet::SetSpentKeyState(WalletBatch& batch, const uint256& hash, unsign
         CTxDestination dst;
         if (pscript && ExtractDestination(*pscript, dst)) {
             if (IsMine(dst)) {
-                if (used && !GetDestData(dst, "used", nullptr)) {
-                    if (AddDestData(batch, dst, "used", "p")) { // p for "present", opposite of absent (null)
+                if (used != IsAddressUsed(dst)) {
+                    if (used) {
                         tx_destinations.insert(dst);
                     }
-                } else if (!used && GetDestData(dst, "used", nullptr)) {
-                    EraseDestData(batch, dst, "used");
+                    SetAddressUsed(batch, dst, used);
                 }
             }
         }
