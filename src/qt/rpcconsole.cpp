@@ -35,9 +35,12 @@
 #include <qt/walletframe.h>
 #endif
 
+#include <QAbstractButton>
 #include <QDateTime>
 #include <QFont>
 #include <QKeyEvent>
+#include <QLatin1String>
+#include <QLocale>
 #include <QMenu>
 #include <QMessageBox>
 #include <QScreen>
@@ -45,9 +48,10 @@
 #include <QSettings>
 #include <QString>
 #include <QStringList>
+#include <QStyledItemDelegate>
 #include <QTime>
 #include <QTimer>
-
+#include <QVariant>
 
 const int CONSOLE_HISTORY = 50;
 const int INITIAL_TRAFFIC_GRAPH_MINS = 30;
@@ -129,6 +133,20 @@ public:
     }
 };
 
+class PeerIdViewDelegate : public QStyledItemDelegate
+{
+    Q_OBJECT
+public:
+    explicit PeerIdViewDelegate(QObject* parent = nullptr)
+        : QStyledItemDelegate(parent) {}
+
+    QString displayText(const QVariant& value, const QLocale& locale) const override
+    {
+        // Additional spaces should visually separate right-aligned content
+        // from the next column to the right.
+        return value.toString() + QLatin1String("   ");
+    }
+};
 
 #include <qt/rpcconsole.moc>
 
@@ -469,6 +487,9 @@ RPCConsole::RPCConsole(interfaces::Node& node, const PlatformStyle *_platformSty
         ui->splitter->restoreState(settings.value("RPCConsoleWidgetPeersTabSplitterSizes").toByteArray());
     }
 
+    m_peer_widget_header_state = settings.value("PeersTabPeerHeaderState").toByteArray();
+    m_banlist_widget_header_state = settings.value("PeersTabBanlistHeaderState").toByteArray();
+
     constexpr QChar nonbreaking_hyphen(8209);
     const std::vector<QString> CONNECTION_TYPE_DOC{
         tr("Inbound: initiated by peer"),
@@ -513,9 +534,9 @@ RPCConsole::RPCConsole(interfaces::Node& node, const PlatformStyle *_platformSty
     ui->lineEdit->setMaxLength(16 * 1024 * 1024);
     ui->messagesWidget->installEventFilter(this);
 
-    connect(ui->clearButton, &QPushButton::clicked, [this] { clear(); });
-    connect(ui->fontBiggerButton, &QPushButton::clicked, this, &RPCConsole::fontBigger);
-    connect(ui->fontSmallerButton, &QPushButton::clicked, this, &RPCConsole::fontSmaller);
+    connect(ui->clearButton, &QAbstractButton::clicked, [this] { clear(); });
+    connect(ui->fontBiggerButton, &QAbstractButton::clicked, this, &RPCConsole::fontBigger);
+    connect(ui->fontSmallerButton, &QAbstractButton::clicked, this, &RPCConsole::fontSmaller);
     connect(ui->btnClearTrafficGraph, &QPushButton::clicked, ui->trafficGraph, &TrafficGraphWidget::clear);
 
     // disable the wallet selector by default
@@ -551,6 +572,9 @@ RPCConsole::~RPCConsole()
         // RPCConsole is a child widget.
         settings.setValue("RPCConsoleWidgetPeersTabSplitterSizes", ui->splitter->saveState());
     }
+
+    settings.setValue("PeersTabPeerHeaderState", m_peer_widget_header_state);
+    settings.setValue("PeersTabBanlistHeaderState", m_banlist_widget_header_state);
 
     m_node.rpcUnsetTimerInterface(rpcTimerInterface);
     delete rpcTimerInterface;
@@ -640,10 +664,14 @@ void RPCConsole::setClientModel(ClientModel *model, int bestblock_height, int64_
         ui->peerWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
         ui->peerWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
         ui->peerWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-        ui->peerWidget->setColumnWidth(PeerTableModel::Address, ADDRESS_COLUMN_WIDTH);
-        ui->peerWidget->setColumnWidth(PeerTableModel::Subversion, SUBVERSION_COLUMN_WIDTH);
-        ui->peerWidget->setColumnWidth(PeerTableModel::Ping, PING_COLUMN_WIDTH);
+
+        if (!ui->peerWidget->horizontalHeader()->restoreState(m_peer_widget_header_state)) {
+            ui->peerWidget->setColumnWidth(PeerTableModel::Address, ADDRESS_COLUMN_WIDTH);
+            ui->peerWidget->setColumnWidth(PeerTableModel::Subversion, SUBVERSION_COLUMN_WIDTH);
+            ui->peerWidget->setColumnWidth(PeerTableModel::Ping, PING_COLUMN_WIDTH);
+        }
         ui->peerWidget->horizontalHeader()->setStretchLastSection(true);
+        ui->peerWidget->setItemDelegateForColumn(PeerTableModel::NetNodeId, new PeerIdViewDelegate(this));
 
         // create peer table context menu
         peersTableContextMenu = new QMenu(this);
@@ -656,7 +684,7 @@ void RPCConsole::setClientModel(ClientModel *model, int bestblock_height, int64_
 
         // peer table signal handling - update peer details when selecting new node
         connect(ui->peerWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RPCConsole::updateDetailWidget);
-        connect(model->getPeerTableModel(), &PeerTableModel::layoutChanged, this, &RPCConsole::updateDetailWidget);
+        connect(model->getPeerTableModel(), &PeerTableModel::changed, this, &RPCConsole::updateDetailWidget);
 
         // set up ban table
         ui->banlistWidget->setModel(model->getBanTableModel());
@@ -664,8 +692,11 @@ void RPCConsole::setClientModel(ClientModel *model, int bestblock_height, int64_
         ui->banlistWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
         ui->banlistWidget->setSelectionMode(QAbstractItemView::SingleSelection);
         ui->banlistWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-        ui->banlistWidget->setColumnWidth(BanTableModel::Address, BANSUBNET_COLUMN_WIDTH);
-        ui->banlistWidget->setColumnWidth(BanTableModel::Bantime, BANTIME_COLUMN_WIDTH);
+
+        if (!ui->banlistWidget->horizontalHeader()->restoreState(m_banlist_widget_header_state)) {
+            ui->banlistWidget->setColumnWidth(BanTableModel::Address, BANSUBNET_COLUMN_WIDTH);
+            ui->banlistWidget->setColumnWidth(BanTableModel::Bantime, BANTIME_COLUMN_WIDTH);
+        }
         ui->banlistWidget->horizontalHeader()->setStretchLastSection(true);
 
         // create ban table context menu
@@ -1171,6 +1202,11 @@ void RPCConsole::showEvent(QShowEvent *event)
 
 void RPCConsole::hideEvent(QHideEvent *event)
 {
+    // It is too late to call QHeaderView::saveState() in ~RPCConsole(), as all of
+    // the columns of QTableView child widgets will have zero width at that moment.
+    m_peer_widget_header_state = ui->peerWidget->horizontalHeader()->saveState();
+    m_banlist_widget_header_state = ui->banlistWidget->horizontalHeader()->saveState();
+
     QWidget::hideEvent(event);
 
     if (!clientModel || !clientModel->getPeerTableModel())

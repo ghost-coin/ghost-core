@@ -1,13 +1,13 @@
-/**********************************************************************
- * Copyright (c) 2013, 2014 Pieter Wuille                             *
- * Distributed under the MIT software license, see the accompanying   *
- * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
- **********************************************************************/
+/***********************************************************************
+ * Copyright (c) 2013, 2014 Pieter Wuille                              *
+ * Distributed under the MIT software license, see the accompanying    *
+ * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
+ ***********************************************************************/
 
 #ifndef SECP256K1_SCALAR_REPR_IMPL_H
 #define SECP256K1_SCALAR_REPR_IMPL_H
 
-#include "scalar.h"
+#include "modinv64_impl.h"
 #include <string.h>
 
 /* Limbs of the secp256k1 order. */
@@ -231,16 +231,16 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
         tl = t; \
     } \
     th2 = th + th;                  /* at most 0xFFFFFFFFFFFFFFFE (in case th was 0x7FFFFFFFFFFFFFFF) */ \
-    c2 += (th2 < th);               /* never overflows by contract (verified the next line) */ \
+    c2 += (th2 < th) ? 1 : 0;       /* never overflows by contract (verified the next line) */ \
     VERIFY_CHECK((th2 >= th) || (c2 != 0)); \
     tl2 = tl + tl;                  /* at most 0xFFFFFFFFFFFFFFFE (in case the lowest 63 bits of tl were 0x7FFFFFFFFFFFFFFF) */ \
-    th2 += (tl2 < tl);              /* at most 0xFFFFFFFFFFFFFFFF */ \
+    th2 += (tl2 < tl) ? 1 : 0;      /* at most 0xFFFFFFFFFFFFFFFF */ \
     c0 += tl2;                      /* overflow is handled on the next line */ \
-    th2 += (c0 < tl2);              /* second overflow is handled on the next line */ \
+    th2 += (c0 < tl2) ? 1 : 0;      /* second overflow is handled on the next line */ \
     c2 += (c0 < tl2) & (th2 == 0);  /* never overflows by contract (verified the next line) */ \
     VERIFY_CHECK((c0 >= tl2) || (th2 != 0) || (c2 != 0)); \
     c1 += th2;                      /* overflow is handled on the next line */ \
-    c2 += (c1 < th2);               /* never overflows by contract (verified the next line) */ \
+    c2 += (c1 < th2) ? 1 : 0;       /* never overflows by contract (verified the next line) */ \
     VERIFY_CHECK((c1 >= th2) || (c2 != 0)); \
 }
 
@@ -1055,6 +1055,80 @@ static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const se
     r->d[1] = (r->d[1] & mask0) | (a->d[1] & mask1);
     r->d[2] = (r->d[2] & mask0) | (a->d[2] & mask1);
     r->d[3] = (r->d[3] & mask0) | (a->d[3] & mask1);
+}
+
+static void secp256k1_scalar_from_signed62(secp256k1_scalar *r, const secp256k1_modinv64_signed62 *a) {
+    const uint64_t a0 = a->v[0], a1 = a->v[1], a2 = a->v[2], a3 = a->v[3], a4 = a->v[4];
+
+    /* The output from secp256k1_modinv64{_var} should be normalized to range [0,modulus), and
+     * have limbs in [0,2^62). The modulus is < 2^256, so the top limb must be below 2^(256-62*4).
+     */
+    VERIFY_CHECK(a0 >> 62 == 0);
+    VERIFY_CHECK(a1 >> 62 == 0);
+    VERIFY_CHECK(a2 >> 62 == 0);
+    VERIFY_CHECK(a3 >> 62 == 0);
+    VERIFY_CHECK(a4 >> 8 == 0);
+
+    r->d[0] = a0      | a1 << 62;
+    r->d[1] = a1 >> 2 | a2 << 60;
+    r->d[2] = a2 >> 4 | a3 << 58;
+    r->d[3] = a3 >> 6 | a4 << 56;
+
+#ifdef VERIFY
+    VERIFY_CHECK(secp256k1_scalar_check_overflow(r) == 0);
+#endif
+}
+
+static void secp256k1_scalar_to_signed62(secp256k1_modinv64_signed62 *r, const secp256k1_scalar *a) {
+    const uint64_t M62 = UINT64_MAX >> 2;
+    const uint64_t a0 = a->d[0], a1 = a->d[1], a2 = a->d[2], a3 = a->d[3];
+
+#ifdef VERIFY
+    VERIFY_CHECK(secp256k1_scalar_check_overflow(a) == 0);
+#endif
+
+    r->v[0] =  a0                   & M62;
+    r->v[1] = (a0 >> 62 | a1 <<  2) & M62;
+    r->v[2] = (a1 >> 60 | a2 <<  4) & M62;
+    r->v[3] = (a2 >> 58 | a3 <<  6) & M62;
+    r->v[4] =  a3 >> 56;
+}
+
+static const secp256k1_modinv64_modinfo secp256k1_const_modinfo_scalar = {
+    {{0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, -0x15LL, 0, 256}},
+    0x34F20099AA774EC1LL
+};
+
+static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
+    secp256k1_modinv64_signed62 s;
+#ifdef VERIFY
+    int zero_in = secp256k1_scalar_is_zero(x);
+#endif
+    secp256k1_scalar_to_signed62(&s, x);
+    secp256k1_modinv64(&s, &secp256k1_const_modinfo_scalar);
+    secp256k1_scalar_from_signed62(r, &s);
+
+#ifdef VERIFY
+    VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
+#endif
+}
+
+static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
+    secp256k1_modinv64_signed62 s;
+#ifdef VERIFY
+    int zero_in = secp256k1_scalar_is_zero(x);
+#endif
+    secp256k1_scalar_to_signed62(&s, x);
+    secp256k1_modinv64_var(&s, &secp256k1_const_modinfo_scalar);
+    secp256k1_scalar_from_signed62(r, &s);
+
+#ifdef VERIFY
+    VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
+#endif
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
+    return !(a->d[0] & 1);
 }
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

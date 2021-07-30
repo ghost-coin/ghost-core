@@ -715,10 +715,13 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
                 // is for the sake of multi-party protocols, where we don't
                 // want a single party to be able to disable replacement.
                 //
-                // The opt-out ignores descendants as anyone relying on
-                // first-seen mempool behavior should be checking all
-                // unconfirmed ancestors anyway; doing otherwise is hopelessly
-                // insecure.
+                // Transactions that don't explicitly signal replaceability are
+                // *not* replaceable with the current logic, even if one of their
+                // unconfirmed ancestors signals replaceability. This diverges
+                // from BIP125's inherited signaling description (see CVE-2021-31876).
+                // Applications relying on first-seen mempool behavior should
+                // check all unconfirmed ancestors; otherwise an opt-in ancestor
+                // might be replaced, causing removal of this descendant.
                 bool fReplacementOptOut = true;
                 for (const CTxIn &_txin : ptxConflicting->vin)
                 {
@@ -1586,8 +1589,9 @@ void CChainState::InvalidChainFound(CBlockIndex* pindexNew)
 }
 
 // Same as InvalidChainFound, above, except not called directly from InvalidateBlock,
-// which does its own setBlockIndexCandidates manageent.
-void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CBlock &block, const BlockValidationState &state) {
+// which does its own setBlockIndexCandidates management.
+void CChainState::InvalidBlockFound(CBlockIndex* pindex, const BlockValidationState& state)
+{
     if (state.GetResult() != BlockValidationResult::BLOCK_MUTATED) {
         pindex->nStatus |= BLOCK_FAILED_VALID;
         m_blockman.m_failed_blocks.insert(pindex);
@@ -2239,8 +2243,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     // may have let in a block that violates the rule prior to updating the
     // software, and we would NOT be enforcing the rule here. Fully solving
     // upgrade from one software version to the next after a consensus rule
-    // change is potentially tricky and issue-specific (see RewindBlockIndex()
-    // for one general approach that was used for BIP 141 deployment).
+    // change is potentially tricky and issue-specific (see NeedsRedownload()
+    // for one approach that was used for BIP 141 deployment).
     // Also, currently the rule against blocks more than 2 hours in the future
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
@@ -3364,7 +3368,7 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
         GetMainSignals().BlockChecked(blockConnecting, state);
         if (!rv) {
             if (state.IsInvalid())
-                InvalidBlockFound(pindexNew, blockConnecting, state);
+                InvalidBlockFound(pindexNew, state);
             return error("%s: ConnectBlock %s failed, %s", __func__, pindexNew->GetBlockHash().ToString(), state.ToString());
         }
         nTime3 = GetTimeMicros(); nTimeConnectTotal += nTime3 - nTime2;
@@ -4787,8 +4791,11 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
         // Therefore, the following critical section must include the CheckBlock() call as well.
         LOCK(cs_main);
 
-        // Ensure that CheckBlock() passes before calling AcceptBlock, as
-        // belt-and-suspenders.
+        // Skipping AcceptBlock() for CheckBlock() failures means that we will never mark a block as invalid if
+        // CheckBlock() fails.  This is protective against consensus failure if there are any unknown forms of block
+        // malleability that cause CheckBlock() to fail; see e.g. CVE-2012-2459 and
+        // https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-February/016697.html.  Because CheckBlock() is
+        // not very expensive, the anti-DoS benefits of caching failure (of a definitely-invalid block) are not substantial.
         bool ret = CheckBlock(*block, state, chainparams.GetConsensus());
         if (ret) {
             // Store to disk
@@ -4802,7 +4809,7 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
                 // Mark block as invalid to prevent re-requesting from peer.
                 // Block will have been added to the block index in AcceptBlockHeader
                 CBlockIndex *pindex = ::ChainstateActive().m_blockman.AddToBlockIndex(*block);
-                ::ChainstateActive().InvalidBlockFound(pindex, *block, state);
+                ::ChainstateActive().InvalidBlockFound(pindex, state);
             }
             GetMainSignals().BlockChecked(*block, state);
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.ToString());
@@ -6323,24 +6330,20 @@ bool ChainstateManager::PopulateAndValidateSnapshot(
     LOCK(::cs_main);
 
     // Fake various pieces of CBlockIndex state:
-    //
-    //   - nChainTx: so that we accurately report IBD-to-tip progress
-    //   - nTx: so that LoadBlockIndex() loads assumed-valid CBlockIndex entries
-    //       (among other things)
-    //   - nStatus & BLOCK_OPT_WITNESS: so that RewindBlockIndex() doesn't zealously
-    //       unwind the assumed-valid chain.
-    //
     CBlockIndex* index = nullptr;
     for (int i = 0; i <= snapshot_chainstate.m_chain.Height(); ++i) {
         index = snapshot_chainstate.m_chain[i];
 
+        // Fake nTx so that LoadBlockIndex() loads assumed-valid CBlockIndex
+        // entries (among other things)
         if (!index->nTx) {
             index->nTx = 1;
         }
+        // Fake nChainTx so that GuessVerificationProgress reports accurately
         index->nChainTx = index->pprev ? index->pprev->nChainTx + index->nTx : 1;
 
-        // We need to fake this flag so that CChainState::RewindBlockIndex()
-        // won't try to rewind the entire assumed-valid chain on startup.
+        // Fake BLOCK_OPT_WITNESS so that CChainState::NeedsRedownload()
+        // won't ask to rewind the entire assumed-valid chain on startup.
         if (index->pprev && ::IsWitnessEnabled(index->pprev, ::Params().GetConsensus())) {
             index->nStatus |= BLOCK_OPT_WITNESS;
         }
