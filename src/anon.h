@@ -19,6 +19,7 @@ class CKey;
 class CTransaction;
 class CTxMemPool;
 class TxValidationState;
+class ChainstateManager;
 
 const size_t MIN_RINGSIZE = 1;
 const size_t MAX_RINGSIZE = 32;
@@ -43,7 +44,7 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state);
 
 bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 bool RewindRangeProof(const std::vector<uint8_t> &rangeproof, const std::vector<uint8_t> &commitment, const uint256 &nonce,
                       std::vector<uint8_t> &blind_out, CAmount &value_out);

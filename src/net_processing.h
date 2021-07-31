@@ -79,21 +79,14 @@ public:
                                 const std::chrono::microseconds time_received, const std::atomic<bool>& interruptMsgProc) = 0;
 
     /** Particl */
-    virtual void IncPersistentMisbehaviour(NodeId node_id, const CService &node_address, int howmuch) = 0;
-    virtual void DecMisbehaving(NodeId nodeid, int howmuch) = 0;
-    virtual void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const std::string& message="") = 0;
-    virtual bool IncDuplicateHeaders(NodeId node_id, const CService &node_address) = 0;
     virtual NodeId GetBlockSource(const uint256 &hash) = 0;
+    virtual void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
+    virtual void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const std::string& message="") = 0;
+    virtual bool IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
 };
-
-extern PeerManager *g_peerman;
-
-/** Decrease a node's misbehavior score. */
-void DecMisbehaving(NodeId nodeid, int howmuch);
 
 NodeId GetBlockSource(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 int GetNumDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 void ClearDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 

@@ -75,13 +75,34 @@ bool ExtractIndexInfo(const CTxOutBase *out, int &scriptType, std::vector<uint8_
     return true;
 };
 
-bool GetTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes)
+static bool HashOnchainActive(ChainstateManager &chainman, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+{
+    CBlockIndex* pblockindex = chainman.BlockIndex()[hash];
+
+    if (!chainman.ActiveChain().Contains(pblockindex)) {
+        return false;
+    }
+
+    return true;
+};
+
+bool GetTimestampIndex(ChainstateManager &chainman, const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes)
 {
     if (!fTimestampIndex) {
         return error("Timestamp index not enabled");
     }
-    if (!pblocktree->ReadTimestampIndex(high, low, fActiveOnly, hashes)) {
+    if (!pblocktree->ReadTimestampIndex(high, low, hashes)) {
         return error("Unable to get hashes for timestamps");
+    }
+
+    if (fActiveOnly) {
+        for (auto it = hashes.begin(); it != hashes.end(); ) {
+            if (!HashOnchainActive(chainman, it->first)) {
+                it = hashes.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
 
     return true;
@@ -96,17 +117,6 @@ bool GetSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value, const CTx
         return true;
     }
     if (!pblocktree->ReadSpentIndex(key, value)) {
-        return false;
-    }
-
-    return true;
-};
-
-bool HashOnchainActive(const uint256 &hash)
-{
-    CBlockIndex* pblockindex = g_chainman.BlockIndex()[hash];
-
-    if (!::ChainActive().Contains(pblockindex)) {
         return false;
     }
 

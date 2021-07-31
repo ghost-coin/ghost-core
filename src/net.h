@@ -747,7 +747,9 @@ public:
     */
     virtual bool SendMessages(CNode* pnode) EXCLUSIVE_LOCKS_REQUIRED(pnode->cs_sendProcessing) = 0;
 
-
+    /** Particl */
+    virtual void CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
+    virtual void DecMisbehaving(NodeId nodeid, int howmuch) = 0;
 protected:
     /**
      * Protected destructor so that instances can only be deleted by derived classes.

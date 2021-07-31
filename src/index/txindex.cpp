@@ -212,11 +212,12 @@ TxIndex::~TxIndex() {}
 bool TxIndex::Init()
 {
     LOCK(cs_main);
+    CChain &active_chain = m_chainstate->m_chain;
 
     // Attempt to migrate txindex from the old database to the new one. Even if
     // chain_tip is null, the node could be reindexing and we still want to
     // delete txindex records in the old database.
-    if (!m_db->MigrateData(*pblocktree, m_chainstate->m_chain.GetLocator())) {
+    if (!m_db->MigrateData(*pblocktree, active_chain.GetLocator())) {
         return false;
     }
 
@@ -230,9 +231,9 @@ bool TxIndex::Init()
         if (!GetDB().Read(DB_TXINDEX_CSBESTBLOCK, locator)) {
             locator.SetNull();
         }
-        CBlockIndex *best_cs_block_index = g_chainman.m_blockman.FindForkInGlobalIndex(::ChainActive(), locator);
+        CBlockIndex *best_cs_block_index = m_chainstate->m_blockman.FindForkInGlobalIndex(active_chain, locator);
 
-        if (best_cs_block_index != ::ChainActive().Tip()) {
+        if (best_cs_block_index != active_chain.Tip()) {
             m_synced = false;
             if (m_best_block_index.load()->nHeight > best_cs_block_index->nHeight) {
                 LogPrintf("Setting txindex best block back to %d to sync csindex.\n", best_cs_block_index->nHeight);
@@ -406,7 +407,8 @@ bool TxIndex::IndexCSOutputs(const CBlock& block, const CBlockIndex* pindex)
         batch.Write(std::make_pair(DB_TXINDEX_CSLINK, it.first), it.second);
     }
 
-    batch.Write(DB_TXINDEX_CSBESTBLOCK, ::ChainActive().GetLocator(pindex));
+    CChain &active_chain = m_chainstate->m_chain;
+    batch.Write(DB_TXINDEX_CSBESTBLOCK, active_chain.GetLocator(pindex));
 
     if (!m_db->WriteBatch(batch)) {
         return error("%s: WriteBatch failed.", __func__);

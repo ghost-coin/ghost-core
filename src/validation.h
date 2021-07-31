@@ -29,6 +29,7 @@
 #include <util/check.h>
 #include <util/hasher.h>
 #include <util/translation.h>
+#include <net_processing.h>
 
 #include <atomic>
 #include <map>
@@ -173,9 +174,9 @@ int GetNumBlocksOfPeers();
 void SetNumBlocksOfPeers(int num_blocks);
 
 /** Return the current utxo sum */
-CAmount GetUTXOSum();
+CAmount GetUTXOSum(CChainState &chainstate);
 /** Update num blocks of peers vector */
-void UpdateNumBlocksOfPeers(NodeId id, int height);
+void UpdateNumBlocksOfPeers(ChainstateManager &chainman, NodeId id, int height);
 } // namespace particl
 
 /**
@@ -193,7 +194,7 @@ void UpdateNumBlocksOfPeers(NodeId id, int height);
 CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, const Consensus::Params& consensusParams, uint256& hashBlock);
 
 /** Retrieve a transaction and block header from disk */
-bool GetTransaction(const uint256 &hash, CTransactionRef &tx, const Consensus::Params& params, CBlock &block, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+bool GetTransaction(const uint256 &hash, CTransactionRef &tx, const Consensus::Params& params, CBlock &block, CBlockIndex* blockIndex = nullptr);
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 
@@ -275,11 +276,13 @@ MempoolAcceptResult AcceptToMemoryPool(CChainState& active_chainstate, CTxMemPoo
                                        bool bypass_limits, bool test_accept=false, bool ignore_locks=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /**
-* Atomically test acceptance of a package. If the package only contains one tx, package rules still apply.
+* Atomically test acceptance of a package. If the package only contains one tx, package rules still
+* apply. Package validation does not allow BIP125 replacements, so the transaction(s) cannot spend
+* the same inputs as any transaction in the mempool.
 * @param[in]    txns                Group of transactions which may be independent or contain
-*                                   parent-child dependencies. The transactions must not conflict, i.e.
-*                                   must not spend the same inputs, even if it would be a valid BIP125
-*                                   replace-by-fee. Parents must appear before children.
+*                                   parent-child dependencies. The transactions must not conflict
+*                                   with each other, i.e., must not spend the same inputs. If any
+*                                   dependencies exist, parents must appear before children.
 * @returns a PackageMempoolAcceptResult which includes a MempoolAcceptResult for each transaction.
 * If a transaction fails, validation will exit early and some results may be missing.
 */
@@ -308,9 +311,13 @@ bool TestLockPointValidity(CChain& active_chain, const LockPoints* lp) EXCLUSIVE
  * Check if transaction will be BIP68 final in the next block to be created on top of tip.
  * @param[in]   tip             Chain tip to check tx sequence locks against. For example,
  *                              the tip of the current active chain.
- * @param[in]   coins_view      Any CCoinsView that provides access to the relevant coins
- *                              for checking sequence locks. Any CCoinsView can be passed in;
- *                              it is assumed to be consistent with the tip.
+ * @param[in]   coins_view      Any CCoinsView that provides access to the relevant coins for
+ *                              checking sequence locks. For example, it can be a CCoinsViewCache
+ *                              that isn't connected to anything but contains all the relevant
+ *                              coins, or a CCoinsViewMemPool that is connected to the
+ *                              mempool and chainstate UTXO set. In the latter case, the caller is
+ *                              responsible for holding the appropriate locks to ensure that
+ *                              calls to GetCoin() return correct coins.
  * Simulates calling SequenceLocks() with data from the tip passed in.
  * Optionally stores in LockPoints the resulting height and time calculated and the hash
  * of the block needed for calculation or skips the calculation and uses the LockPoints
@@ -397,9 +404,6 @@ void InitScriptExecutionCache();
 bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 
 unsigned int GetNextTargetRequired(const CBlockIndex *pindexLast);
-
-bool ConnectBlock(const CBlock& block, BlockValidationState& state, CBlockIndex* pindex,
-    CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block) */
 bool TestBlockValidity(BlockValidationState& state,
@@ -669,8 +673,9 @@ public:
     //! Reference to a BlockManager instance which itself is shared across all
     //! CChainState instances.
     BlockManager& m_blockman;
+    ChainstateManager &m_chainman;
 
-    explicit CChainState(CTxMemPool& mempool, BlockManager& blockman, std::optional<uint256> from_snapshot_blockhash = std::nullopt);
+    explicit CChainState(CTxMemPool& mempool, BlockManager& blockman, ChainstateManager& chainman, std::optional<uint256> from_snapshot_blockhash = std::nullopt);
 
     /**
      * Initialize the CoinsViews UTXO set database management data structures. The in-memory
@@ -958,10 +963,6 @@ private:
         CAutoFile& coins_file,
         const SnapshotMetadata& metadata);
 
-    // For access to m_active_chainstate.
-    friend CChainState& ChainstateActive();
-    friend CChain& ChainActive();
-
 public:
     std::thread m_load_block;
     //! A single BlockManager instance is shared across each constructed
@@ -1057,7 +1058,7 @@ public:
      * @param[out]  new_block A boolean which is set to indicate if the block was first received via this call
      * @returns     If the block was processed, independently of block validity
      */
-    bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock>& block, bool force_processing, bool* new_block, NodeId node_id=0) LOCKS_EXCLUDED(cs_main);
+    bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock>& block, bool force_processing, bool* new_block, NodeId node_id = 0, PeerManager *peerman = nullptr) LOCKS_EXCLUDED(cs_main);
 
     /**
      * Process incoming block headers.
@@ -1084,18 +1085,13 @@ public:
     //! Check to see if caches are out of balance and if so, call
     //! ResizeCoinsCaches() as needed.
     void MaybeRebalanceCaches() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+
+    ~ChainstateManager() {
+        LOCK(::cs_main);
+        UnloadBlockIndex(/* mempool */ nullptr, *this);
+        Reset();
+    }
 };
-
-/** DEPRECATED! Please use node.chainman instead. May only be used in validation.cpp internally */
-extern ChainstateManager g_chainman GUARDED_BY(::cs_main);
-
-/** Please prefer the identical ChainstateManager::ActiveChainstate */
-CChainState& ChainstateActive();
-
-/** Please prefer the identical ChainstateManager::ActiveChain */
-CChain& ChainActive();
-
-ChainstateManager& ChainstateManagerActive();
 
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern std::unique_ptr<CBlockTreeDB> pblocktree;
@@ -1124,9 +1120,8 @@ bool LoadMempool(CTxMemPool& pool, CChainState& active_chainstate, FopenFn mocka
  */
 const AssumeutxoData* ExpectedAssumeutxo(const int height, const CChainParams& params);
 
-DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
 bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
-bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
+bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &chainstate, bool fDisconnecting);
 void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams, CChainState& active_chainstate);
 
 
@@ -1153,7 +1148,7 @@ public:
     size_t nMaxSize = 16;
     std::list<std::pair<uint256, CTransactionRef> > lData;
 
-    bool GetCoinStake(const uint256 &blockHash, CTransactionRef &tx) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool GetCoinStake(ChainstateManager &chainman, const uint256 &blockHash, CTransactionRef &tx) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool InsertCoinStake(const uint256 &blockHash, const CTransactionRef &tx) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 };
 
@@ -1162,7 +1157,7 @@ extern CoinStakeCache coinStakeCache;
 extern std::map<COutPoint, uint256> mapStakeSeen;
 extern std::list<COutPoint> listStakeSeen;
 
-bool RemoveUnreceivedHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool RemoveUnreceivedHeader(ChainstateManager &chainman, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 size_t CountDelayedBlocks() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 
@@ -1174,10 +1169,10 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
 /** Returns true if the block index needs to be reindexed. */
 bool ShouldAutoReindex() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 /** Returns true if the block index was rewound to rebuild the temporary indices. */
-bool RebuildRollingIndices(CTxMemPool* mempool);
+bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool);
 
-int64_t GetSmsgFeeRate(const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-uint32_t GetSmsgDifficulty(uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 } // particl
 

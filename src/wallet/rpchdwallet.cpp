@@ -4286,6 +4286,13 @@ static RPCHelpMan getstakinginfo()
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    ChainstateManager *pchainman{nullptr};
+    if (pwallet->HaveChain()) {
+        pchainman = pwallet->chain().getChainman();
+    }
+    if (!pchainman) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Chainstate manager not found");
+    }
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -4299,7 +4306,7 @@ static RPCHelpMan getstakinginfo()
     CBlockIndex *pblockindex = nullptr;
     {
         LOCK(cs_main);
-        pblockindex = ::ChainActive().Tip();
+        pblockindex = pchainman->ActiveChain().Tip();
         nTipTime = pblockindex->nTime;
         rCoinYearReward = Params().GetCoinYearReward(nTipTime) / CENT;
         nMoneySupply = pblockindex->nMoneySupply;
@@ -4367,7 +4374,7 @@ static RPCHelpMan getstakinginfo()
     }
 
 
-    obj.pushKV("difficulty", GetDifficulty(::ChainActive().Tip()));
+    obj.pushKV("difficulty", GetDifficulty(pchainman->ActiveChain().Tip()));
     obj.pushKV("lastsearchtime", (uint64_t)pwallet->nLastCoinStakeSearchTime);
 
     obj.pushKV("weight", (uint64_t)nWeight);
@@ -4405,6 +4412,9 @@ static RPCHelpMan getcoldstakinginfo()
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    if (!pwallet->HaveChain()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get chain");
+    }
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -4429,7 +4439,7 @@ static RPCHelpMan getcoldstakinginfo()
         cctl.m_include_unsafe_inputs = include_unsafe;
         cctl.m_include_immature = true;
         LOCK(pwallet->cs_wallet);
-        nHeight = ::ChainActive().Tip()->nHeight;
+        nHeight = pwallet->chain().getHeightInt();
         nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations()-1), (int)(nHeight / 2));
         pwallet->AvailableCoins(vecOutputs, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
@@ -5542,7 +5552,7 @@ static RPCHelpMan sendtypeto()
 }
 
 
-static UniValue createsignatureinner(const JSONRPCRequest &request, CHDWallet *const pwallet)
+static UniValue createsignatureinner(const JSONRPCRequest &request, ChainstateManager *pchainman, CHDWallet *const pwallet)
 {
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VSTR, UniValue::VSTR}, true);
 
@@ -5576,14 +5586,13 @@ static UniValue createsignatureinner(const JSONRPCRequest &request, CHDWallet *c
         pwallet->GetPrevout(prev_out, txout);
         mempool = pwallet->HaveChain() ? pwallet->chain().getMempool() : nullptr;
     } else {
-        //auto chain = EnsureChain(request.context);
-        //mempool = chain.getMempool();
+        mempool = &EnsureAnyMemPool(request.context);
     }
     if (!txout.get()) {
         // Try fetch from utxodb first
         LOCK(cs_main);
         Coin coin;
-        if (::ChainstateActive().CoinsTip().GetCoin(prev_out, coin)) {
+        if (pchainman->ActiveChainstate().CoinsTip().GetCoin(prev_out, coin)) {
             if (coin.nType == OUTPUT_STANDARD) {
                 txout = MAKE_OUTPUT<CTxOutStandard>(coin.out.nValue, coin.out.scriptPubKey);
             } else {
@@ -5789,10 +5798,18 @@ static RPCHelpMan createsignaturewithwallet()
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
 
     EnsureWalletIsUnlocked(pwallet);
+    ChainstateManager *pchainman{nullptr};
+    if (pwallet->HaveChain()) {
+        pchainman = pwallet->chain().getChainman();
+    }
+    if (!pchainman) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Chainstate manager not found");
+    }
+
 
     LOCK(pwallet->cs_wallet);
 
-    return createsignatureinner(request, pwallet);
+    return createsignatureinner(request, pchainman, pwallet);
 },
     };
 }
@@ -5837,7 +5854,8 @@ static RPCHelpMan createsignaturewithkey()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    return createsignatureinner(request, nullptr);
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+    return createsignatureinner(request, &chainman, nullptr);
 },
     };
 }
@@ -7459,6 +7477,9 @@ static RPCHelpMan votehistory()
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    if (!pwallet->HaveChain()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get chain");
+    }
 
     std::vector<CVoteToken> vVoteTokens;
     {
@@ -7477,7 +7498,7 @@ static RPCHelpMan votehistory()
     UniValue result(UniValue::VARR);
 
     if (current_only) {
-        int nNextHeight = ::ChainActive().Height() + 1;
+        int nNextHeight = pwallet->chain().getHeightInt() + 1;
 
         for (int i = (int) vVoteTokens.size(); i-- > 0; ) {
             const auto &v = vVoteTokens[i];
@@ -7577,6 +7598,8 @@ static RPCHelpMan tallyvotes()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+
     int issue = request.params[0].get_int();
     if (issue < 1 || issue >= (1 << 16))
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Proposal out of range.");
@@ -7591,7 +7614,7 @@ static RPCHelpMan tallyvotes()
     std::pair<std::map<int, int>::iterator, bool> ri;
 
     int nBlocks = 0;
-    CBlockIndex *pindex = ::ChainActive().Tip();
+    CBlockIndex *pindex = chainman.ActiveChain().Tip();
     if (pindex)
     do {
         if (pindex->nHeight < nStartHeight) {
@@ -8525,7 +8548,6 @@ static RPCHelpMan fundrawtransactionfrom()
         coinControl.Select(txin.prevout);
     }
 
-
     CTransactionRef tx_new;
     CWalletTx wtx(pwallet, tx_new);
     CTransactionRecord rtx;
@@ -8920,6 +8942,8 @@ static RPCHelpMan verifyrawtransaction()
 {
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VOBJ}, true);
 
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+
     bool return_decoded = false;
     bool check_values = true;
 
@@ -8953,7 +8977,7 @@ static RPCHelpMan verifyrawtransaction()
         //CTxMemPool *pmempool = request.context.chain.getMempool();
         //LOCK2(cs_main, pmempool->cs);
         LOCK(cs_main);
-        CCoinsViewCache &viewChain = ::ChainstateActive().CoinsTip();
+        CCoinsViewCache &viewChain = chainman.ActiveChainstate().CoinsTip();
         //CCoinsViewMemPool viewMempool(&viewChain, *pmempool);
         //view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
         view.SetBackend(viewChain);
@@ -9043,12 +9067,8 @@ static RPCHelpMan verifyrawtransaction()
     // Script verification errors
     UniValue vErrors(UniValue::VARR);
 
-
-    int nSpendHeight = 0; // TODO: make option
-    {
-        LOCK(cs_main);
-        nSpendHeight = ::ChainActive().Tip()->nHeight;
-    }
+    // TODO: make option
+    int nSpendHeight = chainman.ActiveChain().Height();
 
     UniValue result(UniValue::VOBJ);
 
@@ -9113,7 +9133,7 @@ static RPCHelpMan verifyrawtransaction()
     };
 };
 
-static bool PruneBlockFile(FILE *fp, bool test_only, size_t &num_blocks_in_file, size_t &num_blocks_removed) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+static bool PruneBlockFile(ChainstateManager &chainman, FILE *fp, bool test_only, size_t &num_blocks_in_file, size_t &num_blocks_removed) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     fs::path tmp_filepath = gArgs.GetBlocksDirPath() / strprintf("tmp.dat");
 
@@ -9123,7 +9143,7 @@ static bool PruneBlockFile(FILE *fp, bool test_only, size_t &num_blocks_in_file,
     }
     CAutoFile fileout(fpt, SER_DISK, CLIENT_VERSION);
 
-    const CChainParams& chainparams = Params();
+    const CChainParams &chainparams = Params();
     CBufferedFile blkdat(fp, 2*MAX_BLOCK_SERIALIZED_SIZE, MAX_BLOCK_SERIALIZED_SIZE+8, SER_DISK, CLIENT_VERSION);
     uint64_t nRewind = blkdat.GetPos();
 
@@ -9162,9 +9182,9 @@ static bool PruneBlockFile(FILE *fp, bool test_only, size_t &num_blocks_in_file,
             nRewind = blkdat.GetPos();
 
             num_blocks_in_file++;
-            BlockMap::iterator mi = g_chainman.BlockIndex().find(blockhash);
-            if (mi == g_chainman.BlockIndex().end()
-                || !::ChainActive().Contains(mi->second)) {
+            BlockMap::iterator mi = chainman.BlockIndex().find(blockhash);
+            if (mi == chainman.BlockIndex().end()
+                || !chainman.ActiveChain().Contains(mi->second)) {
                 num_blocks_removed++;
             } else
             if (!test_only) {
@@ -9198,38 +9218,24 @@ static RPCHelpMan rewindchain()
                 RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    if (!wallet) return NullUniValue;
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+    CTxMemPool  &mempool = EnsureAnyMemPool(request.context);
 
-    EnsureWalletIsUnlocked(pwallet);
-
-    // Make sure the results are valid at least up to the most recent block
-    // the user could have gotten from another RPC command prior to now
-    pwallet->BlockUntilSyncedToCurrentChain();
-
-
-    LOCK2(pwallet->cs_wallet, cs_main);
+    LOCK(cs_main);
 
     UniValue result(UniValue::VOBJ);
 
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
+    CCoinsViewCache &view = chainman.ActiveChainstate().CoinsTip();
     view.fForceDisconnect = true;
-    CBlockIndex* pindexState = ::ChainActive().Tip();
+    CBlockIndex* pindexState = chainman.ActiveChain().Tip();
 
     int nBlocks = 0;
 
     int nToHeight = request.params[0].isNum() ? request.params[0].get_int() : pindexState->nHeight - 1;
     result.pushKV("to_height", nToHeight);
 
-
-    CTxMemPool *mempool = pwallet->HaveChain() ? pwallet->chain().getMempool() : nullptr;
-    if (!mempool) {
-        throw JSONRPCError(RPC_WALLET_ERROR, "Unable to get mempool");
-    }
-
     std::string sError;
-    if (!RewindToHeight(*mempool, nToHeight, nBlocks, sError)) {
+    if (!RewindToHeight(chainman, mempool, nToHeight, nBlocks, sError)) {
         result.pushKV("error", sError);
     }
 
@@ -9261,6 +9267,8 @@ static RPCHelpMan pruneorphanedblocks()
 {
     bool test_only = request.params.size() > 0 ? GetBool(request.params[0]) : true;
 
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+
     UniValue files(UniValue::VARR);
     {
         LOCK(cs_main);
@@ -9274,7 +9282,7 @@ static RPCHelpMan pruneorphanedblocks()
                 break;
             LogPrintf("Pruning block file blk%05u.dat...\n", (unsigned int)nFile);
             size_t num_blocks_in_file = 0, num_blocks_removed = 0;
-            PruneBlockFile(fp, test_only, num_blocks_in_file, num_blocks_removed);
+            PruneBlockFile(chainman, fp, test_only, num_blocks_in_file, num_blocks_removed);
 
             if (!test_only) {
                 fs::path tmp_filepath = gArgs.GetBlocksDirPath() / strprintf("tmp.dat");
@@ -9444,7 +9452,6 @@ static const CRPCCommand commands[] =
     { "wallet",             &sendtypeto                     },
 
     { "wallet",             &createsignaturewithwallet      },
-    { "rawtransactions",    &createsignaturewithkey         },
 
     { "wallet",             &debugwallet                    },
     { "wallet",             &walletsettings                 },
@@ -9457,21 +9464,35 @@ static const CRPCCommand commands[] =
 
     { "governance",         &setvote                        },
     { "governance",         &votehistory                    },
-    { "governance",         &tallyvotes                     },
 
-    { "rawtransactions",    &buildscript                    },
     { "rawtransactions",    &createrawparttransaction       },
     { "rawtransactions",    &fundrawtransactionfrom         },
-    { "rawtransactions",    &verifycommitment               },
-    { "rawtransactions",    &rewindrangeproof               },
-    { "rawtransactions",    &generatematchingblindfactor    },
-    { "rawtransactions",    &verifyrawtransaction           },
 
-    { "blockchain",         &rewindchain                    },
-    { "blockchain",         &pruneorphanedblocks            },
-    { "blockchain",         &rehashblock                    },
+    { "wallet",             &rehashblock                    },
 };
 // clang-format on
     return MakeSpan(commands);
 }
 
+void RegisterNonWalletRPCCommands(CRPCTable &t)
+{
+// clang-format off
+static const CRPCCommand commands[] =
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "governance",         &tallyvotes                     },
+
+    { "rawtransactions",    &rewindrangeproof               },
+    { "rawtransactions",    &generatematchingblindfactor    },
+    { "rawtransactions",    &buildscript                    },
+    { "rawtransactions",    &verifycommitment               },
+    { "rawtransactions",    &createsignaturewithkey         },
+    { "rawtransactions",    &verifyrawtransaction           },
+    { "blockchain",         &pruneorphanedblocks            },
+    { "blockchain",         &rewindchain                    },
+};
+// clang-format on
+    for (const auto& c : commands) {
+        t.appendCommand(c.name, &c);
+    }
+}

@@ -231,11 +231,12 @@ BOOST_AUTO_TEST_CASE(mixed_input_types)
 
         CTransaction tx_c(txn);
         TxValidationState state;
-        Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee);
+        bool rv = Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee);
 
         if (t.second) {
             BOOST_CHECK(state.GetRejectReason() != "mixed-input-types");
         } else {
+            BOOST_CHECK(!rv);
             BOOST_CHECK(state.GetRejectReason() == "mixed-input-types");
         }
     }

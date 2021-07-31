@@ -77,6 +77,15 @@ static void AddAnonTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amo
 
 void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
 {
+    ChainstateManager *pchainman{nullptr};
+    if (pwallet->HaveChain()) {
+        pchainman = pwallet->chain().getChainman();
+    }
+    if (!pchainman) {
+        LogPrintf("Error: Chainstate manager not found.\n");
+        return;
+    }
+
     int nBestHeight;
     size_t nStaked = 0;
     size_t k, nTries = 10000;
@@ -95,7 +104,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
         if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             CBlock *pblock = &pblocktemplate->block;
 
-            if (CheckStake(pblock)) {
+            if (CheckStake(*pchainman, pblock)) {
                 nStaked++;
             }
         }
@@ -143,8 +152,8 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
     AddWallet(pwallet_b);
 
     {
-        int last_height = ::ChainActive().Height();
-        uint256 last_hash = ::ChainActive().Tip()->GetBlockHash();
+        int last_height = context->chainman->ActiveChain().Height();
+        uint256 last_hash = context->chainman->ActiveChain().Tip()->GetBlockHash();
         {
             LOCK(pwallet_a->cs_wallet);
             pwallet_a->SetLastBlockProcessed(last_height, last_hash);

@@ -34,7 +34,7 @@ int nMinStakeInterval = 0;  // Minimum stake interval in seconds
 int nMinerSleep = 500;  // In milliseconds
 std::atomic<int64_t> nTimeLastStake(0);
 
-bool CheckStake(CBlock *pblock)
+bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
 {
     uint256 proofHash, hashTarget;
     uint256 hashBlock = pblock->GetHash();
@@ -51,20 +51,20 @@ bool CheckStake(CBlock *pblock)
     {
         LOCK(cs_main);
 
-        BlockMap::const_iterator mi = g_chainman.BlockIndex().find(pblock->hashPrevBlock);
-        if (mi == g_chainman.BlockIndex().end()) {
+        BlockMap::const_iterator mi = chainman.BlockIndex().find(pblock->hashPrevBlock);
+        if (mi == chainman.BlockIndex().end()) {
             return error("%s: %s prev block not found: %s.", __func__, hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
         }
 
-        if (!::ChainActive().Contains(mi->second)) {
+        if (!chainman.ActiveChain().Contains(mi->second)) {
             return error("%s: %s prev block in active chain: %s.", __func__, hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
         }
 
         BlockValidationState state;
-        if (!CheckProofOfStake(state, mi->second, *pblock->vtx[0], pblock->nTime, pblock->nBits, proofHash, hashTarget)) {
+        if (!CheckProofOfStake(chainman.ActiveChainstate(), state, mi->second, *pblock->vtx[0], pblock->nTime, pblock->nBits, proofHash, hashTarget)) {
             return error("%s: proof-of-stake checking failed.", __func__);
         }
-        if (pblock->hashPrevBlock != ::ChainActive().Tip()->GetBlockHash()) { // hashbestchain
+        if (pblock->hashPrevBlock != chainman.ActiveChain().Tip()->GetBlockHash()) { // hashbestchain
             return error("%s: Generated block is stale.", __func__);
         }
     }
@@ -77,7 +77,7 @@ bool CheckStake(CBlock *pblock)
     }
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    if (!ChainstateManagerActive().ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
+    if (!chainman.ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
         return error("%s: Block not accepted.", __func__);
     }
 
@@ -176,7 +176,7 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
     return true;
 };
 
-void StartThreadStakeMiner()
+void StartThreadStakeMiner(ChainstateManager &chainman)
 {
     nMinStakeInterval = gArgs.GetArg("-minstakeinterval", 0);
     nMinerSleep = gArgs.GetArg("-minersleep", 500);
@@ -200,7 +200,7 @@ void StartThreadStakeMiner()
             vStakeThreads.push_back(t);
             GetParticlWallet(vpwallets[i].get())->nStakeThread = i;
             t->sName = strprintf("miner%d", i);
-            t->thread = std::thread(&util::TraceThread, t->sName.c_str(), std::function<void()>(std::bind(&ThreadStakeMiner, i, vpwallets, nStart, nEnd)));
+            t->thread = std::thread(&util::TraceThread, t->sName.c_str(), std::function<void()>(std::bind(&ThreadStakeMiner, i, vpwallets, nStart, nEnd, &chainman)));
         }
     }
 
@@ -254,7 +254,7 @@ static inline void condWaitFor(size_t nThreadID, int ms)
     t->m_thread_interrupt.sleep_for(std::chrono::milliseconds(ms));
 };
 
-void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd)
+void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman)
 {
     LogPrintf("Starting staking thread %d, %d wallet%s.\n", nThreadID, nEnd - nStart, (nEnd - nStart) > 1 ? "s" : "");
 
@@ -282,8 +282,8 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
         int num_blocks_of_peers, num_nodes;
         {
             LOCK(cs_main);
-            nBestHeight = ::ChainActive().Height();
-            nBestTime = ::ChainActive().Tip()->nTime;
+            nBestHeight = chainman->ActiveChain().Height();
+            nBestTime = chainman->ActiveChain().Tip()->nTime;
             num_blocks_of_peers = particl::GetNumBlocksOfPeers();
             num_nodes = particl::GetNumPeers();
         }
@@ -298,7 +298,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
             }
         }
 
-        if (num_nodes == 0 || ::ChainstateActive().IsInitialBlockDownload()) {
+        if (num_nodes == 0 || chainman->ActiveChainstate().IsInitialBlockDownload()) {
             fIsStaking = false;
             fTryToSync = true;
             LogPrint(BCLog::POS, "%s: IsInitialBlockDownload\n", __func__);
@@ -401,7 +401,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
             fIsStaking = true;
             if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight + 1, nSearchTime)) {
                 CBlock *pblock = &pblocktemplate->block;
-                if (CheckStake(pblock)) {
+                if (CheckStake(*chainman, pblock)) {
                      nTimeLastStake = GetTime();
                      break;
                 }

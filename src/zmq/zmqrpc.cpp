@@ -19,8 +19,6 @@ int GetNewZMQKeypair(char *server_public_key, char *server_secret_key)
     return zmq_curve_keypair(server_public_key, server_secret_key);
 }
 
-namespace {
-
 static RPCHelpMan getzmqnotifications()
 {
     return RPCHelpMan{"getzmqnotifications",
@@ -91,17 +89,16 @@ static RPCHelpMan getnewzmqserverkeypair()
     };
 }
 
-const CRPCCommand commands[] =
-{ //  category           actor (function)
-  //  -----------------  -----------------------
-    { "zmq",             &getzmqnotifications,    },
-    { "zmq",             &getnewzmqserverkeypair, },
-};
-
-} // anonymous namespace
-
-void RegisterZMQRPCCommands(CRPCTable& t)
+void RegisterZMQRPCCommands(CRPCTable &t)
 {
+// clang-format off
+static const CRPCCommand commands[] =
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+    { "zmq",                &getzmqnotifications                  },
+    { "zmq",                &getnewzmqserverkeypair               },
+};
+// clang-format on
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

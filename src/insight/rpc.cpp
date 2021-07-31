@@ -225,6 +225,8 @@ return RPCHelpMan{"getaddressutxos",
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
@@ -274,8 +276,8 @@ return RPCHelpMan{"getaddressutxos",
         result.pushKV("utxos", utxos);
 
         LOCK(cs_main);
-        result.pushKV("hash", ::ChainActive().Tip()->GetBlockHash().GetHex());
-        result.pushKV("height", (int)::ChainActive().Height());
+        result.pushKV("hash", chainman.ActiveChain().Tip()->GetBlockHash().GetHex());
+        result.pushKV("height", (int)chainman.ActiveChain().Height());
         return result;
     } else {
         return utxos;
@@ -320,6 +322,7 @@ static RPCHelpMan getaddressdeltas()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
@@ -389,13 +392,13 @@ static RPCHelpMan getaddressdeltas()
 
     if (includeChainInfo && start > 0 && end > 0) {
         LOCK(cs_main);
-
-        if (start > ::ChainActive().Height() || end > ::ChainActive().Height()) {
+        const int tip_height = chainman.ActiveChain().Height();
+        if (start > tip_height || end > tip_height) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Start or end is outside chain range");
         }
 
-        CBlockIndex* startIndex = ::ChainActive()[start];
-        CBlockIndex* endIndex = ::ChainActive()[end];
+        CBlockIndex* startIndex = chainman.ActiveChain()[start];
+        CBlockIndex* endIndex = chainman.ActiveChain()[end];
 
         UniValue startInfo(UniValue::VOBJ);
         UniValue endInfo(UniValue::VOBJ);
@@ -642,14 +645,14 @@ static void AddAddress(CScript *script, UniValue &uv)
     }
 }
 
-static UniValue blockToDeltasJSON(const CBlock& block, const CBlockIndex* blockindex, const CTxMemPool *pmempool)
+static UniValue blockToDeltasJSON(CChain &active_chain, const CBlock& block, const CBlockIndex* blockindex, const CTxMemPool *pmempool)
 {
     UniValue result(UniValue::VOBJ);
     result.pushKV("hash", block.GetHash().GetHex());
     int confirmations = -1;
     // Only report confirmations if the block is on the main chain
-    if (::ChainActive().Contains(blockindex)) {
-        confirmations = ::ChainActive().Height() - blockindex->nHeight + 1;
+    if (active_chain.Contains(blockindex)) {
+        confirmations = active_chain.Height() - blockindex->nHeight + 1;
     } else {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block is an orphan");
     }
@@ -759,7 +762,7 @@ static UniValue blockToDeltasJSON(const CBlock& block, const CBlockIndex* blocki
 
     if (blockindex->pprev)
         result.pushKV("previousblockhash", blockindex->pprev->GetBlockHash().GetHex());
-    CBlockIndex *pnext = ::ChainActive().Next(blockindex);
+    CBlockIndex *pnext = active_chain.Next(blockindex);
     if (pnext)
         result.pushKV("nextblockhash", pnext->GetBlockHash().GetHex());
     return result;
@@ -784,17 +787,19 @@ return RPCHelpMan{"getblockdeltas",
 {
     LOCK(cs_main);
 
-    NodeContext& node = EnsureAnyNodeContext(request.context);
-    const CTxMemPool& mempool = EnsureMemPool(node);
+    NodeContext &node = EnsureAnyNodeContext(request.context);
+
+    const CTxMemPool &mempool = EnsureMemPool(node);
+    ChainstateManager &chainman = EnsureChainman(node);
 
     uint256 hash(ParseHashV(request.params[0], "blockhash"));
 
-    if (g_chainman.BlockIndex().count(hash) == 0) {
+    if (chainman.BlockIndex().count(hash) == 0) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
     }
 
     CBlock block;
-    CBlockIndex* pblockindex = g_chainman.BlockIndex()[hash];
+    CBlockIndex *pblockindex = chainman.BlockIndex()[hash];
 
     if (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Block not available (pruned data)");
@@ -804,7 +809,7 @@ return RPCHelpMan{"getblockdeltas",
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
     }
 
-    return blockToDeltasJSON(block, pblockindex, &mempool);
+    return blockToDeltasJSON(chainman.ActiveChain(), block, pblockindex, &mempool);
 },
     };
 }
@@ -842,6 +847,8 @@ static RPCHelpMan getblockhashes()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+
     unsigned int high = request.params[0].get_int();
     unsigned int low = request.params[1].get_int();
     bool fActiveOnly = false;
@@ -865,7 +872,7 @@ static RPCHelpMan getblockhashes()
 
     {
         LOCK(cs_main);
-        if (!GetTimestampIndex(high, low, fActiveOnly, blockHashes)) {
+        if (!GetTimestampIndex(chainman, high, low, fActiveOnly, blockHashes)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for block hashes");
         }
     }
@@ -908,6 +915,7 @@ static RPCHelpMan gettxoutsetinfobyscript()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
     UniValue ret(UniValue::VOBJ);
 
     int nHeight;
@@ -916,11 +924,11 @@ static RPCHelpMan gettxoutsetinfobyscript()
     std::unique_ptr<CCoinsViewCursor> pcursor;
     {
         LOCK(cs_main);
-        ::ChainstateActive().ForceFlushStateToDisk();
-        pcursor = std::unique_ptr<CCoinsViewCursor>(::ChainstateActive().CoinsDB().Cursor());
+        chainman.ActiveChainstate().ForceFlushStateToDisk();
+        pcursor = std::unique_ptr<CCoinsViewCursor>(chainman.ActiveChainstate().CoinsDB().Cursor());
         assert(pcursor);
         hashBlock = pcursor->GetBestBlock();
-        nHeight = g_chainman.BlockIndex().find(hashBlock)->second->nHeight;
+        nHeight = chainman.BlockIndex().find(hashBlock)->second->nHeight;
     }
 
     class PerScriptTypeStats {
@@ -1054,19 +1062,20 @@ static RPCHelpMan getblockreward()
 {
     RPCTypeCheck(request.params, {UniValue::VNUM});
 
-    NodeContext& node = EnsureAnyNodeContext(request.context);
+    NodeContext &node = EnsureAnyNodeContext(request.context);
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
     if (!g_txindex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requires -txindex enabled");
     }
 
     int nHeight = request.params[0].get_int();
-    if (nHeight < 0 || nHeight > ::ChainActive().Height()) {
+    if (nHeight < 0 || nHeight > chainman.ActiveChain().Height()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
     }
 
     LOCK(cs_main);
 
-    CBlockIndex *pblockindex = ::ChainActive()[nHeight];
+    CBlockIndex *pblockindex = chainman.ActiveChain()[nHeight];
 
     CAmount stake_reward = 0;
     if (pblockindex->pprev) {
@@ -1259,6 +1268,7 @@ static RPCHelpMan listcoldstakeunspent()
     if (!g_txindex->m_cs_index) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requires -csindex enabled");
     }
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     ColdStakeIndexLinkKey seek_key;
     CTxDestination stake_dest = DecodeDestination(request.params[0].get_str(), true);
@@ -1280,7 +1290,7 @@ static RPCHelpMan listcoldstakeunspent()
 
     int height = !request.params[1].isNull() ? request.params[1].get_int() : -1;
     if (height == -1) {
-        height = ::ChainActive().Tip()->nHeight;
+        height = chainman.ActiveChain().Tip()->nHeight;
     }
 
     bool mature_only = false;

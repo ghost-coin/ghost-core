@@ -196,7 +196,7 @@ bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint25
 };
 
 // Check kernel hash target and coinstake signature
-bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake)
+bool CheckProofOfStake(CChainState &chain_state, BlockValidationState &state, const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake)
 {
     // pindexPrev is the current tip, the block the new block will connect on to
     // nTime is the time of the new/next block
@@ -218,7 +218,7 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
     CAmount amount;
 
     Coin coin;
-    if (!::ChainstateActive().CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
+    if (!chain_state.CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
         // Read from spent cache
         SpentCoin spent_coin;
         if (!pblocktree->ReadSpentCache(txin.prevout, spent_coin)) {
@@ -237,7 +237,7 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
         return state.Invalid(BlockValidationResult::DOS_100, "invalid-prevout");
     }
 
-    CBlockIndex *pindex = ::ChainActive()[coin.nHeight];
+    CBlockIndex *pindex = chain_state.m_chain[coin.nHeight];
     if (!pindex) {
         LogPrintf("ERROR: %s: invalid-prevout\n", __func__);
         return state.Invalid(BlockValidationResult::DOS_100, "invalid-prevout");
@@ -280,7 +280,7 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
         for (size_t k = 1; k < tx.vin.size(); ++k) {
             const CTxIn &txin = tx.vin[k];
             Coin coin;
-            if (!::ChainstateActive().CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
+            if (!chain_state.CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
                 SpentCoin spent_coin;
                 if (!pblocktree->ReadSpentCache(txin.prevout, spent_coin)) {
                     LogPrintf("ERROR: %s: prevout-not-found\n", __func__);
@@ -333,14 +333,14 @@ bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock)
 }
 
 // Used only when staking, not during validation
-bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t *pBlockTime)
+bool CheckKernel(CChainState &chain_state, const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t *pBlockTime)
 {
     uint256 hashProofOfStake, targetProofOfStake;
 
     Coin coin;
     {
         LOCK(::cs_main);
-        if (!::ChainstateActive().CoinsTip().GetCoin(prevout, coin)) {
+        if (!chain_state.CoinsTip().GetCoin(prevout, coin)) {
             return error("%s: prevout not found", __func__);
         }
     }
@@ -351,7 +351,7 @@ bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTim
         return error("%s: prevout is spent", __func__);
     }
 
-    CBlockIndex *pindex = ::ChainActive()[coin.nHeight];
+    CBlockIndex *pindex = chain_state.m_chain[coin.nHeight];
     if (!pindex) {
         return false;
     }

@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1298,7 +1298,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         LogPrintf("%s: %s %s.\n", __func__, pfrom->GetAddrName(), strCommand);
     }
 
-    if (::ChainstateActive().IsInitialBlockDownload()) { // Wait until chain synced
+    if (m_node->chainman->ActiveChainstate().IsInitialBlockDownload()) { // Wait until chain synced
         if (strCommand == SMSGMsgType::PING) {
             pfrom->smsgData.lastSeen = -1; // Mark node as requiring a response once chain is synced
         }
@@ -1759,7 +1759,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
   */
 bool CSMSG::SendData(CNode *pto, bool fSendTrickle)
 {
-    if (::ChainstateActive().IsInitialBlockDownload()) { // Wait until chain synced
+    if (m_node->chainman->ActiveChainstate().IsInitialBlockDownload()) { // Wait until chain synced
         return true;
     }
 
@@ -2084,7 +2084,7 @@ bool CSMSG::ScanChainForPublicKeys(CBlockIndex *pindexStart)
                     nTransactions, nInputs, nPubkeys, nDuplicates);
             }
 
-            pindex = ::ChainActive().Next(pindex);
+            pindex = m_node->chainman->ActiveChain().Next(pindex);
         }
 
         addrpkdb.TxnCommit();
@@ -2101,7 +2101,7 @@ bool CSMSG::ScanBlockChain()
 {
     TRY_LOCK(cs_main, lockMain);
     if (lockMain) {
-        CBlockIndex *pindexScan = ::ChainActive().Genesis();
+        CBlockIndex *pindexScan = m_node->chainman->ActiveChain().Genesis();
         if (pindexScan == nullptr) {
             return error("%s: pindexGenesisBlock not set.", __func__);
         }
@@ -3111,7 +3111,7 @@ int CSMSG::Receive(PeerManager *peerLogic, CNode *pfrom, std::vector<uint8_t> &v
                 GetPowHash(&smsg, pPayload, smsg.nPayload, msg_hash);
                 {
                 LOCK(cs_main);
-                target.SetCompact(particl::GetSmsgDifficulty(now, true));
+                target.SetCompact(particl::GetSmsgDifficulty(*m_node->chainman, now, true));
                 }
 
                 if (UintToArith256(msg_hash) > target) {
@@ -3528,12 +3528,12 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
     int64_t nMsgFeePerKPerDay = 0;
     {
         LOCK(cs_main);
-        BlockMap::iterator mi = g_chainman.BlockIndex().find(hashBlock);
-        if (mi != g_chainman.BlockIndex().end()) {
+        BlockMap::iterator mi = m_node->chainman->BlockIndex().find(hashBlock);
+        if (mi != m_node->chainman->BlockIndex().end()) {
             pindex = mi->second;
-            if (pindex && ::ChainActive().Contains(pindex)) {
-                blockDepth = ::ChainActive().Height() - pindex->nHeight + 1;
-                nMsgFeePerKPerDay = particl::GetSmsgFeeRate(pindex);
+            if (pindex && m_node->chainman->ActiveChain().Contains(pindex)) {
+                blockDepth = m_node->chainman->ActiveChain().Height() - pindex->nHeight + 1;
+                nMsgFeePerKPerDay = particl::GetSmsgFeeRate(*m_node->chainman, pindex);
             }
         }
     }
@@ -3556,7 +3556,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
                 // Grace period after fee period transition where prev fee is still allowed
                 bool matched_last_fee = false;
                 if (pindex->nHeight % consensusParams.smsg_fee_period < 10) {
-                    int64_t nMsgFeePerKPerDayLast = particl::GetSmsgFeeRate(pindex, true);
+                    int64_t nMsgFeePerKPerDayLast = particl::GetSmsgFeeRate(*m_node->chainman, pindex, true);
                     int64_t nExpectFeeLast = ((nMsgFeePerKPerDayLast * nMsgBytes) / 1000) * nDaysRetention;
 
                     if (nAmount >= nExpectFeeLast) {
@@ -3585,10 +3585,10 @@ int CSMSG::PruneFundingTxData()
     const CBlockIndex *pindex = nullptr;
     {
         LOCK(cs_main);
-        pindex = ::ChainActive().Tip();
+        pindex = m_node->chainman->ActiveChain().Tip();
         while (pindex && pindex->nTime >= now - KEEP_FUNDING_TX_DATA) {
             min_height_to_keep = pindex->nHeight;
-            pindex = ::ChainActive()[pindex->nHeight-1];
+            pindex = m_node->chainman->ActiveChain()[pindex->nHeight-1];
         }
     }
 
@@ -3687,7 +3687,7 @@ int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_
     arith_uint256 target;
     {
     LOCK(cs_main);
-    target.SetCompact(particl::GetSmsgDifficulty(psmsg->timestamp, true));
+    target.SetCompact(particl::GetSmsgDifficulty(*m_node->chainman, psmsg->timestamp, true));
     }
 
     if (UintToArith256(msg_hash) <= target) {
@@ -3714,7 +3714,7 @@ int CSMSG::SetHash(SecureMessage *psmsg, uint8_t *pPayload, uint32_t nPayload)
     arith_uint256 target_difficulty;
     {
     LOCK(cs_main);
-    target_difficulty.SetCompact(particl::GetSmsgDifficulty(psmsg->timestamp));
+    target_difficulty.SetCompact(particl::GetSmsgDifficulty(*m_node->chainman, psmsg->timestamp));
     }
 
     unsigned char header_buffer[SMSG_HDR_LEN];
@@ -4262,7 +4262,7 @@ int CSMSG::FundMsg(SecureMessage &smsg, std::string &sError, bool fTestFee, CAmo
         const Consensus::Params &consensusParams = Params().GetConsensus();
         coin_control->m_feerate = CFeeRate(consensusParams.smsg_fee_funding_tx_per_k);
         coin_control->fOverrideFeeRate = true;
-        coin_control->m_extrafee = ((pactive_wallet->chain().getSmsgFeeRate(nullptr) * nMsgBytes) / 1000) * nDaysRetention;
+        coin_control->m_extrafee = ((pactive_wallet->chain().getSmsgFeeRate(*m_node->chainman, nullptr) * nMsgBytes) / 1000) * nDaysRetention;
         assert(coin_control->m_extrafee <= std::numeric_limits<uint32_t>::max());
         uint32_t msgFee = coin_control->m_extrafee;
 

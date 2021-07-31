@@ -372,18 +372,18 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     return true;
 };
 
-bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::string &sError)
+bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError)
 {
     LogPrintf("%s: height %d\n", __func__, nToHeight);
     nBlocks = 0;
     int64_t nLastRCTOutput = 0;
 
-    const CChainParams& chainparams = Params();
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
+    const CChainParams &chainparams = Params();
+    CCoinsViewCache &view = chainman.ActiveChainstate().CoinsTip();
     view.fForceDisconnect = true;
     BlockValidationState state;
 
-    for (CBlockIndex *pindex = ::ChainActive().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
+    for (CBlockIndex *pindex = chainman.ActiveChain().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
         if (pindex->nHeight <= nToHeight) {
             break;
         }
@@ -395,21 +395,21 @@ bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::strin
         if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
             return errorN(false, sError, __func__, "ReadBlockFromDisk failed.");
         }
-        if (DISCONNECT_OK != DisconnectBlock(block, pindex, view)) {
+        if (DISCONNECT_OK != chainman.ActiveChainstate().DisconnectBlock(block, pindex, view)) {
             return errorN(false, sError, __func__, "DisconnectBlock failed.");
         }
-        if (!FlushView(&view, state, true)) {
+        if (!FlushView(&view, state, chainman.ActiveChainstate(), true)) {
             return errorN(false, sError, __func__, "FlushView failed.");
         }
-        if (!::ChainstateActive().FlushStateToDisk(Params(), state, FlushStateMode::IF_NEEDED)) {
+        if (!chainman.ActiveChainstate().FlushStateToDisk(Params(), state, FlushStateMode::IF_NEEDED)) {
             return errorN(false, sError, __func__, "FlushStateToDisk failed.");
         }
 
-        ::ChainActive().SetTip(pindex->pprev);
-        UpdateTip(mempool, pindex->pprev, chainparams, ::ChainstateActive());
+        chainman.ActiveChain().SetTip(pindex->pprev);
+        UpdateTip(mempool, pindex->pprev, chainparams, chainman.ActiveChainstate());
         GetMainSignals().BlockDisconnected(pblock, pindex);
     }
-    nLastRCTOutput = ::ChainActive().Tip()->nAnonOutputs;
+    nLastRCTOutput = chainman.ActiveChain().Tip()->nAnonOutputs;
 
     int nRemoveOutput = nLastRCTOutput + 1;
     CAnonOutput ao;

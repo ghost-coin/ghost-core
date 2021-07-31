@@ -53,11 +53,11 @@ using interfaces::FoundBlock;
 
 extern const std::string MESSAGE_MAGIC;
 
-static uint8_t GetOutputType(const COutPoint &prevout)
+static uint8_t GetOutputType(ChainstateManager *pchainman, const COutPoint &prevout)
 {
     LOCK(cs_main);
     Coin coin;
-    if (::ChainstateActive().CoinsTip().GetCoin(prevout, coin)) {
+    if (pchainman && pchainman->ActiveChainstate().CoinsTip().GetCoin(prevout, coin)) {
         return coin.nType;
     }
 
@@ -5794,7 +5794,7 @@ bool CHDWallet::LoadToWallet(const uint256& hash, const UpdateWalletTxFn& fill_w
     auto mi = mapWallet.find(hash);
     if (mi != mapWallet.end()) {
         CWalletTx &wtxIn = mi->second;
-        int nBestHeight = ::ChainActive().Height();
+        int nBestHeight = chain().getHeightInt();
         if (wtxIn.IsCoinStake() && wtxIn.isAbandoned()) {
             int csHeight;
             if (wtxIn.tx->GetCoinStakeHeight(csHeight)
@@ -8657,12 +8657,17 @@ bool CHDWallet::TestMempoolAccept(const CTransactionRef &tx, std::string &sError
         //sError = "Node is not ready to broadcast";
         //return false;
     }
+    ChainstateManager *pchainman = chain().getChainman();
+    if (!pchainman) {
+        sError = "Chainstate manager not found";
+        return false;
+    }
     CTxMemPool *mempool = chain().getMempool();
     if (!mempool) {
         sError = "Unable to get mempool";
         return false;
     }
-    const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(::ChainstateActive(), *mempool, tx,
+    const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(pchainman->ActiveChainstate(), *mempool, tx,
                                                         false /* bypass_limits */, /* test_accept */ true, /* ignore_locks */ false));
     if (accept_result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
         const TxValidationState state = accept_result.m_state;
@@ -10770,7 +10775,11 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
             }
 
             // Lookup 1st input to set type
-            if (GetOutputType(tx.vin[0].prevout) == OUTPUT_CT) {
+            ChainstateManager *pchainman{nullptr};
+            if (HaveChain()) {
+                pchainman = chain().getChainman();
+            }
+            if (GetOutputType(pchainman, tx.vin[0].prevout) == OUTPUT_CT) {
                 rtx.nFlags |= ORF_BLIND_IN;
             }
         }
@@ -12679,7 +12688,7 @@ uint64_t CHDWallet::GetStakeWeight() const
     int nHeight;
     {
         LOCK(cs_main);
-        nHeight = ::ChainActive().Height()+1;
+        nHeight = chain().getHeightInt() + 1;
     }
 
     // Choose coins to use
@@ -12705,13 +12714,22 @@ uint64_t CHDWallet::GetStakeWeight() const
 
 void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t nTime, int nHeight) const
 {
+    ChainstateManager *pchainman{nullptr};
+    if (HaveChain()) {
+        pchainman = chain().getChainman();
+    }
+    if (!pchainman) {
+        WalletLogPrintf("Error: Chainstate manager not found.\n");
+        return;
+    }
+
     vCoins.clear();
     m_greatest_txn_depth = 0;
 
     {
         LOCK(cs_wallet);
 
-        int nHeight = ::ChainActive().Tip()->nHeight;
+        int nHeight = pchainman->ActiveChain().Tip()->nHeight;
         int min_stake_confirmations = Params().GetStakeMinConfirmations();
         int nRequiredDepth = std::min(min_stake_confirmations-1, (int)(nHeight / 2));
 
@@ -12881,7 +12899,16 @@ bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int n
 
 bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight, int64_t nFees, CMutableTransaction &txNew, CKey &key)
 {
-    CBlockIndex *pindexPrev = ::ChainActive().Tip();
+    ChainstateManager *pchainman{nullptr};
+    if (HaveChain()) {
+        pchainman = chain().getChainman();
+    }
+    if (!pchainman) {
+        LogPrintf("Error: Chainstate manager not found.\n");
+        return false;
+    }
+
+    CBlockIndex *pindexPrev = pchainman->ActiveChain().Tip();
     arith_uint256 bnTargetPerCoinDay;
     bnTargetPerCoinDay.SetCompact(nBits);
 
@@ -12918,7 +12945,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
 
         int64_t nBlockTime;
-        if (CheckKernel(pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
+        if (CheckKernel(pchainman->ActiveChainstate(), pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
             LOCK(cs_wallet);
             // Found a kernel
             if (LogAcceptCategory(BCLog::POS)) {
@@ -13140,7 +13167,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         CAmount nTreasuryBfwd = 0;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!particl::coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!particl::coinStakeCache.GetCoinStake(*chain().getChainman(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
 
@@ -13185,7 +13212,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         CAmount smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(*chain().getChainman(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
             txPrevCoinstake->GetSmsgFeeRate(smsg_fee_rate);
@@ -13218,7 +13245,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         uint32_t last_compact = consensusParams.smsg_min_difficulty, next_compact = m_smsg_difficulty_target;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(*chain().getChainman(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
             txPrevCoinstake->GetSmsgDifficulty(last_compact);
@@ -13337,6 +13364,9 @@ bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t n
     if (LogAcceptCategory(BCLog::POS)) {
         WalletLogPrintf("%s, Height %d\n", __func__, nHeight);
     }
+    if (!HaveChain()) {
+        WalletLogPrintf("%s, Don't have chain.\n", __func__);
+    }
 
     assert(pblocktemplate);
     CBlock *pblock = &pblocktemplate->block;
@@ -13346,7 +13376,7 @@ bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t n
     }
 
     int64_t nFees = -pblocktemplate->vTxFees[0];
-    CBlockIndex *pindexPrev = ::ChainActive().Tip();
+    CBlockIndex *pindexPrev = chain().getTip();
 
     CKey key;
     pblock->nVersion = PARTICL_BLOCK_VERSION;
@@ -13361,7 +13391,7 @@ bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t n
             WalletLogPrintf("%s: Kernel found.\n", __func__);
         }
 
-        if (nSearchTime >= ::ChainActive().Tip()->GetPastTimeLimit()+1) {
+        if (nSearchTime >= pindexPrev->GetPastTimeLimit() + 1) {
             // make sure coinstake would meet timestamp protocol
             //    as it would be the same as the block timestamp
             pblock->nTime = nSearchTime;
@@ -13540,10 +13570,10 @@ int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wa
     return GetVirtualTransactionSize(CTransaction(txNew));
 }
 
-void RestartStakingThreads()
+void RestartStakingThreads(ChainstateManager &chainman)
 {
     StopThreadStakeMiner();
-    StartThreadStakeMiner();
+    StartThreadStakeMiner(chainman);
 };
 
 bool IsParticlWallet(const WalletStorage *win)

@@ -59,11 +59,13 @@ std::vector<COutputR> GetAvailable(CHDWallet *pwallet, OutputTypes output_type, 
 BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 {
     SeedInsecureRand();
+    auto &chain_active = m_node.chainman->ActiveChain();
+    auto &chainstate_active = m_node.chainman->ActiveChainstate();
     CHDWallet *pwallet = pwalletMain.get();
     const auto context = util::AnyPtr<NodeContext>(&m_node);
     {
-        int last_height = WITH_LOCK(cs_main, return ::ChainActive().Height());
-        uint256 last_hash = WITH_LOCK(cs_main, return ::ChainActive().Tip()->GetBlockHash());
+        int last_height = WITH_LOCK(cs_main, return chain_active.Height());
+        uint256 last_hash = WITH_LOCK(cs_main, return chain_active.Tip()->GetBlockHash());
         WITH_LOCK(pwallet->cs_wallet, pwallet->SetLastBlockProcessed(last_height, last_hash));
     }
     UniValue rv;
@@ -73,7 +75,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Disable rct mint fix
     RegtestParams().GetConsensus_nc().exploit_fix_1_time = 0xffffffff;
-    BOOST_REQUIRE(RegtestParams().GenesisBlock().GetHash() == ::ChainActive().Tip()->GetBlockHash());
+    BOOST_REQUIRE(RegtestParams().GenesisBlock().GetHash() == chain_active.Tip()->GetBlockHash());
 
     // Import the regtest genesis coinbase keys
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPeK5mCpvMsd1cwyT1JZsrBN82XkoYuZY1EVK7EwDaiL9sDfqUU5SntTfbRfnRedFWjg5xkDG5i3iwd3yP7neX5F2dtdCojk4", context));
@@ -91,7 +93,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
         stealth_address = DecodeDestination(part::StripQuotes(rv.write()));
     }
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply);
+    BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == base_supply);
 
     std::vector<uint256> txids_unexploited;
     for (size_t i = 0; i < 10; ++i) {
@@ -126,7 +128,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     uint256 txid_anon_large = AddTxn(pwallet, stealth_address, OUTPUT_RINGCT, OUTPUT_RINGCT, 1100 * COIN);
     BOOST_CHECK(!txid_anon_large.IsNull());
-    uint32_t nTime = ::ChainActive().Tip()->nTime;
+    uint32_t nTime = chain_active.Tip()->nTime;
 
     StakeNBlocks(pwallet, 2);
 
@@ -134,9 +136,9 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK(blockbalances.plain() == 0);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
-    uint256 tip_hash = ::ChainActive().Tip()->GetBlockHash();
+    uint256 tip_hash = chain_active.Tip()->GetBlockHash();
     BOOST_CHECK(GetBlockBalances(tip_hash, blockbalances));
-    BOOST_CHECK(blockbalances.plain() == particl::GetUTXOSum());
+    BOOST_CHECK(blockbalances.plain() == particl::GetUTXOSum(chainstate_active));
     BOOST_CHECK(blockbalances.blind() == 1111 * COIN);
     BOOST_CHECK(blockbalances.anon() < -49770 * COIN);
 
@@ -170,7 +172,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
 
     // Set frozen blinded markers
-    const CBlockIndex *tip = ::ChainActive().Tip();
+    const CBlockIndex *tip = chain_active.Tip();
     RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
     RegtestParams().GetConsensus_nc().m_frozen_blinded_height = tip->nHeight;
 
@@ -260,23 +262,23 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK_NO_THROW(rv = CallRPC("listunspentblind 1 9999999 [] true {\"frozen\":true,\"include_tainted_frozen\":true}", context));
     BOOST_REQUIRE(rv.size() == num_prefork_blind);
 
-    CAmount utxo_sum_before_fork = particl::GetUTXOSum();
+    CAmount utxo_sum_before_fork = particl::GetUTXOSum(chainstate_active);
     BOOST_REQUIRE(utxo_sum_before_fork > moneysupply_before_fork + 48000 * COIN);
 
     // Test that moneysupply is updated
-    CAmount stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
+    CAmount stake_reward = Params().GetProofOfStakeReward(chain_active.Tip(), 0);
     StakeNBlocks(pwallet, 1);
 
-    CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
     pwallet->GetBalances(balances);
     CAmount balance_before = balances.nPart + balances.nPartStaked;
-    CAmount utxo_sum_after_fork = particl::GetUTXOSum();
+    CAmount utxo_sum_after_fork = particl::GetUTXOSum(chainstate_active);
     BOOST_REQUIRE(moneysupply_post_fork == balance_before);
     BOOST_REQUIRE(moneysupply_post_fork == utxo_sum_after_fork);
     BOOST_REQUIRE(utxo_sum_before_fork + stake_reward == utxo_sum_after_fork);
 
     // Test that the balanceindex is reset
-    BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == utxo_sum_after_fork);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
@@ -450,11 +452,11 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 1);
 
     pwallet->GetBalances(balances);
-    CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
     BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
-    BOOST_REQUIRE(particl::GetUTXOSum() == moneysupply_before_post_fork_to_blinded);
+    BOOST_REQUIRE(particl::GetUTXOSum(chainstate_active) == moneysupply_before_post_fork_to_blinded);
 
-    BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == moneysupply_before_post_fork_to_blinded);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
@@ -481,12 +483,12 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
 
     pwallet->GetBalances(balances);
-    CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    CAmount utxosum = particl::GetUTXOSum();
+    CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
+    CAmount utxosum = particl::GetUTXOSum(chainstate_active);
     BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
     BOOST_REQUIRE(balances.nPart + balances.nPartStaked + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
 
-    BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == utxosum);
     BOOST_CHECK(blockbalances.blind() == 1000 * COIN);
     BOOST_CHECK(blockbalances.anon() == 1100 * COIN);
@@ -592,8 +594,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 2);
 
     // Check moneysupply didn't climb more than stakes
-    stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
-    CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    stake_reward = Params().GetProofOfStakeReward(chain_active.Tip(), 0);
+    CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
     BOOST_REQUIRE(moneysupply_after_post_fork_to_blinded + stake_reward * 2 ==  moneysupply_after_post_fork_blind_spends);
 
     // Test debugwallet spend_frozen_output
@@ -612,7 +614,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // balancesindex tracks the amount of plain coin sent to and from blind to anon.
     // Coins can move between anon and blind but the sums should match
-    BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getbalances", context));
     CAmount blind_trusted = AmountFromValue(rv["mine"]["blind_trusted"]);

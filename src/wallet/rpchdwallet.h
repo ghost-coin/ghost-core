@@ -7,9 +7,12 @@
 
 class CRPCCommand;
 class CHDWallet;
+class CRPCTable;
 
 void EnsureWalletIsUnlocked(CHDWallet *pwallet);
 
 Span<const CRPCCommand> GetHDWalletRPCCommands();
 
-#endif //BITCOIN_WALLET_RPCHDWALLET_H
+void RegisterNonWalletRPCCommands(CRPCTable& t);
+
+#endif // BITCOIN_WALLET_RPCHDWALLET_H

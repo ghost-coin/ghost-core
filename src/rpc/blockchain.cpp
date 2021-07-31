@@ -87,7 +87,6 @@ ChainstateManager& EnsureChainman(const NodeContext& node)
     if (!node.chainman) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Node chainman not found");
     }
-    WITH_LOCK(::cs_main, CHECK_NONFATAL(std::addressof(g_chainman) == std::addressof(*node.chainman)));
     return *node.chainman;
 }
 
@@ -1509,7 +1508,7 @@ RPCHelpMan getblockchaininfo()
     obj.pushKV("bestblockhash",         tip->GetBlockHash().GetHex());
     if (fParticlMode) {
         obj.pushKV("moneysupply",           ValueFromAmount(tip->nMoneySupply));
-        obj.pushKV("blockindexsize",        (int)g_chainman.BlockIndex().size());
+        obj.pushKV("blockindexsize",        (int)chainman.BlockIndex().size());
         obj.pushKV("delayedblocks",         (int)particl::CountDelayedBlocks());
     }
     obj.pushKV("difficulty",            (double)GetDifficulty(tip));

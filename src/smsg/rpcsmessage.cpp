@@ -16,6 +16,7 @@
 #include <core_io.h>
 #include <base58.h>
 #include <rpc/util.h>
+#include <rpc/blockchain.h>
 #include <validation.h>
 #include <timedata.h>
 #include <anon.h>
@@ -2098,6 +2099,7 @@ static RPCHelpMan smsggetfeerate()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     LOCK(cs_main);
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     CBlockIndex *pblockindex = nullptr;
     if (!request.params[0].isNull()) {
@@ -2105,7 +2107,7 @@ static RPCHelpMan smsggetfeerate()
 
         if (nHeight < 0) {
             UniValue result(UniValue::VOBJ);
-            const CBlockIndex *pTip = ::ChainActive().Tip();
+            const CBlockIndex *pTip = chainman.ActiveChain().Tip();
             const Consensus::Params &consensusParams = Params().GetConsensus();
             int chain_height = pTip->nHeight;
 
@@ -2114,7 +2116,7 @@ static RPCHelpMan smsggetfeerate()
                 return result;
             }
 
-            result.pushKV("currentrate", particl::GetSmsgFeeRate(nullptr));
+            result.pushKV("currentrate", particl::GetSmsgFeeRate(chainman, nullptr));
             int fee_height = (chain_height / consensusParams.smsg_fee_period) * consensusParams.smsg_fee_period;
             result.pushKV("currentrateblockheight", fee_height);
 
@@ -2129,13 +2131,13 @@ static RPCHelpMan smsggetfeerate()
             result.pushKV("nextratechangeheight", int(fee_height + consensusParams.smsg_fee_period));
             return result;
         }
-        if (nHeight > ::ChainActive().Height()) {
+        if (nHeight > chainman.ActiveChain().Height()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
         }
-        pblockindex = ::ChainActive()[nHeight];
+        pblockindex = chainman.ActiveChain()[nHeight];
     }
 
-    return particl::GetSmsgFeeRate(pblockindex);
+    return particl::GetSmsgFeeRate(chainman, pblockindex);
 },
     };
 }
@@ -2159,15 +2161,17 @@ static RPCHelpMan smsggetdifficulty()
 {
     LOCK(cs_main);
 
-    int64_t chain_time = ::ChainActive().Tip()->nTime;
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+
+    int64_t chain_time = chainman.ActiveChain().Tip()->nTime;
     if (!request.params[0].isNull()) {
         chain_time = request.params[0].get_int64();
-        if (chain_time > ::ChainActive().Tip()->nTime) {
+        if (chain_time > chainman.ActiveChain().Tip()->nTime) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Time out of range");
         }
     }
 
-    uint32_t target_compact = particl::GetSmsgDifficulty(chain_time);
+    uint32_t target_compact = particl::GetSmsgDifficulty(chainman, chain_time);
     return smsg::GetDifficulty(target_compact);
 },
     };

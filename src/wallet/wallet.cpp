@@ -228,7 +228,7 @@ std::shared_ptr<CWallet> LoadWalletInternal(interfaces::Chain& chain, const std:
         UpdateWalletSetting(chain, name, load_on_start, warnings);
 
         if (wallet->IsParticlWallet()) {
-            RestartStakingThreads();
+            RestartStakingThreads(*chain.getChainman());
         }
 
         return wallet;
@@ -353,7 +353,7 @@ std::shared_ptr<CWallet> CreateWallet(interfaces::Chain& chain, const std::strin
     UpdateWalletSetting(chain, name, load_on_start, warnings);
 
     if (wallet->IsParticlWallet()) {
-        RestartStakingThreads();
+        RestartStakingThreads(*chain.getChainman());
     }
 
     status = DatabaseStatus::SUCCESS;

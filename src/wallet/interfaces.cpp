@@ -659,9 +659,12 @@ public:
     {
         RemoveWallet(m_wallet, false /* load_on_start */);
         if (m_wallet_part) {
+            ChainstateManager *chainman = m_wallet_part->chain().getChainman();
             smsgModule.WalletUnloaded(m_wallet_part);
             m_wallet_part = nullptr;
-            RestartStakingThreads();
+            if (chainman) {
+                RestartStakingThreads(*chainman);
+            }
         }
     }
     bool isLegacy() override { return m_wallet->IsLegacy(); }

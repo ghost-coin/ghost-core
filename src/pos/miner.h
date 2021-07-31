@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 
+class ChainstateManager;
 class CBlockIndex;
 class CBlock;
 class CWallet;
@@ -32,13 +33,13 @@ extern std::atomic<bool> fIsStaking;
 extern int nMinStakeInterval;
 extern int nMinerSleep;
 
-bool CheckStake(CBlock *pblock);
+bool CheckStake(ChainstateManager &chainman, const CBlock *pblock);
 
-void StartThreadStakeMiner();
+void StartThreadStakeMiner(ChainstateManager &chainman);
 void StopThreadStakeMiner();
 void WakeThreadStakeMiner(CHDWallet *pwallet);
 bool ThreadStakeMinerStopped();
 
-void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd);
+void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman);
 
 #endif // PARTICL_POS_MINER_H

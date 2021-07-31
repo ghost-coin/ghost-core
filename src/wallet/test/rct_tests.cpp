@@ -46,14 +46,14 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         LOCK(cs_main);
         bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
         if (ret) {
-            ret = ::ChainstateActive().AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, nullptr);
+            ret = state.m_chainman->ActiveChainstate().AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, nullptr);
         }
         if (!ret) {
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.ToString());
         }
     }
     state.m_preserve_state = true; // else would be cleared
-    if (!::ChainstateActive().ActivateBestChain(state, chainparams, pblock) || !state.IsValid()) {
+    if (!state.m_chainman->ActiveChainstate().ActivateBestChain(state, chainparams, pblock) || !state.IsValid()) {
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
     }
     return true;
@@ -63,11 +63,13 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 BOOST_AUTO_TEST_CASE(rct_test)
 {
     SeedInsecureRand();
+    auto &chain_active = m_node.chainman->ActiveChain();
+    auto &chainstate_active = m_node.chainman->ActiveChainstate();
     CHDWallet *pwallet = pwalletMain.get();
     const auto context = util::AnyPtr<NodeContext>(&m_node);
     {
-        int last_height = WITH_LOCK(cs_main, return ::ChainActive().Height());
-        uint256 last_hash = WITH_LOCK(cs_main, return ::ChainActive().Tip()->GetBlockHash());
+        int last_height = WITH_LOCK(cs_main, return chain_active.Height());
+        uint256 last_hash = WITH_LOCK(cs_main, return chain_active.Tip()->GetBlockHash());
         WITH_LOCK(pwallet->cs_wallet, pwallet->SetLastBlockProcessed(last_height, last_hash));
     }
     UniValue rv;
@@ -92,7 +94,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
         stealth_address = DecodeDestination(part::StripQuotes(rv.write()));
     }
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply);
+    BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == base_supply);
 
     std::vector<uint256> txids_unexploited;
     for (size_t i = 0; i < 10; ++i) {
@@ -121,13 +123,13 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Validate
     {
     LOCK(cs_main);
-    int nSpendHeight = ::ChainActive().Tip()->nHeight;
+    int nSpendHeight = chain_active.Tip()->nHeight;
     TxValidationState state;
     state.m_exploit_fix_1 = true;
     state.m_exploit_fix_2 = true;
     state.m_spend_height = nSpendHeight;
     CAmount txfee = 0;
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
+    CCoinsViewCache &view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(*wtx.tx, state, view, nSpendHeight, txfee));
     BOOST_REQUIRE(VerifyMLSAG(*wtx.tx, state));
 
@@ -201,13 +203,13 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Validate
     {
     LOCK(cs_main);
-    int nSpendHeight = ::ChainActive().Tip()->nHeight;
+    int nSpendHeight = chain_active.Tip()->nHeight;
     TxValidationState state;
     state.m_exploit_fix_1 = true;
     state.m_exploit_fix_2 = true;
     state.m_spend_height = nSpendHeight;
     CAmount txfee = 0;
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
+    CCoinsViewCache &view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(*wtx.tx, state, view, nSpendHeight, txfee));
     BOOST_REQUIRE(VerifyMLSAG(*wtx.tx, state));
 
@@ -375,7 +377,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
 
     // Txns should be valid individually
     CTransaction tx1(mtx1), tx2(mtx2);
-    int nSpendHeight = ::ChainActive().Tip()->nHeight;
+    int nSpendHeight = chain_active.Tip()->nHeight;
     TxValidationState tx_state;
     tx_state.m_exploit_fix_1 = true;
     tx_state.m_exploit_fix_2 = true;
@@ -383,7 +385,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     CAmount txfee = 0;
     {
     LOCK(cs_main);
-    CCoinsViewCache &tx_view = ::ChainstateActive().CoinsTip();
+    CCoinsViewCache &tx_view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(tx1, tx_state, tx_view, nSpendHeight, txfee));
     BOOST_REQUIRE(VerifyMLSAG(tx1, tx_state));
     BOOST_REQUIRE(Consensus::CheckTxInputs(tx2, tx_state, tx_view, nSpendHeight, txfee));
@@ -397,7 +399,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     pblocktemplate->block.vtx.push_back(MakeTransactionRef(mtx2));
 
     size_t k, nTries = 10000;
-    int nBestHeight = WITH_LOCK(cs_main, return ::ChainActive().Height());
+    int nBestHeight = WITH_LOCK(cs_main, return chain_active.Height());
     for (k = 0; k < nTries; ++k) {
         int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime > pwallet->nLastCoinStakeSearchTime &&
@@ -411,6 +413,8 @@ BOOST_AUTO_TEST_CASE(rct_test)
     {
     CBlock *pblock = &pblocktemplate->block;
     BlockValidationState state;
+    state.m_chainman = m_node.chainman.get();
+    state.m_peerman = m_node.peerman.get();
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
     BOOST_REQUIRE(!ProcessNewBlock(Params(), shared_pblock, state));
     BOOST_REQUIRE(state.GetRejectReason() == "bad-anonin-dup-ki");
@@ -431,16 +435,18 @@ BOOST_AUTO_TEST_CASE(rct_test)
     {
     CBlock *pblock = &pblocktemplate->block;
     BlockValidationState state;
+    state.m_chainman = m_node.chainman.get();
+    state.m_peerman = m_node.peerman.get();
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
     BOOST_REQUIRE(ProcessNewBlock(Params(), shared_pblock, state));
     }
-    BOOST_REQUIRE(WITH_LOCK(cs_main, return ::ChainActive().Height()) > nBestHeight);
+    BOOST_REQUIRE(WITH_LOCK(cs_main, return chain_active.Height()) > nBestHeight);
 
     // Verify duplicate keyimage in chain fails
     {
     LOCK(cs_main);
-    CCoinsViewCache &tx_view = ::ChainstateActive().CoinsTip();
-    nSpendHeight = WITH_LOCK(cs_main, return ::ChainActive().Height());
+    CCoinsViewCache &tx_view = chainstate_active.CoinsTip();
+    nSpendHeight = WITH_LOCK(cs_main, return chain_active.Height());
     BOOST_REQUIRE(Consensus::CheckTxInputs(tx2, tx_state, tx_view, nSpendHeight, txfee));
     BOOST_REQUIRE(!VerifyMLSAG(tx2, tx_state));
     BOOST_REQUIRE(tx_state.GetRejectReason() == "bad-anonin-dup-ki");

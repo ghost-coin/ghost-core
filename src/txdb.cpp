@@ -360,35 +360,20 @@ bool CBlockTreeDB::WriteTimestampIndex(const CTimestampIndexKey &timestampIndex)
     return WriteBatch(batch);
 }
 
-bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes)
+bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &high, const unsigned int &low, std::vector<std::pair<uint256, unsigned int> > &hashes)
 {
     const std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
     pcursor->Seek(std::make_pair(DB_TIMESTAMPINDEX, CTimestampIndexIteratorKey(low)));
 
-    if (fActiveOnly) {
-        while (pcursor->Valid()) {
-            if (ShutdownRequested()) return false;
-            std::pair<char, CTimestampIndexKey> key;
-            if (pcursor->GetKey(key) && key.first == DB_TIMESTAMPINDEX && key.second.timestamp < high) {
-                if (HashOnchainActive(key.second.blockHash)) {
-                    hashes.push_back(std::make_pair(key.second.blockHash, key.second.timestamp));
-                }
-                pcursor->Next();
-            } else {
-                break;
-            }
-        }
-    } else {
-        while (pcursor->Valid()) {
-            if (ShutdownRequested()) return false;
-            std::pair<char, CTimestampIndexKey> key;
-            if (pcursor->GetKey(key) && key.first == DB_TIMESTAMPINDEX && key.second.timestamp < high) {
-                hashes.push_back(std::make_pair(key.second.blockHash, key.second.timestamp));
-                pcursor->Next();
-            } else {
-                break;
-            }
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) return false;
+        std::pair<char, CTimestampIndexKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_TIMESTAMPINDEX && key.second.timestamp < high) {
+            hashes.push_back(std::make_pair(key.second.blockHash, key.second.timestamp));
+            pcursor->Next();
+        } else {
+            break;
         }
     }
 

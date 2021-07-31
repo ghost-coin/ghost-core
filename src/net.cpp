@@ -112,8 +112,6 @@ static bool vfLimited[NET_MAX] GUARDED_BY(cs_mapLocalHost) = {};
 std::string strSubVersion;
 
 namespace particl {
-extern void DecMisbehaving(NodeId nodeid, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern void CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 extern void UpdateNumPeers(int num_peers);
 } // namespace particl
 
@@ -2224,9 +2222,9 @@ void CConnman::ThreadMessageHandler()
         int64_t nTimeNow = GetTime();
         if (nTimeNextBanReduced < nTimeNow) {
             LOCK(cs_main);
-            particl::CheckUnreceivedHeaders(nTimeNow);
+            m_msgproc->CheckUnreceivedHeaders(nTimeNow);
             for (auto *pnode : vNodesCopy) {
-                particl::DecMisbehaving(pnode->id, 1);
+                m_msgproc->DecMisbehaving(pnode->id, 1);
 
                 pnode->smsgData.DecSmsgMisbehaving();
             }

@@ -4,6 +4,7 @@
 
 #include <rpc/server.h>
 #include <rpc/util.h>
+#include <rpc/blockchain.h>
 
 #include <validation.h>
 #include <txdb.h>
@@ -14,7 +15,7 @@ static bool IsDigits(const std::string &str)
     return str.length() && std::all_of(str.begin(), str.end(), ::isdigit);
 };
 
-RPCHelpMan anonoutput()
+static RPCHelpMan anonoutput()
 {
     return RPCHelpMan{"anonoutput",
                 "\nReturns an anon output at index or by publickey hex.\n"
@@ -36,11 +37,12 @@ RPCHelpMan anonoutput()
             },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
     UniValue result(UniValue::VOBJ);
 
     if (request.params.size() == 0) {
         LOCK(cs_main);
-        result.pushKV("lastindex", (int)::ChainActive().Tip()->nAnonOutputs);
+        result.pushKV("lastindex", (int)chainman.ActiveChain().Tip()->nAnonOutputs);
         return result;
     }
 
@@ -84,7 +86,7 @@ RPCHelpMan anonoutput()
     };
 };
 
-RPCHelpMan checkkeyimage()
+static RPCHelpMan checkkeyimage()
 {
     return RPCHelpMan{"checkkeyimage",
             "\nCheck if keyimage is spent in the chain.\n",

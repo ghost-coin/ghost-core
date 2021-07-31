@@ -47,10 +47,19 @@ HDWalletTestingSetup::~HDWalletTestingSetup()
 
 void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
 {
+    ChainstateManager *pchainman{nullptr};
+    if (pwallet->HaveChain()) {
+        pchainman = pwallet->chain().getChainman();
+    }
+    if (!pchainman) {
+        LogPrintf("Error: Chainstate manager not found.\n");
+        return;
+    }
+
     size_t nStaked = 0;
     size_t k, nTries = 10000;
     for (k = 0; k < nTries; ++k) {
-        int nBestHeight = WITH_LOCK(cs_main, return ::ChainActive().Height());
+        int nBestHeight = WITH_LOCK(cs_main, return pchainman->ActiveChain().Height());
 
         int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime <= pwallet->nLastCoinStakeSearchTime) {
@@ -64,7 +73,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
         if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             CBlock *pblock = &pblocktemplate->block;
 
-            if (CheckStake(pblock)) {
+            if (CheckStake(*pchainman, pblock)) {
                 nStaked++;
             }
         }

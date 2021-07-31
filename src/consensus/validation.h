@@ -13,6 +13,9 @@
 #include <primitives/block.h>
 #include <consensus/params.h>
 
+class PeerManager;
+class ChainstateManager;
+
 /** Index marker for when no witness commitment is present in a coinbase transaction. */
 static constexpr int NO_WITNESS_COMMITMENT{-1};
 
@@ -148,6 +151,8 @@ public:
         return m_reject_reason;
     }
 
+    PeerManager *m_peerman{nullptr};
+    ChainstateManager *m_chainman{nullptr};
     int nodeId = -1;
     int nFlags = 0;
     bool fEnforceSmsgFees = false;

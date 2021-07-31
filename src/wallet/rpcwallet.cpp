@@ -3645,8 +3645,13 @@ static RPCHelpMan unloadwallet()
         throw JSONRPCError(RPC_MISC_ERROR, "Requested wallet already unloaded");
     }
 
-    if (fParticlMode) {
-        RestartStakingThreads();
+    if (wallet->IsParticlWallet()) {
+        ChainstateManager *chainman = wallet->HaveChain() ? wallet->chain().getChainman() : nullptr;
+        if (chainman) {
+            RestartStakingThreads(*chainman);
+        } else {
+            LogPrintf("Warning: Chainstate manager not found, not rebuilding stake threads.\n");
+        }
     }
 
     UnloadWallet(std::move(wallet));
