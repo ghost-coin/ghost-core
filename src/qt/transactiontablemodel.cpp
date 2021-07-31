@@ -162,9 +162,9 @@ public:
                 cachedWallet.erase(lower, upper);
                 parent->endRemoveRows();
 
-                lower = qLowerBound(
+                lower = std::lower_bound(
                     cachedWallet.begin(), cachedWallet.end(), hash, TxLessThan());
-                upper = qUpperBound(
+                upper = std::upper_bound(
                     cachedWallet.begin(), cachedWallet.end(), hash, TxLessThan());
                 lowerIndex = (lower - cachedWallet.begin());
                 upperIndex = (upper - cachedWallet.begin());
