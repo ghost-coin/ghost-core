@@ -2057,6 +2057,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
     } // release cs_main before calling ActivateBestChain
     if (need_activate_chain) {
         BlockValidationState state;
+        state.m_chainman = &m_chainman;
         state.m_peerman = this;
         state.nodeId = pfrom.GetId();
         if (!m_chainman.ActiveChainstate().ActivateBestChain(state, m_chainparams, a_recent_block)) {
@@ -3298,6 +3299,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                 a_recent_block = most_recent_block;
             }
             BlockValidationState state;
+            state.m_chainman = &m_chainman;
             state.m_peerman = this;
             state.nodeId = pfrom.GetId();
             if (!m_chainman.ActiveChainstate().ActivateBestChain(state, m_chainparams, a_recent_block)) {

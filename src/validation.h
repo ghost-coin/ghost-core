@@ -673,9 +673,8 @@ public:
     //! Reference to a BlockManager instance which itself is shared across all
     //! CChainState instances.
     BlockManager& m_blockman;
-    ChainstateManager &m_chainman;
 
-    explicit CChainState(CTxMemPool& mempool, BlockManager& blockman, ChainstateManager& chainman, std::optional<uint256> from_snapshot_blockhash = std::nullopt);
+    explicit CChainState(CTxMemPool& mempool, BlockManager& blockman, std::optional<uint256> from_snapshot_blockhash = std::nullopt);
 
     /**
      * Initialize the CoinsViews UTXO set database management data structures. The in-memory
@@ -860,6 +859,11 @@ public:
 
     std::string ToString() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
+    BlockMap& BlockIndex() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+    {
+        return m_blockman.m_block_index;
+    }
+
 //private:
     bool ActivateBestChainStep(BlockValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_mempool.cs);
     bool ConnectTip(BlockValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions& disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_mempool.cs);
@@ -968,6 +972,7 @@ public:
     //! A single BlockManager instance is shared across each constructed
     //! chainstate to avoid duplicating block metadata.
     BlockManager m_blockman GUARDED_BY(::cs_main);
+    PeerManager *m_peerman{nullptr};
 
     //! The total number of bytes available for us to use across all in-memory
     //! coins caches. This will be split somehow across chainstates.
@@ -1148,7 +1153,7 @@ public:
     size_t nMaxSize = 16;
     std::list<std::pair<uint256, CTransactionRef> > lData;
 
-    bool GetCoinStake(ChainstateManager &chainman, const uint256 &blockHash, CTransactionRef &tx) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool GetCoinStake(CChainState &chainstate, const uint256 &blockHash, CTransactionRef &tx) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool InsertCoinStake(const uint256 &blockHash, const CTransactionRef &tx) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 };
 

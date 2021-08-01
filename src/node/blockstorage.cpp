@@ -595,6 +595,7 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
         // the relevant pointers before the ABC call.
         for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
             BlockValidationState state;
+            state.m_chainman = &chainman;
             if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
                 LogPrintf("Failed to connect best block (%s)\n", state.ToString());
                 // Particl - Don't exit.  May be missing PoS info for valid blocks.

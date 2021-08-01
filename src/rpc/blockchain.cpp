@@ -1744,6 +1744,7 @@ static RPCHelpMan preciousblock()
     }
 
     BlockValidationState state;
+    state.m_chainman = &chainman;
     chainman.ActiveChainstate().PreciousBlock(state, Params(), pblockindex);
 
     if (!state.IsValid()) {
@@ -1773,6 +1774,8 @@ static RPCHelpMan invalidateblock()
     BlockValidationState state;
 
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    state.m_chainman = &chainman;
+
     CBlockIndex* pblockindex;
     {
         LOCK(cs_main);
@@ -1825,6 +1828,7 @@ static RPCHelpMan reconsiderblock()
     }
 
     BlockValidationState state;
+    state.m_chainman = &chainman;
     chainman.ActiveChainstate().ActivateBestChain(state, Params());
 
     if (!state.IsValid()) {

@@ -56,6 +56,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "net_processing -> smsg/smessage -> wallet/hdwallet -> rpc/util -> node/transaction -> net_processing"
     "net_processing -> smsg/smessage -> node/context -> net_processing"
     "net_processing -> smsg/smessage -> net_processing"
+    "net_processing -> validation -> net_processing"
 )
 
 EXIT_CODE=0

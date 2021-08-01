@@ -1371,10 +1371,9 @@ void CoinsViews::InitCache()
     m_cacheview = std::make_unique<CCoinsViewCache>(&m_catcherview);
 }
 
-CChainState::CChainState(CTxMemPool& mempool, BlockManager& blockman, ChainstateManager& chainman, std::optional<uint256> from_snapshot_blockhash)
+CChainState::CChainState(CTxMemPool& mempool, BlockManager& blockman, std::optional<uint256> from_snapshot_blockhash)
     : m_mempool(mempool),
       m_blockman(blockman),
-      m_chainman(chainman),
       m_from_snapshot_blockhash(from_snapshot_blockhash) {}
 
 void CChainState::InitCoinsDB(
@@ -2557,7 +2556,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
                 if (pindex->pprev->nHeight > 0 // Skip genesis block (POW)
                     && pindex->pprev->nTime >= consensus.smsg_fee_time) {
-                    if (!particl::coinStakeCache.GetCoinStake(m_chainman, pindex->pprev->GetBlockHash(), txPrevCoinstake)
+                    if (!particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)
                         || !txPrevCoinstake->GetSmsgFeeRate(smsg_fee_prev)) {
                         LogPrintf("ERROR: %s: Failed to get previous smsg fee.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-fee-prev");
@@ -2584,7 +2583,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 uint32_t smsg_difficulty_new, smsg_difficulty_prev = consensus.smsg_min_difficulty;
                 if (pindex->pprev->nHeight > 0 // Skip genesis block (POW)
                     && pindex->pprev->nTime >= consensus.smsg_difficulty_time) {
-                    if (!particl::coinStakeCache.GetCoinStake(m_chainman, pindex->pprev->GetBlockHash(), txPrevCoinstake)
+                    if (!particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)
                         || !txPrevCoinstake->GetSmsgDifficulty(smsg_difficulty_prev)) {
                         LogPrintf("ERROR: %s: Failed to get previous smsg difficulty.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-diff-prev");
@@ -2625,7 +2624,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                 if (pindex->pprev->nHeight > 0) { // Genesis block is pow
                     if (!txPrevCoinstake
-                        && !particl::coinStakeCache.GetCoinStake(m_chainman, pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                        && !particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
                         LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
                     }
@@ -3425,7 +3424,11 @@ bool CChainState::ActivateBestChainStep(BlockValidationState& state, const CChai
                         InvalidChainFound(vpindexToConnect.front());
                     }
                     if (!state.m_preserve_state) {
+                        auto pchainman = state.m_chainman;
+                        auto ppeerman = state.m_peerman;
                         state = BlockValidationState();
+                        state.m_chainman = pchainman;
+                        state.m_peerman = ppeerman;
                     }
                     fInvalidFound = true;
                     fContinue = false;
@@ -3592,7 +3595,6 @@ bool CChainState::ActivateBestChain(BlockValidationState &state, const CChainPar
         if (ShutdownRequested()) break;
     } while (pindexNewTip != pindexMostWork);
     CheckBlockIndex(chainparams.GetConsensus());
-
 
     // Write changes periodically to disk, after relay.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::PERIODIC)) {
@@ -4405,6 +4407,9 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
         if (miSelf != m_block_index.end()) {
             // Block header is already known.
             CBlockIndex* pindex = miSelf->second;
+            if (state.m_chainman && !state.m_peerman) {
+                state.m_peerman = state.m_chainman->m_peerman;
+            }
             if (fParticlMode && !fRequested && !state.m_chainman->ActiveChainstate().IsInitialBlockDownload() && state.nodeId >= 0
                 && !state.m_peerman->IncDuplicateHeaders(state.nodeId)) {
                 state.m_peerman->Misbehaving(state.nodeId, 5, "Too many duplicates");
@@ -4665,8 +4670,12 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
 
         if (new_block) *new_block = false;
         BlockValidationState state;
-        state.m_peerman = peerman;
         state.m_chainman = this;
+        if (peerman) {
+            state.m_peerman = peerman;
+        } else {
+            state.m_peerman = this->m_peerman;
+        }
         if (node_id > -1) {
             state.nodeId = node_id;
         }
@@ -4710,8 +4719,12 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
     NotifyHeaderTip(ActiveChainstate());
 
     BlockValidationState state; // Only used to report errors, not invalidity - ignore it
-    state.m_peerman = peerman;
     state.m_chainman = this;
+    if (peerman) {
+        state.m_peerman = peerman;
+    } else {
+        state.m_peerman = this->m_peerman;
+    }
     if (!ActiveChainstate().ActivateBestChain(state, chainparams, block))
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
 
@@ -5947,7 +5960,7 @@ CChainState& ChainstateManager::InitializeChainstate(CTxMemPool& mempool, const 
     if (to_modify) {
         throw std::logic_error("should not be overwriting a chainstate");
     }
-    to_modify.reset(new CChainState(mempool, m_blockman, *this, snapshot_blockhash));
+    to_modify.reset(new CChainState(mempool, m_blockman, snapshot_blockhash));
 
     // Snapshot chainstates and initial IBD chaintates always become active.
     if (is_snapshot || (!is_snapshot && !m_active_chainstate)) {
@@ -6017,7 +6030,7 @@ bool ChainstateManager::ActivateSnapshot(
     }
 
     auto snapshot_chainstate = WITH_LOCK(::cs_main, return std::make_unique<CChainState>(
-            this->ActiveChainstate().m_mempool, m_blockman, *this, base_blockhash));
+            this->ActiveChainstate().m_mempool, m_blockman, base_blockhash));
 
     {
         LOCK(::cs_main);
@@ -6432,7 +6445,7 @@ int StakeConflict::Add(NodeId id)
     return 0;
 };
 
-bool CoinStakeCache::GetCoinStake(ChainstateManager &chainman, const uint256 &blockHash, CTransactionRef &tx)
+bool CoinStakeCache::GetCoinStake(CChainState &chainstate, const uint256 &blockHash, CTransactionRef &tx)
 {
     for (const auto &i : lData) {
         if (blockHash != i.first) {
@@ -6442,8 +6455,8 @@ bool CoinStakeCache::GetCoinStake(ChainstateManager &chainman, const uint256 &bl
         return true;
     }
 
-    BlockMap::iterator mi = chainman.BlockIndex().find(blockHash);
-    if (mi == chainman.BlockIndex().end()) {
+    BlockMap::iterator mi = chainstate.BlockIndex().find(blockHash);
+    if (mi == chainstate.BlockIndex().end()) {
         return false;
     }
 
@@ -6504,6 +6517,14 @@ bool DelayBlock(const std::shared_ptr<const CBlock> &pblock, BlockValidationStat
 
 void CheckDelayedBlocks(BlockValidationState &state, const CChainParams& chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main)
 {
+    if (!fParticlMode) {
+        return;
+    }
+    assert(state.m_chainman);
+    if (!state.m_peerman) {
+        state.m_peerman = state.m_chainman->m_peerman;
+    }
+    //assert(state.m_peerman);
     if (list_delayed_blocks.empty()) {
         return;
     }
@@ -6531,8 +6552,6 @@ void CheckDelayedBlocks(BlockValidationState &state, const CChainParams& chainpa
 
     for (auto &p : process_blocks) {
         LogPrint(BCLog::NET, "Processing delayed block %s prev %s.\n", p->GetHash().ToString(), block_hash.ToString());
-
-        assert(state.m_chainman);
         state.m_chainman->ProcessNewBlock(chainparams, p, false, nullptr); // Should update DoS if necessary, finding block through mapBlockSource
     }
 }
@@ -6776,6 +6795,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
 
     const CChainParams& chainparams = Params();
     BlockValidationState state;
+    state.m_chainman = &chainman;
     if (!chainman.ActiveChainstate().ActivateBestChain(state, chainparams)) {
         LogPrintf("%s: ActivateBestChain failed %s.\n", __func__, state.ToString());
         return false;
@@ -6815,7 +6835,7 @@ int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, b
 
     int64_t smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
     CTransactionRef coinstake = nullptr;
-    if (!smsgFeeCoinstakeCache.GetCoinStake(chainman, fee_block->GetBlockHash(), coinstake)
+    if (!smsgFeeCoinstakeCache.GetCoinStake(chainman.ActiveChainstate(), fee_block->GetBlockHash(), coinstake)
         || !coinstake->GetSmsgFeeRate(smsg_fee_rate)) {
         return consensusParams.smsg_fee_msg_per_day_per_k;
     }
@@ -6835,7 +6855,7 @@ uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool veri
         if (time >= pindex->nTime) {
             uint32_t smsg_difficulty = 0;
             CTransactionRef coinstake = nullptr;
-            if (smsgDifficultyCoinstakeCache.GetCoinStake(chainman, pindex->GetBlockHash(), coinstake)
+            if (smsgDifficultyCoinstakeCache.GetCoinStake(chainman.ActiveChainstate(), pindex->GetBlockHash(), coinstake)
                 && coinstake->GetSmsgDifficulty(smsg_difficulty)) {
 
                 if (verify && smsg_difficulty != consensusParams.smsg_min_difficulty) {

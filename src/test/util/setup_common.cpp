@@ -208,6 +208,7 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     }
 
     BlockValidationState state;
+    state.m_chainman = m_node.chainman.get();
     if (!m_node.chainman->ActiveChainstate().ActivateBestChain(state, chainparams)) {
         throw std::runtime_error(strprintf("ActivateBestChain failed. (%s)", state.ToString()));
     }
@@ -218,6 +219,7 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     m_node.peerman = PeerManager::make(chainparams, *m_node.connman, *m_node.addrman,
                                        m_node.banman.get(), *m_node.scheduler, *m_node.chainman,
                                        *m_node.mempool, false);
+
     {
         CConnman::Options options;
         options.m_msgproc = m_node.peerman.get();

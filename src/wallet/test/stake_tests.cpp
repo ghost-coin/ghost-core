@@ -201,6 +201,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     // Reconnect block
     {
         BlockValidationState state;
+        state.m_chainman = m_node.chainman.get();
         std::shared_ptr<const CBlock> pblock = std::make_shared<const CBlock>(block);
         BOOST_REQUIRE(chainstate_active.ActivateBestChain(state, chainparams, pblock));
 
@@ -283,6 +284,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_CHECK(Params().GetCoinYearReward(0) == 1 * CENT);
 
             BlockValidationState state;
+            state.m_chainman = m_node.chainman.get();
             CCoinsViewCache view(&chainstate_active.CoinsTip());
             BOOST_REQUIRE(false == chainstate_active.ConnectBlock(block, state, pindexDelete, view, chainparams, false));
 
@@ -296,6 +298,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
 
             // Block should connect now
             BlockValidationState clearstate;
+            clearstate.m_chainman = m_node.chainman.get();
             CCoinsViewCache &clearview = chainstate_active.CoinsTip();
             BOOST_REQUIRE(chainstate_active.ConnectBlock(block, clearstate, pindexDelete, clearview, chainparams, false));
 

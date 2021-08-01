@@ -13167,7 +13167,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         CAmount nTreasuryBfwd = 0;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!particl::coinStakeCache.GetCoinStake(*chain().getChainman(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!particl::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
 
@@ -13212,7 +13212,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         CAmount smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(*chain().getChainman(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
             txPrevCoinstake->GetSmsgFeeRate(smsg_fee_rate);
@@ -13245,7 +13245,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         uint32_t last_compact = consensusParams.smsg_min_difficulty, next_compact = m_smsg_difficulty_target;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(*chain().getChainman(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
             txPrevCoinstake->GetSmsgDifficulty(last_compact);

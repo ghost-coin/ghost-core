@@ -1375,6 +1375,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     node.peerman = PeerManager::make(chainparams, *node.connman, *node.addrman, node.banman.get(),
                                      *node.scheduler, chainman, *node.mempool, ignores_incoming_txs);
     RegisterValidationInterface(node.peerman.get());
+    chainman.m_peerman = node.peerman.get();
 
 
     // sanitize comments per BIP-0014, format user agent and check total size
