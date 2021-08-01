@@ -288,6 +288,9 @@ public:
     //! removed transactions and already added new transactions.
     virtual void requestMempoolTransactions(Notifications& notifications) = 0;
 
+    //! Check if Taproot has activated
+    virtual bool isTaprootActive() const = 0;
+
     //! Particl Specific
     virtual int getHeightInt() = 0;
     virtual size_t getAnonOutputs() = 0;

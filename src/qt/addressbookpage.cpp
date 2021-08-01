@@ -114,15 +114,15 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
 
     // Build context menu
     contextMenu = new QMenu(this);
-    contextMenu->addAction(tr("Copy Address"), this, &AddressBookPage::on_copyAddress_clicked);
-    contextMenu->addAction(tr("Copy Label"), this, &AddressBookPage::onCopyLabelAction);
-    contextMenu->addAction(tr("Edit"), this, &AddressBookPage::onEditAction);
+    contextMenu->addAction(tr("&Copy Address"), this, &AddressBookPage::on_copyAddress_clicked);
+    contextMenu->addAction(tr("Copy &Label"), this, &AddressBookPage::onCopyLabelAction);
+    contextMenu->addAction(tr("&Edit"), this, &AddressBookPage::onEditAction);
 
     if (tab == SendingTab) {
-        contextMenu->addAction(tr("Delete"), this, &AddressBookPage::on_deleteAddress_clicked);
+        contextMenu->addAction(tr("&Delete"), this, &AddressBookPage::on_deleteAddress_clicked);
     } else
     if (tab == ReceivingTab) {
-        contextMenu->addAction(tr("Verify"), this, &AddressBookPage::onVerifyAddressOnHWAction);
+        contextMenu->addAction(tr("&Verify"), this, &AddressBookPage::onVerifyAddressOnHWAction);
     }
 
     connect(ui->tableView, &QWidget::customContextMenuRequested, this, &AddressBookPage::contextualMenu);
