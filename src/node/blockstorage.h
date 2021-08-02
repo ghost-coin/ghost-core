@@ -5,13 +5,12 @@
 #ifndef BITCOIN_NODE_BLOCKSTORAGE_H
 #define BITCOIN_NODE_BLOCKSTORAGE_H
 
-#include <cstdint>
-#include <vector>
-
 #include <fs.h>
 #include <protocol.h> // For CMessageHeader::MessageStartChars
 
-#include <primitives/transaction.h> // Particl, for CTransactionRef
+#include <atomic>
+#include <cstdint>
+#include <vector>
 
 class ArgsManager;
 class BlockValidationState;
@@ -22,6 +21,8 @@ class CBlockUndo;
 class CChain;
 class CChainParams;
 class ChainstateManager;
+class CTransaction;
+typedef std::shared_ptr<const CTransaction> CTransactionRef;
 struct FlatFilePos;
 namespace Consensus {
 struct Params;

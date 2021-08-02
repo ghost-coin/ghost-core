@@ -4919,12 +4919,17 @@ RPCHelpMan getaddressinfo()
 
     ret.pushKV("ismine", bool(mine & ISMINE_SPENDABLE));
 
-    bool solvable = provider && IsSolvable(*provider, scriptPubKey);
-    ret.pushKV("solvable", solvable);
-
-    if (solvable) {
-       ret.pushKV("desc", InferDescriptor(scriptPubKey, *provider)->ToString());
+    if (provider) {
+        auto inferred = InferDescriptor(scriptPubKey, *provider);
+        bool solvable = inferred->IsSolvable() || IsSolvable(*provider, scriptPubKey);
+        ret.pushKV("solvable", solvable);
+        if (solvable) {
+            ret.pushKV("desc", inferred->ToString());
+        }
+    } else {
+        ret.pushKV("solvable", false);
     }
+
 
     DescriptorScriptPubKeyMan* desc_spk_man = dynamic_cast<DescriptorScriptPubKeyMan*>(pwallet->GetScriptPubKeyMan(scriptPubKey));
     if (desc_spk_man) {
@@ -5394,6 +5399,11 @@ static RPCHelpMan walletprocesspsbt()
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return NullUniValue;
 
+    const CWallet& wallet{*pwallet};
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    wallet.BlockUntilSyncedToCurrentChain();
+
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VBOOL, UniValue::VSTR});
 
     // Unserialize the transaction
@@ -5410,7 +5420,7 @@ static RPCHelpMan walletprocesspsbt()
     bool sign = request.params[1].isNull() ? true : request.params[1].get_bool();
     bool bip32derivs = request.params[3].isNull() ? true : request.params[3].get_bool();
     bool complete = true;
-    const TransactionError err = pwallet->FillPSBT(psbtx, complete, nHashType, sign, bip32derivs);
+    const TransactionError err{wallet.FillPSBT(psbtx, complete, nHashType, sign, bip32derivs)};
     if (err != TransactionError::OK) {
         throw JSONRPCTransactionError(err);
     }
@@ -5508,6 +5518,11 @@ static RPCHelpMan walletcreatefundedpsbt()
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return NullUniValue;
 
+    CWallet& wallet{*pwallet};
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    wallet.BlockUntilSyncedToCurrentChain();
+
     RPCTypeCheck(request.params, {
         UniValue::VARR,
         UniValueType(), // ARR or OBJ, checked later
@@ -5519,7 +5534,7 @@ static RPCHelpMan walletcreatefundedpsbt()
 
     CAmount fee;
     int change_position;
-    bool rbf = pwallet->m_signal_rbf;
+    bool rbf{wallet.m_signal_rbf};
     const UniValue &replaceable_arg = request.params[3]["replaceable"];
     if (!replaceable_arg.isNull()) {
         RPCTypeCheckArgument(replaceable_arg, UniValue::VBOOL);
@@ -5530,7 +5545,7 @@ static RPCHelpMan walletcreatefundedpsbt()
     // Automatically select coins, unless at least one is manually selected. Can
     // be overridden by options.add_inputs.
     coin_control.m_add_inputs = rawTx.vin.size() == 0;
-    FundTransaction(*pwallet, rawTx, fee, change_position, request.params[3], coin_control, /* override_min_fee */ true);
+    FundTransaction(wallet, rawTx, fee, change_position, request.params[3], coin_control, /* override_min_fee */ true);
 
     // Make a blank psbt
     PartiallySignedTransaction psbtx(rawTx);
@@ -5538,7 +5553,7 @@ static RPCHelpMan walletcreatefundedpsbt()
     // Fill transaction with out data but don't sign
     bool bip32derivs = request.params[4].isNull() ? true : request.params[4].get_bool();
     bool complete = true;
-    const TransactionError err = pwallet->FillPSBT(psbtx, complete, 1, false, bip32derivs);
+    const TransactionError err{wallet.FillPSBT(psbtx, complete, 1, false, bip32derivs)};
     if (err != TransactionError::OK) {
         throw JSONRPCTransactionError(err);
     }
