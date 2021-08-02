@@ -1635,7 +1635,7 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState &state,
 
             spent_outputs.emplace_back(vchAmount, scriptPubKey);
         }
-        txdata.Init(tx, std::move(spent_outputs));
+        txdata.Init_vec(tx, std::move(spent_outputs));
     }
     assert(txdata.m_spent_outputs.size() == tx.vin.size());
 
@@ -3097,7 +3097,7 @@ void UpdateTip(CTxMemPool& mempool, const CBlockIndex* pindexNew, const CChainPa
             WarningBitsConditionChecker checker(bit);
             ThresholdState state = checker.GetStateFor(pindex, chainParams.GetConsensus(), warningcache[bit]);
             if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN) {
-                const bilingual_str warning = strprintf(_("Warning: unknown new rules activated (versionbit %i)"), bit);
+                const bilingual_str warning = strprintf(_("Unknown new rules activated (versionbit %i)"), bit);
                 if (state == ThresholdState::ACTIVE) {
                     DoWarning(warning);
                 } else {

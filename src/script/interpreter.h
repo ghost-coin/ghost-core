@@ -168,7 +168,9 @@ struct PrecomputedTransactionData
     PrecomputedTransactionData() = default;
 
     template <class T>
-    void Init(const T& tx, std::vector<CTxOutSign>&& spent_outputs);
+    void Init_vec(const T& tx, std::vector<CTxOutSign>&& spent_outputs, bool force = false);
+    template <class T>
+    void Init(const T& tx, std::vector<CTxOut>&& spent_outputs, bool force = false);
 
     template <class T>
     explicit PrecomputedTransactionData(const T& tx);
@@ -269,6 +271,9 @@ enum class MissingDataBehavior
     ASSERT_FAIL,  //!< Abort execution through assertion failure (for consensus code)
     FAIL,         //!< Just act as if the signature was invalid
 };
+
+template<typename T>
+bool SignatureHashSchnorr(uint256& hash_out, const ScriptExecutionData& execdata, const T& tx_to, uint32_t in_pos, uint8_t hash_type, SigVersion sigversion, const PrecomputedTransactionData& cache, MissingDataBehavior mdb);
 
 template <class T>
 class GenericTransactionSignatureChecker : public BaseSignatureChecker

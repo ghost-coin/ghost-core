@@ -1460,7 +1460,7 @@ uint256 GetSpentScriptsSHA256(const std::vector<CTxOutSign>& outputs_spent)
 } // namespace
 
 template <class T>
-void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOutSign>&& spent_outputs)
+void PrecomputedTransactionData::Init_vec(const T& txTo, std::vector<CTxOutSign>&& spent_outputs, bool force)
 {
     assert(!m_spent_outputs_ready);
 
@@ -1471,9 +1471,9 @@ void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOutSign>&& s
     }
 
     // Determine which precomputation-impacting features this transaction uses.
-    bool uses_bip143_segwit = false;
-    bool uses_bip341_taproot = false;
-    for (size_t inpos = 0; inpos < txTo.vin.size(); ++inpos) {
+    bool uses_bip143_segwit = force;
+    bool uses_bip341_taproot = force;
+    for (size_t inpos = 0; inpos < txTo.vin.size() && !(uses_bip143_segwit && uses_bip341_taproot); ++inpos) {
         if (!txTo.vin[inpos].scriptWitness.IsNull()) {
             if (m_spent_outputs_ready && m_spent_outputs[inpos].scriptPubKey.size() == 2 + WITNESS_V1_TAPROOT_SIZE &&
                 m_spent_outputs[inpos].scriptPubKey[0] == OP_1) {
@@ -1512,14 +1512,30 @@ void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOutSign>&& s
 }
 
 template <class T>
+void PrecomputedTransactionData::Init(const T& txTo, std::vector<CTxOut>&& spent_outputs, bool force)
+{
+    std::vector<CTxOutSign> spent_outputs_vec;
+
+    for (const auto &txo : spent_outputs) {
+        std::vector<uint8_t> vchAmount(8);
+        part::SetAmount(vchAmount, txo.nValue);
+        spent_outputs_vec.emplace_back(vchAmount, txo.scriptPubKey);
+    }
+
+    Init_vec(txTo, std::move(spent_outputs_vec), force);
+}
+
+template <class T>
 PrecomputedTransactionData::PrecomputedTransactionData(const T& txTo)
 {
     Init(txTo, {});
 }
 
 // explicit instantiation
-template void PrecomputedTransactionData::Init(const CTransaction& txTo, std::vector<CTxOutSign>&& spent_outputs);
-template void PrecomputedTransactionData::Init(const CMutableTransaction& txTo, std::vector<CTxOutSign>&& spent_outputs);
+template void PrecomputedTransactionData::Init(const CTransaction& txTo, std::vector<CTxOut>&& spent_outputs, bool force);
+template void PrecomputedTransactionData::Init(const CMutableTransaction& txTo, std::vector<CTxOut>&& spent_outputs, bool force);
+template void PrecomputedTransactionData::Init_vec(const CTransaction& txTo, std::vector<CTxOutSign>&& spent_outputs, bool force);
+template void PrecomputedTransactionData::Init_vec(const CMutableTransaction& txTo, std::vector<CTxOutSign>&& spent_outputs, bool force);
 template PrecomputedTransactionData::PrecomputedTransactionData(const CTransaction& txTo);
 template PrecomputedTransactionData::PrecomputedTransactionData(const CMutableTransaction& txTo);
 
@@ -1760,7 +1776,7 @@ bool GenericTransactionSignatureChecker<T>::CheckSchnorrSignature(Span<const uns
         if (hashtype == SIGHASH_DEFAULT) return set_error(serror, SCRIPT_ERR_SCHNORR_SIG_HASHTYPE);
     }
     uint256 sighash;
-    assert(this->txdata);
+    if (!this->txdata) return HandleMissingData(m_mdb);
     if (!SignatureHashSchnorr(sighash, execdata, *txTo, nIn, hashtype, sigversion, *this->txdata, m_mdb)) {
         return set_error(serror, SCRIPT_ERR_SCHNORR_SIG_HASHTYPE);
     }

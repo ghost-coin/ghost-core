@@ -11,6 +11,7 @@
 #include <qt/guiutil.h>
 #include <qt/walletmodel.h>
 
+#include <external_signer.h>
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <util/string.h>
@@ -298,7 +299,6 @@ void CreateWalletActivity::create()
 {
     m_create_wallet_dialog = new CreateWalletDialog(m_parent_widget);
 
-#ifdef ENABLE_EXTERNAL_SIGNER
     std::vector<ExternalSigner> signers;
     try {
         signers = node().externalSigners();
@@ -306,7 +306,6 @@ void CreateWalletActivity::create()
         QMessageBox::critical(nullptr, tr("Can't list signers"), e.what());
     }
     m_create_wallet_dialog->setSigners(signers);
-#endif
 
     m_create_wallet_dialog->setWindowModality(Qt::ApplicationModal);
     m_create_wallet_dialog->show();

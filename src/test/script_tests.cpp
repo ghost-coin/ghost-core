@@ -1703,7 +1703,7 @@ static void AssetTest(const UniValue& test)
         mtx.vin[idx].scriptWitness = ScriptWitnessFromJSON(test["success"]["witness"]);
         CTransaction tx(mtx);
         PrecomputedTransactionData txdata;
-        txdata.Init(tx, std::vector<CTxOutSign>(prevouts));
+        txdata.Init_vec(tx, std::vector<CTxOutSign>(prevouts));
         CachingTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].amount, true, txdata);
         for (const auto flags : ALL_CONSENSUS_FLAGS) {
             // "final": true tests are valid for all flags. Others are only valid with flags that are
@@ -1720,7 +1720,7 @@ static void AssetTest(const UniValue& test)
         mtx.vin[idx].scriptWitness = ScriptWitnessFromJSON(test["failure"]["witness"]);
         CTransaction tx(mtx);
         PrecomputedTransactionData txdata;
-        txdata.Init(tx, std::vector<CTxOutSign>(prevouts));
+        txdata.Init_vec(tx, std::vector<CTxOutSign>(prevouts));
         CachingTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].amount, true, txdata);
         for (const auto flags : ALL_CONSENSUS_FLAGS) {
             // If a test is supposed to fail with test_flags, it should also fail with any superset thereof.

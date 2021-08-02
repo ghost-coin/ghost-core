@@ -51,7 +51,7 @@ FUZZ_TARGET_INIT(script_flags, initialize_script_flags)
             spent_outputs.emplace_back(vchAmount, prevout.scriptPubKey);
         }
         PrecomputedTransactionData txdata;
-        txdata.Init(tx, std::move(spent_outputs));
+        txdata.Init_vec(tx, std::move(spent_outputs));
 
         for (unsigned i = 0; i < tx.vin.size(); ++i) {
             const CTxOutSign& prevout = txdata.m_spent_outputs.at(i);

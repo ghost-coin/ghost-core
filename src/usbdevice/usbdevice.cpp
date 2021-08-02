@@ -272,6 +272,13 @@ bool DeviceSignatureCreator::CreateSig(const SigningProvider &provider, std::vec
     }
 
     return false;
-};
+}
+
+bool DeviceSignatureCreator::CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const
+{
+    assert(sigversion == SigVersion::TAPROOT || sigversion == SigVersion::TAPSCRIPT);
+
+    return error("%s: TODO.", __func__);
+}
 
 } // usb_device
