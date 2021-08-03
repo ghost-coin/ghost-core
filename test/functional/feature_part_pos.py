@@ -204,6 +204,10 @@ class PosTest(ParticlTestFramework):
                 break
         assert(found_stake_kernel)
 
+        self.log.info('Test pruneorphanedblocks')
+        rv = nodes[0].pruneorphanedblocks()
+        assert(rv['files'][0]['blocks_removed'] == 1)
+
 
 if __name__ == '__main__':
     PosTest().main()
