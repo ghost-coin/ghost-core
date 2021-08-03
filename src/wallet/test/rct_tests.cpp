@@ -46,14 +46,14 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         LOCK(cs_main);
         bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
         if (ret) {
-            ret = state.m_chainman->ActiveChainstate().AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, nullptr);
+            ret = state.m_chainman->ActiveChainstate().AcceptBlock(pblock, state, &pindex, fForceProcessing, nullptr, nullptr);
         }
         if (!ret) {
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.ToString());
         }
     }
     state.m_preserve_state = true; // else would be cleared
-    if (!state.m_chainman->ActiveChainstate().ActivateBestChain(state, chainparams, pblock) || !state.IsValid()) {
+    if (!state.m_chainman->ActiveChainstate().ActivateBestChain(state, pblock) || !state.IsValid()) {
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
     }
     return true;

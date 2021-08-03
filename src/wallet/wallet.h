@@ -189,7 +189,7 @@ public:
     }
 
     //! Reserve an address
-    bool GetReservedDestination(CTxDestination& pubkey, bool internal);
+    bool GetReservedDestination(CTxDestination& pubkey, bool internal, std::string& error);
     //! Return reserved address
     void ReturnDestination();
     //! Keep the address. Do not return it's key to the keypool when this object goes out of scope
@@ -794,19 +794,19 @@ public:
 
     /**
      * Address book entry changed.
-     * @note called with lock cs_wallet held.
+     * @note called without lock cs_wallet held.
      */
-    boost::signals2::signal<void (CWallet *wallet, const CTxDestination
-            &address, const std::string &label, bool isMine,
-            const std::string &purpose, const std::string &path,
-            ChangeType status)> NotifyAddressBookChanged;
+    boost::signals2::signal<void (const CTxDestination &address,
+                                  const std::string &label, bool isMine,
+                                  const std::string &purpose, const std::string &path,
+                                  ChangeType status)>
+        NotifyAddressBookChanged;
 
     /**
      * Wallet transaction added, removed or updated.
      * @note called with lock cs_wallet held.
      */
-    boost::signals2::signal<void (CWallet *wallet, const uint256 &hashTx,
-            ChangeType status)> NotifyTransactionChanged;
+    boost::signals2::signal<void(const uint256& hashTx, ChangeType status)> NotifyTransactionChanged;
 
     /** Show progress e.g. for rescan */
     boost::signals2::signal<void (const std::string &title, int nProgress)> ShowProgress;

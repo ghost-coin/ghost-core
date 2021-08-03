@@ -1429,7 +1429,7 @@ bool CHDWallet::AddressBookChangedNotify(const CTxDestination &address, ChangeTy
     if (entry.vPath.size() > 1) {
         PathToString(entry.vPath, str_path, '\'', 1);
     }
-    NotifyAddressBookChanged(this, address, entry.GetLabel(), tIsMine != ISMINE_NO, entry.purpose, str_path, nMode);
+    NotifyAddressBookChanged(address, entry.GetLabel(), tIsMine != ISMINE_NO, entry.purpose, str_path, nMode);
 
     if (tIsMine == ISMINE_SPENDABLE
         && address.index() == DI::_PKHash) {
@@ -1602,7 +1602,7 @@ bool CHDWallet::SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address,
         if (vPath.size() > 1) {
             PathToString(vPath, str_path, '\'', 1);
         }
-        NotifyAddressBookChanged(this, address, strName, tIsMine != ISMINE_NO, strPurpose, str_path, nMode);
+        NotifyAddressBookChanged(address, strName, tIsMine != ISMINE_NO, strPurpose, str_path, nMode);
 
         if (tIsMine == ISMINE_SPENDABLE
             && address.index() == DI::_PKHash) {
@@ -1644,7 +1644,7 @@ bool CHDWallet::SetAddressBook(const CTxDestination &address, const std::string 
     }
 
     std::string str_path;
-    NotifyAddressBookChanged(this, address, strName, tIsMine != ISMINE_NO,
+    NotifyAddressBookChanged(address, strName, tIsMine != ISMINE_NO,
                              strPurpose, str_path, nMode);
 
     return true;
@@ -5884,7 +5884,7 @@ int CHDWallet::UnloadTransaction(const uint256 &hash)
         return 1;
     }
 
-    NotifyTransactionChanged(this, hash, CT_DELETED);
+    NotifyTransactionChanged(hash, CT_DELETED);
     return 0;
 };
 
@@ -8733,7 +8733,7 @@ bool CHDWallet::CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx, Tx
             if (it != mapWallet.end()) {
                 it->second.MarkDirty();
             }
-            NotifyTransactionChanged(this, txhash, CT_UPDATED);
+            NotifyTransactionChanged(txhash, CT_UPDATED);
         }
 
         // Get the inserted-CWalletTx from mapWallet so that the
@@ -9313,7 +9313,7 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
 
     // Notify UI of updated transaction
     for (const auto &hash : setChanged) {
-        NotifyTransactionChanged(this, hash, CT_REPLACE);
+        NotifyTransactionChanged(hash, CT_REPLACE);
     }
 
     LogPrint(BCLog::HDWALLET, "%s %s: Expanded %u/%u output%s.\n", GetDisplayName(), __func__, nExpanded, nProcessed, nProcessed == 1 ? "" : "s");
@@ -10903,7 +10903,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
     }
 
     // Notify UI of new or updated transaction
-    NotifyTransactionChanged(this, txhash, fInsertedNew ? CT_NEW : CT_UPDATED);
+    NotifyTransactionChanged(txhash, fInsertedNew ? CT_NEW : CT_UPDATED);
 
 #if HAVE_SYSTEM
     // notify an external script when a wallet transaction comes in or is updated
@@ -12294,7 +12294,7 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
                 rtx.nIndex = -1;
                 rtx.SetAbandoned();
                 walletdb.WriteTxRecord(now, rtx);
-                NotifyTransactionChanged(this, now, CT_UPDATED);
+                NotifyTransactionChanged(now, CT_UPDATED);
             }
 
         } else
@@ -12316,7 +12316,7 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
                 wtx.setAbandoned();
                 wtx.MarkDirty();
                 walletdb.WriteTx(wtx);
-                NotifyTransactionChanged(this, now, CT_UPDATED);
+                NotifyTransactionChanged(now, CT_UPDATED);
 
                 // If a transaction changes 'conflicted' state, that changes the balance
                 // available of the outputs it spends. So force those to be recomputed

@@ -401,7 +401,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
         if (!FlushView(&view, state, chainman.ActiveChainstate(), true)) {
             return errorN(false, sError, __func__, "FlushView failed.");
         }
-        if (!chainman.ActiveChainstate().FlushStateToDisk(Params(), state, FlushStateMode::IF_NEEDED)) {
+        if (!chainman.ActiveChainstate().FlushStateToDisk(state, FlushStateMode::IF_NEEDED)) {
             return errorN(false, sError, __func__, "FlushStateToDisk failed.");
         }
 

@@ -820,7 +820,7 @@ bool CWallet::MarkReplaced(const uint256& originalHash, const uint256& newHash)
         success = false;
     }
 
-    NotifyTransactionChanged(this, originalHash, CT_UPDATED);
+    NotifyTransactionChanged(originalHash, CT_UPDATED);
 
     return success;
 }
@@ -949,7 +949,7 @@ CWalletTx* CWallet::AddToWallet(CTransactionRef tx, const CWalletTx::Confirmatio
     // Break debit/credit balance caches:
     wtx.MarkDirty();
     // Notify UI of new or updated transaction
-    NotifyTransactionChanged(this, hash, fInsertedNew ? CT_NEW : CT_UPDATED);
+    NotifyTransactionChanged(hash, fInsertedNew ? CT_NEW : CT_UPDATED);
 
 #if HAVE_SYSTEM
     // notify an external script when a wallet transaction comes in or is updated
@@ -1129,7 +1129,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
             wtx.setAbandoned();
             wtx.MarkDirty();
             batch.WriteTx(wtx);
-            NotifyTransactionChanged(this, wtx.GetHash(), CT_UPDATED);
+            NotifyTransactionChanged(wtx.GetHash(), CT_UPDATED);
             // Iterate over all its outputs, and mark transactions in the wallet that spend them abandoned too
             TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(now, 0));
             while (iter != mapTxSpends.end() && iter->first.hash == now) {
@@ -1987,7 +1987,13 @@ OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& chang
         int witnessversion = 0;
         std::vector<unsigned char> witnessprogram;
         if (recipient.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
-            return OutputType::BECH32;
+            if (GetScriptPubKeyMan(OutputType::BECH32M, true)) {
+                return OutputType::BECH32M;
+            } else if (GetScriptPubKeyMan(OutputType::BECH32, true)) {
+                return OutputType::BECH32;
+            } else {
+                return m_default_address_type;
+            }
         }
     }
 
@@ -2016,7 +2022,7 @@ void CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
     for (const CTxIn& txin : tx->vin) {
         CWalletTx &coin = mapWallet.at(txin.prevout.hash);
         coin.MarkDirty();
-        NotifyTransactionChanged(this, coin.GetHash(), CT_UPDATED);
+        NotifyTransactionChanged(coin.GetHash(), CT_UPDATED);
     }
 
     // Get the inserted-CWalletTx from mapWallet so that the
@@ -2080,7 +2086,7 @@ DBErrors CWallet::ZapSelectTx(std::vector<uint256>& vHashIn, std::vector<uint256
         for (const auto& txin : it->second.tx->vin)
             mapTxSpends.erase(txin.prevout);
         mapWallet.erase(it);
-        NotifyTransactionChanged(this, hash, CT_DELETED);
+        NotifyTransactionChanged(hash, CT_DELETED);
     }
 
     if (nZapSelectTxRet == DBErrors::NEED_REWRITE)
@@ -2114,7 +2120,7 @@ bool CWallet::SetAddressBookWithDB(WalletBatch& batch, const CTxDestination& add
             m_address_book[address].purpose = strPurpose;
         is_mine = IsMine(address) != ISMINE_NO;
     }
-    NotifyAddressBookChanged(this, address, strName, is_mine,
+    NotifyAddressBookChanged(address, strName, is_mine,
                              strPurpose, "", (fUpdated ? CT_UPDATED : CT_NEW) );
     if (!strPurpose.empty() && !batch.WritePurpose(EncodeDestination(address), strPurpose))
         return false;
@@ -2150,7 +2156,7 @@ bool CWallet::DelAddressBook(const CTxDestination& address)
         is_mine = IsMine(address) != ISMINE_NO;
     }
 
-    NotifyAddressBookChanged(this, address, "", is_mine, "", "", CT_DELETED);
+    NotifyAddressBookChanged(address, "", is_mine, "", "", CT_DELETED);
 
     batch.ErasePurpose(EncodeDestination(address));
     return batch.EraseName(EncodeDestination(address));
@@ -2202,7 +2208,7 @@ bool CWallet::GetNewDestination(const OutputType type, const std::string label, 
         spk_man->TopUp();
         result = spk_man->GetNewDestination(type, dest, error);
     } else {
-        error = strprintf("Error: No %s addresses available.", FormatOutputType(type));
+        error = strprintf(_("Error: No %s addresses available."), FormatOutputType(type)).translated;
     }
     if (result) {
         SetAddressBook(dest, label, "receive");
@@ -2217,8 +2223,7 @@ bool CWallet::GetNewChangeDestination(const OutputType type, CTxDestination& des
     error.clear();
 
     ReserveDestination reservedest(this, type);
-    if (!reservedest.GetReservedDestination(dest, true)) {
-        error = _("Error: Keypool ran out, please call keypoolrefill first").translated;
+    if (!reservedest.GetReservedDestination(dest, true, error)) {
         return false;
     }
 
@@ -2265,10 +2270,11 @@ std::set<CTxDestination> CWallet::GetLabelAddresses(const std::string& label) co
     return result;
 }
 
-bool ReserveDestination::GetReservedDestination(CTxDestination& dest, bool internal)
+bool ReserveDestination::GetReservedDestination(CTxDestination& dest, bool internal, std::string& error)
 {
     m_spk_man = pwallet->GetScriptPubKeyMan(type, internal);
     if (!m_spk_man) {
+        error = strprintf(_("Error: No %s addresses available."), FormatOutputType(type)).translated;
         return false;
     }
 
@@ -2278,7 +2284,7 @@ bool ReserveDestination::GetReservedDestination(CTxDestination& dest, bool inter
         m_spk_man->TopUp();
 
         CKeyPool keypool;
-        if (!m_spk_man->GetReservedDestination(type, internal, address, nIndex, keypool)) {
+        if (!m_spk_man->GetReservedDestination(type, internal, address, nIndex, keypool, error)) {
             return false;
         }
         fInternal = keypool.fInternal;
@@ -3145,7 +3151,7 @@ void CWallet::SetupLegacyScriptPubKeyMan()
     }
 
     auto spk_manager = std::unique_ptr<ScriptPubKeyMan>(new LegacyScriptPubKeyMan(*this));
-    for (const auto& type : OUTPUT_TYPES) {
+    for (const auto& type : LEGACY_OUTPUT_TYPES) {
         m_internal_spk_managers[type] = spk_manager.get();
         m_external_spk_managers[type] = spk_manager.get();
     }
@@ -3198,6 +3204,11 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
 
         for (bool internal : {false, true}) {
             for (OutputType t : OUTPUT_TYPES) {
+                if (t == OutputType::BECH32M) {
+                    // Skip taproot (bech32m) for now
+                    // TODO: Setup taproot (bech32m) descriptors by default
+                    continue;
+                }
                 auto spk_manager = std::unique_ptr<DescriptorScriptPubKeyMan>(new DescriptorScriptPubKeyMan(*this, internal));
                 if (IsCrypted()) {
                     if (IsLocked()) {

@@ -87,7 +87,7 @@ static void DisconnectTip(CChainState &chainstate_active, CTxMemPool& mempool, C
     BlockValidationState state;
     BOOST_REQUIRE(DISCONNECT_OK == chainstate_active.DisconnectBlock(block, pindexDelete, view));
     BOOST_REQUIRE(FlushView(&view, state, chainstate_active, true));
-    BOOST_REQUIRE(chainstate_active.FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED));
+    BOOST_REQUIRE(chainstate_active.FlushStateToDisk(state, FlushStateMode::IF_NEEDED));
     chainstate_active.m_chain.SetTip(pindexDelete->pprev);
     UpdateTip(mempool, pindexDelete->pprev, chainparams, chainstate_active);
 }
@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         BlockValidationState state;
         state.m_chainman = m_node.chainman.get();
         std::shared_ptr<const CBlock> pblock = std::make_shared<const CBlock>(block);
-        BOOST_REQUIRE(chainstate_active.ActivateBestChain(state, chainparams, pblock));
+        BOOST_REQUIRE(chainstate_active.ActivateBestChain(state, pblock));
 
         LOCK(cs_main);
         CCoinsViewCache &view = chainstate_active.CoinsTip();
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BlockValidationState state;
             state.m_chainman = m_node.chainman.get();
             CCoinsViewCache view(&chainstate_active.CoinsTip());
-            BOOST_REQUIRE(false == chainstate_active.ConnectBlock(block, state, pindexDelete, view, chainparams, false));
+            BOOST_REQUIRE(false == chainstate_active.ConnectBlock(block, state, pindexDelete, view, false));
 
             BOOST_CHECK(state.IsInvalid());
             BOOST_CHECK(state.GetRejectReason() == "bad-cs-amount");
@@ -300,11 +300,11 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BlockValidationState clearstate;
             clearstate.m_chainman = m_node.chainman.get();
             CCoinsViewCache &clearview = chainstate_active.CoinsTip();
-            BOOST_REQUIRE(chainstate_active.ConnectBlock(block, clearstate, pindexDelete, clearview, chainparams, false));
+            BOOST_REQUIRE(chainstate_active.ConnectBlock(block, clearstate, pindexDelete, clearview, false));
 
             BOOST_CHECK(!clearstate.IsInvalid());
             BOOST_REQUIRE(FlushView(&clearview, state, chainstate_active, false));
-            BOOST_REQUIRE(chainstate_active.FlushStateToDisk(chainparams, clearstate, FlushStateMode::IF_NEEDED));
+            BOOST_REQUIRE(chainstate_active.FlushStateToDisk(clearstate, FlushStateMode::IF_NEEDED));
             chain_active.SetTip(pindexDelete);
             UpdateTip(*m_node.mempool.get(), pindexDelete, chainparams, chainstate_active);
 

@@ -226,7 +226,8 @@ class WalletTaprootTest(BitcoinTestFramework):
         result = self.addr_gen.importdescriptors([{"desc": desc_pub, "active": True, "timestamp": "now"}])
         assert(result[0]['success'])
         for i in range(4):
-            addr_g = self.addr_gen.getnewaddress(address_type='bech32')
+            #addr_g = self.addr_gen.getnewaddress(address_type='bech32m')
+            addr_g = self.addr_gen.getnewaddress('', 'bech32m')
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys, i)
                 assert_equal(addr_g, addr_r)
@@ -265,7 +266,8 @@ class WalletTaprootTest(BitcoinTestFramework):
         result = self.rpc_online.importdescriptors([{"desc": desc_change, "active": True, "timestamp": "now", "internal": True}])
         assert(result[0]['success'])
         for i in range(4):
-            addr_g = self.rpc_online.getnewaddress(address_type='bech32')
+            #addr_g = self.rpc_online.getnewaddress(address_type='bech32m')
+            addr_g = self.rpc_online.getnewaddress('', 'bech32m')
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys_pay, i)
                 assert_equal(addr_g, addr_r)
@@ -296,7 +298,8 @@ class WalletTaprootTest(BitcoinTestFramework):
         result = self.psbt_offline.importdescriptors([{"desc": desc_change, "active": True, "timestamp": "now", "internal": True}])
         assert(result[0]['success'])
         for i in range(4):
-            addr_g = self.psbt_online.getnewaddress(address_type='bech32')
+            #addr_g = self.psbt_online.getnewaddress(address_type='bech32m')
+            addr_g = self.psbt_online.getnewaddress('', 'bech32m')
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys_pay, i)
                 assert_equal(addr_g, addr_r)

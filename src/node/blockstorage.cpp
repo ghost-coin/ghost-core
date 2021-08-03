@@ -539,7 +539,6 @@ struct CImportingNow {
 
 void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFiles, const ArgsManager& args)
 {
-    const CChainParams& chainparams = Params();
     ScheduleBatchPriority();
 
     fBusyImporting = true;
@@ -559,7 +558,7 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
                     break; // This error is logged in OpenBlockFile
                 }
                 LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
-                chainman.ActiveChainstate().LoadExternalBlockFile(chainparams, file, &pos, &chainman);
+                chainman.ActiveChainstate().LoadExternalBlockFile(file, &pos, &chainman);
                 if (ShutdownRequested()) {
                     LogPrintf("Shutdown requested. Exit %s\n", __func__);
                     return;
@@ -570,7 +569,7 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
             fReindex = false;
             LogPrintf("Reindexing finished\n");
             // To avoid ending up in a situation without genesis block, re-try initializing (no-op if reindexing worked):
-            chainman.ActiveChainstate().LoadGenesisBlock(chainparams);
+            chainman.ActiveChainstate().LoadGenesisBlock();
         }
 
         // -loadblock=
@@ -578,7 +577,7 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
             FILE* file = fsbridge::fopen(path, "rb");
             if (file) {
                 LogPrintf("Importing blocks file %s...\n", path.string());
-                chainman.ActiveChainstate().LoadExternalBlockFile(chainparams, file, nullptr, &chainman);
+                chainman.ActiveChainstate().LoadExternalBlockFile(file, nullptr, &chainman);
                 if (ShutdownRequested()) {
                     LogPrintf("Shutdown requested. Exit %s\n", __func__);
                     return;
@@ -596,7 +595,7 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
         for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
             BlockValidationState state;
             state.m_chainman = &chainman;
-            if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
+            if (!chainstate->ActivateBestChain(state, nullptr)) {
                 LogPrintf("Failed to connect best block (%s)\n", state.ToString());
                 // Particl - Don't exit.  May be missing PoS info for valid blocks.
                 //StartShutdown();
