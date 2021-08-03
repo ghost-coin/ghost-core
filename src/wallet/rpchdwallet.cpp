@@ -9297,20 +9297,18 @@ static RPCHelpMan pruneorphanedblocks()
             obj.pushKV("filename", GetBlockPosFilename(pos).string());
             obj.pushKV("blocks_in_file", (int)num_blocks_in_file);
             obj.pushKV("blocks_removed", (int)num_blocks_removed);
-            if (!test_only) {
-                obj.pushKV("note", "Node is shutting down.");
-            }
             files.push_back(obj);
             nFile++;
         }
     }
+    UniValue response(UniValue::VOBJ);
     if (!test_only) {
+        response.pushKV("note", "Node is shutting down.");
         // Force reindex on next startup
         pblocktree->WriteFlag("v1", false);
         StartShutdown();
     }
 
-    UniValue response(UniValue::VOBJ);
     response.pushKV("files", files);
     return response;
 },

@@ -751,7 +751,7 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     /** Import blocks from an external file */
-    void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFilePos* dbp = nullptr);
+    void LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFilePos* dbp = nullptr, ChainstateManager *chainman = nullptr);
 
     /**
      * Update the on-disk chain state.
@@ -1011,6 +1011,7 @@ public:
     [[nodiscard]] bool ActivateSnapshot(
         CAutoFile& coins_file, const SnapshotMetadata& metadata, bool in_memory);
 
+    bool HaveActiveChainstate() const { return m_active_chainstate; };
     //! The most-work chain.
     CChainState& ActiveChainstate() const;
     CChain& ActiveChain() const { return ActiveChainstate().m_chain; }

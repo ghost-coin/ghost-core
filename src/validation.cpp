@@ -4485,7 +4485,10 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
         }
     }
     bool force_accept = true;
-    if (fParticlMode && !state.m_chainman->ActiveChainstate().IsInitialBlockDownload() && state.nodeId >= 0) {
+    if (fParticlMode &&
+        state.nodeId >= 0 &&
+        state.m_chainman->HaveActiveChainstate() &&
+        !state.m_chainman->ActiveChainstate().IsInitialBlockDownload()) {
         if (!AddNodeHeader(state.nodeId, hash)) {
             LogPrintf("ERROR: %s: DoS limits\n", __func__);
             return state.Invalid(BlockValidationResult::DOS_20, "dos-limits");
@@ -5411,7 +5414,7 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
     return true;
 }
 
-void CChainState::LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFilePos* dbp)
+void CChainState::LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, FlatFilePos* dbp, ChainstateManager *chainman)
 {
     // Map of disk positions for blocks with unknown parent (only used for reindex)
     static std::multimap<uint256, FlatFilePos> mapBlocksUnknownParent;
@@ -5477,6 +5480,7 @@ void CChainState::LoadExternalBlockFile(const CChainParams& chainparams, FILE* f
                     CBlockIndex* pindex = m_blockman.LookupBlockIndex(hash);
                     if (!pindex || (pindex->nStatus & BLOCK_HAVE_DATA) == 0) {
                       BlockValidationState state;
+                      state.m_chainman = chainman;
                       if (AcceptBlock(pblock, state, chainparams, nullptr, true, dbp, nullptr)) {
                           nLoaded++;
                       }
@@ -5491,6 +5495,7 @@ void CChainState::LoadExternalBlockFile(const CChainParams& chainparams, FILE* f
                 // Activate the genesis block so normal node progress can continue
                 if (hash == chainparams.GetConsensus().hashGenesisBlock) {
                     BlockValidationState state;
+                    state.m_chainman = chainman;
                     if (!ActivateBestChain(state, chainparams, nullptr)) {
                         break;
                     }
@@ -5514,6 +5519,7 @@ void CChainState::LoadExternalBlockFile(const CChainParams& chainparams, FILE* f
                                     head.ToString());
                             LOCK(cs_main);
                             BlockValidationState dummy;
+                            dummy.m_chainman = chainman;
                             if (AcceptBlock(pblockrecursive, dummy, chainparams, nullptr, true, &it->second, nullptr))
                             {
                                 nLoaded++;

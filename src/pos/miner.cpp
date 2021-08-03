@@ -268,7 +268,8 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
         return;
     }
 
-    size_t stake_thread_cond_delay_ms = gArgs.GetArg("-stakethreadconddelayms", 60000);
+    const size_t stake_thread_cond_delay_ms = gArgs.GetArg("-stakethreadconddelayms", 60000);
+    const bool check_peer_height = gArgs.GetBoolArg("-checkpeerheight", true);
     LogPrint(BCLog::POS, "Stake thread conditional delay set to %d.\n", stake_thread_cond_delay_ms);
 
     while (!fStopMinerProc) {
@@ -298,7 +299,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
             }
         }
 
-        if (num_nodes == 0 || chainman->ActiveChainstate().IsInitialBlockDownload()) {
+        if (check_peer_height && (num_nodes == 0 || chainman->ActiveChainstate().IsInitialBlockDownload())) {
             fIsStaking = false;
             fTryToSync = true;
             LogPrint(BCLog::POS, "%s: IsInitialBlockDownload\n", __func__);
@@ -306,7 +307,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
             continue;
         }
 
-        if (nBestHeight < num_blocks_of_peers - 1 && gArgs.GetBoolArg("-checkpeerheight", true)) {
+        if (check_peer_height && nBestHeight < num_blocks_of_peers - 1) {
             fIsStaking = false;
             LogPrint(BCLog::POS, "%s: nBestHeight < GetNumBlocksOfPeers(), %d, %d\n", __func__, nBestHeight, num_blocks_of_peers);
             condWaitFor(nThreadID, nMinerSleep * 4);

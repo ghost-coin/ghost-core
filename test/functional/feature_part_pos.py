@@ -204,9 +204,16 @@ class PosTest(ParticlTestFramework):
                 break
         assert(found_stake_kernel)
 
-        self.log.info('Test pruneorphanedblocks')
+        self.log.info('Test pruneorphanedblocks and reindex')
         rv = nodes[0].pruneorphanedblocks()
         assert(rv['files'][0]['blocks_removed'] == 1)
+        rv = nodes[0].pruneorphanedblocks(False)
+        assert('Node is shutting down' in rv['note'])
+        self.wait_for_node_exit(0, timeout=10)
+        self.start_node(0, self.extra_args[0] + ['-wallet=default_wallet',])
+        self.log.info('Test pruneorphanedblocks')
+        rv = nodes[0].pruneorphanedblocks()
+        assert(rv['files'][0]['blocks_removed'] == 0)
 
 
 if __name__ == '__main__':
