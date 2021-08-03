@@ -35,7 +35,7 @@ class ForkTest(ParticlTestFramework):
     def run_test(self):
         nodes = self.nodes
 
-        # stop staking
+        # Disable staking
         nodes[0].reservebalance(True, 10000000)
         nodes[3].reservebalance(True, 10000000)
 
@@ -44,26 +44,24 @@ class ForkTest(ParticlTestFramework):
 
         n0_wi_before = nodes[0].getwalletinfo()
 
-        # start staking
+        # Start staking
         nBlocksShorterChain = 2
         nBlocksLongerChain = 5
 
-        ro = nodes[0].walletsettings('stakelimit', {'height':nBlocksShorterChain})
-        ro = nodes[3].walletsettings('stakelimit', {'height':nBlocksLongerChain})
+        ro = nodes[0].walletsettings('stakelimit', {'height': nBlocksShorterChain})
+        ro = nodes[3].walletsettings('stakelimit', {'height': nBlocksLongerChain})
         ro = nodes[0].reservebalance(False)
         ro = nodes[3].reservebalance(False)
 
-
         self.wait_for_height(nodes[0], nBlocksShorterChain, 1000)
 
-        # stop group1 from staking
-        ro = nodes[0].reservebalance(True, 10000000)
-
+        # Stop group1 from staking
+        nodes[0].reservebalance(True, 10000000)
 
         self.wait_for_height(nodes[3], nBlocksLongerChain, 2000)
 
-        # stop group2 from staking
-        ro = nodes[3].reservebalance(True, 10000000)
+        # Stop group2 from staking
+        nodes[3].reservebalance(True, 10000000)
 
         node0_chain = []
         for k in range(1, nBlocksLongerChain+1):
@@ -82,7 +80,7 @@ class ForkTest(ParticlTestFramework):
             print('node3 ',k, ' - ', ro)
 
 
-        # connect groups
+        # Connect groups
         self.connect_nodes_bi(0, 3)
 
         fPass = False
@@ -90,7 +88,7 @@ class ForkTest(ParticlTestFramework):
             time.sleep(2)
 
             fPass = True
-            for k in range(1, nBlocksLongerChain+1):
+            for k in range(1, nBlocksLongerChain + 1):
                 try:
                     ro = nodes[0].getblockhash(k)
                 except JSONRPCException as e:
@@ -105,7 +103,7 @@ class ForkTest(ParticlTestFramework):
 
 
         node0_chain = []
-        for k in range(1, nBlocksLongerChain+1):
+        for k in range(1, nBlocksLongerChain + 1):
             try:
                 ro = nodes[0].getblockhash(k)
             except JSONRPCException as e:
