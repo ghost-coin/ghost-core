@@ -55,6 +55,9 @@
 - rpc: Include null votes in votehistory current/future results.
 - qt: Disable balance type combo boxes on the send dialog when wallet is linked to a hardware wallet.
 - smsg: Fix duplicate tx entry when funding paid smsg.
+- wallet: sendtypeto accepts an extkey as stakeaddress.
+- wallet: Fixed multiple provisional derivations from the same extkey.
+- rpc: extkey options can set num_derives and num_derives_hardened.
 
 
 0.19.2.12
