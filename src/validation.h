@@ -1007,7 +1007,7 @@ public:
     [[nodiscard]] bool ActivateSnapshot(
         CAutoFile& coins_file, const SnapshotMetadata& metadata, bool in_memory);
 
-    bool HaveActiveChainstate() const { return m_active_chainstate; };
+    bool HaveActiveChainstate() const EXCLUSIVE_LOCKS_REQUIRED(::cs_main) { return m_active_chainstate; };
     //! The most-work chain.
     CChainState& ActiveChainstate() const;
     CChain& ActiveChain() const { return ActiveChainstate().m_chain; }

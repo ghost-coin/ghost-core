@@ -632,7 +632,6 @@ static int ManageExtKey(CStoredExtKey &sek, std::string &sOptName, std::string &
                 sek.nFlags &= ~EAF_RECEIVE_ON;
             }
         }
-
         result.pushKV("receive_on", (sek.nFlags & EAF_RECEIVE_ON) ? "true" : "false");
     } else
     if (sOptName == "look_ahead") {
@@ -659,11 +658,29 @@ static int ManageExtKey(CStoredExtKey &sek, std::string &sOptName, std::string &
         } else {
             result.pushKV("look_ahead", "default");
         }
+    } else
+    if (sOptName == "num_derives") {
+        uint32_t v;
+        if (!ParseUInt32(sOptValue, &v)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed: invalid number.");
+        }
+        sek.nGenerated = v;
+        result.pushKV("num_derives", (int)sek.nGenerated);
+    } else
+    if (sOptName == "num_derives_hardened") {
+        uint32_t v;
+        if (!ParseUInt32(sOptValue, &v)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Failed: invalid number.");
+        }
+        sek.nHGenerated = v;
+        result.pushKV("num_derives_hardened", (int)sek.nHGenerated);
     } else {
         // List all possible
         result.pushKV("label", sek.sLabel);
         result.pushKV("active", (sek.nFlags & EAF_ACTIVE) ? "true" : "false");
         result.pushKV("receive_on", (sek.nFlags & EAF_RECEIVE_ON) ? "true" : "false");
+        result.pushKV("num_derives", (int)sek.nGenerated);
+        result.pushKV("num_derives_hardened", (int)sek.nHGenerated);
 
         mapEKValue_t::iterator itV = sek.mapValue.find(EKVT_N_LOOKAHEAD);
         if (itV != sek.mapValue.end()) {
@@ -1036,7 +1053,6 @@ static RPCHelpMan extkey()
             if (GetBool(request.params[nParamOffset])) {
                 nListFull = 2;
             }
-
             nParamOffset++;
         }
 
@@ -1082,7 +1098,6 @@ static RPCHelpMan extkey()
             if (GetBool(request.params[nParamOffset])) {
                 nListFull = 2;
             }
-
             nParamOffset++;
         }
 
@@ -5159,35 +5174,19 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
         if (obj.exists("stakeaddress")) {
             if (typeOut != OUTPUT_STANDARD) {
-                throw std::runtime_error("\"stakeaddress\" only works for standard outputs.");
+                throw std::runtime_error("\"stakeaddress\" is only valid for standard outputs.");
             }
             CTempRecipient &r = vecSend.back();
             str_stake_address = obj["stakeaddress"].get_str();
             if (!IsValidDestinationString(str_stake_address, true)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "\"stakeaddress\" is invalid");
             }
-            CTxDestination destStake = DecodeDestination(str_stake_address, true);
-            CTxDestination destSpend = address.Get();
-            if (destSpend.index() == DI::_PKHash) {
+            r.addressColdStaking = DecodeDestination(str_stake_address, true);
+            if (r.address.index() == DI::_PKHash) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid addrspend, can't be p2pkh.");
             }
-            CScript scriptTrue = GetScriptForDestination(destStake);
-            CScript scriptFalse = GetScriptForDestination(destSpend);
-            if (scriptTrue.size() == 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid stake destination.");
-            }
-            if (scriptFalse.size() == 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend destination.");
-            }
-
-            r.scriptPubKey = CScript() << OP_ISCOINSTAKE << OP_IF;
-            r.scriptPubKey.append(scriptTrue);
-            r.scriptPubKey << OP_ELSE;
-            r.scriptPubKey.append(scriptFalse);
-            r.scriptPubKey << OP_ENDIF;
-            r.fScriptSet = true;
         } else
-        if (obj.exists("script")) {\
+        if (obj.exists("script")) {
             if (typeOut != OUTPUT_STANDARD) {
                 throw std::runtime_error("TODO: Currently setting a script only works for standard outputs.");
             }

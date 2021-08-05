@@ -671,7 +671,7 @@ class WalletParticlTest(ParticlTestFramework):
         #sAddrStake = sHardenedAddr
         sAddrStake = 'pomrQeo26xVLV5pnuDYkTUYuABFuP13HHE'
         sAddrSpend = 'tpl1vj4wplpq9ct7zmms3tvpr5dah84txlffz9sp5s5w4c7dhh6hvqus29mjpy'
-        jsonInput = {'recipe':'ifcoinstake', 'addrstake':sAddrStake, 'addrspend':sAddrSpend}
+        jsonInput = {'recipe': 'ifcoinstake', 'addrstake': sAddrStake, 'addrspend': sAddrSpend}
 
         ro = nodes[0].buildscript(jsonInput)
         scriptHex = ro['hex']

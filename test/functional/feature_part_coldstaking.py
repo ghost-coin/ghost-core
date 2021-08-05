@@ -53,6 +53,7 @@ class ColdStakingTest(ParticlTestFramework):
             coldstakingaddr = c['chain']
             break
         assert(coldstakingaddr == 'pparszNYZ1cpWxnNiYLgR193XoZMaJBXDkwyeQeQvThTJKjz3sgbR4NjJT3bqAiHBk7Bd5PBRzEqMiHvma9BG6i9qH2iEf4BgYvfr5v3DaXEayNE')
+        coldstakingaddr_ext = coldstakingaddr
 
         changeaddress = {'coldstakingaddress': coldstakingaddr}
         ro = nodes[0].walletsettings('changeaddress', changeaddress)
@@ -323,23 +324,56 @@ class ColdStakingTest(ParticlTestFramework):
             assert(dtx['vout'][n_change]['scriptPubKey']['addresses'][0] == ms_addr)
             stake_addr = dtx['vout'][n_change]['scriptPubKey']['stakeaddresses'][0]
             stake_addr_alt = nodes[0].validateaddress(stake_addr, True)['stakeonly_address']
-            print('coldstakingaddr', coldstakingaddr)
-            print('stake_addr_alt', stake_addr_alt)
-            print('stake_addr', stake_addr)
             assert(stake_addr_alt == coldstakingaddr)
 
-        # Test sendtypeto shortcut
+        self.log.info('Test sendtypeto with addrstake')
         addrSpend = nodes[0].getnewaddress('addrSpend', 'false', 'false', 'true')
         toScript = nodes[0].buildscript({'recipe': 'ifcoinstake', 'addrstake': coldstakingaddr, 'addrspend': addrSpend})
-        rv = nodes[0].sendtypeto('part', 'part', [{'address': addrSpend, 'amount': 1, 'stakeaddress': coldstakingaddr}], '', '', 5, 1, True, {'show_hex': True})
+        rv = nodes[0].sendtypeto('part', 'part', [{'address': addrSpend, 'amount': 1, 'stakeaddress': coldstakingaddr}], '', '', 5, 1, True, {'show_hex': True, 'test_mempool_accept': True})
         tx = nodes[0].decoderawtransaction(rv['hex'])
-
         found = False
         for output in tx['vout']:
             if output['scriptPubKey']['hex'] == toScript['hex']:
                 found = True
                 break
         assert(found)
+
+        # coldstakingaddr_ext should be used for the change, spend and stake and destination outputs
+        changeaddress = {'coldstakingaddress': coldstakingaddr_ext, 'address_standard': coldstakingaddr_ext}
+        ro = nodes[0].walletsettings('changeaddress', changeaddress)
+        assert(ro['changeaddress']['coldstakingaddress'] == coldstakingaddr_ext)
+        assert(ro['changeaddress']['address_standard'] == coldstakingaddr_ext)
+
+        rv = nodes[0].extkey('key', coldstakingaddr_ext)
+        num_derives_before = int(rv['num_derives'])
+
+        addrs_count = {}
+        expect_address = nodes[0].deriverangekeys(num_derives_before, num_derives_before + 2, coldstakingaddr_ext)
+        addrs_count[expect_address[0]] = 0
+        addrs_count[expect_address[2]] = 0
+        expect_address_256 = nodes[0].deriverangekeys(num_derives_before + 1, num_derives_before + 1, coldstakingaddr_ext, False, False, False, True)
+        addrs_count[expect_address_256[0]] = 0
+
+        rv = nodes[0].sendtypeto('part', 'part', [{'address': addrSpend, 'amount': 1, 'stakeaddress': coldstakingaddr_ext}], '', '', 5, 1, False, {'show_hex': True, 'test_mempool_accept': True})
+        tx = nodes[0].decoderawtransaction(rv['hex'])
+        for output in tx['vout']:
+            for a in addrs_count.keys():
+                if output['scriptPubKey']['addresses'][0] == a:
+                    addrs_count[a] += 1
+                if output['scriptPubKey']['stakeaddresses'][0] == a:
+                    addrs_count[a] += 1
+        for k, v in addrs_count.items():
+            assert(v == 1)
+
+        rv = nodes[0].extkey('key', coldstakingaddr_ext)
+        num_derives_after = int(rv['num_derives'])
+        assert(num_derives_after == num_derives_before + 3)
+
+        nodes[0].extkey('options', coldstakingaddr_ext, 'num_derives', '111')
+        nodes[0].extkey('options', coldstakingaddr_ext, 'num_derives_hardened', '112')
+        rv = nodes[0].extkey('key', coldstakingaddr_ext)
+        assert(int(rv['num_derives']) == 111)
+        assert(int(rv['num_derives_hardened']) == 112)
 
 
 if __name__ == '__main__':

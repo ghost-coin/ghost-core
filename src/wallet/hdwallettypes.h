@@ -218,8 +218,8 @@ public:
     bool fSubtractFeeFromAmount = false;
     bool fSplitBlindOutput = false;
     bool fExemptFeeSub = false;         // Value too low to sub fee when blinded value split into two outputs
-    CTxDestination address;
-    CTxDestination addressColdStaking;
+    CTxDestination address{CNoDestination()};
+    CTxDestination addressColdStaking{CNoDestination()};
     CScript scriptPubKey;
     std::vector<uint8_t> vData;
     std::vector<uint8_t> vBlind;
