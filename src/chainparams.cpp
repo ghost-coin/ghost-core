@@ -492,8 +492,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 709632; // Approximately November 12th, 2021
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000c1b323bcb34609042d");
-        consensus.defaultAssumeValid = uint256S("0x43c3d5568f3b3467e5142f86445d5b12b923e3e5c4a1e6566d90a7fad807799c"); // 962370
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000c88e750b04ef441449");
+        consensus.defaultAssumeValid = uint256S("0xea97054e60558199d5c94627116fbfa9f3be1c63d45510963d1a308fe152974b"); // 992790
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -598,14 +598,15 @@ public:
                 { 856749,   uint256S("0x6b705dbf87345594314152841212a532753f11ec711ac81afc64f31eb048df19")},
                 { 887180,   uint256S("0xf9f1e91f82e73d4781052e42c8b814b8265e0929d4c16284db3feb354bfc317c")},
                 { 962370,   uint256S("0x43c3d5568f3b3467e5142f86445d5b12b923e3e5c4a1e6566d90a7fad807799c")},
+                { 992790,   uint256S("0xea97054e60558199d5c94627116fbfa9f3be1c63d45510963d1a308fe152974b")},
             }
         };
 
         chainTxData = ChainTxData {
-            // Data from rpc: getchaintxstats 4096 43c3d5568f3b3467e5142f86445d5b12b923e3e5c4a1e6566d90a7fad807799c
-            /* nTime    */ 1624313264,
-            /* nTxCount */ 1142009,
-            /* dTxRate  */ 0.008
+            // Data from rpc: getchaintxstats 4096 ea97054e60558199d5c94627116fbfa9f3be1c63d45510963d1a308fe152974b
+            /* nTime    */ 1628237328,
+            /* nTxCount */ 1176142,
+            /* dTxRate  */ 0.01
         };
     }
 
@@ -686,8 +687,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000011cd51a934ec46aa41");
-        consensus.defaultAssumeValid = uint256S("0xe2e1880d525c93e24ca2d0d494fe78624ad28c4ce778f987504582b7404bcb71"); // 909640
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000012c75dd4368d68ff58");
+        consensus.defaultAssumeValid = uint256S("0xa7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31"); // 940090
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -771,13 +772,14 @@ public:
                 {728858, uint256S("0xd71157e5a929a2aba06b23566932ffaba05d1a063b2ab71d2807b8e2efcf765c")},
                 {808059, uint256S("0x89de981a2cca262ae52ff5e69a0915c9083fb7cd4aba44e39f83c12a6b6602a9")},
                 {909640, uint256S("0xe2e1880d525c93e24ca2d0d494fe78624ad28c4ce778f987504582b7404bcb71")},
+                {940090, uint256S("0xa7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31")},
             }
         };
 
         chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 e2e1880d525c93e24ca2d0d494fe78624ad28c4ce778f987504582b7404bcb71
-            /* nTime    */ 1624313424,
-            /* nTxCount */ 969023,
+            // Data from rpc: getchaintxstats 4096 a7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31
+            /* nTime    */ 1628236944,
+            /* nTxCount */ 1000837,
             /* dTxRate  */ 0.007
         };
     }
