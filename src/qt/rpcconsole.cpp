@@ -36,6 +36,7 @@
 #endif
 
 #include <QAbstractButton>
+#include <QAbstractItemModel>
 #include <QDateTime>
 #include <QFont>
 #include <QKeyEvent>
@@ -529,6 +530,8 @@ RPCConsole::RPCConsole(interfaces::Node& node, const PlatformStyle *_platformSty
     //: Secondary shortcut to decrease the RPC console font size.
     GUIUtil::AddButtonShortcut(ui->fontSmallerButton, tr("Ctrl+_"));
 
+    ui->promptIcon->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/prompticon")));
+
     // Install event filter for up and down arrow
     ui->lineEdit->installEventFilter(this);
     ui->lineEdit->setMaxLength(16 * 1024 * 1024);
@@ -684,7 +687,7 @@ void RPCConsole::setClientModel(ClientModel *model, int bestblock_height, int64_
 
         // peer table signal handling - update peer details when selecting new node
         connect(ui->peerWidget->selectionModel(), &QItemSelectionModel::selectionChanged, this, &RPCConsole::updateDetailWidget);
-        connect(model->getPeerTableModel(), &PeerTableModel::changed, this, &RPCConsole::updateDetailWidget);
+        connect(model->getPeerTableModel(), &QAbstractItemModel::dataChanged, [this] { updateDetailWidget(); });
 
         // set up ban table
         ui->banlistWidget->setModel(model->getBanTableModel());
@@ -882,7 +885,6 @@ void RPCConsole::keyPressEvent(QKeyEvent *event)
 
 void RPCConsole::changeEvent(QEvent* e)
 {
-#ifdef Q_OS_MACOS
     if (e->type() == QEvent::PaletteChange) {
         ui->clearButton->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/remove")));
         ui->fontBiggerButton->setIcon(platformStyle->SingleColorIcon(QStringLiteral(":/icons/fontbigger")));
@@ -896,7 +898,8 @@ void RPCConsole::changeEvent(QEvent* e)
                 platformStyle->SingleColorImage(ICON_MAPPING[i].source).scaled(QSize(consoleFontSize * 2, consoleFontSize * 2), Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
         }
     }
-#endif
+
+    QWidget::changeEvent(e);
 }
 
 void RPCConsole::message(int category, const QString &message, bool html)

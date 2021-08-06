@@ -35,6 +35,7 @@
     </message>
     <message>
         <location line="+3"/>
+        <location filename="../addressbookpage.cpp" line="+125"/>
         <source>&amp;Verify</source>
         <translation type="unfinished"></translation>
     </message>
@@ -65,11 +66,12 @@
     </message>
     <message>
         <location line="-47"/>
+        <location filename="../addressbookpage.cpp" line="-3"/>
         <source>&amp;Delete</source>
         <translation>&amp;Delete</translation>
     </message>
     <message>
-        <location filename="../addressbookpage.cpp" line="+84"/>
+        <location filename="../addressbookpage.cpp" line="-38"/>
         <source>Choose the address to send coins to</source>
         <translation type="unfinished"></translation>
     </message>
@@ -106,31 +108,21 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
     </message>
     <message>
         <location line="+8"/>
-        <source>Copy Address</source>
+        <source>&amp;Copy Address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy Label</source>
+        <source>Copy &amp;Label</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Edit</source>
+        <source>&amp;Edit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Delete</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
-        <source>Verify</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+187"/>
+        <location line="+193"/>
         <source>Export Address List</source>
         <translation type="unfinished"></translation>
     </message>
@@ -367,7 +359,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
 <context>
     <name>BitcoinGUI</name>
     <message>
-        <location filename="../bitcoingui.cpp" line="+250"/>
+        <location filename="../bitcoingui.cpp" line="+254"/>
         <source>&amp;Overview</source>
         <translation>&amp;Overview</translation>
     </message>
@@ -482,7 +474,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+403"/>
+        <location line="+418"/>
         <source>%n active connection(s) to Particl network.</source>
         <extracomment>A substring of the tooltip.</extracomment>
         <translation type="unfinished">
@@ -497,7 +489,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+414"/>
+        <location line="+412"/>
         <source>Wallet is &lt;b&gt;encrypted&lt;/b&gt; and currently &lt;b&gt;unlocked&lt;/b&gt; for staking only</source>
         <translation type="unfinished"></translation>
     </message>
@@ -507,7 +499,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1139"/>
+        <location line="-1152"/>
         <source>Backup wallet to another location</source>
         <translation>Backup wallet to another location</translation>
     </message>
@@ -622,7 +614,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation>Tabs toolbar</translation>
     </message>
     <message>
-        <location line="+470"/>
+        <location line="+485"/>
         <source>Syncing Headers (%1%)…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -652,7 +644,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-749"/>
+        <location line="-764"/>
         <source>Show the list of used sending addresses and labels</source>
         <translation type="unfinished"></translation>
     </message>
@@ -667,7 +659,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location line="+736"/>
+        <location line="+751"/>
         <source>Processed %n block(s) of transaction history.</source>
         <translation>
             <numerusform>Processed %n block of transaction history.</numerusform>
@@ -715,7 +707,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation>Up to date</translation>
     </message>
     <message>
-        <location line="-769"/>
+        <location line="-784"/>
         <source>Node window</source>
         <translation type="unfinished"></translation>
     </message>
@@ -795,7 +787,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+259"/>
+        <location line="+274"/>
         <source>%1 client</source>
         <translation type="unfinished"></translation>
     </message>
@@ -834,7 +826,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+127"/>
+        <location line="+125"/>
         <source>Date: %1
 </source>
         <translation type="unfinished"></translation>
@@ -1013,34 +1005,38 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished">Confirmed</translation>
     </message>
     <message>
-        <location filename="../coincontroldialog.cpp" line="+56"/>
-        <source>Copy address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Copy label</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <location line="+9"/>
+        <location filename="../coincontroldialog.cpp" line="+67"/>
         <source>Copy amount</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-8"/>
-        <source>Copy transaction ID</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+2"/>
-        <source>Lock unspent</source>
+        <location line="-11"/>
+        <source>&amp;Copy address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Unlock unspent</source>
+        <source>Copy &amp;label</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy &amp;amount</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy transaction &amp;ID</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>L&amp;ock unspent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>&amp;Unlock unspent</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1166,18 +1162,23 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
 <context>
     <name>CreateWalletActivity</name>
     <message>
-        <location filename="../walletcontroller.cpp" line="+255"/>
+        <location filename="../walletcontroller.cpp" line="+256"/>
         <source>Creating Wallet &lt;b&gt;%1&lt;/b&gt;…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+32"/>
         <source>Create wallet failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Create wallet warning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <source>Can&apos;t list signers</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1244,13 +1245,29 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../createwalletdialog.cpp" line="+23"/>
+        <location line="+7"/>
+        <source>Use an external signing device such as a hardware wallet. Configure the external signer script in wallet preferences first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>External signer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../createwalletdialog.cpp" line="+24"/>
         <source>Create</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+48"/>
+        <location line="+74"/>
         <source>Compiled without sqlite support (required for descriptor wallets)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+14"/>
+        <source>Compiled without external signing support (required for external signing)</source>
+        <extracomment>&quot;External signing&quot; means using devices such as hardware wallets.</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1785,7 +1802,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
 <context>
     <name>OpenWalletActivity</name>
     <message>
-        <location filename="../walletcontroller.cpp" line="+39"/>
+        <location filename="../walletcontroller.cpp" line="+32"/>
         <source>Open wallet failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1863,7 +1880,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+30"/>
+        <location line="+60"/>
         <source>Automatically open the Particl client port on the router. This only works when your router supports UPnP and it is enabled.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1937,7 +1954,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation>&amp;Network</translation>
     </message>
     <message>
-        <location line="-208"/>
+        <location line="-238"/>
         <source>Prune &amp;block storage to</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1987,7 +2004,22 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+30"/>
+        <source>External Signer (e.g. hardware wallet)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>&amp;External signer script path</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Full path to a Bitcoin Core compatible script (e.g. C:\Downloads\hwi.exe or /Users/you/Downloads/hwi.py). Beware: malware can steal your coins!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+35"/>
         <source>Map port using &amp;UPnP</source>
         <translation>Map port using &amp;UPnP</translation>
     </message>
@@ -2110,12 +2142,12 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation>Choose the default subdivision unit to show in the interface and when sending coins.</translation>
     </message>
     <message>
-        <location line="-483"/>
+        <location line="-513"/>
         <source>Whether to show coin control features or not.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+283"/>
+        <location line="+313"/>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2155,7 +2187,13 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation>&amp;Cancel</translation>
     </message>
     <message>
-        <location filename="../optionsdialog.cpp" line="+104"/>
+        <location filename="../optionsdialog.cpp" line="+97"/>
+        <source>Compiled without external signing support (required for external signing)</source>
+        <extracomment>&quot;External signing&quot; means using devices such as hardware wallets.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+12"/>
         <source>default</source>
         <translation>default</translation>
     </message>
@@ -2165,7 +2203,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+96"/>
+        <location line="+98"/>
         <source>Confirm options reset</source>
         <translation>Confirm options reset</translation>
     </message>
@@ -2346,7 +2384,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../overviewpage.cpp" line="+193"/>
+        <location filename="../overviewpage.cpp" line="+187"/>
         <source>Privacy mode activated for the Overview tab. To unmask the values, uncheck Settings-&gt;Mask values.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2552,7 +2590,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
 <context>
     <name>PeerTableModel</name>
     <message>
-        <location filename="../peertablemodel.h" line="+101"/>
+        <location filename="../peertablemodel.h" line="+104"/>
         <source>User Agent</source>
         <extracomment>Title of Peers Table column which contains the peer&apos;s User Agent string.</extracomment>
         <translation type="unfinished"></translation>
@@ -2768,7 +2806,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../bitcoin.cpp" line="+111"/>
+        <location filename="../bitcoin.cpp" line="+112"/>
         <source>Error: Specified data directory &quot;%1&quot; does not exist.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2802,12 +2840,12 @@ If you are receiving this error you should request the merchant provide a BIP21 
     <name>QRImageWidget</name>
     <message>
         <location filename="../qrimagewidget.cpp" line="+30"/>
-        <source>Save Image…</source>
+        <source>&amp;Save Image…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy Image</source>
+        <source>&amp;Copy Image</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2851,7 +2889,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <location line="+23"/>
         <location line="+36"/>
         <location line="+23"/>
-        <location line="+722"/>
+        <location line="+692"/>
         <location line="+26"/>
         <location line="+26"/>
         <location line="+23"/>
@@ -2874,12 +2912,12 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <location line="+23"/>
         <location line="+23"/>
         <location line="+26"/>
-        <location filename="../rpcconsole.h" line="+138"/>
+        <location filename="../rpcconsole.h" line="+139"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
     <message>
-        <location line="-1549"/>
+        <location line="-1519"/>
         <source>Client version</source>
         <translation>Client version</translation>
     </message>
@@ -2920,12 +2958,12 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <location line="+29"/>
-        <location line="+922"/>
+        <location line="+892"/>
         <source>Network</source>
         <translation>Network</translation>
     </message>
     <message>
-        <location line="-915"/>
+        <location line="-885"/>
         <source>Name</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2965,7 +3003,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+241"/>
+        <location line="+211"/>
         <source>&amp;Reset</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2993,7 +3031,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <location line="+68"/>
-        <location filename="../rpcconsole.cpp" line="+1091"/>
+        <location filename="../rpcconsole.cpp" line="+1125"/>
         <source>Select a peer to view detailed information.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3028,13 +3066,13 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1516"/>
-        <location line="+1081"/>
+        <location line="-1486"/>
+        <location line="+1051"/>
         <source>User Agent</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1155"/>
+        <location line="-1125"/>
         <source>Node window</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3049,17 +3087,17 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+84"/>
+        <location line="+78"/>
         <source>Decrease font size</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+32"/>
+        <location line="+20"/>
         <source>Increase font size</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+558"/>
+        <location line="+546"/>
         <source>Permissions</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3164,7 +3202,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-1288"/>
+        <location line="-1258"/>
         <source>Last block time</source>
         <translation>Last block time</translation>
     </message>
@@ -3179,7 +3217,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation>&amp;Console</translation>
     </message>
     <message>
-        <location line="+217"/>
+        <location line="+187"/>
         <source>&amp;Network Traffic</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3199,12 +3237,12 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../forms/debugwindow.ui" line="-321"/>
+        <location filename="../forms/debugwindow.ui" line="-291"/>
         <source>Debug log file</source>
         <translation>Debug log file</translation>
     </message>
     <message>
-        <location line="+155"/>
+        <location line="+125"/>
         <source>Clear console</source>
         <translation>Clear console</translation>
     </message>
@@ -3234,12 +3272,12 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+38"/>
+        <location line="+40"/>
         <source>Never</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../rpcconsole.cpp" line="-417"/>
+        <location filename="../rpcconsole.cpp" line="-429"/>
         <source>Inbound: initiated by peer</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3308,7 +3346,37 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+385"/>
+        <location line="+150"/>
+        <source>&amp;Disconnect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>1 &amp;hour</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>1 d&amp;ay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>1 &amp;week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>1 &amp;year</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+22"/>
+        <source>&amp;Unban</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+221"/>
         <source>Network activity disabled</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3323,37 +3391,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-319"/>
-        <source>Disconnect</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>1 hour</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>1 day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>1 week</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>1 year</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+19"/>
-        <source>Unban</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+150"/>
+        <location line="-146"/>
         <source>Welcome to the %1 RPC console.
 Use up and down arrows to navigate history, and %2 to clear screen.
 Use %3 and %4 to increase or decrease the font size.
@@ -3381,7 +3419,7 @@ For more information on using this console, type %6.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../rpcconsole.h" line="-38"/>
+        <location filename="../rpcconsole.h" line="-40"/>
         <source>Unknown</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3506,27 +3544,27 @@ For more information on using this console, type %6.
     </message>
     <message>
         <location filename="../receivecoinsdialog.cpp" line="+47"/>
-        <source>Copy URI</source>
+        <source>Copy &amp;URI</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy address</source>
+        <source>&amp;Copy address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy label</source>
+        <source>Copy &amp;label</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy message</source>
+        <source>Copy &amp;message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy amount</source>
+        <source>Copy &amp;amount</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3584,6 +3622,16 @@ For more information on using this console, type %6.
     </message>
     <message>
         <location line="+10"/>
+        <source>&amp;Verify</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Verify this address on e.g. a hardware wallet screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+10"/>
         <source>&amp;Save Image…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3593,7 +3641,7 @@ For more information on using this console, type %6.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../forms/receiverequestdialog.ui" line="-221"/>
+        <location filename="../forms/receiverequestdialog.ui" line="-234"/>
         <source>Payment information</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3640,7 +3688,7 @@ For more information on using this console, type %6.
     <name>SendCoinsDialog</name>
     <message>
         <location filename="../forms/sendcoinsdialog.ui" line="+14"/>
-        <location filename="../sendcoinsdialog.cpp" line="+934"/>
+        <location filename="../sendcoinsdialog.cpp" line="+998"/>
         <source>Send Coins</source>
         <translation>Send Coins</translation>
     </message>
@@ -3875,7 +3923,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation>S&amp;end</translation>
     </message>
     <message>
-        <location filename="../sendcoinsdialog.cpp" line="-832"/>
+        <location filename="../sendcoinsdialog.cpp" line="-896"/>
         <source>Copy quantity</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3915,7 +3963,24 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+30"/>
+        <source>Sign on device</source>
+        <extracomment>&quot;device&quot; usually means a hardware wallet</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Connect your hardware wallet first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Set external signer script path in Options -&gt; Wallet</source>
+        <extracomment>&quot;External signer&quot; means using devices such as hardware wallets.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Cr&amp;eate Unsigned</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3950,12 +4015,12 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>Private keys disabled.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+15"/>
+        <location line="+17"/>
         <source>Estimated Transaction fee</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3985,12 +4050,22 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+610"/>
+        <location line="+0"/>
+        <source>Sign and send</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+663"/>
         <source>Warning: Invalid Particl address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-647"/>
+        <location line="-293"/>
+        <source>External balance:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="-407"/>
         <source>or</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4025,12 +4100,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Send</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+320"/>
+        <location line="+374"/>
         <source>Watch-only balance:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4995,57 +5065,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+77"/>
-        <source>Abandon transaction</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-3"/>
-        <source>Increase transaction fee</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-8"/>
-        <source>Copy address</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Copy label</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Copy amount</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Copy transaction ID</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Copy raw transaction</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Copy full transaction details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>Edit address label</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-6"/>
-        <source>Show transaction details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-99"/>
+        <location line="-27"/>
         <source>Range…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5055,7 +5075,57 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+261"/>
+        <location line="+75"/>
+        <source>&amp;Copy address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy &amp;label</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy &amp;amount</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy transaction &amp;ID</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy &amp;raw transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Copy full transaction &amp;details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>&amp;Show transaction details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Increase transaction &amp;fee</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>A&amp;bandon transaction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>&amp;Edit address label</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+174"/>
         <source>Export Transaction History</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5142,7 +5212,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
 <context>
     <name>WalletController</name>
     <message>
-        <location filename="../walletcontroller.cpp" line="-253"/>
+        <location filename="../walletcontroller.cpp" line="-265"/>
         <source>Close wallet</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5170,7 +5240,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of &quot;100 
 <context>
     <name>WalletFrame</name>
     <message>
-        <location filename="../walletframe.cpp" line="+39"/>
+        <location filename="../walletframe.cpp" line="+35"/>
         <source>No wallet has been loaded.
 Go to File &gt; Open Wallet to load a wallet.
 - OR -</source>
@@ -5260,7 +5330,12 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+14"/>
+        <source>Can&apos;t display address</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+23"/>
         <source>default wallet</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5405,6 +5480,11 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+5"/>
+        <source>Error: Legacy wallets only support the &quot;legacy&quot;, &quot;p2sh-segwit&quot;, and &quot;bech32&quot; address types</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Error: Listening for incoming connections failed (listen returned error %s)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5510,11 +5590,6 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+3"/>
-        <source>Transaction needs a change address, but we can&apos;t generate it. Please call keypoolrefill first.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+3"/>
         <source>Unable to replay blocks. You will need to rebuild the database using -reindex-chainstate.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5594,12 +5669,12 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source>Failed to rebuild rolling indices by rewinding the chain, a reindex is required.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+82"/>
+        <location line="+79"/>
         <source>You need to rebuild the database using -reindex to change -balancesindex</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5772,6 +5847,11 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <location line="+1"/>
         <source>Error: Missing checksum</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Error: No %s addresses available.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -6151,6 +6231,11 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+1"/>
+        <source>Transaction needs a change address, but we can&apos;t generate it. %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Transaction too large</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6221,11 +6306,16 @@ Go to File &gt; Open Wallet to load a wallet.
     </message>
     <message>
         <location line="+1"/>
+        <source>Unknown new rules activated (versionbit %i)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Unsupported logging category %s=%s.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+6"/>
         <source>You need to rebuild the database using -reindex to change -addressindex</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6235,7 +6325,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-7"/>
+        <location line="-6"/>
         <source>Upgrading txindex database</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6257,11 +6347,6 @@ Go to File &gt; Open Wallet to load a wallet.
     <message>
         <location line="+1"/>
         <source>Wallet needed to be rewritten: restart %s to complete</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Warning: unknown new rules activated (versionbit %i)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

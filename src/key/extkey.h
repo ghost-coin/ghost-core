@@ -80,6 +80,10 @@ struct CExtPubKey {
         return a.nDepth == b.nDepth && memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], 4) == 0 && a.nChild == b.nChild &&
                memcmp(&a.chaincode[0], &b.chaincode[0], 32) == 0 && a.pubkey == b.pubkey;
     }
+    friend bool operator!=(const CExtPubKey &a, const CExtPubKey &b)
+    {
+        return !(a == b);
+    }
     friend bool operator < (const CExtPubKey &a, const CExtPubKey &b)
     {
         return a.nDepth < b.nDepth || memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], 4) < 0 || a.nChild < b.nChild

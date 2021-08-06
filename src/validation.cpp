@@ -779,9 +779,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     // Check for non-standard pay-to-script-hash in inputs
-    const auto& params = args.m_chainparams.GetConsensus();
-    auto taproot_state = VersionBitsState(m_active_chainstate.m_chain.Tip(), params, Consensus::DEPLOYMENT_TAPROOT, versionbitscache);
-    if (fRequireStandard && !AreInputsStandard(tx, m_view, taproot_state == ThresholdState::ACTIVE, nAcceptTime)) {
+    const bool taproot_active = DeploymentActiveAfter(m_active_chainstate.m_chain.Tip(), args.m_chainparams.GetConsensus(), Consensus::DEPLOYMENT_TAPROOT);
+    if (fRequireStandard && !AreInputsStandard(tx, m_view, taproot_active, nAcceptTime)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
 
@@ -1989,22 +1988,6 @@ void StopScriptCheckWorkerThreads()
     scriptcheckqueue.StopWorkerThreads();
 }
 
-VersionBitsCache versionbitscache;
-
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params)
-{
-    int32_t nVersion = VERSIONBITS_TOP_BITS;
-
-    for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
-        ThresholdState state = VersionBitsState(pindexPrev, params, static_cast<Consensus::DeploymentPos>(i), versionbitscache);
-        if (state == ThresholdState::LOCKED_IN || state == ThresholdState::STARTED) {
-            nVersion |= VersionBitsMask(params, static_cast<Consensus::DeploymentPos>(i));
-        }
-    }
-
-    return nVersion;
-}
-
 /**
  * Threshold condition checker that triggers when unknown versionbits are seen on the network.
  */
@@ -2026,7 +2009,7 @@ public:
         return pindex->nHeight >= params.MinBIP9WarningHeight &&
                ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
                ((pindex->nVersion >> bit) & 1) != 0 &&
-               ((ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
+               ((g_versionbitscache.ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
     }
 };
 
@@ -2079,8 +2062,8 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
     }
 
-    // Start enforcing Taproot using versionbits logic.
-    if (VersionBitsState(pindex->pprev, consensusparams, Consensus::DEPLOYMENT_TAPROOT, versionbitscache) == ThresholdState::ACTIVE) {
+    // Enforce Taproot (BIP340-BIP342)
+    if (DeploymentActiveAt(*pindex, consensusparams, Consensus::DEPLOYMENT_TAPROOT)) {
         flags |= SCRIPT_VERIFY_TAPROOT;
     }
 
@@ -5362,7 +5345,7 @@ void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman)
     nLastBlockFile = 0;
     setDirtyBlockIndex.clear();
     setDirtyFileInfo.clear();
-    versionbitscache.Clear();
+    g_versionbitscache.Clear();
     for (int b = 0; b < VERSIONBITS_NUM_BITS; b++) {
         warningcache[b].clear();
     }
