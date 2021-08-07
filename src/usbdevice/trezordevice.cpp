@@ -1162,7 +1162,7 @@ bool CTrezorDevice::HavePrevTxn(const uint256 &txid)
 
 int CTrezorDevice::AddPrevTxn(CTransactionRef tx)
 {
-    m_tx_cache.emplace(tx->GetHash(), *tx);
+    m_tx_cache[tx->GetHash()] = CMutableTransaction(*tx);
     return 0;
 };
 
