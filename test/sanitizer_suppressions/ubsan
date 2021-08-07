@@ -108,6 +108,7 @@ shift-base:streams.h
 shift-base:util/bip32.cpp
 
 # Particl specific
-unsigned-integer-overflow:xxhash/xxhash.c
-implicit-signed-integer-truncation:unilib/*
-implicit-integer-sign-change:unilib/*
+unsigned-integer-overflow:xxhash/
+implicit-signed-integer-truncation:unilib/
+implicit-integer-sign-change:unilib/
+
