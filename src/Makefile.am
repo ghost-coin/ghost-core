@@ -1012,7 +1012,7 @@ EXTRA_DIST += $(libparticl_ipc_mpgen_input)
 %.capnp:
 
 if BUILD_MULTIPROCESS
-libparticl_IPC=libparticl_ipc.a
+LIBPARTICL_IPC=libparticl_ipc.a
 libparticl_ipc_a_SOURCES = \
   ipc/capnp/init-types.h \
   ipc/capnp/protocol.cpp \
