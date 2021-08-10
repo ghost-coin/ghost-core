@@ -88,7 +88,7 @@ bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
 
 const TreasuryFundSettings *CChainParams::GetTreasuryFundSettings(int64_t nTime) const
 {
-    for (auto i = vTreasuryFundSettings.rbegin(); i != vTreasuryFundSettings.rend(); ++i) {
+    for (auto i = vTreasuryFundSettings.crbegin(); i != vTreasuryFundSettings.crend(); ++i) {
         if (nTime > i->first) {
             return &i->second;
         }

@@ -52,6 +52,15 @@ Next Major Version
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.14
+==============
+
+- wallet: Add ability receive on loose extkey chains.
+  - receive_on must be active for chain.
+    - See feature_part_extkey test.
+  - New track-only mode, won't save keys or transactions, only updates child key counter.
+
+
 0.19.2.13
 ==============
 

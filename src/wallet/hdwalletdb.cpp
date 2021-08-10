@@ -296,3 +296,12 @@ bool CHDWalletDB::EraseWalletSetting(const std::string &setting)
     return EraseIC(std::make_pair(DBKeys::PART_WALLETSETTING, setting));
 };
 
+bool CHDWalletDB::ReadEKLKey(const CKeyID &id, CEKLKey &c, uint32_t nFlags)
+{
+    return m_batch->Read(std::make_pair(DBKeys::PART_LEXTKEYCK, id), c, nFlags);
+};
+
+bool CHDWalletDB::WriteEKLKey(const CKeyID &id, const CEKLKey &c)
+{
+    return WriteIC(std::make_pair(DBKeys::PART_LEXTKEYCK, id), c, true);
+};
