@@ -689,24 +689,24 @@ int CExtKeyAccount::GetKey(const CKeyID &id, CKey &keyOut, CEKAKey &ak, CKeyID &
 {
     LOCK(cs_account);
 
-    int rv = 0;
+    int rv = KS_NONE;
     AccKeyMap::const_iterator mi;
     AccKeySCMap::const_iterator miSck;
     if ((mi = mapKeys.find(id)) != mapKeys.end()) {
         ak = mi->second;
         if (!GetKey(ak, keyOut)) {
-            return 0;
+            return KS_NONE;
         }
-        rv = 1;
+        rv = KS_ACCOUNT_CHAIN;
     } else
     if ((miSck = mapStealthChildKeys.find(id)) != mapStealthChildKeys.end()) {
         idStealth = miSck->second.idStealthKey;
         if (!GetKey(miSck->second, keyOut)) {
-            return 0;
+            return KS_NONE;
         }
-        rv = 2;
+        rv = KS_STEALTH;
     } else {
-        return 0;
+        return KS_NONE;
     }
 
     if (LogAcceptCategory(BCLog::HDWALLET) && keyOut.GetPubKey().GetID() != id) {
@@ -819,8 +819,8 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKAKey &keyIn)
             }
         }
 
-        if (pc->nFlags & EAF_ACTIVE
-            && pc->nFlags & EAF_RECEIVE_ON) {
+        if (pc->IsActive() &&
+            pc->IsReceiveEnabled()) {
             AddLookAhead(keyIn.nParent, 1);
         }
     }
@@ -876,7 +876,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKASCKey &keyIn)
     return true;
 };
 
-bool CExtKeyAccount::IsLocked(const CEKAStealthKey &aks)
+bool CExtKeyAccount::IsLocked(const CEKAStealthKey &aks) const
 {
     // TODO: check aks belongs to account??
     CStoredExtKey *pc = GetChain(aks.akSpend.nParent);
@@ -978,11 +978,11 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
         uint32_t nMaxTries = 1000; // TODO: link to lookahead size
         for (uint32_t i = 0; i < nMaxTries; ++i) { // nMaxTries > lookahead pool
             if (pc->DeriveKey(pk, nChild, nChildOut, false) != 0) {
-                LogPrintf("Error: %s - DeriveKey failed, chain %d, child %d.\n", __func__, nChain, nChild);
-                nChild = nChildOut+1;
+                LogPrintf("Warning: %s - DeriveKey failed, chain %d, child %d.\n", __func__, nChain, nChild);
+                nChild = nChildOut + 1;
                 continue;
             }
-            nChild = nChildOut+1;
+            nChild = nChildOut + 1;
 
             keyId = pk.GetID();
             if ((mi = mapKeys.find(keyId)) != mapKeys.end()) {

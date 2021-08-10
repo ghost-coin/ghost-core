@@ -89,6 +89,7 @@ extern const std::string PART_FLAG;
 extern const std::string PART_LOCKEDUTXO;
 extern const std::string PART_SXADDR;
 extern const std::string PART_WALLETSETTING;
+extern const std::string PART_LEXTKEYCK;
 } // namespace DBKeys
 
 /* simple HD chain data model */

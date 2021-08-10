@@ -57,7 +57,7 @@ enum MainExtKeyTypes
     EKT_MAX_TYPES,
 };
 
-enum AccountFlagTypes
+enum ExtKeyFlagTypes
 {
     EAF_ACTIVE           = (1 << 0),
     EAF_HAVE_SECRET      = (1 << 1),
@@ -65,9 +65,12 @@ enum AccountFlagTypes
     EAF_RECEIVE_ON       = (1 << 3), // CStoredExtKey with this flag set generate look ahead keys
     EAF_IN_ACCOUNT       = (1 << 4), // CStoredExtKey is part of an account
     EAF_HARDWARE_DEVICE  = (1 << 5), // Have private key in hardware device.
+    EAF_TRACK_ONLY       = (1 << 6), // Don't store found keys or transactions if active, only update num_derives
 };
 
-enum {HK_NO = 0, HK_YES, HK_LOOKAHEAD, HK_LOOKAHEAD_DO_UPDATE};
+enum HaveKeyResult {HK_NO = 0, HK_YES, HK_LOOKAHEAD, HK_LOOKAHEAD_DO_UPDATE};
+
+enum KeySourceTypes {KS_NONE = 0, KS_ACCOUNT_CHAIN, KS_STEALTH, KS_LEGACY, KS_LOOSE_CHAIN};
 
 struct CExtPubKey {
     unsigned char nDepth;
@@ -292,15 +295,6 @@ public:
 class CStoredExtKey
 {
 public:
-    CStoredExtKey()
-    {
-        fLocked = 0;
-        nFlags = 0;
-        nGenerated = 0;
-        nHGenerated = 0;
-        nLastLookAhead = 0;
-    };
-
     std::string GetIDString58() const;
 
     CKeyID GetID() const
@@ -312,7 +306,6 @@ public:
     {
         return kp < y.kp;
     };
-
     bool operator ==(const CStoredExtKey& y) const
     {
         // Compare pubkeys instead of CExtKeyPair for speed
@@ -381,7 +374,7 @@ public:
 
     isminetype IsMine() const
     {
-        if (kp.key.IsValid() || (nFlags & EAF_IS_CRYPTED)) {
+        if (kp.key.IsValid() || IsEncrypted()) {
             return ISMINE_SPENDABLE;
         }
         if ((nFlags & EAF_HARDWARE_DEVICE)) {
@@ -392,6 +385,13 @@ public:
         }
         return ISMINE_WATCH_ONLY_;
     };
+
+    bool IsActive() const { return nFlags & EAF_ACTIVE; };
+    bool IsInAccount() const { return nFlags & EAF_IN_ACCOUNT; };
+    bool IsEncrypted() const { return nFlags & EAF_IS_CRYPTED; };
+    bool IsReceiveEnabled() const { return nFlags & EAF_RECEIVE_ON; };
+    bool IsTrackOnly() const { return nFlags & EAF_TRACK_ONLY; };
+    bool IsHardwareLinked() const { return nFlags & EAF_HARDWARE_DEVICE; };
 
     template<typename Stream>
     void Serialize(Stream &s) const
@@ -430,20 +430,41 @@ public:
 
     std::string sLabel;
 
-    uint8_t fLocked; // not part of nFlags so not saved
-    uint32_t nFlags;
-    uint32_t nGenerated;
-    uint32_t nHGenerated;
-    uint32_t nLastLookAhead; // in memory only
+    uint8_t fLocked{0}; // not part of nFlags so not saved
+    uint32_t nFlags{0};
+    uint32_t nGenerated{0};
+    uint32_t nHGenerated{0};
+    uint32_t nLastLookAhead{0}; // in memory only
 
     mapEKValue_t mapValue;
 };
 
+class CEKLKey
+{
+public:
+    CEKLKey() {};
+    CEKLKey(const CKeyID &chain_id_, uint32_t nKey_) : chain_id(chain_id_), nKey(nKey_) {};
+
+    template<typename Stream>
+    void Serialize(Stream &s) const
+    {
+        s << chain_id;
+        s << nKey;
+    }
+    template <typename Stream>
+    void Unserialize(Stream &s)
+    {
+        s >> chain_id;
+        s >> nKey;
+    }
+    CKeyID chain_id;
+    uint32_t nKey{0};
+};
 
 class CEKAKey
 {
 public:
-    CEKAKey() : nParent(0), nKey(0) {};
+    CEKAKey() {};
     CEKAKey(uint32_t nParent_, uint32_t nKey_) : nParent(nParent_), nKey(nKey_) {};
 
     template<typename Stream>
@@ -451,21 +472,20 @@ public:
     {
         s << nParent;
         s << nKey;
-        s << sLabel;
-    };
+        std::string obsolete_label;
+        s << obsolete_label;
+    }
     template <typename Stream>
     void Unserialize(Stream &s)
     {
         s >> nParent;
         s >> nKey;
-        s >> sLabel;
-    };
+        std::string obsolete_label;
+        s >> obsolete_label;
+    }
 
-    uint32_t nParent; // chain identifier, vExtKeys
-    uint32_t nKey;
-
-    //uint32_t nChecksum; // TODO: is it worth storing 4 bytes of the id (160 hash here)
-    std::string sLabel; // TODO: remove
+    uint32_t nParent{0}; // chain identifier, vExtKeys
+    uint32_t nKey{0};
 };
 
 
@@ -481,22 +501,21 @@ public:
     {
         s << idStealthKey;
         s.write((char*)sShared.begin(), EC_SECRET_SIZE);
-        s << sLabel;
-    };
+        std::string obsolete_label;
+        s << obsolete_label;
+    }
     template <typename Stream>
     void Unserialize(Stream &s)
     {
         s >> idStealthKey;
         s.read((char*)sShared.begin(), EC_SECRET_SIZE);
         sShared.SetFlags(true, true);
-        s >> sLabel;
-    };
+        std::string obsolete_label;
+        s >> obsolete_label;
+    }
     // TODO: store an offset instead of the full id of the stealth address
     CKeyID idStealthKey; // id of parent stealth key (received on)
     CKey sShared;
-
-    //uint32_t nChecksum; // TODO: is it worth storing 4 bytes of the id (160 hash here)
-    std::string sLabel; // TODO: remove
 };
 
 class CEKAStealthKey
@@ -649,6 +668,7 @@ public:
 };
 
 
+typedef std::map<CKeyID, CEKLKey> LooseKeyMap;
 typedef std::map<CKeyID, CEKAKey> AccKeyMap;
 typedef std::map<CKeyID, CEKASCKey> AccKeySCMap;
 typedef std::map<CKeyID, CEKAStealthKey> AccStealthKeyMap;
@@ -696,7 +716,7 @@ public:
     bool GetKey(const CEKAKey &ak, CKey &keyOut) const;
     bool GetKey(const CEKASCKey &asck, CKey &keyOut) const;
 
-    int GetKey(const CKeyID &id, CKey &keyOut, CEKAKey &ak, CKeyID &idStealth) const; // retuurns 1: chain, 2: stealth address
+    int GetKey(const CKeyID &id, CKey &keyOut, CEKAKey &ak, CKeyID &idStealth) const;
 
 
     bool GetPubKey(const CKeyID &id, CPubKey &pkOut) const;
@@ -706,7 +726,7 @@ public:
     bool SaveKey(const CKeyID &id, const CEKAKey &keyIn);
     bool SaveKey(const CKeyID &id, const CEKASCKey &keyIn);
 
-    bool IsLocked(const CEKAStealthKey &aks);
+    bool IsLocked(const CEKAStealthKey &aks) const;
 
     bool GetChainNum(CStoredExtKey *p, uint32_t &nChain) const
     {
@@ -909,4 +929,3 @@ std::string HDKeyIDToString(const CKeyID &id);
 std::string GetDefaultAccountPath();
 
 #endif // PARTICL_KEY_EXTKEY_H
-

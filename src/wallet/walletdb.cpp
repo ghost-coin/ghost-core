@@ -64,6 +64,7 @@ const std::string PART_FLAG{"flag"};
 const std::string PART_LOCKEDUTXO{"luo"};
 const std::string PART_SXADDR{"sxad"};
 const std::string PART_WALLETSETTING{"wset"};
+const std::string PART_LEXTKEYCK{"elck"};
 } // namespace DBKeys
 
 //

@@ -264,8 +264,21 @@ public:
     int ExtKeyLoadAccountKeys(CHDWalletDB *pwdb, CExtKeyAccount *sea) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyLoadAccount(CHDWalletDB *pwdb, const CKeyID &idAccount) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyLoadAccounts();
+    /** Load loose extkeys to memory */
+    int ExtKeyLoadLoose();
+    /** Update in-memory loose extkey */
+    int ExtKeyReload(const CStoredExtKey *sek) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    /** Prepare loose extkey lookahead
+     *  fake const for IsMine */
+    int ExtKeyAddLookAhead(CStoredExtKey *sek) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    /** Promote loose extkey lookahead key to saved key
+     *  fake const for IsMine */
+    int ExtKeyPromoteKey(CStoredExtKey *sek, uint32_t nChildKey) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     int ExtKeySaveAccountToDB(CHDWalletDB *pwdb, const CKeyID &idAccount, CExtKeyAccount *sea) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    /** Activate account in memory
+     *  add to mapExtAccounts and mapExtKeys
+     */
     int ExtKeyAddAccountToMaps(const CKeyID &idAccount, CExtKeyAccount *sea, bool fAddToLookAhead = true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyRemoveAccountFromMapsAndFree(CExtKeyAccount *sea) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyRemoveAccountFromMapsAndFree(const CKeyID &idAccount) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -494,6 +507,8 @@ public:
     CKeyID idDefaultAccount;
     ExtKeyAccountMap mapExtAccounts;
     ExtKeyMap mapExtKeys;
+    mutable LooseKeyMap mapLooseKeys;       // Keys derived from extkeys not attached to an account
+    mutable LooseKeyMap mapLooseLookAhead;
 
     mutable MapWallet_t mapTempWallet;
 

@@ -19,6 +19,7 @@ class CEKAStealthKeyPack;
 class CExtKeyAccount;
 class CStealthAddress;
 class CStoredExtKey;
+class CEKLKey;
 class uint160;
 class uint256;
 
@@ -46,6 +47,7 @@ prefixes
     eknm                - named extended key
     epak                - extended account key pack
     espk                - extended account stealth key pack
+    elck                - extended loose key child key
 
     flag                - named integer flag
 
@@ -407,6 +409,10 @@ public:
     bool ReadWalletSetting(const std::string &setting, std::string &json, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteWalletSetting(const std::string &setting, const std::string &json);
     bool EraseWalletSetting(const std::string &setting);
+
+    /** extkey chain loose child keys */
+    bool ReadEKLKey(const CKeyID &id, CEKLKey &c, uint32_t nFlags=DB_READ_UNCOMMITTED);
+    bool WriteEKLKey(const CKeyID &id, const CEKLKey &c);
 };
 
 #endif // PARTICL_WALLET_HDWALLETDB_H
