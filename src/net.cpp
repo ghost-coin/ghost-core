@@ -406,7 +406,8 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
         pszDest ? 0.0 : (double)(GetAdjustedTime() - addrConnect.nTime)/3600.0);
 
     // Resolve
-    const uint16_t default_port{Params().GetDefaultPort()};
+    const uint16_t default_port{pszDest != nullptr ? Params().GetDefaultPort(pszDest) :
+                                                     Params().GetDefaultPort()};
     if (pszDest) {
         std::vector<CService> resolved;
         if (Lookup(pszDest, resolved,  default_port, fNameLookup && !HaveNameProxy(), 256) && !resolved.empty()) {
@@ -940,14 +941,17 @@ void ProtectEvictionCandidatesByRatio(std::vector<NodeEvictionCandidate>& evicti
     size_t num_protected{0};
 
     while (num_protected < max_protect_by_network) {
+        // Count the number of disadvantaged networks from which we have peers to protect.
+        auto num_networks = std::count_if(networks.begin(), networks.end(), [](const Net& n) { return n.count; });
+        if (num_networks == 0) {
+            break;
+        }
         const size_t disadvantaged_to_protect{max_protect_by_network - num_protected};
-        const size_t protect_per_network{
-            std::max(disadvantaged_to_protect / networks.size(), static_cast<size_t>(1))};
-
+        const size_t protect_per_network{std::max(disadvantaged_to_protect / num_networks, static_cast<size_t>(1))};
         // Early exit flag if there are no remaining candidates by disadvantaged network.
         bool protected_at_least_one{false};
 
-        for (const Net& n : networks) {
+        for (Net& n : networks) {
             if (n.count == 0) continue;
             const size_t before = eviction_candidates.size();
             EraseLastKElements(eviction_candidates, CompareNodeNetworkTime(n.is_local, n.id),
@@ -957,10 +961,12 @@ void ProtectEvictionCandidatesByRatio(std::vector<NodeEvictionCandidate>& evicti
             const size_t after = eviction_candidates.size();
             if (before > after) {
                 protected_at_least_one = true;
-                num_protected += before - after;
+                const size_t delta{before - after};
+                num_protected += delta;
                 if (num_protected >= max_protect_by_network) {
                     break;
                 }
+                n.count -= delta;
             }
         }
         if (!protected_at_least_one) {
@@ -2069,8 +2075,9 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect)
             // from advertising themselves as a service on another host and
             // port, causing a DoS attack as nodes around the network attempt
             // to connect to it fruitlessly.
-            if (addr.GetPort() != Params().GetDefaultPort() && nTries < 50)
+            if (addr.GetPort() != Params().GetDefaultPort(addr.GetNetwork()) && nTries < 50) {
                 continue;
+            }
 
             addrConnect = addr;
             break;
@@ -2133,7 +2140,7 @@ std::vector<AddedNodeInfo> CConnman::GetAddedNodeInfo() const
     }
 
     for (const std::string& strAddNode : lAddresses) {
-        CService service(LookupNumeric(strAddNode, Params().GetDefaultPort()));
+        CService service(LookupNumeric(strAddNode, Params().GetDefaultPort(strAddNode)));
         AddedNodeInfo addedNode{strAddNode, CService(), false, false};
         if (service.IsValid()) {
             // strAddNode is an IP:port

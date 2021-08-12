@@ -406,7 +406,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
         }
 
         chainman.ActiveChain().SetTip(pindex->pprev);
-        UpdateTip(mempool, pindex->pprev, chainparams, chainman.ActiveChainstate());
+        chainman.ActiveChainstate().UpdateTip(pindex->pprev);
         GetMainSignals().BlockDisconnected(pblock, pindex);
     }
     nLastRCTOutput = chainman.ActiveChain().Tip()->nAnonOutputs;
