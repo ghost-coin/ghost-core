@@ -177,7 +177,7 @@ public:
                 upperIndex = (upper - cachedWallet.begin());
                 inModel = (lower != upper);
             }
-            // drop through
+            [[fallthrough]];
         case CT_NEW:
             if(inModel)
             {

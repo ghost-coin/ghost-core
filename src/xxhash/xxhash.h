@@ -1300,41 +1300,41 @@ XXH32_finalize(xxh_u32 h32, const xxh_u8* ptr, size_t len, XXH_alignment align)
     } else {
          switch(len&15) /* or switch(bEnd - p) */ {
            case 12:      XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 8:       XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 4:       XXH_PROCESS4;
                          return XXH32_avalanche(h32);
 
            case 13:      XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 9:       XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 5:       XXH_PROCESS4;
                          XXH_PROCESS1;
                          return XXH32_avalanche(h32);
 
            case 14:      XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 10:      XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 6:       XXH_PROCESS4;
                          XXH_PROCESS1;
                          XXH_PROCESS1;
                          return XXH32_avalanche(h32);
 
            case 15:      XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 11:      XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 7:       XXH_PROCESS4;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 3:       XXH_PROCESS1;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 2:       XXH_PROCESS1;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 1:       XXH_PROCESS1;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 0:       return XXH32_avalanche(h32);
         }
         XXH_ASSERT(0);
@@ -1793,63 +1793,63 @@ XXH64_finalize(xxh_u64 h64, const xxh_u8* ptr, size_t len, XXH_alignment align)
     } else {
         switch(len & 31) {
            case 24: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 16: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  8: XXH_PROCESS8_64;
                     return XXH64_avalanche(h64);
 
            case 28: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 20: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 12: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  4: XXH_PROCESS4_64;
                     return XXH64_avalanche(h64);
 
            case 25: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 17: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  9: XXH_PROCESS8_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 29: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 21: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 13: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  5: XXH_PROCESS4_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 26: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 18: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 10: XXH_PROCESS8_64;
                     XXH_PROCESS1_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 30: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 22: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 14: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  6: XXH_PROCESS4_64;
                     XXH_PROCESS1_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 27: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 19: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 11: XXH_PROCESS8_64;
                     XXH_PROCESS1_64;
                     XXH_PROCESS1_64;
@@ -1857,19 +1857,19 @@ XXH64_finalize(xxh_u64 h64, const xxh_u8* ptr, size_t len, XXH_alignment align)
                     return XXH64_avalanche(h64);
 
            case 31: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 23: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case 15: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  7: XXH_PROCESS4_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  3: XXH_PROCESS1_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  2: XXH_PROCESS1_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  1: XXH_PROCESS1_64;
-                         /* fallthrough */
+                         __attribute__((fallthrough));
            case  0: return XXH64_avalanche(h64);
         }
     }

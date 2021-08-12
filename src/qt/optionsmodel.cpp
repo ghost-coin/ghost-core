@@ -484,6 +484,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
                 settings.setValue("external_signer_path", value.toString());
                 setRestartRequired(true);
             }
+            break;
         case ShowIncomingStakeNotifications:
             fShowIncomingStakeNotifications = value.toBool();
             settings.setValue("fShowIncomingStakeNotifications", fShowIncomingStakeNotifications);
@@ -514,6 +515,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             m_use_embedded_monospaced_font = value.toBool();
             settings.setValue("UseEmbeddedMonospacedFont", m_use_embedded_monospaced_font);
             Q_EMIT useEmbeddedMonospacedFontChanged(m_use_embedded_monospaced_font);
+            break;
         case ReserveBalance:
             if (settings.value("reservebalance") != value) {
                 settings.setValue("reservebalance", value);

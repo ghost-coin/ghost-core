@@ -123,6 +123,7 @@ public:
         switch(status)
         {
         case CT_REPLACE:
+            [[fallthrough]];
         case CT_NEW:
             if(inModel)
             {

@@ -82,7 +82,7 @@ static void TryAddBadTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes o
     SyncWithValidationInterfaceQueue();
 }
 
-static void DisconnectTip(CChainState &chainstate_active, CTxMemPool& mempool, CBlock &block, CBlockIndex *pindexDelete, CCoinsViewCache &view, const CChainParams &chainparams)
+static void DisconnectTip(CChainState &chainstate_active, CTxMemPool* mempool, CBlock &block, CBlockIndex *pindexDelete, CCoinsViewCache &view, const CChainParams &chainparams) EXCLUSIVE_LOCKS_REQUIRED(cs_main, mempool->cs)
 {
     BlockValidationState state;
     BOOST_REQUIRE(DISCONNECT_OK == chainstate_active.DisconnectBlock(block, pindexDelete, view));
@@ -173,8 +173,8 @@ BOOST_AUTO_TEST_CASE(stake_test)
     CCoinsViewCache &view = chainstate_active.CoinsTip();
     const Coin &coin = view.AccessCoin(txin.prevout);
     BOOST_REQUIRE(coin.IsSpent());
-
-    DisconnectTip(chainstate_active, *m_node.mempool.get(), block, pindexDelete, view, chainparams);
+    LOCK(m_node.mempool->cs);
+    DisconnectTip(chainstate_active, m_node.mempool.get(), block, pindexDelete, view, chainparams);
     }
     {
     // Normally sent through GetMainSignals().BlockDisconnected
@@ -269,7 +269,8 @@ BOOST_AUTO_TEST_CASE(stake_test)
         {
         LOCK(cs_main);
         CCoinsViewCache &view = chainstate_active.CoinsTip();
-        DisconnectTip(chainstate_active, *m_node.mempool.get(), block, pindexDelete, view, chainparams);
+        LOCK(m_node.mempool->cs);
+        DisconnectTip(chainstate_active, m_node.mempool.get(), block, pindexDelete, view, chainparams);
         }
 
 
@@ -350,7 +351,8 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_REQUIRE(ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
 
             CCoinsViewCache &view = chainstate_active.CoinsTip();
-            DisconnectTip(chainstate_active, *m_node.mempool.get(), block, pindexDelete, view, chainparams);
+            LOCK(m_node.mempool->cs);
+            DisconnectTip(chainstate_active, m_node.mempool.get(), block, pindexDelete, view, chainparams);
 
             BOOST_CHECK(prevTipHash == chain_active.Tip()->GetBlockHash());
         }
