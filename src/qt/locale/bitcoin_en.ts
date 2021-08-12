@@ -3031,7 +3031,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
     </message>
     <message>
         <location line="+68"/>
-        <location filename="../rpcconsole.cpp" line="+1125"/>
+        <location filename="../rpcconsole.cpp" line="+1127"/>
         <source>Select a peer to view detailed information.</source>
         <translation type="unfinished"></translation>
     </message>

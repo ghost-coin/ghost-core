@@ -15,7 +15,7 @@ BITCOIND=${BITCOIND:-$SRCDIR/particld}
 BITCOINCLI=${BITCOINCLI:-$SRCDIR/particl-cli}
 BITCOINTX=${BITCOINTX:-$SRCDIR/particl-tx}
 WALLET_TOOL=${WALLET_TOOL:-$SRCDIR/particl-wallet}
-BITCOINUTIL=${BITCOINQT:-$BINDIR/particl-util}
+BITCOINUTIL=${BITCOINUTIL:-$SRCDIR/particl-util}
 BITCOINQT=${BITCOINQT:-$SRCDIR/qt/particl-qt}
 
 [ ! -x $BITCOIND ] && echo "$BITCOIND not found or not executable." && exit 1

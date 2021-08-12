@@ -3178,7 +3178,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
         <source xml:space="preserve">Select a peer to view detailed information.</source>
         <target xml:space="preserve"></target>
         <context-group purpose="location"><context context-type="linenumber">1010</context></context-group>
-        <context-group purpose="location"><context context-type="sourcefile">../rpcconsole.cpp</context><context context-type="linenumber">1125</context></context-group>
+        <context-group purpose="location"><context context-type="sourcefile">../rpcconsole.cpp</context><context context-type="linenumber">1127</context></context-group>
       </trans-unit>
       <trans-unit id="_msg574">
         <source xml:space="preserve">Version</source>
@@ -3388,126 +3388,126 @@ If you are receiving this error you should request the merchant provide a BIP21 
       <trans-unit id="_msg614">
         <source xml:space="preserve">In:</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">924</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">926</context></context-group>
       </trans-unit>
       <trans-unit id="_msg615">
         <source xml:space="preserve">Out:</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">925</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">927</context></context-group>
       </trans-unit>
       <trans-unit id="_msg616">
         <source xml:space="preserve">Inbound: initiated by peer</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">496</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">498</context></context-group>
       </trans-unit>
       <trans-unit id="_msg617">
         <source xml:space="preserve">Outbound Full Relay: default</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">497</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">499</context></context-group>
       </trans-unit>
       <trans-unit id="_msg618">
         <source xml:space="preserve">Outbound Block Relay: does not relay transactions or addresses</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">498</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">500</context></context-group>
       </trans-unit>
       <trans-unit id="_msg619">
         <source xml:space="preserve">Outbound Manual: added using RPC %1 or %2/%3 configuration options</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">499</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">501</context></context-group>
       </trans-unit>
       <trans-unit id="_msg620">
         <source xml:space="preserve">Outbound Feeler: short-lived, for testing addresses</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">503</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">505</context></context-group>
       </trans-unit>
       <trans-unit id="_msg621">
         <source xml:space="preserve">Outbound Address Fetch: short-lived, for soliciting addresses</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">504</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">506</context></context-group>
       </trans-unit>
       <trans-unit id="_msg622">
         <source xml:space="preserve">we selected the peer for high bandwidth relay</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">508</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">510</context></context-group>
       </trans-unit>
       <trans-unit id="_msg623">
         <source xml:space="preserve">the peer selected us for high bandwidth relay</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">509</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">511</context></context-group>
       </trans-unit>
       <trans-unit id="_msg624">
         <source xml:space="preserve">no high bandwidth relay selected</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">510</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">512</context></context-group>
       </trans-unit>
       <trans-unit id="_msg625">
         <source xml:space="preserve">Ctrl++</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">523</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">525</context></context-group>
         <note annotates="source" from="developer">Main shortcut to increase the RPC console font size.</note>
       </trans-unit>
       <trans-unit id="_msg626">
         <source xml:space="preserve">Ctrl+=</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">525</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">527</context></context-group>
         <note annotates="source" from="developer">Secondary shortcut to increase the RPC console font size.</note>
       </trans-unit>
       <trans-unit id="_msg627">
         <source xml:space="preserve">Ctrl+-</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">529</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">531</context></context-group>
         <note annotates="source" from="developer">Main shortcut to decrease the RPC console font size.</note>
       </trans-unit>
       <trans-unit id="_msg628">
         <source xml:space="preserve">Ctrl+_</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">531</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">533</context></context-group>
         <note annotates="source" from="developer">Secondary shortcut to decrease the RPC console font size.</note>
       </trans-unit>
       <trans-unit id="_msg629">
         <source xml:space="preserve">&amp;Disconnect</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">681</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">683</context></context-group>
       </trans-unit>
       <trans-unit id="_msg630">
         <source xml:space="preserve">1 &amp;hour</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">682</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">684</context></context-group>
       </trans-unit>
       <trans-unit id="_msg631">
         <source xml:space="preserve">1 d&amp;ay</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">683</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">685</context></context-group>
       </trans-unit>
       <trans-unit id="_msg632">
         <source xml:space="preserve">1 &amp;week</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">684</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">686</context></context-group>
       </trans-unit>
       <trans-unit id="_msg633">
         <source xml:space="preserve">1 &amp;year</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">685</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">687</context></context-group>
       </trans-unit>
       <trans-unit id="_msg634">
         <source xml:space="preserve">&amp;Unban</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">707</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">709</context></context-group>
       </trans-unit>
       <trans-unit id="_msg635">
         <source xml:space="preserve">Network activity disabled</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">928</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">930</context></context-group>
       </trans-unit>
       <trans-unit id="_msg636">
         <source xml:space="preserve">Executing command without any wallet</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">1005</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">1007</context></context-group>
       </trans-unit>
       <trans-unit id="_msg637">
         <source xml:space="preserve">Executing command using &quot;%1&quot; wallet</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">1003</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">1005</context></context-group>
       </trans-unit>
       <trans-unit id="_msg638">
         <source xml:space="preserve">Welcome to the %1 RPC console.
@@ -3518,24 +3518,24 @@ For more information on using this console, type %6.
 
 %7WARNING: Scammers have been active, telling users to type commands here, stealing their wallet contents. Do not use this console without fully understanding the ramifications of a command.%8</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">857</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">859</context></context-group>
         <note annotates="source" from="developer">RPC console welcome message. Placeholders %7 and %8 are style tags for the warning content, and they are not space separated from the rest of the text intentionally.</note>
       </trans-unit>
       <trans-unit id="_msg639">
         <source xml:space="preserve">Executing…</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">1013</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">1015</context></context-group>
         <note annotates="source" from="developer">A console message indicating an entered command is currently being executed.</note>
       </trans-unit>
       <trans-unit id="_msg640">
         <source xml:space="preserve">(peer: %1)</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">1131</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">1133</context></context-group>
       </trans-unit>
       <trans-unit id="_msg641">
         <source xml:space="preserve">via %1</source>
         <target xml:space="preserve"></target>
-        <context-group purpose="location"><context context-type="linenumber">1133</context></context-group>
+        <context-group purpose="location"><context context-type="linenumber">1135</context></context-group>
       </trans-unit>
     </group>
   </body></file>
