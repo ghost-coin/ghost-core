@@ -5948,7 +5948,7 @@ static void traceFrozenPrevout(const COutPoint &op_trace, const uint256 &txid_sp
         CCmpPubKey anon_pubkey;
         if (r.nType == OUTPUT_RINGCT) {
             anon_pubkey = ((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk;
-            if (!pblocktree->ReadRCTOutputLink(anon_pubkey, anon_index)) {
+            if (!pwallet->chain().readRCTOutputLink(anon_pubkey, anon_index)) {
                 warnings.push_back(strprintf("ReadRCTOutputLink failed %s", op_trace.ToString()));
             }
         }
@@ -6132,7 +6132,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
                     CStoredTransaction stx;
                     if (!wdb.ReadStoredTx(txid, stx) ||
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
-                        !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index)) {
+                        !pwallet->chain().readRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index)) {
                         warnings.push_back(strprintf("Failed to get anon index for %s.%d", txid.ToString(), r.n));
                         continue;
                     }
@@ -6218,7 +6218,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
                 traced_output.m_value = r.nValue;
                 traced_output.m_n = r.n;
                 if (r.nType == OUTPUT_RINGCT &&
-                    !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, traced_output.m_anon_index)) {
+                    !pwallet->chain().readRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, traced_output.m_anon_index)) {
                     warnings.push_back(strprintf("ReadRCTOutputLink failed %s %d", txid.ToString(), r.n));
                 }
                 traced_output.m_is_spent = pwallet->IsSpent(txid, r.n);
@@ -6438,7 +6438,7 @@ static RPCHelpMan debugwallet()
 
                     if (!wdb.ReadStoredTx(txid, stx) ||
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
-                        !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
+                        !pwallet->chain().readRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
                         IsBlacklistedAnonOutput(anon_index) ||
                         (!IsWhitelistedAnonOutput(anon_index) && r.nValue > max_frozen_output_spendable)) {
                         is_spendable = false;
@@ -6790,7 +6790,7 @@ static RPCHelpMan debugwallet()
                             continue;
                         }
                         uint256 txhashKI;
-                        bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, txhashKI);
+                        bool spent_in_chain = pwallet->chain().readRCTKeyImage(ki, txhashKI);
                         bool spent_in_wallet = pwallet->IsSpent(txhash, r.n);
 
                         if (spent_in_chain && !spent_in_wallet) {
@@ -9313,6 +9313,7 @@ static RPCHelpMan pruneorphanedblocks()
     }
     UniValue response(UniValue::VOBJ);
     if (!test_only) {
+        auto& pblocktree{chainman.m_blockman.m_block_tree_db};
         response.pushKV("note", "Node is shutting down.");
         // Force reindex on next startup
         pblocktree->WriteFlag("v1", false);

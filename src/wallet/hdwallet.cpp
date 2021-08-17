@@ -5075,7 +5075,8 @@ int CHDWallet::PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t 
                 assert(pk);
 
                 int64_t index;
-                if (!pblocktree->ReadRCTOutputLink(*pk, index)) {
+
+                if (!chain().readRCTOutputLink(*pk, index)) {
                     return wserrorN(1, sError, __func__, _("Anon pubkey not found in db, %s").translated, HexStr(*pk));
                 }
                 if (setHave.count(index)) {
@@ -5125,7 +5126,7 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
     // Remove outputs without required depth
     while (nLastRCTOutIndex > 1) {
         CAnonOutput ao;
-        if (!pblocktree->ReadRCTOutput(nLastRCTOutIndex, ao)) {
+        if (!chain().readRCTOutput(nLastRCTOutIndex, ao)) {
             return wserrorN(1, sError, __func__, _("Anon output not found in db, %d").translated, nLastRCTOutIndex);
         }
         if (nBestHeight - ao.nBlockHeight + 1 < consensusParams.nMinRCTOutputDepth) {
@@ -5173,7 +5174,7 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
 
             int64_t output_id = nLastRCTOutIndex - std::min(nLastRCTOutIndex-1, std::max(min_anon_input, ranges[j]));
             CAnonOutput ao;
-            if (!pblocktree->ReadRCTOutput(output_id, ao)) {
+            if (!chain().readRCTOutput(output_id, ao)) {
                 return wserrorN(1, sError, __func__, _("Anon output not found in db, %d").translated, output_id);
             }
 
@@ -5254,10 +5255,10 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
 
                     int64_t num_blocks, num_aos = select_max - select_min;
                     CAnonOutput ao_min, ao_max;
-                    if (!pblocktree->ReadRCTOutput(select_min, ao_min)) {
+                    if (!chain().readRCTOutput(select_min, ao_min)) {
                         return wserrorN(1, sError, __func__, _("Anon output not found in db, %d").translated, select_min);
                     }
-                    if (!pblocktree->ReadRCTOutput(select_max, ao_max)) {
+                    if (!chain().readRCTOutput(select_max, ao_max)) {
                         return wserrorN(1, sError, __func__, _("Anon output not found in db, %d").translated, select_max);
                     }
                     num_blocks = ao_max.nBlockHeight - ao_min.nBlockHeight;
@@ -5668,7 +5669,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     int64_t nIndex = vMI[l][k][i];
 
                     CAnonOutput ao;
-                    if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                    if (!chain().readRCTOutput(nIndex, ao)) {
                         return wserrorN(1, sError, __func__, _("Anon output not found in db, %d").translated, nIndex);
                     }
 
@@ -5710,7 +5711,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     int64_t nIndex = vMI[l][k][i];
 
                     CAnonOutput ao;
-                    if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                    if (!chain().readRCTOutput(nIndex, ao)) {
                         return wserrorN(1, sError, __func__, _("Anon output not found in db, %d").translated, nIndex);
                     }
 
@@ -12151,7 +12152,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinCon
                 int64_t index;
                 if (!wdb.ReadStoredTx(txid, stx) ||
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
-                    !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
+                    !chain().readRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
                     IsBlacklistedAnonOutput(index) ||
                     (!IsWhitelistedAnonOutput(index) && r.nValue > consensusParams.m_max_tainted_value_out)) {
                     continue;

@@ -47,6 +47,7 @@ static RPCHelpMan anonoutput()
     }
 
     std::string sIn = request.params[0].get_str();
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
 
     int64_t nIndex;
     if (IsDigits(sIn)) {
@@ -104,6 +105,9 @@ static RPCHelpMan checkkeyimage()
         },
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
+
     UniValue result(UniValue::VOBJ);
 
     RPCTypeCheck(request.params, {UniValue::VSTR}, true);

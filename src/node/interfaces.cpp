@@ -764,6 +764,21 @@ public:
     {
         return m_node.chainman.get();
     }
+    bool readRCTOutput(int64_t i, CAnonOutput &ao) override
+    {
+        LOCK(::cs_main);
+        return m_node.chainman->m_blockman.m_block_tree_db->ReadRCTOutput(i, ao);
+    }
+    bool readRCTOutputLink(const CCmpPubKey &pk, int64_t &i) override
+    {
+        LOCK(::cs_main);
+        return m_node.chainman->m_blockman.m_block_tree_db->ReadRCTOutputLink(pk, i);
+    }
+    bool readRCTKeyImage(const CCmpPubKey &ki, uint256 &txhash) override
+    {
+        LOCK(::cs_main);
+        return m_node.chainman->m_blockman.m_block_tree_db->ReadRCTKeyImage(ki, txhash);
+    }
 };
 } // namespace
 } // namespace node

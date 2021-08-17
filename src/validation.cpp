@@ -183,8 +183,6 @@ CBlockIndex* BlockManager::FindForkInGlobalIndex(const CChain& chain, const CBlo
     return chain.Genesis();
 }
 
-std::unique_ptr<CBlockTreeDB> pblocktree;
-
 namespace particl {
 bool DelayBlock(const std::shared_ptr<const CBlock> &pblock, BlockValidationState &state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 void CheckDelayedBlocks(BlockValidationState &state, const CChainParams &chainparams, const uint256 &block_hash) LOCKS_EXCLUDED(cs_main);
@@ -217,8 +215,8 @@ extern void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_ma
 extern void RemoveNonReceivedHeaderFromNodes(BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 
-bool CheckInputScripts(const CTransaction& tx, TxValidationState &state,
-                       const CCoinsViewCache &inputs, unsigned int flags, bool cacheSigStore,
+bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
+                       const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
                        bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
                        std::vector<CScriptCheck> *pvChecks = nullptr, bool fAnonChecks = true)
                        EXCLUSIVE_LOCKS_REQUIRED(cs_main);
@@ -753,7 +751,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Error("Syncing");
     }
 
-    if (!AllAnonOutputsUnknown(tx, state)) { // Also sets state.m_has_anon_output
+    if (!AllAnonOutputsUnknown(m_active_chainstate, tx, state)) { // Also sets state.m_has_anon_output
         // Already in the blockchain, containing block could have been received before loose tx
         return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-in-mempool");
     }
@@ -1023,6 +1021,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws, Prec
 {
     const CTransaction& tx = *ws.m_ptx;
     TxValidationState& state = ws.m_state;
+    state.m_chainstate = &m_active_chainstate;
 
     constexpr unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
 
@@ -1033,6 +1032,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws, Prec
         // need to turn both off, and compare against just turning off CLEANSTACK
         // to see if the failure is specifically due to witness validation.
         TxValidationState state_dummy; // Want reported failures to be from first CheckInputScripts
+        state_dummy.m_chainman = state.m_chainman;
         if (!tx.HasWitness() && CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags & ~(SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK), true, false, txdata) &&
                 !CheckInputScripts(tx, state_dummy, m_view, scriptVerifyFlags & ~SCRIPT_VERIFY_CLEANSTACK, true, false, txdata)) {
             // Only the witness is missing, so the transaction itself may be fine.
@@ -1050,6 +1050,7 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws, P
     const CTransaction& tx = *ws.m_ptx;
     const uint256& hash = ws.m_hash;
     TxValidationState& state = ws.m_state;
+    state.m_chainstate = &m_active_chainstate;
     const CChainParams& chainparams = args.m_chainparams;
 
     // Check again against the current block tip's script verification
@@ -1277,6 +1278,20 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
 {
     LOCK(cs_main);
 
+    if (mempool && !block_index) {
+        CTransactionRef ptx = mempool->get(hash);
+        if (ptx) return ptx;
+    }
+    if (g_txindex) {
+        CTransactionRef tx;
+        uint256 block_hash;
+        if (g_txindex->FindTx(hash, block_hash, tx)) {
+            if (!block_index || block_index->GetBlockHash() == block_hash) {
+                hashBlock = block_hash;
+                return tx;
+            }
+        }
+    }
     if (block_index) {
         CBlock block;
         if (ReadBlockFromDisk(block, block_index, consensusParams)) {
@@ -1287,15 +1302,6 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
                 }
             }
         }
-        return nullptr;
-    }
-    if (mempool) {
-        CTransactionRef ptx = mempool->get(hash);
-        if (ptx) return ptx;
-    }
-    if (g_txindex) {
-        CTransactionRef tx;
-        if (g_txindex->FindTx(hash, hashBlock, tx)) return tx;
     }
     return nullptr;
 }
@@ -1821,7 +1827,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                     view.nLastRCTOutput = pindex->nAnonOutputs;
                     // Verify data matches
                     CAnonOutput ao;
-                    if (!pblocktree->ReadRCTOutput(view.nLastRCTOutput, ao)) {
+                    if (!m_blockman.m_block_tree_db->ReadRCTOutput(view.nLastRCTOutput, ao)) {
                         error("%s: RCT output missing, txn %s, %d, index %d.", __func__, hash.ToString(), k, view.nLastRCTOutput);
                         if (!view.fForceDisconnect) {
                             return DISCONNECT_FAILED;
@@ -2039,13 +2045,8 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
         pindex->phashBlock == nullptr || // this is a new candidate block, eg from TestBlockValidity()
         *pindex->phashBlock != consensusparams.BIP16Exception) // this block isn't the historical exception
     {
-        flags |= SCRIPT_VERIFY_P2SH;
-    }
-
-    // Enforce WITNESS rules whenever P2SH is in effect (and the segwit
-    // deployment is defined).
-    if (flags & SCRIPT_VERIFY_P2SH && DeploymentEnabled(consensusparams, Consensus::DEPLOYMENT_SEGWIT)) {
-        flags |= SCRIPT_VERIFY_WITNESS;
+        // Enforce WITNESS rules whenever P2SH is in effect
+        flags |= SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS;
     }
 
     // Enforce the DERSIG (BIP66) rule
@@ -2320,6 +2321,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
         TxValidationState tx_state;
         tx_state.SetStateInfo(block.nTime, pindex->nHeight, consensus, fParticlMode, (fBusyImporting && fSkipRangeproof));
+        tx_state.m_chainman = state.m_chainman;
+        tx_state.m_chainstate = this;
         if (!tx.IsCoinBase())
         {
             CAmount txfee = 0;
@@ -2483,15 +2486,16 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
 
                 int64_t nTestExists;
-                if (!fVerifyingDB && pblocktree->ReadRCTOutputLink(txout->pk, nTestExists)) {
+                if (!fVerifyingDB && m_blockman.m_block_tree_db->ReadRCTOutputLink(txout->pk, nTestExists)) {
                     control.Wait();
 
                     if (nTestExists > pindex->pprev->nAnonOutputs) {
                         // The anon index can diverge from the chain index if shutdown does not complete
                         LogPrintf("%s: Duplicate anon-output %s, index %d, above last index %d.\n", __func__, HexStr(txout->pk), nTestExists, pindex->pprev->nAnonOutputs);
                         LogPrintf("Attempting to repair anon index.\n");
+                        assert(state.m_chainman);
                         std::set<CCmpPubKey> setKi; // unused
-                        RollBackRCTIndex(pindex->pprev->nAnonOutputs, nTestExists, setKi);
+                        RollBackRCTIndex(*state.m_chainman, pindex->pprev->nAnonOutputs, nTestExists, setKi);
                         return false;
                     }
 
@@ -2740,11 +2744,10 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     if (fTimestampIndex) {
         unsigned int logicalTS = pindex->nTime;
-        if (!pblocktree->WriteTimestampIndex(CTimestampIndexKey(logicalTS, pindex->GetBlockHash()))) {
+        if (!m_blockman.m_block_tree_db->WriteTimestampIndex(CTimestampIndexKey(logicalTS, pindex->GetBlockHash()))) {
             return AbortNode(state, "Failed to write timestamp index");
         }
-
-        if (!pblocktree->WriteTimestampBlockIndex(CTimestampBlockIndexKey(pindex->GetBlockHash()), CTimestampBlockIndexValue(logicalTS))) {
+        if (!m_blockman.m_block_tree_db->WriteTimestampBlockIndex(CTimestampBlockIndexKey(pindex->GetBlockHash()), CTimestampBlockIndexValue(logicalTS))) {
             return AbortNode(state, "Failed to write blockhash index");
         }
     }
@@ -2752,14 +2755,13 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         BlockBalances values(block_balances);
         if (pindex->pprev && !reset_balances) {
             BlockBalances prev_balances;
-            if (!pblocktree->ReadBlockBalancesIndex(pindex->pprev->GetBlockHash(), prev_balances)) {
+            if (!m_blockman.m_block_tree_db->ReadBlockBalancesIndex(pindex->pprev->GetBlockHash(), prev_balances)) {
                 return AbortNode(state, "Failed to read previous block's balances");
             } else {
                 values.sum(prev_balances);
             }
         }
-
-        if (!pblocktree->WriteBlockBalancesIndex(block.GetHash(), values)) {
+        if (!m_blockman.m_block_tree_db->WriteBlockBalancesIndex(block.GetHash(), values)) {
             return AbortNode(state, "Failed to write balances index");
         }
     }
@@ -2850,7 +2852,7 @@ bool CChainState::FlushStateToDisk(
             if (!setFilesToPrune.empty()) {
                 fFlushForPrune = true;
                 if (!fHavePruned) {
-                    pblocktree->WriteFlag("prunedblockfiles", true);
+                    m_blockman.m_block_tree_db->WriteFlag("prunedblockfiles", true);
                     fHavePruned = true;
                 }
             }
@@ -2904,7 +2906,7 @@ bool CChainState::FlushStateToDisk(
                     }
                     setDirtyBlockIndex.erase(it++);
                 }
-                if (!pblocktree->WriteBatchSync(vFiles, nLastBlockFile, vBlocks)) {
+                if (!m_blockman.m_block_tree_db->WriteBatchSync(vFiles, nLastBlockFile, vBlocks)) {
                     return AbortNode(state, "Failed to write to block index database");
                 }
             }
@@ -2996,6 +2998,8 @@ static void ClearSpentCache(CChainState &chainstate, CDBBatch &batch, int height
 
 bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &chainstate, bool fDisconnecting)
 {
+    auto& pblocktree{chainstate.m_blockman.m_block_tree_db};
+
     if (!view->Flush())
         return false;
 
@@ -4023,6 +4027,10 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     for (const auto& tx : block.vtx) {
         TxValidationState tx_state;
         tx_state.SetStateInfo(block.nTime, -1, consensusParams, fParticlMode, (fBusyImporting && fSkipRangeproof));
+        tx_state.m_chainman = state.m_chainman;
+        if (state.m_chainman) {
+            tx_state.m_chainstate = &state.m_chainman->ActiveChainstate();
+        }
         if (!CheckTransaction(*tx, tx_state)) {
             // CheckBlock() does context-free validation checks. The only
             // possible failures are consensus failures.
@@ -4066,25 +4074,23 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
 
     int commitpos = GetWitnessCommitmentIndex(block);
     std::vector<unsigned char> ret(32, 0x00);
-    if (DeploymentEnabled(consensusParams, Consensus::DEPLOYMENT_SEGWIT)) {
-        if (commitpos == NO_WITNESS_COMMITMENT) {
-            uint256 witnessroot = BlockWitnessMerkleRoot(block, nullptr);
-            CHash256().Write(witnessroot).Write(ret).Finalize(witnessroot);
-            CTxOut out;
-            out.nValue = 0;
-            out.scriptPubKey.resize(MINIMUM_WITNESS_COMMITMENT);
-            out.scriptPubKey[0] = OP_RETURN;
-            out.scriptPubKey[1] = 0x24;
-            out.scriptPubKey[2] = 0xaa;
-            out.scriptPubKey[3] = 0x21;
-            out.scriptPubKey[4] = 0xa9;
-            out.scriptPubKey[5] = 0xed;
-            memcpy(&out.scriptPubKey[6], witnessroot.begin(), 32);
-            commitment = std::vector<unsigned char>(out.scriptPubKey.begin(), out.scriptPubKey.end());
-            CMutableTransaction tx(*block.vtx[0]);
-            tx.vout.push_back(out);
-            block.vtx[0] = MakeTransactionRef(std::move(tx));
-        }
+    if (commitpos == NO_WITNESS_COMMITMENT) {
+        uint256 witnessroot = BlockWitnessMerkleRoot(block, nullptr);
+        CHash256().Write(witnessroot).Write(ret).Finalize(witnessroot);
+        CTxOut out;
+        out.nValue = 0;
+        out.scriptPubKey.resize(MINIMUM_WITNESS_COMMITMENT);
+        out.scriptPubKey[0] = OP_RETURN;
+        out.scriptPubKey[1] = 0x24;
+        out.scriptPubKey[2] = 0xaa;
+        out.scriptPubKey[3] = 0x21;
+        out.scriptPubKey[4] = 0xa9;
+        out.scriptPubKey[5] = 0xed;
+        memcpy(&out.scriptPubKey[6], witnessroot.begin(), 32);
+        commitment = std::vector<unsigned char>(out.scriptPubKey.begin(), out.scriptPubKey.end());
+        CMutableTransaction tx(*block.vtx[0]);
+        tx.vout.push_back(out);
+        block.vtx[0] = MakeTransactionRef(std::move(tx));
     }
     UpdateUncommittedBlockStructures(block, pindexPrev, consensusParams);
     return commitment;
@@ -4936,11 +4942,11 @@ CBlockIndex * BlockManager::InsertBlockIndex(const uint256& hash)
 
 bool BlockManager::LoadBlockIndex(
     const Consensus::Params& consensus_params,
-    CBlockTreeDB& blocktree,
     std::set<CBlockIndex*, CBlockIndexWorkComparator>& block_index_candidates)
 {
-    if (!blocktree.LoadBlockIndexGuts(consensus_params, [this](const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main) { return this->InsertBlockIndex(hash); }))
+    if (!m_block_tree_db->LoadBlockIndexGuts(consensus_params, [this](const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main) { return this->InsertBlockIndex(hash); })) {
         return false;
+    }
 
     // Calculate nChainWork
     std::vector<std::pair<int, CBlockIndex*> > vSortedByHeight;
@@ -5000,25 +5006,25 @@ void BlockManager::Unload() {
     m_block_index.clear();
 }
 
-bool CChainState::LoadBlockIndexDB()
+bool BlockManager::LoadBlockIndexDB(std::set<CBlockIndex*, CBlockIndexWorkComparator>& setBlockIndexCandidates)
 {
-    if (!m_blockman.LoadBlockIndex(
-            m_params.GetConsensus(), *pblocktree,
+    if (!LoadBlockIndex(
+            ::Params().GetConsensus(),
             setBlockIndexCandidates)) {
         return false;
     }
 
     // Load block file info
-    pblocktree->ReadLastBlockFile(nLastBlockFile);
+    m_block_tree_db->ReadLastBlockFile(nLastBlockFile);
     vinfoBlockFile.resize(nLastBlockFile + 1);
     LogPrintf("%s: last block file = %i\n", __func__, nLastBlockFile);
     for (int nFile = 0; nFile <= nLastBlockFile; nFile++) {
-        pblocktree->ReadBlockFileInfo(nFile, vinfoBlockFile[nFile]);
+        m_block_tree_db->ReadBlockFileInfo(nFile, vinfoBlockFile[nFile]);
     }
     LogPrintf("%s: last block file info: %s\n", __func__, vinfoBlockFile[nLastBlockFile].ToString());
     for (int nFile = nLastBlockFile + 1; true; nFile++) {
         CBlockFileInfo info;
-        if (pblocktree->ReadBlockFileInfo(nFile, info)) {
+        if (m_block_tree_db->ReadBlockFileInfo(nFile, info)) {
             vinfoBlockFile.push_back(info);
         } else {
             break;
@@ -5028,7 +5034,7 @@ bool CChainState::LoadBlockIndexDB()
     // Check presence of blk files
     LogPrintf("Checking all blk files are present...\n");
     std::set<int> setBlkDataFiles;
-    for (const std::pair<const uint256, CBlockIndex*>& item : m_blockman.m_block_index) {
+    for (const std::pair<const uint256, CBlockIndex*>& item : m_block_index) {
         CBlockIndex* pindex = item.second;
         if (pindex->nStatus & BLOCK_HAVE_DATA) {
             setBlkDataFiles.insert(pindex->nFile);
@@ -5043,23 +5049,23 @@ bool CChainState::LoadBlockIndexDB()
     }
 
     // Check whether we have ever pruned block & undo files
-    pblocktree->ReadFlag("prunedblockfiles", fHavePruned);
+    m_block_tree_db->ReadFlag("prunedblockfiles", fHavePruned);
     if (fHavePruned)
         LogPrintf("LoadBlockIndexDB(): Block files have previously been pruned\n");
 
     // Check whether we need to continue reindexing
     bool fReindexing = false;
-    pblocktree->ReadReindexing(fReindexing);
+    m_block_tree_db->ReadReindexing(fReindexing);
     if(fReindexing) fReindex = true;
 
     // Check whether we have indices
-    pblocktree->ReadFlag("addressindex", fAddressIndex);
+    m_block_tree_db->ReadFlag("addressindex", fAddressIndex);
     LogPrintf("%s: address index %s\n", __func__, fAddressIndex ? "enabled" : "disabled");
-    pblocktree->ReadFlag("timestampindex", fTimestampIndex);
+    m_block_tree_db->ReadFlag("timestampindex", fTimestampIndex);
     LogPrintf("%s: timestamp index %s\n", __func__, fTimestampIndex ? "enabled" : "disabled");
-    pblocktree->ReadFlag("spentindex", fSpentIndex);
+    m_block_tree_db->ReadFlag("spentindex", fSpentIndex);
     LogPrintf("%s: spent index %s\n", __func__, fSpentIndex ? "enabled" : "disabled");
-    pblocktree->ReadFlag("balancesindex", fBalancesIndex);
+    m_block_tree_db->ReadFlag("balancesindex", fBalancesIndex);
     LogPrintf("%s: balances index %s\n", __func__, fBalancesIndex ? "enabled" : "disabled");
 
     return true;
@@ -5364,7 +5370,7 @@ bool ChainstateManager::LoadBlockIndex()
     bool needs_init = fReindex;
 
     if (!fReindex) {
-        bool ret = ActiveChainstate().LoadBlockIndexDB();
+        bool ret = m_blockman.LoadBlockIndexDB(ActiveChainstate().setBlockIndexCandidates);
         if (!ret) return false;
         needs_init = m_blockman.m_block_index.empty();
     }
@@ -5377,21 +5383,21 @@ bool ChainstateManager::LoadBlockIndex()
         // needs_init.
 
         LogPrintf("Initializing databases...\n");
-        pblocktree->WriteFlag("v1", true);
-        pblocktree->WriteFlag("v2", true);
+        m_blockman.m_block_tree_db->WriteFlag("v1", true);
+        m_blockman.m_block_tree_db->WriteFlag("v2", true);
 
         // Use the provided setting for indices in the new database
         fAddressIndex = gArgs.GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX);
-        pblocktree->WriteFlag("addressindex", fAddressIndex);
+        m_blockman.m_block_tree_db->WriteFlag("addressindex", fAddressIndex);
         LogPrintf("%s: address index %s\n", __func__, fAddressIndex ? "enabled" : "disabled");
         fTimestampIndex = gArgs.GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
-        pblocktree->WriteFlag("timestampindex", fTimestampIndex);
+        m_blockman.m_block_tree_db->WriteFlag("timestampindex", fTimestampIndex);
         LogPrintf("%s: timestamp index %s\n", __func__, fTimestampIndex ? "enabled" : "disabled");
         fSpentIndex = gArgs.GetBoolArg("-spentindex", particl::DEFAULT_SPENTINDEX);
-        pblocktree->WriteFlag("spentindex", fSpentIndex);
+        m_blockman.m_block_tree_db->WriteFlag("spentindex", fSpentIndex);
         LogPrintf("%s: spent index %s\n", __func__, fSpentIndex ? "enabled" : "disabled");
         fBalancesIndex = gArgs.GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
-        pblocktree->WriteFlag("balancesindex", fBalancesIndex);
+        m_blockman.m_block_tree_db->WriteFlag("balancesindex", fBalancesIndex);
         LogPrintf("%s: balances index %s\n", __func__, fBalancesIndex ? "enabled" : "disabled");
     }
     return true;
@@ -6763,8 +6769,9 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate)
     return AddToMapStakeSeen(kernel, blockHash);
 };
 
-bool ShouldAutoReindex()
+bool ShouldAutoReindex(ChainstateManager &chainman)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     // Force reindex to update version
     bool nV1 = false;
     if (!pblocktree->ReadFlag("v1", nV1) || !nV1) {
@@ -6776,6 +6783,7 @@ bool ShouldAutoReindex()
 
 bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
 {
+    auto &pblocktree{chainman.m_blockman.m_block_tree_db};
     bool nV2 = false;
     if (gArgs.GetBoolArg("-rebuildrollingindices", false)) {
         LogPrintf("%s: Manual override, attempting to rewind chain.\n", __func__);
@@ -6826,7 +6834,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
         LOCK(cs_main);
         LogPrintf("%s: Reprocessed chain from block %d to %d.\n", __func__, rewound_tip_height, chainman.ActiveChain().Tip()->nHeight);
 
-        if (!pblocktree->WriteFlag("v2", true)) {
+        if (!chainman.m_blockman.m_block_tree_db->WriteFlag("v2", true)) {
             LogPrintf("%s: WriteFlag failed.\n", __func__);
             return false;
         }

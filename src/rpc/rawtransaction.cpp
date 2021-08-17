@@ -44,8 +44,8 @@
 
 #include <univalue.h>
 
-void TxToJSONExpanded(const CTransaction& tx, const uint256 hashBlock, const CTxMemPool *pmempool, UniValue& entry,
-                      int nHeight = 0, int nConfirmations = 0, int nBlockTime = 0)
+void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const uint256 hashBlock,
+                      const CTxMemPool *pmempool, UniValue& entry, int nHeight = 0, int nConfirmations = 0, int nBlockTime = 0)
 {
     uint256 txid = tx.GetHash();
     entry.pushKV("txid", txid.GetHex());
@@ -98,7 +98,7 @@ void TxToJSONExpanded(const CTransaction& tx, const uint256 hashBlock, const CTx
             // Add address and value info if spentindex enabled
             CSpentIndexValue spentInfo;
             CSpentIndexKey spentKey(txin.prevout.hash, txin.prevout.n);
-            if (GetSpentIndex(spentKey, spentInfo, pmempool)) {
+            if (GetSpentIndex(chainman, spentKey, spentInfo, pmempool)) {
                 in.pushKV("type", spentInfo.satoshis == -1 ? "blind" : "standard");
                 in.pushKV("value", ValueFromAmount(spentInfo.satoshis));
                 in.pushKV("valueSat", spentInfo.satoshis);
@@ -143,7 +143,7 @@ void TxToJSONExpanded(const CTransaction& tx, const uint256 hashBlock, const CTx
         if (txo_type == OUTPUT_STANDARD || txo_type == OUTPUT_CT) {
             CSpentIndexValue spentInfo;
             CSpentIndexKey spentKey(txid, i);
-            if (GetSpentIndex(spentKey, spentInfo, pmempool)) {
+            if (GetSpentIndex(chainman, spentKey, spentInfo, pmempool)) {
                 out.pushKV("spentTxId", spentInfo.txid.GetHex());
                 out.pushKV("spentIndex", (int)spentInfo.inputIndex);
                 out.pushKV("spentHeight", spentInfo.blockHeight);
@@ -204,12 +204,10 @@ static RPCHelpMan getrawtransaction()
                 "getrawtransaction",
                 "\nReturn the raw transaction data.\n"
 
-                "\nBy default this function only works for mempool transactions. When called with a blockhash\n"
-                "argument, getrawtransaction will return the transaction if the specified block is available and\n"
-                "the transaction is found in that block. When called without a blockhash argument, getrawtransaction\n"
-                "will return the transaction if it is in the mempool, or if -txindex is enabled and the transaction\n"
-                "is in a block in the blockchain.\n"
-
+                "\nBy default, this call only returns a transaction if it is in the mempool. If -txindex is enabled\n"
+                "and no blockhash argument is passed, it will return the transaction if it is in the mempool or any block.\n"
+                "If -txindex is not enabled and a blockhash argument is passed, it will return the transaction if\n"
+                "the specified block is available and the transaction is found in that block.\n"
                 "\nHint: Use gettransaction for wallet transactions.\n"
 
                 "\nIf verbose is 'true', returns an Object with information about 'txid'.\n"
@@ -373,7 +371,7 @@ static RPCHelpMan getrawtransaction()
     result.pushKV("hex", strHex);
 
     if (fParticlMode) {
-        TxToJSONExpanded(*tx, hash_block, node.mempool.get(), result, nHeight, nConfirmations, nBlockTime);
+        TxToJSONExpanded(chainman, *tx, hash_block, node.mempool.get(), result, nHeight, nConfirmations, nBlockTime);
     } else {
         TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate());
     }

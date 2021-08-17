@@ -59,6 +59,8 @@ bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTx
 
 bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
 {
+    assert(state.m_chainstate);
+    auto &pblocktree{state.m_chainstate->m_blockman.m_block_tree_db};
     const Consensus::Params &consensus = Params().GetConsensus();
 
     bool default_accept_anon = state.m_exploit_fix_2 ? true : particl::DEFAULT_ACCEPT_ANON_TX; // TODO: Remove after fork, set DEFAULT_ACCEPT_ANON_TX to true
@@ -297,7 +299,7 @@ bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPo
 };
 
 
-bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
+bool AllAnonOutputsUnknown(CChainState &active_chainstate, const CTransaction &tx, TxValidationState &state)
 {
     state.m_has_anon_output = false;
     for (unsigned int k = 0; k < tx.vpout.size(); k++) {
@@ -305,6 +307,7 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
             continue;
         }
         state.m_has_anon_output = true;
+        auto &pblocktree{active_chainstate.m_blockman.m_block_tree_db};
 
         CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
 
@@ -333,10 +336,12 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
 };
 
 
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi)
+bool RollBackRCTIndex(ChainstateManager &chainman, int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi)
 {
     LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n", __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
     // This should hardly happen, if ever
+
+    auto &pblocktree{chainman.m_blockman.m_block_tree_db};
 
     AssertLockHeld(cs_main);
 
@@ -375,6 +380,8 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
 bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError)
 {
     LogPrintf("%s: height %d\n", __func__, nToHeight);
+
+    auto &pblocktree{chainman.m_blockman.m_block_tree_db};
     nBlocks = 0;
     int64_t nLastRCTOutput = 0;
 
@@ -382,6 +389,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
     CCoinsViewCache &view = chainman.ActiveChainstate().CoinsTip();
     view.fForceDisconnect = true;
     BlockValidationState state;
+    state.m_chainman = &chainman;
 
     for (CBlockIndex *pindex = chainman.ActiveChain().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
         if (pindex->nHeight <= nToHeight) {

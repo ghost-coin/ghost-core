@@ -34,6 +34,8 @@ struct NodeContext;
 struct CBlockTemplate;
 
 class CBlockIndex;
+class CCmpPubKey;
+class CAnonOutput;
 
 namespace interfaces {
 
@@ -301,6 +303,9 @@ public:
     virtual CTxMemPool *getMempool() = 0;
     virtual CBlockIndex *getTip() = 0;
     virtual ChainstateManager *getChainman() = 0;
+    virtual bool readRCTOutput(int64_t i, CAnonOutput &ao) = 0;
+    virtual bool readRCTOutputLink(const CCmpPubKey &pk, int64_t &i) = 0;
+    virtual bool readRCTKeyImage(const CCmpPubKey &ki, uint256 &txhash) = 0;
 };
 
 //! Interface to let node manage chain clients (wallets, or maybe tools for

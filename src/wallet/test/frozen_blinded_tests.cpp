@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
     uint256 tip_hash = chain_active.Tip()->GetBlockHash();
-    BOOST_CHECK(GetBlockBalances(tip_hash, blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, tip_hash, blockbalances));
     BOOST_CHECK(blockbalances.plain() == particl::GetUTXOSum(chainstate_active));
     BOOST_CHECK(blockbalances.blind() == 1111 * COIN);
     BOOST_CHECK(blockbalances.anon() < -49770 * COIN);
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_REQUIRE(utxo_sum_before_fork + stake_reward == utxo_sum_after_fork);
 
     // Test that the balanceindex is reset
-    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == utxo_sum_after_fork);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
@@ -456,7 +456,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
     BOOST_REQUIRE(particl::GetUTXOSum(chainstate_active) == moneysupply_before_post_fork_to_blinded);
 
-    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == moneysupply_before_post_fork_to_blinded);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
@@ -488,7 +488,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
     BOOST_REQUIRE(balances.nPart + balances.nPartStaked + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
 
-    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == utxosum);
     BOOST_CHECK(blockbalances.blind() == 1000 * COIN);
     BOOST_CHECK(blockbalances.anon() == 1100 * COIN);
@@ -614,7 +614,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // balancesindex tracks the amount of plain coin sent to and from blind to anon.
     // Coins can move between anon and blind but the sums should match
-    BOOST_CHECK(GetBlockBalances(chain_active.Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getbalances", context));
     CAmount blind_trusted = AmountFromValue(rv["mine"]["blind_trusted"]);

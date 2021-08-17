@@ -88,6 +88,7 @@ static bool HashOnchainActive(ChainstateManager &chainman, const uint256 &hash) 
 
 bool GetTimestampIndex(ChainstateManager &chainman, const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fTimestampIndex) {
         return error("Timestamp index not enabled");
     }
@@ -108,8 +109,9 @@ bool GetTimestampIndex(ChainstateManager &chainman, const unsigned int &high, co
     return true;
 };
 
-bool GetSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value, const CTxMemPool *pmempool)
+bool GetSpentIndex(ChainstateManager &chainman, const CSpentIndexKey &key, CSpentIndexValue &value, const CTxMemPool *pmempool)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fSpentIndex) {
         return false;
     }
@@ -123,9 +125,10 @@ bool GetSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value, const CTx
     return true;
 };
 
-bool GetAddressIndex(const uint256 &addressHash, int type,
+bool GetAddressIndex(ChainstateManager &chainman, const uint256 &addressHash, int type,
                      std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex, int start, int end)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fAddressIndex) {
         return error("Address index not enabled");
     }
@@ -136,9 +139,10 @@ bool GetAddressIndex(const uint256 &addressHash, int type,
     return true;
 };
 
-bool GetAddressUnspent(const uint256 &addressHash, int type,
+bool GetAddressUnspent(ChainstateManager &chainman, const uint256 &addressHash, int type,
                        std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fAddressIndex) {
         return error("Address index not enabled");
     }
@@ -149,8 +153,9 @@ bool GetAddressUnspent(const uint256 &addressHash, int type,
     return true;
 };
 
-bool GetBlockBalances(const uint256 &block_hash, BlockBalances &balances)
+bool GetBlockBalances(ChainstateManager &chainman, const uint256 &block_hash, BlockBalances &balances)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fBalancesIndex) {
         return error("Balances index not enabled");
     }

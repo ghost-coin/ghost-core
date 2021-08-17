@@ -20,6 +20,7 @@ class CTransaction;
 class CTxMemPool;
 class TxValidationState;
 class ChainstateManager;
+class CChainState;
 
 const size_t MIN_RINGSIZE = 1;
 const size_t MAX_RINGSIZE = 32;
@@ -40,9 +41,9 @@ int GetKeyImage(CCmpPubKey &ki, const CCmpPubKey &pubkey, const CKey &key);
 bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool);
 bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPool &pool);
 
-bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state);
+bool AllAnonOutputsUnknown(CChainState &active_chainstate, const CTransaction &tx, TxValidationState &state);
 
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool RollBackRCTIndex(ChainstateManager &chainman, int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 

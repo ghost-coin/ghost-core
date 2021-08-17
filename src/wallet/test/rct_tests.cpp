@@ -128,6 +128,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     state.m_exploit_fix_1 = true;
     state.m_exploit_fix_2 = true;
     state.m_spend_height = nSpendHeight;
+    state.m_chainstate = &chainstate_active;
     CAmount txfee = 0;
     CCoinsViewCache &view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(*wtx.tx, state, view, nSpendHeight, txfee));
@@ -208,6 +209,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     state.m_exploit_fix_1 = true;
     state.m_exploit_fix_2 = true;
     state.m_spend_height = nSpendHeight;
+    state.m_chainstate = &chainstate_active;
     CAmount txfee = 0;
     CCoinsViewCache &view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(*wtx.tx, state, view, nSpendHeight, txfee));
@@ -251,7 +253,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
         ofs += nB;
 
         CAnonOutput ao;
-        BOOST_REQUIRE(pblocktree->ReadRCTOutput(nIndex, ao));
+        BOOST_REQUIRE(m_node.chainman->m_blockman.m_block_tree_db->ReadRCTOutput(nIndex, ao));
         memcpy(&vM[(i+k*nCols)*33], ao.pubkey.begin(), 33);
         vCommitments.push_back(ao.commitment);
         vpInCommits[i+k*nCols] = vCommitments.back().data;
@@ -382,6 +384,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     tx_state.m_exploit_fix_1 = true;
     tx_state.m_exploit_fix_2 = true;
     tx_state.m_spend_height = nSpendHeight;
+    tx_state.m_chainstate = &chainstate_active;
     CAmount txfee = 0;
     {
     LOCK(cs_main);

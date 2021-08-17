@@ -1,6 +1,10 @@
 Next Major Version
 ==============
 
+
+22.0.1
+==============
+
 - script: Remove timelocked script signing.
 
 

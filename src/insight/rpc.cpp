@@ -246,7 +246,7 @@ return RPCHelpMan{"getaddressutxos",
 
     std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
     for (std::vector<std::pair<uint256, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
-        if (!GetAddressUnspent(it->first, it->second, unspentOutputs)) {
+        if (!GetAddressUnspent(chainman, it->first, it->second, unspentOutputs)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
         }
     }
@@ -322,10 +322,10 @@ static RPCHelpMan getaddressdeltas()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    ChainstateManager &chainman = EnsureAnyChainman(request.context);
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     UniValue startValue = find_value(request.params[0].get_obj(), "start");
     UniValue endValue = find_value(request.params[0].get_obj(), "end");
@@ -360,11 +360,11 @@ static RPCHelpMan getaddressdeltas()
 
     for (std::vector<std::pair<uint256, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
         if (start > 0 && end > 0) {
-            if (!GetAddressIndex(it->first, it->second, addressIndex, start, end)) {
+            if (!GetAddressIndex(chainman, it->first, it->second, addressIndex, start, end)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
             }
         } else {
-            if (!GetAddressIndex(it->first, it->second, addressIndex)) {
+            if (!GetAddressIndex(chainman, it->first, it->second, addressIndex)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
             }
         }
@@ -448,6 +448,7 @@ static RPCHelpMan getaddressbalance()
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     std::vector<std::pair<uint256, int> > addresses;
 
@@ -458,7 +459,7 @@ static RPCHelpMan getaddressbalance()
     std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
 
     for (std::vector<std::pair<uint256, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
-        if (!GetAddressIndex(it->first, it->second, addressIndex)) {
+        if (!GetAddressIndex(chainman, it->first, it->second, addressIndex)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
         }
     }
@@ -510,6 +511,7 @@ static RPCHelpMan getaddresstxids()
     if (!fAddressIndex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Address index is not enabled.");
     }
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     std::vector<std::pair<uint256, int> > addresses;
 
@@ -532,11 +534,11 @@ static RPCHelpMan getaddresstxids()
 
     for (std::vector<std::pair<uint256, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
         if (start > 0 && end > 0) {
-            if (!GetAddressIndex(it->first, it->second, addressIndex, start, end)) {
+            if (!GetAddressIndex(chainman, it->first, it->second, addressIndex, start, end)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
             }
         } else {
-            if (!GetAddressIndex(it->first, it->second, addressIndex)) {
+            if (!GetAddressIndex(chainman, it->first, it->second, addressIndex)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
             }
         }
@@ -597,6 +599,7 @@ static RPCHelpMan getspentinfo()
 {
     NodeContext& node = EnsureAnyNodeContext(request.context);
     const CTxMemPool& mempool = EnsureMemPool(node);
+    ChainstateManager &chainman = EnsureChainman(node);
 
     UniValue txidValue = find_value(request.params[0].get_obj(), "txid");
     UniValue indexValue = find_value(request.params[0].get_obj(), "index");
@@ -611,7 +614,7 @@ static RPCHelpMan getspentinfo()
     CSpentIndexKey key(txid, outputIndex);
     CSpentIndexValue value;
 
-    if (!GetSpentIndex(key, value, &mempool)) {
+    if (!GetSpentIndex(chainman, key, value, &mempool)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unable to get spent info");
     }
 
@@ -645,8 +648,9 @@ static void AddAddress(CScript *script, UniValue &uv)
     }
 }
 
-static UniValue blockToDeltasJSON(CChain &active_chain, const CBlock& block, const CBlockIndex* blockindex, const CTxMemPool *pmempool)
+static UniValue blockToDeltasJSON(ChainstateManager& chainman, const CBlock& block, const CBlockIndex* blockindex, const CTxMemPool *pmempool)
 {
+    CChain &active_chain = chainman.ActiveChain();
     UniValue result(UniValue::VOBJ);
     result.pushKV("hash", block.GetHash().GetHex());
     int confirmations = -1;
@@ -685,7 +689,7 @@ static UniValue blockToDeltasJSON(CChain &active_chain, const CBlock& block, con
                 CSpentIndexValue spentInfo;
                 CSpentIndexKey spentKey(input.prevout.hash, input.prevout.n);
 
-                if (GetSpentIndex(spentKey, spentInfo, pmempool)) {
+                if (GetSpentIndex(chainman, spentKey, spentInfo, pmempool)) {
                     std::string address;
                     if (!getAddressFromIndex(spentInfo.addressType, spentInfo.addressHash, address)) {
                         continue;
@@ -809,7 +813,7 @@ return RPCHelpMan{"getblockdeltas",
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
     }
 
-    return blockToDeltasJSON(chainman.ActiveChain(), block, pblockindex, &mempool);
+    return blockToDeltasJSON(chainman, block, pblockindex, &mempool);
 },
     };
 }
@@ -1192,6 +1196,7 @@ return RPCHelpMan{"getblockbalances",
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ}, true);
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     LOCK(cs_main);
 
@@ -1215,7 +1220,7 @@ return RPCHelpMan{"getblockbalances",
 
 
     BlockBalances balances;
-    if (!GetBlockBalances(hash, balances)) {
+    if (!GetBlockBalances(chainman, hash, balances)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unable to get balances info");
     }
 
