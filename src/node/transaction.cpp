@@ -163,8 +163,6 @@ bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus
 {
     CBlockIndex *pindexSlow = blockIndex;
 
-    LOCK(cs_main);
-
     if (g_txindex) {
         CBlockHeader header;
         if (g_txindex->FindTx(hash, header, txOut)) {
