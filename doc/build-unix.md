@@ -48,6 +48,7 @@ Optional dependencies:
  univalue    | Utility          | JSON parsing and encoding (bundled version will be used unless --with-system-univalue passed to configure)
  libzmq3     | ZMQ notification | Optional, allows generating ZMQ notifications (requires ZMQ version >= 4.0.0)
  sqlite3     | SQLite DB        | Optional, wallet storage (only needed when wallet enabled)
+ systemtap   | Tracing (USDT)   | Optional, statically defined tracepoints
  protobuf    | USB Devices      | Optional, Data interchange format (only needed when usbdevice enabled)
  hidapi      | USB Devices      | Optional, USB interface wrapper (only needed when usbdevice enabled)
 
@@ -109,6 +110,10 @@ ZMQ dependencies (provides ZMQ API):
 
     sudo apt-get install libzmq3-dev
 
+User-Space, Statically Defined Tracing (USDT) dependencies:
+
+    sudo apt install systemtap-sdt-dev
+
 GUI dependencies:
 
 If you want to build particl-qt, make sure that the required packages for Qt development
@@ -169,6 +174,10 @@ Optional port mapping libraries (see: `--with-miniupnpc`, `--enable-upnp-default
 ZMQ dependencies (provides ZMQ API):
 
     sudo dnf install zeromq-devel
+
+User-Space, Statically Defined Tracing (USDT) dependencies:
+
+    sudo dnf install systemtap
 
 GUI dependencies:
 

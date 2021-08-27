@@ -19,7 +19,6 @@
 #include <flatfile.h>
 #include <hash.h>
 #include <index/blockfilterindex.h>
-#include <index/txindex.h>
 #include <logging.h>
 #include <logging/timer.h>
 #include <node/blockstorage.h>
@@ -49,6 +48,7 @@
 #include <util/rbf.h>
 #include <util/strencodings.h>
 #include <util/system.h>
+#include <util/trace.h>
 #include <util/translation.h>
 #include <validationinterface.h>
 #include <warnings.h>
@@ -1272,68 +1272,6 @@ PackageMempoolAcceptResult ProcessNewPackage(CChainState& active_chainstate, CTx
         active_chainstate.CoinsTip().Uncache(hashTx);
     }
     return result;
-}
-
-CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, const Consensus::Params& consensusParams, uint256& hashBlock)
-{
-    LOCK(cs_main);
-
-    if (mempool && !block_index) {
-        CTransactionRef ptx = mempool->get(hash);
-        if (ptx) return ptx;
-    }
-    if (g_txindex) {
-        CTransactionRef tx;
-        uint256 block_hash;
-        if (g_txindex->FindTx(hash, block_hash, tx)) {
-            if (!block_index || block_index->GetBlockHash() == block_hash) {
-                hashBlock = block_hash;
-                return tx;
-            }
-        }
-    }
-    if (block_index) {
-        CBlock block;
-        if (ReadBlockFromDisk(block, block_index, consensusParams)) {
-            for (const auto& tx : block.vtx) {
-                if (tx->GetHash() == hash) {
-                    hashBlock = block_index->GetBlockHash();
-                    return tx;
-                }
-            }
-        }
-    }
-    return nullptr;
-}
-
-bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus::Params &consensusParams, CBlock &block, CBlockIndex* blockIndex)
-{
-    CBlockIndex *pindexSlow = blockIndex;
-
-    LOCK(cs_main);
-
-    if (g_txindex) {
-        CBlockHeader header;
-        if (g_txindex->FindTx(hash, header, txOut)) {
-            block = CBlock(header);
-            return true;
-        }
-        return false;
-    }
-
-    if (pindexSlow) {
-        // read and return entire block
-        if (ReadBlockFromDisk(block, pindexSlow, consensusParams)) {
-            for (const auto& tx : block.vtx) {
-                if (tx->GetHash() == hash) {
-                    txOut = tx;
-                    return true;
-                }
-            }
-        }
-    }
-
-    return false;
 }
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
@@ -2775,6 +2713,16 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     int64_t nTime6 = GetTimeMicros(); nTimeCallbacks += nTime6 - nTime5;
     LogPrint(BCLog::BENCH, "    - Callbacks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5), nTimeCallbacks * MICRO, nTimeCallbacks * MILLI / nBlocksTotal);
+
+    TRACE7(validation, block_connected,
+        block.GetHash().ToString().c_str(),
+        pindex->nHeight,
+        block.vtx.size(),
+        nInputs,
+        nSigOpsCost,
+        GetTimeMicros() - nTimeStart, // in microseconds (µs)
+        block.GetHash().data()
+    );
 
     return true;
 }

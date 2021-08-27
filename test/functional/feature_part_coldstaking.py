@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from test_framework.test_particl import ParticlTestFramework
 from test_framework.util import assert_equal
-from test_framework.address import keyhash_to_p2pkh, hex_str_to_bytes
+from test_framework.address import keyhash_to_p2pkh
 from test_framework.authproxy import JSONRPCException
 
 
@@ -110,7 +110,7 @@ class ColdStakingTest(ParticlTestFramework):
         assert(hashOther == 'e5c8967e77fdeecaa46a446a0f71988c65b51432f35f8e58fdfe628c5a169386')
 
         ro = nodes[0].deriverangekeys(0, 0, coldstakingaddr)
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashCoinstake)))
+        assert(ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
 
         ro = nodes[0].extkey('list', 'true')
@@ -162,10 +162,10 @@ class ColdStakingTest(ParticlTestFramework):
         assert(hashSpend == '55e9e9b1aebf76f2a2ce9d7af6267be996bc235e3a65fa0f87a345267f9b3895')
 
         ro = nodes[0].deriverangekeys(1, 1, coldstakingaddr)
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashCoinstake)))
+        assert(ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
         ro = nodes[0].deriverangekeys(0, 0, ekChange, 'false', 'false', 'false', 'true')
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashSpend)))
+        assert(ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashSpend)))
 
         ro = nodes[0].extkey('list', 'true')
         fFound = False
@@ -211,10 +211,10 @@ class ColdStakingTest(ParticlTestFramework):
             hashSpend = asm[10]
 
         ro = nodes[0].deriverangekeys(2, 2, coldstakingaddr)
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashCoinstake)))
+        assert(ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
         ro = nodes[0].deriverangekeys(1, 1, ekChange, 'false', 'false', 'false', 'true')
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashSpend)))
+        assert(ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashSpend)))
 
         ro = nodes[0].extkey('list', 'true')
         fFound = False

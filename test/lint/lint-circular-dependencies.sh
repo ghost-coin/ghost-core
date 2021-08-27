@@ -10,7 +10,6 @@ export LC_ALL=C
 
 EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chainparamsbase -> util/system -> chainparamsbase"
-    "index/txindex -> validation -> index/txindex"
     "node/blockstorage -> validation -> node/blockstorage"
     "index/blockfilterindex -> node/blockstorage -> validation -> index/blockfilterindex"
     "index/base -> validation -> index/blockfilterindex -> index/base"
@@ -53,7 +52,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "key/extkey -> key_io -> script/standard -> key/extkey"
     "key/stealth -> key_io -> script/standard -> key/stealth"
     "smsg/smessage -> wallet/hdwallet -> smsg/smessage"
-    "net_processing -> smsg/smessage -> wallet/hdwallet -> rpc/util -> node/transaction -> net_processing"
+    "net_processing -> smsg/smessage -> wallet/hdwallet -> pos/kernel -> node/transaction -> net_processing"
     "net_processing -> smsg/smessage -> node/context -> net_processing"
     "net_processing -> smsg/smessage -> net_processing"
     "net_processing -> validation -> net_processing"

@@ -18,6 +18,8 @@
 #include <coins.h>
 #include <insight/insight.h>
 #include <txmempool.h>
+#include <node/transaction.h>
+
 
 extern double GetDifficulty(const CBlockIndex* blockindex);
 
