@@ -603,7 +603,7 @@ void ExtractNarration(const uint256 &nonce, const std::vector<uint8_t> &vData, s
 int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet);
 int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wallet, const std::vector<CTxOutBaseRef>& txouts);
 
-void RestartStakingThreads(ChainstateManager &chainman);
+void RestartStakingThreads(WalletContext &wallet_context, ChainstateManager &chainman);
 
 bool IsParticlWallet(const WalletStorage *win);
 CHDWallet *GetParticlWallet(WalletStorage *win);

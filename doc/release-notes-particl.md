@@ -1,6 +1,9 @@
 Next Major Version
 ==============
 
+- rpc: devicesignrawtransactionwithwallet is split out of devicesignrawtransaction.
+  - Workaround for wallet context only provided for wallet rpc commands.
+
 
 22.0.1
 ==============

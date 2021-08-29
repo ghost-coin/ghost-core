@@ -42,7 +42,9 @@ namespace interfaces {
 class Handler;
 class Wallet;
 
-//! Helper for findBlock to selectively return pieces of block data.
+//! Helper for findBlock to selectively return pieces of block data. If block is
+//! found, data will be returned by setting specified output variables. If block
+//! is not found, output variables will keep their previous values.
 class FoundBlock
 {
 public:
@@ -67,6 +69,7 @@ public:
     bool* m_in_active_chain = nullptr;
     const FoundBlock* m_next_block = nullptr;
     CBlock* m_data = nullptr;
+    mutable bool found = false;
 };
 
 //! Interface giving clients (wallet processes, maybe other analysis tools in

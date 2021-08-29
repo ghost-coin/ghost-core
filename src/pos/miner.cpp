@@ -176,7 +176,7 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
     return true;
 };
 
-void StartThreadStakeMiner(ChainstateManager &chainman)
+void StartThreadStakeMiner(WalletContext &wallet_context, ChainstateManager &chainman)
 {
     nMinStakeInterval = gArgs.GetArg("-minstakeinterval", 0);
     nMinerSleep = gArgs.GetArg("-minersleep", 500);
@@ -184,7 +184,7 @@ void StartThreadStakeMiner(ChainstateManager &chainman)
     if (!gArgs.GetBoolArg("-staking", true)) {
         LogPrintf("Staking disabled\n");
     } else {
-        auto vpwallets = GetWallets();
+        auto vpwallets = GetWallets(wallet_context);
         size_t nWallets = vpwallets.size();
 
         if (nWallets < 1) {

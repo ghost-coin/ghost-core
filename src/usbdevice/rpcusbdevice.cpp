@@ -518,13 +518,6 @@ static RPCHelpMan devicesignrawtransaction()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
-#ifdef ENABLE_WALLET
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    if (!wallet) return NullUniValue;
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
-
-    LOCK(pwallet ? &pwallet->cs_wallet : nullptr);
-#endif
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VARR, UniValue::VSTR, UniValue::VSTR}, true);
 
     CMutableTransaction mtx;
@@ -555,7 +548,6 @@ static RPCHelpMan devicesignrawtransaction()
 
         view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
     }
-
 
     bool fGivenKeys = false;
     usb_device::CPathKeyStore tempKeystore;
@@ -647,11 +639,7 @@ static RPCHelpMan devicesignrawtransaction()
         }
     }
 
-#ifdef ENABLE_WALLET
-    const FillableSigningProvider& keystore = ((fGivenKeys || !pwallet) ? (FillableSigningProvider&)tempKeystore : (const FillableSigningProvider&)*static_cast<const FillableSigningProvider*>(pwallet->GetLegacyScriptPubKeyMan()));
-#else
     const FillableSigningProvider& keystore = tempKeystore;
-#endif
 
     int nHashType = SIGHASH_ALL;
     if (!request.params[3].isNull()) {
@@ -1165,7 +1153,323 @@ static RPCHelpMan devicegetnewstealthaddress()
 },
     };
 };
+
+static RPCHelpMan devicesignrawtransactionwithwallet()
+{
+    return RPCHelpMan{"devicesignrawtransactionwithwallet",
+                "\nSign inputs for raw transaction (serialized, hex-encoded).\n"
+                "The second optional argument (may be null) is an array of previous transaction outputs that\n"
+                "this transaction depends on but may not yet be in the block chain.\n"
+                "The third optional argument (may be null) is an array of bip44 paths\n"
+                "that, if given, will be the only keys derived to sign the transaction.\n",
+                {
+                    {"hexstring", RPCArg::Type::STR, RPCArg::Optional::NO, "The transaction hex string."},
+                    {"prevtxs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of previous dependent transaction outputs",
+                        {
+                            {"", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
+                                {
+                                    {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
+                                    {"vout", RPCArg::Type::NUM, RPCArg::Optional::NO, "The output number"},
+                                    {"scriptPubKey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "script key"},
+                                    {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "(required for P2SH or P2WSH)"},
+                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount spent"},
+                                },
+                            },
+                        },
+                    },
+                    {"paths", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of key paths for signing",
+                        {
+                            {"path", RPCArg::Type::STR, RPCArg::Optional::NO, "bip44 path."},
+                        },
+                    },
+                    {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"ALL"}, "The signature hash type. Must be one of\n"
+            "       \"ALL\"\n"
+            "       \"NONE\"\n"
+            "       \"SINGLE\"\n"
+            "       \"ALL|ANYONECANPAY\"\n"
+            "       \"NONE|ANYONECANPAY\"\n"
+            "       \"SINGLE|ANYONECANPAY\""},
+                    {"accountpath", RPCArg::Type::STR, RPCArg::Default{GetDefaultAccountPath()}, "Account path, set to empty string to ignore."},
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR_HEX, "hex", "The hex-encoded raw transaction with signature(s)"},
+                        {RPCResult::Type::BOOL, "complete", "If the transaction has a complete set of signatures"},
+                        {RPCResult::Type::ARR, "errors", "Script verification errors (if there are any)",
+                        {
+                            {RPCResult::Type::OBJ, "", "",
+                            {
+                                {RPCResult::Type::STR_HEX, "txid", "The hash of the referenced, previous transaction"},
+                                {RPCResult::Type::NUM, "vout", "The index of the output to spent and used as input"},
+                                {RPCResult::Type::STR_HEX, "scriptSig", "The hex-encoded signature script"},
+                                {RPCResult::Type::NUM, "sequence", "Script sequence number"},
+                                {RPCResult::Type::STR, "error", "Verification or signing error related to the input"},
+                            }},
+                        }},
+                    },
+                },
+                RPCExamples{
+            HelpExampleCli("devicesignrawtransaction", "\"myhex\"") +
+            "\nAs a JSON-RPC call\n"
+            + HelpExampleRpc("devicesignrawtransaction", "\"myhex\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+
+    LOCK(pwallet ? &pwallet->cs_wallet : nullptr);
+    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VARR, UniValue::VSTR, UniValue::VSTR}, true);
+
+    CMutableTransaction mtx;
+    if (!DecodeHexTx(mtx, request.params[0].get_str(), true)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+    }
+
+    std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
+    usb_device::CUSBDevice *pDevice = SelectDevice(vDevices);
+
+    // TODO check root id on wallet and device match
+
+
+    // Fetch previous transactions (inputs):
+    CCoinsView viewDummy;
+    CCoinsViewCache view(&viewDummy);
+    {
+        const CTxMemPool& mempool = *pwallet->chain().getMempool();
+        LOCK2(cs_main, mempool.cs);
+        CCoinsViewCache &viewChain = pwallet->chain().getChainman()->ActiveChainstate().CoinsTip();
+        CCoinsViewMemPool viewMempool(&viewChain, mempool);
+        view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
+
+        for (const CTxIn& txin : mtx.vin) {
+            view.AccessCoin(txin.prevout); // Load entries from viewChain into view; can fail.
+        }
+
+        view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
+    }
+
+
+    bool fGivenKeys = false;
+    usb_device::CPathKeyStore tempKeystore;
+    if (!request.params[2].isNull()) {
+        fGivenKeys = true;
+        UniValue paths = request.params[2].get_array();
+        for (unsigned int idx = 0; idx < paths.size(); idx++) {
+            usb_device::CPathKey pathkey;
+            GetPath(pathkey.vPath, paths[idx], request.params[4]);
+
+            std::string sError;
+            if (0 != pDevice->GetPubKey(pathkey.vPath, pathkey.pk, false, sError)) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Device GetPubKey failed %s.", sError));
+            }
+
+            tempKeystore.AddKey(pathkey);
+        }
+    }
+
+    // Add previous txouts given in the RPC call:
+    if (!request.params[1].isNull()) {
+        UniValue prevTxs = request.params[1].get_array();
+        for (unsigned int idx = 0; idx < prevTxs.size(); idx++) {
+            const UniValue& p = prevTxs[idx];
+            if (!p.isObject()) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "expected object with {\"txid'\",\"vout\",\"scriptPubKey\"}");
+            }
+
+            UniValue prevOut = p.get_obj();
+
+            RPCTypeCheckObj(prevOut,
+                {
+                    {"txid", UniValueType(UniValue::VSTR)},
+                    {"vout", UniValueType(UniValue::VNUM)},
+                    {"scriptPubKey", UniValueType(UniValue::VSTR)},
+                });
+
+            uint256 txid = ParseHashO(prevOut, "txid");
+
+            int nOut = find_value(prevOut, "vout").get_int();
+            if (nOut < 0) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "vout must be positive");
+            }
+
+            COutPoint out(txid, nOut);
+            std::vector<unsigned char> pkData(ParseHexO(prevOut, "scriptPubKey"));
+            CScript scriptPubKey(pkData.begin(), pkData.end());
+
+            {
+            const Coin& coin = view.AccessCoin(out);
+
+            if (coin.nType != OUTPUT_STANDARD && coin.nType != OUTPUT_CT) {
+                throw JSONRPCError(RPC_MISC_ERROR, strprintf("Bad input type: %d", coin.nType));
+            }
+
+            if (!coin.IsSpent() && coin.out.scriptPubKey != scriptPubKey) {
+                std::string err("Previous output scriptPubKey mismatch:\n");
+                err = err + ScriptToAsmStr(coin.out.scriptPubKey) + "\nvs:\n"+
+                    ScriptToAsmStr(scriptPubKey);
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, err);
+            }
+            Coin newcoin;
+            newcoin.out.scriptPubKey = scriptPubKey;
+            newcoin.out.nValue = 0;
+            if (prevOut.exists("amount")) {
+                newcoin.out.nValue = AmountFromValue(find_value(prevOut, "amount"));
+            }
+            newcoin.nHeight = 1;
+            view.AddCoin(out, std::move(newcoin), true);
+            }
+
+            // if redeemScript given and not using the local wallet (private keys
+            // given), add redeemScript to the tempKeystore so it can be signed:
+            if (fGivenKeys && (scriptPubKey.IsPayToScriptHashAny(mtx.IsCoinStake()))) {
+                RPCTypeCheckObj(prevOut,
+                    {
+                        {"txid", UniValueType(UniValue::VSTR)},
+                        {"vout", UniValueType(UniValue::VNUM)},
+                        {"scriptPubKey", UniValueType(UniValue::VSTR)},
+                        {"redeemScript", UniValueType(UniValue::VSTR)},
+                    });
+                UniValue v = find_value(prevOut, "redeemScript");
+                if (!v.isNull()) {
+                    std::vector<unsigned char> rsData(ParseHexV(v, "redeemScript"));
+                    CScript redeemScript(rsData.begin(), rsData.end());
+                    tempKeystore.AddCScript(redeemScript);
+                }
+            }
+        }
+    }
+
+    const FillableSigningProvider& keystore = ((fGivenKeys || !pwallet) ? (FillableSigningProvider&)tempKeystore : (const FillableSigningProvider&)*static_cast<const FillableSigningProvider*>(pwallet->GetLegacyScriptPubKeyMan()));
+
+    int nHashType = SIGHASH_ALL;
+    if (!request.params[3].isNull()) {
+        static std::map<std::string, int> mapSigHashValues = {
+            {std::string("ALL"), int(SIGHASH_ALL)},
+            {std::string("ALL|ANYONECANPAY"), int(SIGHASH_ALL|SIGHASH_ANYONECANPAY)},
+            {std::string("NONE"), int(SIGHASH_NONE)},
+            {std::string("NONE|ANYONECANPAY"), int(SIGHASH_NONE|SIGHASH_ANYONECANPAY)},
+            {std::string("SINGLE"), int(SIGHASH_SINGLE)},
+            {std::string("SINGLE|ANYONECANPAY"), int(SIGHASH_SINGLE|SIGHASH_ANYONECANPAY)},
+        };
+        std::string strHashType = request.params[3].get_str();
+        if (mapSigHashValues.count(strHashType)) {
+            nHashType = mapSigHashValues[strHashType];
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid sighash param");
+        }
+    }
+
+    bool fHashSingle = ((nHashType & ~SIGHASH_ANYONECANPAY) == SIGHASH_SINGLE);
+
+    // Script verification errors
+    UniValue vErrors(UniValue::VARR);
+
+    // Use CTransaction for the constant parts of the
+    // transaction to avoid rehashing.
+    const CTransaction txConst(mtx);
+
+    // Prepare transaction
+    int change_pos = -1;
+    std::vector<uint32_t> change_path;
+    int prep = pDevice->PrepareTransaction(mtx, view, keystore, nHashType, change_pos, change_path);
+    if (0 != prep) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("PrepareTransaction failed with code %d.", prep));
+    }
+
+    if (!pDevice->m_error.empty()) {
+        pDevice->Cleanup();
+        UniValue entry(UniValue::VOBJ);
+        entry.pushKV("error", pDevice->m_error);
+        vErrors.push_back(entry);
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("hex", EncodeHexTx(CTransaction(mtx)));
+        if (!vErrors.empty()) {
+            result.pushKV("errors", vErrors);
+        }
+        return result;
+    }
+
+    // Sign what we can:
+    for (unsigned int i = 0; i < mtx.vin.size(); i++) {
+        CTxIn& txin = mtx.vin[i];
+        const Coin& coin = view.AccessCoin(txin.prevout);
+        if (coin.IsSpent()) {
+            TxInErrorToJSON(txin, vErrors, "Input not found or already spent");
+            continue;
+        }
+        if (coin.nType != OUTPUT_STANDARD && coin.nType != OUTPUT_CT) {
+            pDevice->Cleanup();
+            throw JSONRPCError(RPC_MISC_ERROR, strprintf("Bad input type: %d", coin.nType));
+        }
+
+        CScript prevPubKey = coin.out.scriptPubKey;
+        std::vector<uint8_t> vchAmount(8);
+        part::SetAmount(vchAmount, coin.out.nValue);
+        SignatureData sigdata = DataFromTransaction(mtx, i, vchAmount, prevPubKey);
+
+        // Only sign SIGHASH_SINGLE if there's a corresponding output:
+        if (!fHashSingle || (i < mtx.GetNumVOuts())) {
+            pDevice->m_error.clear();
+            ProduceSignature(keystore, usb_device::DeviceSignatureCreator(pDevice, &mtx, i, vchAmount, nHashType), prevPubKey, sigdata);
+
+            if (!pDevice->m_error.empty()) {
+                UniValue entry(UniValue::VOBJ);
+                entry.pushKV("error", pDevice->m_error);
+                vErrors.push_back(entry);
+                pDevice->m_error.clear();
+            }
+        }
+
+        UpdateInput(txin, sigdata);
+
+        ScriptError serror = SCRIPT_ERR_OK;
+        if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, vchAmount, MissingDataBehavior::FAIL), &serror)) {
+            if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
+                // Unable to sign input and verification failed (possible attempt to partially sign).
+                TxInErrorToJSON(txin, vErrors, "Unable to sign input, invalid stack size (possibly missing key)");
+            } else {
+                TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
+            }
+        }
+    }
+
+    pDevice->Cleanup();
+
+    bool fComplete = vErrors.empty();
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("hex", EncodeHexTx(CTransaction(mtx)));
+    result.pushKV("complete", fComplete);
+    if (!vErrors.empty()) {
+        result.pushKV("errors", vErrors);
+    }
+
+    return result;
+},
+    };
+};
+
 #endif
+
+
+Span<const CRPCCommand> GetDeviceWalletRPCCommands()
+{
+// clang-format off
+static const CRPCCommand commands[] =
+{ //  category              actor (function)
+  //  --------------------- -----------------------
+#ifdef ENABLE_WALLET
+    { "usbdevice",          &initaccountfromdevice                      },
+    { "usbdevice",          &devicegetnewstealthaddress                 },
+    { "usbdevice",          &devicesignrawtransactionwithwallet         },
+#endif
+};
+// clang-format on
+    return MakeSpan(commands);
+}
+
 
 void RegisterUSBDeviceRPC(CRPCTable &t)
 {
@@ -1182,11 +1486,7 @@ static const CRPCCommand commands[] =
     { "usbdevice",          &getdevicepublickey             },
     { "usbdevice",          &getdevicexpub                  },
     { "usbdevice",          &devicesignmessage              },
-    { "usbdevice",          &devicesignrawtransaction       }, /* uses wallet if enabled */
-#ifdef ENABLE_WALLET
-    { "usbdevice",          &initaccountfromdevice          },
-    { "usbdevice",          &devicegetnewstealthaddress     },
-#endif
+    { "usbdevice",          &devicesignrawtransaction       },
 };
 // clang-format on
     for (const auto& c : commands) {

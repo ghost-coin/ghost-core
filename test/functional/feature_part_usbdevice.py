@@ -127,7 +127,7 @@ class USBDeviceTest(ParticlTestFramework):
         hexFunded = nodes[1].fundrawtransaction(hexRaw)['hex']
         txDecoded = nodes[1].decoderawtransaction(hexFunded)
 
-        ro = nodes[1].devicesignrawtransaction(hexFunded)
+        ro = nodes[1].devicesignrawtransactionwithwallet(hexFunded)
         assert(ro['complete'] == True)
 
         txnid1 = nodes[1].sendrawtransaction(ro['hex'])
@@ -135,7 +135,7 @@ class USBDeviceTest(ParticlTestFramework):
         self.sync_all()
         self.stakeBlocks(1)
 
-        ro = nodes[1].devicesignrawtransaction(hexFunded)
+        ro = nodes[1].devicesignrawtransactionwithwallet(hexFunded)
         assert(ro['errors'][0]['error'] == 'Input not found or already spent')
 
         prevtxns = []
@@ -190,7 +190,7 @@ class USBDeviceTest(ParticlTestFramework):
         assert(len(inputs) > 0)
         hexRaw = nodes[1].createrawtransaction(inputs, {addr0_0:0.09})
 
-        ro = nodes[1].devicesignrawtransaction(hexRaw)
+        ro = nodes[1].devicesignrawtransactionwithwallet(hexRaw)
         assert(ro['complete'] == True)
 
         # import privkey in node2

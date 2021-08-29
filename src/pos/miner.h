@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 
+struct WalletContext;
 class ChainstateManager;
 class CBlockIndex;
 class CBlock;
@@ -35,7 +36,7 @@ extern int nMinerSleep;
 
 bool CheckStake(ChainstateManager &chainman, const CBlock *pblock);
 
-void StartThreadStakeMiner(ChainstateManager &chainman);
+void StartThreadStakeMiner(WalletContext &wallet_context, ChainstateManager &chainman);
 void StopThreadStakeMiner();
 void WakeThreadStakeMiner(CHDWallet *pwallet);
 bool ThreadStakeMinerStopped();

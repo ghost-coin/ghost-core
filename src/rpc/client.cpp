@@ -282,6 +282,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
     { "devicesignrawtransaction", 1, "prevtxs" },
     { "devicesignrawtransaction", 2, "paths" },
+    { "devicesignrawtransactionwithwallet", 1, "prevtxs" },
+    { "devicesignrawtransactionwithwallet", 2, "paths" },
     { "initaccountfromdevice", 2, "makedefault" },
     { "initaccountfromdevice", 3, "scan_chain_from" },
     { "initaccountfromdevice", 4, "initstealthchain" },

@@ -77,7 +77,7 @@ class DoSTest(ParticlTestFramework):
 
         self.wait_for_height(nodes[0], 20, 2000)
 
-        # Let the test nodes get in sync
+        self.log.info('Syncing nodes.')
         for i in range(dos_nodes):
             self.nodes[i].p2ps[0].wait_for_verack()
 
@@ -87,7 +87,7 @@ class DoSTest(ParticlTestFramework):
         block_count = nodes[0].getblockcount()
         pastBlockHash = nodes[0].getblockhash(block_count-MAX_HEADERS-1)
 
-        # In each iteration, send a `headers` message with the maximumal number of entries
+        # In each iteration, send a `headers` message with the maximum number of entries
         t = int(time.time()+15) & 0xfffffff0
         self.log.info('Initial blockindexsize: %d\n' % (nodes[0].getblockchaininfo()['blockindexsize']))
         self.log.info('Generating lots of headers with no stake\n')

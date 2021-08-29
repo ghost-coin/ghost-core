@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +7,7 @@
 #include <wallet/hdwallet.h>
 #include <wallet/coincontrol.h>
 #include <interfaces/chain.h>
+#include <interfaces/wallet.h>
 
 #include <validation.h>
 #include <blind.h>
@@ -118,7 +119,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
     SyncWithValidationInterfaceQueue();
 };
 
-static std::shared_ptr<CHDWallet> CreateTestWallet(interfaces::Chain& chain, std::string wallet_name)
+static std::shared_ptr<CHDWallet> CreateTestWallet(WalletContext& wallet_context, std::string wallet_name)
 {
     DatabaseOptions options;
     DatabaseStatus status;
@@ -126,7 +127,7 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(interfaces::Chain& chain, std
     std::vector<bilingual_str> warnings;
     options.create_flags = WALLET_FLAG_BLANK_WALLET;
     auto database = MakeWalletDatabase(wallet_name, options, status, error);
-    auto wallet = CWallet::Create(&chain, wallet_name, std::move(database), options.create_flags, error, warnings);
+    auto wallet = CWallet::Create(wallet_context, wallet_name, std::move(database), options.create_flags, error, warnings);
 
     return std::static_pointer_cast<CHDWallet>(wallet);
 }
@@ -136,6 +137,11 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
     TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
     const auto context = util::AnyPtr<NodeContext>(&test_setup.m_node);
 
+    std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain(test_setup.m_node);
+    std::unique_ptr<interfaces::WalletClient> wallet_client = interfaces::MakeWalletClient(*chain, *Assert(test_setup.m_node.args));
+    wallet_client->registerRpcs();
+    WalletContext& wallet_context = *wallet_client->context();
+
     ECC_Start_Stealth();
     ECC_Start_Blinding();
 
@@ -143,13 +149,13 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
     std::unique_ptr<interfaces::ChainClient> m_chain_client = interfaces::MakeWalletClient(*m_chain, *Assert(test_setup.m_node.args));
     m_chain_client->registerRpcs();
 
-    std::shared_ptr<CHDWallet> pwallet_a = CreateTestWallet(*m_chain.get(), "a");
+    std::shared_ptr<CHDWallet> pwallet_a = CreateTestWallet(wallet_context, "a");
     assert(pwallet_a.get());
-    AddWallet(pwallet_a);
+    AddWallet(wallet_context, pwallet_a);
 
-    std::shared_ptr<CHDWallet> pwallet_b = CreateTestWallet(*m_chain.get(), "b");
+    std::shared_ptr<CHDWallet> pwallet_b = CreateTestWallet(wallet_context, "b");
     assert(pwallet_b.get());
-    AddWallet(pwallet_b);
+    AddWallet(wallet_context, pwallet_b);
 
     {
         int last_height = context->chainman->ActiveChain().Height();
@@ -222,10 +228,10 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
         pwallet_b.get()->AddToWalletIfInvolvingMe(tx, confirm, true);
     });
 
-    RemoveWallet(pwallet_a, std::nullopt);
+    RemoveWallet(wallet_context, pwallet_a, std::nullopt);
     pwallet_a.reset();
 
-    RemoveWallet(pwallet_b, std::nullopt);
+    RemoveWallet(wallet_context, pwallet_b, std::nullopt);
     pwallet_b.reset();
 
     ECC_Stop_Stealth();

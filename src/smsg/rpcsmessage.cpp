@@ -21,6 +21,8 @@
 #include <timedata.h>
 #include <anon.h>
 #include <validationinterface.h>
+#include <node/context.h>
+#include <interfaces/wallet.h>
 #include <util/string.h>
 #include <util/time.h>
 
@@ -71,7 +73,7 @@ static RPCHelpMan smsgenable()
     std::shared_ptr<CWallet> pwallet;
     std::string sFindWallet, wallet_name = "Not set.";
 #ifdef ENABLE_WALLET
-    auto vpwallets = GetWallets();
+    auto vpwallets = GetWallets(*smsgModule.m_node->wallet_client->context());
 
     if (!request.params[0].isNull()) {
         sFindWallet = request.params[0].get_str();
@@ -168,7 +170,7 @@ static RPCHelpMan smsgsetwallet()
 #ifndef ENABLE_WALLET
     throw JSONRPCError(RPC_MISC_ERROR, "Wallet is disabled.");
 #else
-    auto vpwallets = GetWallets();
+    auto vpwallets = GetWallets(*smsgModule.m_node->wallet_client->context());
 
     if (!request.params[0].isNull()) {
         std::string sFindWallet = request.params[0].get_str();

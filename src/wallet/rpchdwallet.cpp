@@ -5887,7 +5887,7 @@ struct TracedTx {
     CAmount m_input_amount_traced_to_plain = 0;
 };
 
-static void traceFrozenPrevout(const COutPoint &op_trace, const uint256 &txid_spentby, std::map<uint256, TracedTx> &traced_txs, UniValue &warnings)
+static void traceFrozenPrevout(WalletContext& context, const COutPoint &op_trace, const uint256 &txid_spentby, std::map<uint256, TracedTx> &traced_txs, UniValue &warnings)
 {
     auto mi_tx = traced_txs.find(op_trace.hash);
     if (mi_tx != traced_txs.end()) {
@@ -5898,7 +5898,7 @@ static void traceFrozenPrevout(const COutPoint &op_trace, const uint256 &txid_sp
         }
     }
 
-    std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
+    std::vector<std::shared_ptr<CWallet> > wallets = GetWallets(context);
     for (auto &wallet : wallets) {
         CHDWallet *pwallet = GetParticlWallet(wallet.get());
         CTransactionRecord rtx;
@@ -5922,7 +5922,7 @@ static void traceFrozenPrevout(const COutPoint &op_trace, const uint256 &txid_sp
         }
         if (traced_tx.m_input_type != OUTPUT_STANDARD) {
             for (const auto &op : rtx.vin) {
-                traceFrozenPrevout(op, op_trace.hash, traced_txs, warnings);
+                traceFrozenPrevout(context, op, op_trace.hash, traced_txs, warnings);
                 if (std::find(traced_tx.m_inputs.begin(), traced_tx.m_inputs.end(), op) == traced_tx.m_inputs.end()) {
                     traced_tx.m_inputs.push_back(op);
                 }
@@ -6052,7 +6052,7 @@ static void placeTracedInputTxns(const uint256 &spend_txid, const std::vector<CO
     }
 }
 
-static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_frozen_output_spendable, const UniValue &uv_extra_outputs, bool trace_frozen_dump_privkeys)
+static void traceFrozenOutputs(WalletContext& context, UniValue &rv, CAmount min_value, CAmount max_frozen_output_spendable, const UniValue &uv_extra_outputs, bool trace_frozen_dump_privkeys)
 {
     // Dump information necessary for an external script to trace blinded amounts back to plain values
     // Intentionally trace blacklisted anon outputs, will be picked up by the validation script
@@ -6060,7 +6060,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
     UniValue warnings(UniValue::VARR);
 
     std::map<uint256, TracedTx> traced_txs;
-    std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
+    std::vector<std::shared_ptr<CWallet> > wallets = GetWallets(context);
     std::set<COutPoint> extra_txouts;  // Trace these outputs even if spent
     std::set<COutPoint> top_level, set_forced;
 
@@ -6175,7 +6175,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
 
     for (const auto &op : top_level) {
         uint256 spent_by; // null
-        traceFrozenPrevout(op, spent_by, traced_txns, warnings);
+        traceFrozenPrevout(context, op, spent_by, traced_txns, warnings);
         auto ret = traced_txns.insert(std::pair<uint256, TracedTx>(op.hash, TracedTx()));
         auto &traced_tx = ret.first->second;
 
@@ -6317,6 +6317,7 @@ static RPCHelpMan debugwallet()
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    WalletContext& context = EnsureWalletContext(request.context);
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -6384,12 +6385,12 @@ static RPCHelpMan debugwallet()
         const UniValue &options = request.params[0].get_obj();
         UniValue empty_array(UniValue::VARR);
         const UniValue &extra_outputs = options.exists("trace_frozen_extra") ? options["trace_frozen_extra"] : empty_array;
-        traceFrozenOutputs(result, min_frozen_blinded_value, max_frozen_output_spendable, extra_outputs, trace_frozen_dump_privkeys);
+        traceFrozenOutputs(context, result, min_frozen_blinded_value, max_frozen_output_spendable, extra_outputs, trace_frozen_dump_privkeys);
         return result;
     }
 
     if (downgrade_wallets) {
-        std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
+        std::vector<std::shared_ptr<CWallet> > wallets = GetWallets(context);
         for (auto &wallet : wallets) {
             CHDWallet *pw = GetParticlWallet(wallet.get());
             pw->Downgrade();
