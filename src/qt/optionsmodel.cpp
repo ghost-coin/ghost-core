@@ -126,6 +126,11 @@ void OptionsModel::Init(bool resetSettings)
         addOverriddenOption("-signer");
     }
 
+    if (!settings.contains("SubFeeFromAmount")) {
+        settings.setValue("SubFeeFromAmount", false);
+    }
+    m_sub_fee_from_amount = settings.value("SubFeeFromAmount", false).toBool();
+
     if (!settings.contains("fShowIncomingStakeNotifications")) {
         settings.setValue("fShowIncomingStakeNotifications", true);
     }
@@ -354,6 +359,8 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return settings.value("bSpendZeroConfChange");
         case ExternalSignerPath:
             return settings.value("external_signer_path");
+        case SubFeeFromAmount:
+            return m_sub_fee_from_amount;
         case ShowIncomingStakeNotifications:
             return fShowIncomingStakeNotifications;
         case ShowZeroValueCoinstakes:
@@ -484,6 +491,10 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
                 settings.setValue("external_signer_path", value.toString());
                 setRestartRequired(true);
             }
+            break;
+        case SubFeeFromAmount:
+            m_sub_fee_from_amount = value.toBool();
+            settings.setValue("SubFeeFromAmount", m_sub_fee_from_amount);
             break;
         case ShowIncomingStakeNotifications:
             fShowIncomingStakeNotifications = value.toBool();

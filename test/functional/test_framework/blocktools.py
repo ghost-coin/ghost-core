@@ -4,7 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Utilities for manipulating blocks and transactions."""
 
-from binascii import a2b_hex
 import struct
 import time
 import unittest
@@ -55,6 +54,7 @@ TIME_GENESIS_BLOCK = 1296688602
 COINBASE_MATURITY = 100
 
 # Soft-fork activation heights
+DERSIG_HEIGHT = 102  # BIP 66
 CLTV_HEIGHT = 1351
 CSV_ACTIVATION_HEIGHT = 432
 
@@ -62,6 +62,7 @@ CSV_ACTIVATION_HEIGHT = 432
 WITNESS_COMMITMENT_HEADER = b"\xaa\x21\xa9\xed"
 
 NORMAL_GBT_REQUEST_PARAMS = {"rules": ["segwit"]}
+VERSIONBITS_LAST_OLD_BLOCK_VERSION = 4
 
 
 def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl=None, txlist=None):
@@ -69,11 +70,11 @@ def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl
     block = CBlock()
     if tmpl is None:
         tmpl = {}
-    block.nVersion = version or tmpl.get('version') or 1
+    block.nVersion = version or tmpl.get('version') or VERSIONBITS_LAST_OLD_BLOCK_VERSION
     block.nTime = ntime or tmpl.get('curtime') or int(time.time() + 600)
     block.hashPrevBlock = hashprev or int(tmpl['previousblockhash'], 0x10)
     if tmpl and not tmpl.get('bits') is None:
-        block.nBits = struct.unpack('>I', a2b_hex(tmpl['bits']))[0]
+        block.nBits = struct.unpack('>I', bytes.fromhex(tmpl['bits']))[0]
     else:
         block.nBits = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams
     if coinbase is None:

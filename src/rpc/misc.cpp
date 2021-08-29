@@ -24,11 +24,7 @@
 #include <util/strencodings.h>
 #include <util/system.h>
 
-#include <txmempool.h>
-
-#include <rpc/rpcutil.h>
-#include <rpc/client.h>
-
+#include <optional>
 #include <stdint.h>
 #include <tuple>
 #ifdef HAVE_MALLOC_INFO
@@ -36,6 +32,10 @@
 #endif
 
 #include <univalue.h>
+
+#include <rpc/rpcutil.h>
+#include <rpc/client.h>
+
 
 extern const std::string MESSAGE_MAGIC;
 
@@ -160,12 +160,13 @@ static RPCHelpMan createmultisig()
     // Get the output type
     OutputType output_type = OutputType::LEGACY;
     if (!request.params[2].isNull()) {
-        if (!ParseOutputType(request.params[2].get_str(), output_type)) {
+        std::optional<OutputType> parsed = ParseOutputType(request.params[2].get_str());
+        if (!parsed) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[2].get_str()));
-        }
-        if (output_type == OutputType::BECH32M) {
+        } else if (parsed.value() == OutputType::BECH32M) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "createmultisig cannot create bech32m multisig addresses");
         }
+        output_type = parsed.value();
     }
 
     // Construct using pay-to-script-hash:

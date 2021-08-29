@@ -57,6 +57,10 @@ Notable changes
 P2P and network changes
 -----------------------
 
+- A bitcoind node will no longer rumour addresses to inbound peers by default.
+  They will become eligible for address gossip after sending an ADDR, ADDRV2,
+  or GETADDR message. (#21528)
+
 Updated RPCs
 ------------
 
@@ -65,6 +69,16 @@ New RPCs
 
 Build System
 ------------
+
+Files
+-----
+
+* On startup, the list of banned hosts and networks (via `setban` RPC) in
+  `banlist.dat` is ignored and only `banlist.json` is considered. Bitcoin Core
+  version 22.x is the only version that can read `banlist.dat` and also write
+  it to `banlist.json`. If `banlist.json` already exists, version 22.x will not
+  try to translate the `banlist.dat` into json. After an upgrade, `listbanned`
+  can be used to double check the parsed entries. (#22570)
 
 New settings
 ------------
@@ -93,6 +107,9 @@ RPC
 
 Tests
 -----
+
+- For the `regtest` network the BIP 66 (DERSIG) activation height was changed
+  from 1251 to 102. (#22632)
 
 Credits
 =======

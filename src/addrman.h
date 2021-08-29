@@ -26,6 +26,9 @@
 #include <unordered_map>
 #include <vector>
 
+/** Default for -checkaddrman */
+static constexpr int32_t DEFAULT_ADDRMAN_CONSISTENCY_CHECKS{0};
+
 /**
  * Extended statistics about a CAddress
  */
@@ -58,6 +61,7 @@ private:
     mutable int nRandomPos{-1};
 
     friend class CAddrMan;
+    friend class CAddrManDeterministic;
 
 public:
 
@@ -104,23 +108,27 @@ public:
  *  * Make sure no (localized) attacker can fill the entire table with his nodes/addresses.
  *
  * To that end:
- *  * Addresses are organized into buckets.
- *    * Addresses that have not yet been tried go into 1024 "new" buckets.
- *      * Based on the address range (/16 for IPv4) of the source of information, 64 buckets are selected at random.
+ *  * Addresses are organized into buckets that can each store up to 64 entries.
+ *    * Addresses to which our node has not successfully connected go into 1024 "new" buckets.
+ *      * Based on the address range (/16 for IPv4) of the source of information, or if an asmap is provided,
+ *        the AS it belongs to (for IPv4/IPv6), 64 buckets are selected at random.
  *      * The actual bucket is chosen from one of these, based on the range in which the address itself is located.
+ *      * The position in the bucket is chosen based on the full address.
  *      * One single address can occur in up to 8 different buckets to increase selection chances for addresses that
  *        are seen frequently. The chance for increasing this multiplicity decreases exponentially.
- *      * When adding a new address to a full bucket, a randomly chosen entry (with a bias favoring less recently seen
- *        ones) is removed from it first.
+ *      * When adding a new address to an occupied position of a bucket, it will not replace the existing entry
+ *        unless that address is also stored in another bucket or it doesn't meet one of several quality criteria
+ *        (see IsTerrible for exact criteria).
  *    * Addresses of nodes that are known to be accessible go into 256 "tried" buckets.
  *      * Each address range selects at random 8 of these buckets.
  *      * The actual bucket is chosen from one of these, based on the full address.
- *      * When adding a new good address to a full bucket, a randomly chosen entry (with a bias favoring less recently
- *        tried ones) is evicted from it, back to the "new" buckets.
+ *      * When adding a new good address to an occupied position of a bucket, a FEELER connection to the
+ *        old address is attempted. The old entry is only replaced and moved back to the "new" buckets if this
+ *        attempt was unsuccessful.
  *    * Bucket selection is based on cryptographic hashing, using a randomly-generated 256-bit key, which should not
  *      be observable by adversaries.
- *    * Several indexes are kept for high performance. Defining DEBUG_ADDRMAN will introduce frequent (and expensive)
- *      consistency checks for the entire data structure.
+ *    * Several indexes are kept for high performance. Setting m_consistency_check_ratio with the -checkaddrman
+ *      configuration option will introduce (expensive) consistency checks for the entire data structure.
  */
 
 //! total number of buckets for tried addresses
@@ -365,7 +373,8 @@ public:
             s >> info;
             int nKBucket = info.GetTriedBucket(nKey, m_asmap);
             int nKBucketPos = info.GetBucketPosition(nKey, false, nKBucket);
-            if (vvTried[nKBucket][nKBucketPos] == -1) {
+            if (info.IsValid()
+                && vvTried[nKBucket][nKBucketPos] == -1) {
                 info.nRandomPos = vRandom.size();
                 info.fInTried = true;
                 vRandom.push_back(nIdCount);
@@ -419,6 +428,9 @@ public:
             const int entry_index{bucket_entry.second};
             CAddrInfo& info = mapInfo[entry_index];
 
+            // Don't store the entry in the new bucket if it's not a valid address for our addrman
+            if (!info.IsValid()) continue;
+
             // The entry shouldn't appear in more than
             // ADDRMAN_NEW_BUCKETS_PER_ADDRESS. If it has already, just skip
             // this bucket_entry.
@@ -441,7 +453,7 @@ public:
             }
         }
 
-        // Prune new entries with refcount 0 (as a result of collisions).
+        // Prune new entries with refcount 0 (as a result of collisions or invalid address).
         int nLostUnk = 0;
         for (auto it = mapInfo.cbegin(); it != mapInfo.cend(); ) {
             if (it->second.fInTried == false && it->second.nRefCount == 0) {
@@ -453,10 +465,8 @@ public:
             }
         }
         if (nLost + nLostUnk > 0) {
-            LogPrint(BCLog::ADDRMAN, "addrman lost %i new and %i tried addresses due to collisions\n", nLostUnk, nLost);
+            LogPrint(BCLog::ADDRMAN, "addrman lost %i new and %i tried addresses due to collisions or invalid addresses\n", nLostUnk, nLost);
         }
-
-        RemoveInvalid();
 
         Check();
     }
@@ -486,9 +496,12 @@ public:
         mapAddr.clear();
     }
 
-    CAddrMan()
+    explicit CAddrMan(bool deterministic, int32_t consistency_check_ratio)
+        : insecure_rand{deterministic},
+          m_consistency_check_ratio{consistency_check_ratio}
     {
         Clear();
+        if (deterministic) nKey = uint256{1};
     }
 
     ~CAddrMan()
@@ -630,13 +643,13 @@ protected:
     //! secret key to randomize bucket select with
     uint256 nKey;
 
-    //! Source of random numbers for randomization in inner loops
-    mutable FastRandomContext insecure_rand GUARDED_BY(cs);
-
     //! A mutex to protect the inner data structures.
     mutable Mutex cs;
 
 private:
+    //! Source of random numbers for randomization in inner loops
+    mutable FastRandomContext insecure_rand GUARDED_BY(cs);
+
     //! Serialization versions.
     enum Format : uint8_t {
         V0_HISTORICAL = 0,    //!< historic format, before commit e6b343d88
@@ -691,11 +704,13 @@ private:
     //! Holds addrs inserted into tried table that collide with existing entries. Test-before-evict discipline used to resolve these collisions.
     std::set<int> m_tried_collisions;
 
+    /** Perform consistency checks every m_consistency_check_ratio operations (if non-zero). */
+    const int32_t m_consistency_check_ratio;
+
     //! Find an entry.
     CAddrInfo* Find(const CNetAddr& addr, int *pnId = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
-    //! find an entry, creating it if necessary.
-    //! nTime and nServices of the found node are updated, if necessary.
+    //! Create a new entry and add it to the internal data structures mapInfo, mapAddr and vRandom.
     CAddrInfo* Create(const CAddress &addr, const CNetAddr &addrSource, int *pnId = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     //! Swap two elements in vRandom.
@@ -729,22 +744,19 @@ private:
     CAddrInfo SelectTriedCollision_() EXCLUSIVE_LOCKS_REQUIRED(cs);
 
     //! Consistency check
-    void Check() const
-        EXCLUSIVE_LOCKS_REQUIRED(cs)
+    void Check() const EXCLUSIVE_LOCKS_REQUIRED(cs)
     {
-#ifdef DEBUG_ADDRMAN
         AssertLockHeld(cs);
+
         const int err = Check_();
         if (err) {
             LogPrintf("ADDRMAN CONSISTENCY CHECK FAILED!!! err=%i\n", err);
+            assert(false);
         }
-#endif
     }
 
-#ifdef DEBUG_ADDRMAN
     //! Perform consistency check. Returns an error code or zero.
     int Check_() const EXCLUSIVE_LOCKS_REQUIRED(cs);
-#endif
 
     /**
      * Return all or many randomly selected addresses, optionally by network.
@@ -772,10 +784,8 @@ private:
     //! Update an entry's service bits.
     void SetServices_(const CService &addr, ServiceFlags nServices) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
-    //! Remove invalid addresses.
-    void RemoveInvalid() EXCLUSIVE_LOCKS_REQUIRED(cs);
-
     friend class CAddrManTest;
+    friend class CAddrManDeterministic;
 };
 
 #endif // BITCOIN_ADDRMAN_H
