@@ -1190,7 +1190,7 @@ void CSMSG::GetNodesStats(int node_id, UniValue &result)
         }
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("id", pnode->GetId());
-        obj.pushKV("address", pnode->GetAddrName());
+        obj.pushKV("address", pnode->m_addr_name);
         obj.pushKV("version", pnode->smsgData.m_version);
         obj.pushKV("ignoreuntil", pnode->smsgData.ignoreUntil);
         obj.pushKV("misbehaving", (int) pnode->smsgData.misbehaving);
@@ -1295,7 +1295,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
     */
 
     if (LogAcceptCategory(BCLog::SMSG)) {
-        LogPrintf("%s: %s %s.\n", __func__, pfrom->GetAddrName(), strCommand);
+        LogPrintf("%s: %s %s.\n", __func__, pfrom->m_addr_name, strCommand);
     }
 
     if (m_node->chainman->ActiveChainstate().IsInitialBlockDownload()) { // Wait until chain synced
@@ -1769,7 +1769,7 @@ bool CSMSG::SendData(CNode *pto, bool fSendTrickle)
 
         if (pto->smsgData.lastSeen <= 0) {
             // First contact
-            LogPrint(BCLog::SMSG, "%s: New node %s, peer id %u.\n", __func__, pto->GetAddrName(), pto->GetId());
+            LogPrint(BCLog::SMSG, "%s: New node %s, peer id %u.\n", __func__, pto->m_addr_name, pto->GetId());
             // Send smsgPing once, do nothing until receive 1st smsgPong (then set fEnabled)
             m_node->connman->PushMessage(pto,
                 CNetMsgMaker(INIT_PROTO_VERSION).Make(SMSGMsgType::PING));
