@@ -800,6 +800,51 @@ static RPCHelpMan getblockhash()
     };
 }
 
+static RPCHelpMan getblockhashafter()
+{
+    return RPCHelpMan{"getblockhashafter",
+                "\nReturns hash of first block in best-block-chain after time provided.\n",
+                {
+                    {"time", RPCArg::Type::STR, RPCArg::Optional::NO, "The time as a timestamp or Y-m-d H:M:S in local time"},
+                },
+                RPCResult{
+                    RPCResult::Type::STR_HEX, "", "The block hash"},
+                RPCExamples{
+                    HelpExampleCli("getblockhashafter", "1630347681")
+            + HelpExampleRpc("getblockhashafter", "\"2021-08-30 18:21\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    LOCK(cs_main);
+
+    int64_t unix_time = 0;
+    if (request.params[0].isNum()) {
+        unix_time = request.params[0].get_int64();
+    } else {
+        std::string str_time = request.params[0].get_str();
+         if (part::IsStrOnlyDigits(str_time)) {
+            // Setting timestamp directly
+            if (str_time.length() && !ParseInt64(str_time, &unix_time)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Parse time error.");
+            }
+        } else {
+            part::ReplaceStrInPlace(str_time, " ", "T");
+            unix_time = part::strToEpoch(str_time.c_str());
+            if (unix_time < 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid time string.");
+            }
+        }
+    }
+
+    CBlockIndex *pblockindex = ::ChainActive().FindEarliestAtLeast(unix_time, 0);
+    if (!pblockindex) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Block time out of range");
+    }
+    return pblockindex->GetBlockHash().GetHex();
+},
+    };
+}
+
 static RPCHelpMan getblockheader()
 {
     return RPCHelpMan{"getblockheader",
@@ -2572,6 +2617,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose","coinstakeinfo"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
+    { "blockchain",         "getblockhashafter",      &getblockhashafter,      {"time"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
     { "blockchain",         "getdifficulty",          &getdifficulty,          {} },

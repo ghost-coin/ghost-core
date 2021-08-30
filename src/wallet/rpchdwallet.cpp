@@ -1234,6 +1234,7 @@ static UniValue extkey(const JSONRPCRequest &request)
                 }
 
                 struct tm tmdate;
+                memset(&tmdate, 0, sizeof(tmdate));
                 tmdate.tm_year = year - 1900;
                 tmdate.tm_mon = month - 1;
                 tmdate.tm_mday = day;

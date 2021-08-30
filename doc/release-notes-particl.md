@@ -54,6 +54,8 @@
   - receive_on must be active for chain.
     - See feature_part_extkey test.
   - New track-only mode, won't save keys or transactions, only updates child key counter.
+- rpc: New getblockhashafter command.
+  - Returns first block at or after provided time.
 
 
 0.19.2.13
