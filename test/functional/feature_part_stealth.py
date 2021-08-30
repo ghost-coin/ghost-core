@@ -244,6 +244,15 @@ class StealthTest(ParticlTestFramework):
         for sx in wi_ls[0]['Stealth Addresses']:
             assert(sx['Address'] in w1_ls_flat)
 
+        self.log.info('Test getblockhashafter')
+        rv = nodes[0].getblockhashafter('2000-01 01:59')
+        assert(rv == '6cd174536c0ada5bfa3b8fde16b98ae508fff6586f2ee24cf866867098f25907')
+        try:
+            nodes[0].getblockhashafter('9999-01 23:00:00')
+            assert(False), 'Should fail'
+        except Exception as e:
+            assert('Block time out of range' in str(e))
+
 
 if __name__ == '__main__':
     StealthTest().main()
