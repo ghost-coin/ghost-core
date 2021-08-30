@@ -1171,7 +1171,7 @@ SignatureData CombineSignatures(const CTxOut& txout, const CMutableTransaction& 
     data.MergeSignatureData(scriptSig2);
     std::vector<uint8_t> vamount(8);
     part::SetAmount(vamount, txout.nValue);
-    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&tx, 0, vamount), txout.scriptPubKey, data);
+    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&tx, 0, vamount, SIGHASH_DEFAULT), txout.scriptPubKey, data);
     return data;
 }
 

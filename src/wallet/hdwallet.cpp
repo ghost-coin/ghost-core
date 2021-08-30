@@ -1510,10 +1510,12 @@ bool CHDWallet::AddressBookChangedNotify(const CTxDestination &address, ChangeTy
 
 DBErrors CHDWallet::LoadWallet()
 {
-    if (!ParseMoney(gArgs.GetArg("-reservebalance", "0"), nReserveBalance)) {
+    std::optional<CAmount> reserve_balance = ParseMoney(gArgs.GetArg("-reservebalance", "0"));
+    if (!reserve_balance) {
         InitError(_("Invalid amount for -reservebalance=<amount>"));
         return DBErrors::LOAD_FAIL;
     }
+    nReserveBalance = reserve_balance.value();
 
     m_rescan_stealth_v1_lookahead = gArgs.GetArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
     m_rescan_stealth_v2_lookahead = gArgs.GetArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);

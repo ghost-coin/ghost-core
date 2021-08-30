@@ -226,6 +226,7 @@ protected:
      */
     bool UseDefaultSection(const std::string& arg) const EXCLUSIVE_LOCKS_REQUIRED(cs_args);
 
+ public:
     /**
      * Get setting value.
      *
@@ -240,7 +241,6 @@ protected:
      */
     std::vector<util::SettingsValue> GetSettingsList(const std::string& arg) const;
 
-public:
     ArgsManager();
     ~ArgsManager();
 
