@@ -823,30 +823,24 @@ public:
     //! ChainClient methods
     void registerRpcs() override
     {
-        for (const CRPCCommand& command : GetWalletRPCCommands()) {
+        auto add_command = [&] (const CRPCCommand& command) {
             m_rpc_commands.emplace_back(command.category, command.name, [this, &command](const JSONRPCRequest& request, UniValue& result, bool last_handler) {
                 JSONRPCRequest wallet_request = request;
                 wallet_request.context = &m_context;
                 return command.actor(wallet_request, result, last_handler);
             }, command.argNames, command.unique_id);
             m_rpc_handlers.emplace_back(m_context.chain->handleRpc(m_rpc_commands.back()));
+        };
+
+        for (const CRPCCommand& command : GetWalletRPCCommands()) {
+            add_command(command);
         }
         for (const CRPCCommand& command : GetHDWalletRPCCommands()) {
-            m_rpc_commands.emplace_back(command.category, command.name, [this, &command](const JSONRPCRequest& request, UniValue& result, bool last_handler) {
-                JSONRPCRequest wallet_request = request;
-                wallet_request.context = &m_context;
-                return command.actor(wallet_request, result, last_handler);
-            }, command.argNames, command.unique_id);
-            m_rpc_handlers.emplace_back(m_context.chain->handleRpc(m_rpc_commands.back()));
+            add_command(command);
         }
 #if ENABLE_USBDEVICE
         for (const CRPCCommand& command : GetDeviceWalletRPCCommands()) {
-            m_rpc_commands.emplace_back(command.category, command.name, [this, &command](const JSONRPCRequest& request, UniValue& result, bool last_handler) {
-                JSONRPCRequest wallet_request = request;
-                wallet_request.context = &m_context;
-                return command.actor(wallet_request, result, last_handler);
-            }, command.argNames, command.unique_id);
-            m_rpc_handlers.emplace_back(m_context.chain->handleRpc(m_rpc_commands.back()));
+            add_command(command);
         }
 #endif
     }

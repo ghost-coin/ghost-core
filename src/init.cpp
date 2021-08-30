@@ -1923,21 +1923,19 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // ********************************************************* Step 10.1: start secure messaging
 
     smsgModule.m_node = &node;
-    size_t num_wallets = 0;
+    bool start_smsg_without_wallet = true;
     if (fParticlMode && gArgs.GetBoolArg("-smsg", true)) { // SMSG breaks functional tests with services flag, see version msg
 #ifdef ENABLE_WALLET
         if (node.wallet_client && node.wallet_client->context()) {
             auto vpwallets = GetWallets(*node.wallet_client->context());
-            num_wallets = vpwallets.size();
-            smsgModule.Start(num_wallets > 0 ? vpwallets[0] : nullptr, vpwallets, gArgs.GetBoolArg("-smsgscanchain", false));
-        } else {
+            smsgModule.Start(vpwallets.size() > 0 ? vpwallets[0] : nullptr, vpwallets, gArgs.GetBoolArg("-smsgscanchain", false));
+            start_smsg_without_wallet = false;
+        }
+#endif
+        if (start_smsg_without_wallet) {
             std::vector<std::shared_ptr<CWallet>> empty;
             smsgModule.Start(nullptr, empty, gArgs.GetBoolArg("-smsgscanchain", false));
         }
-#else
-        std::vector<std::shared_ptr<CWallet>> empty;
-        smsgModule.Start(nullptr, empty, gArgs.GetBoolArg("-smsgscanchain", false));
-#endif
     }
 
     if (ShutdownRequestedMainThread()) {
@@ -2075,14 +2073,16 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     // ********************************************************* Step 12.5: start staking
 #ifdef ENABLE_WALLET
-    // Must recheck num_wallets as smsg may be disabled.
-    if (node.wallet_client && node.wallet_client->context()) {
-        auto vpwallets = GetWallets(*node.wallet_client->context());
-        num_wallets = vpwallets.size();
-    }
-
-    if (fParticlMode && num_wallets > 0) {
-        StartThreadStakeMiner(*node.wallet_client->context(), chainman);
+    if (fParticlMode) {
+        // Must recheck num_wallets as smsg may be disabled.
+        size_t num_wallets = 0;
+        if (node.wallet_client && node.wallet_client->context()) {
+            auto vpwallets = GetWallets(*node.wallet_client->context());
+            num_wallets = vpwallets.size();
+        }
+        if (num_wallets > 0) {
+            StartThreadStakeMiner(*node.wallet_client->context(), chainman);
+        }
     }
 #endif
 
