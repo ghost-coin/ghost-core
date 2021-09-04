@@ -1,9 +1,10 @@
 
-0.21.1.3
+0.21.2.3
 ==============
 
 - rpc: New command getposdifficulty, returns the network weight at block heights.
 - qt: Disable balance type combo boxes on the send dialog when wallet is linked to a hardware wallet.
+- Merged Bitcoin 0.21.2.
 
 
 0.21.1.2
