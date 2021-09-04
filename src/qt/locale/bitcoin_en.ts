@@ -1214,7 +1214,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+42"/>
         <source>Compiled without sqlite support (required for descriptor wallets)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2281,7 +2281,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../overviewpage.cpp" line="+191"/>
+        <location filename="../overviewpage.cpp" line="+190"/>
         <source>Privacy mode activated for the Overview tab. To unmask the values, uncheck Settings-&gt;Mask values.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2544,7 +2544,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+651"/>
+        <location line="+654"/>
         <source>%1 d</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3405,7 +3405,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
     <name>SendCoinsDialog</name>
     <message>
         <location filename="../forms/sendcoinsdialog.ui" line="+14"/>
-        <location filename="../sendcoinsdialog.cpp" line="+913"/>
+        <location filename="../sendcoinsdialog.cpp" line="+925"/>
         <source>Send Coins</source>
         <translation>Send Coins</translation>
     </message>
@@ -3640,7 +3640,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
         <translation>S&amp;end</translation>
     </message>
     <message>
-        <location filename="../sendcoinsdialog.cpp" line="-811"/>
+        <location filename="../sendcoinsdialog.cpp" line="-823"/>
         <source>Copy quantity</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3685,7 +3685,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+182"/>
+        <location line="+194"/>
         <source> from wallet &apos;%1&apos;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3730,12 +3730,12 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of &quot;100 satos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-222"/>
+        <location line="-234"/>
         <source>Creates a Partially Signed Bitcoin Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+220"/>
+        <location line="+232"/>
         <source>Private keys disabled.</source>
         <translation type="unfinished"></translation>
     </message>

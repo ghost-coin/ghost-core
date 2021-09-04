@@ -1,44 +1,89 @@
-<TS language="uz@Latn" version="2.1">
+<TS language="no" version="2.1">
 <context>
     <name>AddressBookPage</name>
     <message>
         <source>Right-click to edit address or label</source>
-        <translation>Manzil yoki yorliqni tahrirlash uchun oʻng tugmani bosing</translation>
+        <translation>Høyreklikk for å redigere addressen eller etikketen </translation>
     </message>
     <message>
         <source>Create a new address</source>
-        <translation>Yangi manzil yaratish</translation>
+        <translation>Lag en ny adresse</translation>
     </message>
     <message>
         <source>&amp;New</source>
-        <translation>&amp;Yangi</translation>
+        <translation>&amp;Ny
+</translation>
+    </message>
+    <message>
+        <source>Copy the currently selected address to the system clipboard</source>
+        <translation>Kopier den valgte adressen til systemutklippstavlen</translation>
     </message>
     <message>
         <source>&amp;Copy</source>
-        <translation>&amp;Nusxalash</translation>
+        <translation>&amp;Kopier</translation>
     </message>
     <message>
         <source>C&amp;lose</source>
-        <translation>Yo&amp;pish</translation>
+        <translation>C&amp;Tap</translation>
+    </message>
+    <message>
+        <source>Delete the currently selected address from the list</source>
+        <translation>Slett den valgte adressen fra listen </translation>
+    </message>
+    <message>
+        <source>Enter address or label to search</source>
+        <translation>Tast inn adressen eller etiketten for å søke</translation>
+    </message>
+    <message>
+        <source>Export the data in the current tab to a file</source>
+        <translation>Eksporter dataen i gjeldende fane til en fil </translation>
+    </message>
+    <message>
+        <source>&amp;Export</source>
+        <translation>&amp;Eksporter</translation>
     </message>
     <message>
         <source>&amp;Delete</source>
-        <translation>&amp;O'chirish</translation>
+        <translation>&amp;Slett</translation>
+    </message>
+    <message>
+        <source>Choose the address to send coins to</source>
+        <translation>Velg adressen du vil sende mynter til </translation>
+    </message>
+    <message>
+        <source>Choose the address to receive coins with</source>
+        <translation>Velg adressen du vil motta mynter med </translation>
+    </message>
+    <message>
+        <source>Sending addresses</source>
+        <translation>Sender adresser </translation>
+    </message>
+    <message>
+        <source>Receiving addresses</source>
+        <translation>Mottar adresser </translation>
+    </message>
+    <message>
+        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Dette er dine Particl adresser for å sende betalinger.Alltid sjekk mengden og mottaker adressen før du sender mynter.  </translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
-        <translation>&amp;Manzillarni nusxalash</translation>
+        <translation>&amp;Koper adresse</translation>
+    </message>
+    <message>
+        <source>Export Address List</source>
+        <translation>Eksporter adresse liste</translation>
+    </message>
+    <message>
+        <source>Exporting Failed</source>
+        <translation>Eksportering feilet </translation>
     </message>
     </context>
 <context>
     <name>AddressTableModel</name>
     <message>
-        <source>Label</source>
-        <translation>Yorliq</translation>
-    </message>
-    <message>
         <source>Address</source>
-        <translation>Manzil</translation>
+        <translation>Adresse </translation>
     </message>
     </context>
 <context>
@@ -112,10 +157,6 @@
     </context>
 <context>
     <name>RecentRequestsTableModel</name>
-    <message>
-        <source>Label</source>
-        <translation>Yorliq</translation>
-    </message>
     </context>
 <context>
     <name>SendCoinsDialog</name>
@@ -140,20 +181,16 @@
     </context>
 <context>
     <name>TransactionTableModel</name>
-    <message>
-        <source>Label</source>
-        <translation>Yorliq</translation>
-    </message>
     </context>
 <context>
     <name>TransactionView</name>
     <message>
-        <source>Label</source>
-        <translation>Yorliq</translation>
+        <source>Address</source>
+        <translation>Adresse </translation>
     </message>
     <message>
-        <source>Address</source>
-        <translation>Manzil</translation>
+        <source>Exporting Failed</source>
+        <translation>Eksportering feilet </translation>
     </message>
     </context>
 <context>
@@ -170,6 +207,14 @@
     </context>
 <context>
     <name>WalletView</name>
+    <message>
+        <source>&amp;Export</source>
+        <translation>&amp;Eksporter</translation>
+    </message>
+    <message>
+        <source>Export the data in the current tab to a file</source>
+        <translation>Eksporter dataen i gjeldende fane til en fil </translation>
+    </message>
     </context>
 <context>
     <name>bitcoin-core</name>
