@@ -98,7 +98,7 @@ static void UpdateWalletSetting(interfaces::Chain& chain,
  * immediately knows the transaction's status: Whether it can be considered
  * trusted and is eligible to be abandoned ...
  */
-static void RefreshMempoolStatus(CWalletTx& tx, interfaces::Chain& chain)
+void RefreshMempoolStatus(CWalletTx& tx, interfaces::Chain& chain)
 {
     tx.fInMempool = chain.isInMempool(tx.GetHash());
 }

@@ -1057,4 +1057,11 @@ bool AddWalletSetting(interfaces::Chain& chain, const std::string& wallet_name);
 //! Remove wallet name from persistent configuration so it will not be loaded on startup.
 bool RemoveWalletSetting(interfaces::Chain& chain, const std::string& wallet_name);
 
+/**
+ * Refresh mempool status so the wallet is in an internally consistent state and
+ * immediately knows the transaction's status: Whether it can be considered
+ * trusted and is eligible to be abandoned ...
+ */
+void RefreshMempoolStatus(CWalletTx& tx, interfaces::Chain& chain);
+
 #endif // BITCOIN_WALLET_WALLET_H

@@ -396,7 +396,7 @@ void CChainState::MaybeUpdateMempoolForReorg(
     auto it = disconnectpool.queuedTx.get<insertion_order>().rbegin();
     while (it != disconnectpool.queuedTx.get<insertion_order>().rend()) {
         // ignore validation errors in resurrected transactions
-        if (!fAddToMempool || (*it)->IsCoinBase() ||
+        if (!fAddToMempool || (*it)->IsCoinBase() || (*it)->IsCoinStake() ||
             AcceptToMemoryPool(
                 *this, *m_mempool, *it, true /* bypass_limits */).m_result_type !=
                     MempoolAcceptResult::ResultType::VALID) {

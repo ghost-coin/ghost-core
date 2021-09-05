@@ -2709,7 +2709,7 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal, bool avoid_reuse) const
         int depth;
         if (wtx.IsCoinStake()
             && (depth = wtx.GetDepthInMainChain()) > 0 // checks for hashunset
-            && wtx.GetBlocksToMaturity() > 0) {
+                && wtx.GetBlocksToMaturity() > 0) {
             CAmount nSpendable, nWatchOnly;
             CHDWallet::GetCredit(*wtx.tx, nSpendable, nWatchOnly);
             bal.nPartStaked += nSpendable;
@@ -11044,15 +11044,17 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
     CTransactionRecord &rtx = ret.first->second;
 
     bool fUpdated = false;
-    if (!confirm.hashBlock.IsNull() && // unconfirmed
-        (rtx.blockHash != confirm.hashBlock ||
+    if ((rtx.blockHash != confirm.hashBlock ||
         rtx.block_height != confirm.block_height ||
         rtx.nIndex != confirm.nIndex)) {
         fUpdated = true;
 
-        rtx.blockHash = confirm.hashBlock;
+        // Don't set a null hashblock if it would unset an abandoned state
+        if (!rtx.IsAbandoned() || !confirm.hashBlock.IsNull()) {
+            rtx.blockHash = confirm.hashBlock;
+            rtx.nIndex = confirm.nIndex;
+        }
         rtx.block_height = confirm.block_height;
-        rtx.nIndex = confirm.nIndex;
 
         int64_t block_time;
         if (chain().findBlock(rtx.blockHash, FoundBlock().time(block_time))) {
@@ -12496,7 +12498,6 @@ bool CHDWallet::IsSpent(const uint256& hash, unsigned int n) const
             }
         }
     }
-
     return false;
 };
 
@@ -12640,7 +12641,6 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
                 walletdb.WriteTxRecord(now, rtx);
                 NotifyTransactionChanged(now, CT_UPDATED);
             }
-
         } else
         if ((mwi = mapWallet.find(now)) != mapWallet.end())
         {
@@ -12655,6 +12655,9 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
             if (!wtx.isAbandoned()
                 && currentconfirm == 0)
             {
+                // AbandonTransaction can happen before CWallet::transactionRemovedFromMempool is called
+                RefreshMempoolStatus(wtx, chain());
+
                 // If the orig tx was not in block/mempool, none of its spends can be in mempool
                 assert(!wtx.InMempool());
                 wtx.setAbandoned();
@@ -12670,8 +12673,8 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
                     if (it != mapWallet.end()) {
                         it->second.MarkDirty();
                     }
-                };
-            };
+                }
+            }
         } else
         {
             // Not in wallet
@@ -12684,8 +12687,8 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
             if (!done.count(iter->second))
                 todo.insert(iter->second);
             iter++;
-        };
-    };
+        }
+    }
 
     return true;
 };

@@ -445,8 +445,9 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
     const CTransaction& tx = newit->GetTx();
     std::set<uint256> setParentTransactions;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
-        if (tx.vin[i].IsAnonInput())
+        if (tx.vin[i].IsAnonInput()) {
             continue;
+        }
         mapNextTx.insert(std::make_pair(&tx.vin[i].prevout, &tx));
         setParentTransactions.insert(tx.vin[i].prevout.hash);
     }
@@ -480,8 +481,9 @@ void CTxMemPool::addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewC
     LOCK(cs);
     const CTransaction& tx = entry.GetTx();
 
-    if (!tx.IsParticlVersion())
+    if (!tx.IsParticlVersion()) {
         return;
+    }
 
     std::vector<CMempoolAddressDeltaKey> inserted;
 
@@ -579,8 +581,9 @@ void CTxMemPool::addSpentIndex(const CTxMemPoolEntry &entry, const CCoinsViewCac
 
     const CTransaction& tx = entry.GetTx();
 
-    if (!tx.IsParticlVersion())
+    if (!tx.IsParticlVersion()) {
         return;
+    }
 
     std::vector<CSpentIndexKey> inserted;
 
@@ -769,8 +772,9 @@ void CTxMemPool::removeForReorg(CChainState& active_chainstate, int flags)
             txToRemove.insert(it);
         } else if (it->GetSpendsCoinbase()) {
             for (const CTxIn& txin : tx.vin) {
-                if (txin.IsAnonInput())
+                if (txin.IsAnonInput()) {
                     continue;
+                }
                 indexed_transaction_set::const_iterator it2 = mapTx.find(txin.prevout.hash);
                 if (it2 != mapTx.end())
                     continue;
@@ -799,35 +803,31 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
     // Remove transactions which depend on inputs of tx, recursively
     AssertLockHeld(cs);
     for (const auto &txin : tx.vin) {
-        if (txin.IsAnonInput())
-        {
+        if (txin.IsAnonInput()) {
             uint32_t nInputs, nRingSize;
             txin.GetAnonInfo(nInputs, nRingSize);
 
             const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-            for (size_t k = 0; k < nInputs; ++k)
-            {
+            for (size_t k = 0; k < nInputs; ++k) {
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
                 uint256 txhashKI;
-                if (HaveKeyImage(ki, txhashKI))
-                {
+                if (HaveKeyImage(ki, txhashKI)) {
                     txiter origit = mapTx.find(txhashKI);
 
-                    if (origit != mapTx.end())
-                    {
+                    if (origit != mapTx.end()) {
                         const CTransaction& txConflict = origit->GetTx();
-                        if (txConflict != tx)
-                        {
-                            if (LogAcceptCategory(BCLog::RINGCT))
+                        if (txConflict != tx) {
+                            if (LogAcceptCategory(BCLog::RINGCT)) {
                                 LogPrintf("Clearing conflicting anon tx from mempool, removed:%s, tx:%s\n", txhashKI.ToString(), tx.GetHash().ToString());
+                            }
                             ClearPrioritisation(txConflict.GetHash());
                             removeRecursive(txConflict, MemPoolRemovalReason::CONFLICT);
-                        };
-                    };
-                };
-            };
+                        }
+                    }
+                }
+            }
             continue;
-        };
+        }
         auto it = mapNextTx.find(txin.prevout);
         if (it != mapNextTx.end()) {
             const CTransaction &txConflict = *it->second;
@@ -1184,14 +1184,13 @@ bool CTxMemPool::HaveKeyImage(const CCmpPubKey &ki, uint256 &hash) const
     std::map<CCmpPubKey, uint256>::const_iterator mi;
     mi = mapKeyImages.find(ki);
 
-    if (mi != mapKeyImages.end())
-    {
+    if (mi != mapKeyImages.end()) {
         hash = mi->second;
         return true;
-    };
+    }
 
     return false;
-};
+}
 
 const CTransaction* CTxMemPool::GetConflictTx(const COutPoint& prevout) const
 {
@@ -1245,27 +1244,25 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
     CTransactionRef ptx = mempool.get(outpoint.hash);
     if (ptx) {
 
-        if (ptx->IsParticlVersion())
-        {
-            if (outpoint.n < ptx->vpout.size())
-            {
+        if (ptx->IsParticlVersion()) {
+            if (outpoint.n < ptx->vpout.size()) {
                 const CTxOutBase *out = ptx->vpout[outpoint.n].get();
                 const CScript *ps = out->GetPScriptPubKey();
                 if (!ps) // Data / anon output
                     return false;
                 CTxOut txout(0, *ps);
-                if (out->IsType(OUTPUT_STANDARD))
+                if (out->IsType(OUTPUT_STANDARD)) {
                     txout.nValue = out->GetValue();
+                }
                 coin = Coin(txout, MEMPOOL_HEIGHT, false);
-                if (out->IsType(OUTPUT_CT))
-                {
+                if (out->IsType(OUTPUT_CT)) {
                     coin.nType = OUTPUT_CT;
                     coin.commitment = ((CTxOutCT*)out)->commitment;
-                };
+                }
                 return true;
-            };
+            }
             return false;
-        };
+        }
         if (outpoint.n < ptx->vout.size()) {
             coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false);
             return true;
