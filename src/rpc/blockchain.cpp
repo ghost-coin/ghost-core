@@ -805,7 +805,7 @@ static RPCHelpMan getblockhashafter()
     return RPCHelpMan{"getblockhashafter",
                 "\nReturns hash of first block in best-block-chain after time provided.\n",
                 {
-                    {"time", RPCArg::Type::STR, RPCArg::Optional::NO, "The time as a timestamp or Y-m-d H:M:S in local time"},
+                    {"timestamporstring", RPCArg::Type::STR, RPCArg::Optional::NO, "The time as a timestamp or Y-m-d H:M:S in local time"},
                 },
                 RPCResult{
                     RPCResult::Type::STR_HEX, "", "The block hash"},
@@ -2618,7 +2618,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose","coinstakeinfo"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
-    { "blockchain",         "getblockhashafter",      &getblockhashafter,      {"time"} },
+    { "blockchain",         "getblockhashafter",      &getblockhashafter,      {"timestamporstring"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
     { "blockchain",         "getdifficulty",          &getdifficulty,          {} },
