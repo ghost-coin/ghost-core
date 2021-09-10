@@ -4288,10 +4288,9 @@ static UniValue getstakinginfo(const JSONRPCRequest &request)
     CBlockIndex *pblockindex = nullptr;
     {
         LOCK(cs_main);
-        pblockindex = ::ChainActive().Tip();
-        nTipTime = pblockindex->nTime;
-        rCoinYearReward = Params().GetCoinYearReward(nTipTime) / CENT;
-        nMoneySupply = pblockindex->nMoneySupply;
+        nTipTime = ::ChainActive().Tip()->nTime;
+        rCoinYearReward = 0;
+        nMoneySupply = ::ChainActive().Tip()->nMoneySupply;
     }
 
     uint64_t nWeight = pwallet->GetStakeWeight();

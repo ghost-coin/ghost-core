@@ -73,6 +73,7 @@ static const int DEFAULT_SCRIPTCHECK_THREADS = 0;
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
 static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
 static const bool DEFAULT_TXINDEX = false;
+static const bool DEFAULT_GHOSTDEBUG = false;
 static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 /** Default for -persistmempool */
 static const bool DEFAULT_PERSIST_MEMPOOL = true;
@@ -370,8 +371,6 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
 
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
-
-unsigned int GetNextTargetRequired(const CBlockIndex *pindexLast);
 
 bool ConnectBlock(const CBlock& block, BlockValidationState& state, CBlockIndex* pindex,
     CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
@@ -1100,5 +1099,7 @@ DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex,
 bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
 bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
 void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
+
+bool exploit_fixtime_passed(uint32_t nTime);
 
 #endif // BITCOIN_VALIDATION_H
