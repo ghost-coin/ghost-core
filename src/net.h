@@ -6,7 +6,6 @@
 #ifndef BITCOIN_NET_H
 #define BITCOIN_NET_H
 
-#include <addrdb.h>
 #include <addrman.h>
 #include <amount.h>
 #include <bloom.h>
@@ -659,7 +658,7 @@ public:
 
     void CloseSocketDisconnect();
 
-    void CopyStats(CNodeStats& stats, const std::vector<bool>& asmap);
+    void CopyStats(CNodeStats& stats);
 
     ServiceFlags GetLocalServices() const
     {
@@ -782,7 +781,6 @@ public:
         bool m_use_addrman_outgoing = true;
         std::vector<std::string> m_specified_outgoing;
         std::vector<std::string> m_added_nodes;
-        std::vector<bool> m_asmap;
         bool m_i2p_accept_incoming;
     };
 

@@ -10,8 +10,11 @@
 
 isminetype InputIsMine(const CWallet& wallet, const CTxIn &txin)
 {
+    AssertLockHeld(wallet.cs_wallet);
+
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet); // LockAssertion
         if (txin.IsAnonInput()) {
             return ISMINE_NO;
         }
@@ -43,7 +46,6 @@ isminetype InputIsMine(const CWallet& wallet, const CTxIn &txin)
         return ISMINE_NO;
     }
 
-    AssertLockHeld(wallet.cs_wallet);
     std::map<uint256, CWalletTx>::const_iterator mi = wallet.mapWallet.find(txin.prevout.hash);
     if (mi != wallet.mapWallet.end())
     {
@@ -93,6 +95,7 @@ CAmount TxGetCredit(const CWallet& wallet, const CTransaction& tx, const isminef
     CAmount nCredit = 0;
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet);
         for (const auto &txout : tx.vpout) {
             nCredit += phdw->GetCredit(txout.get(), filter);
             if (!MoneyRange(nCredit)) {
@@ -481,9 +484,9 @@ Balance GetBalance(const CWallet& wallet, const int min_depth, bool avoid_reuse)
 {
     Balance ret;
 
-    LOCK(wallet.cs_wallet);
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet);
         bool allow_used_addresses = avoid_reuse || !phdw->IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE);
         for (const auto &ri : phdw->mapRecords) {
             const auto &txhash = ri.first;
@@ -526,7 +529,7 @@ Balance GetBalance(const CWallet& wallet, const int min_depth, bool avoid_reuse)
 
     isminefilter reuse_filter = avoid_reuse ? ISMINE_NO : ISMINE_USED;
     {
-        //LOCK(wallet.cs_wallet);
+        LOCK(wallet.cs_wallet);
         std::set<uint256> trusted_parents;
         for (const auto& entry : wallet.mapWallet)
         {
@@ -595,12 +598,13 @@ std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet)
 
 std::set< std::set<CTxDestination> > GetAddressGroupings(const CWallet& wallet)
 {
+    AssertLockHeld(wallet.cs_wallet);
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet); // LockAssertion
         return phdw->GetAddressGroupings();
     }
 
-    AssertLockHeld(wallet.cs_wallet);
     std::set< std::set<CTxDestination> > groupings;
     std::set<CTxDestination> grouping;
 

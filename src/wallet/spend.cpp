@@ -83,6 +83,7 @@ void AvailableCoins(const CWallet& wallet, std::vector<COutput>& vCoins, const C
 
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet); // LockAssertion
         return phdw->AvailableCoins(vCoins, coinControl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
 
@@ -254,6 +255,7 @@ std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet)
     AssertLockHeld(wallet.cs_wallet);
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet); // LockAssertion
         return phdw->ListCoins();
     }
 
@@ -429,6 +431,7 @@ bool SelectCoins(const CWallet& wallet, const std::vector<COutput>& vAvailableCo
 {
     if (wallet.IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(&wallet);
+        LOCK(phdw->cs_wallet); // LockAssertion
         return phdw->SelectCoins(vAvailableCoins, nTargetValue, setCoinsRet, nValueRet, coin_control, coin_selection_params);
     }
 

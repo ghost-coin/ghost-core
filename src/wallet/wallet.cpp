@@ -3029,9 +3029,12 @@ int CWallet::GetTxBlocksToMaturity(const CWalletTx& wtx) const
     int chain_depth = GetTxDepthInMainChain(wtx);
     assert(chain_depth >= 0); // coinbase tx should not be conflicted
 
-    if (IsParticlWallet() && m_last_block_processed_height < COINBASE_MATURITY * 2 && wtx.m_confirm.status == CWalletTx::Status::CONFIRMED) {
-        int nRequiredDepth = wtx.m_confirm.block_height / 2;
-        return std::max(0, (nRequiredDepth+1) - chain_depth);
+    if (IsParticlWallet()) {
+        int last_processed = WITH_LOCK(cs_wallet, return m_last_block_processed_height);
+        if (last_processed < COINBASE_MATURITY * 2 && wtx.m_confirm.status == CWalletTx::Status::CONFIRMED) {
+            int nRequiredDepth = wtx.m_confirm.block_height / 2;
+            return std::max(0, (nRequiredDepth+1) - chain_depth);
+        }
     }
 
     return std::max(0, (COINBASE_MATURITY+1) - chain_depth);

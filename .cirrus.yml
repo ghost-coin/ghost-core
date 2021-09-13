@@ -1,6 +1,4 @@
-### Global defaults
-
-env:
+env:  # Global defaults
   PACKAGE_MANAGER_INSTALL: "apt-get update && apt-get install -y"
   MAKEJOBS: "-j4"
   TEST_RUNNER_PORT_MIN: "14000"  # Must be larger than 12321, which is used for the http cache. See https://cirrus-ci.org/guide/writing-tasks/#http-cache
@@ -127,6 +125,7 @@ task:
     folder: 'C:\Users\ContainerAdministrator\AppData\Local\vcpkg\archives'
   install_python_script:
     - choco install --yes --no-progress python3 --version=3.9.6
+    - pip install zmq
     - python -VV
   install_vcpkg_script:
     - cd ..
@@ -146,6 +145,8 @@ task:
     - src\bench_bitcoin.exe > NUL
     - python test\util\test_runner.py
     - python test\util\rpcauth-test.py
+  functional_tests_script:
+    - python test\functional\test_runner.py --ci --quiet --combinedlogslen=4000 --jobs=4 --timeout-factor=8 rpc_help feature_config_args rpc_signer feature_presegwit_node_upgrade "tool_wallet.py --descriptors" --failfast  # TODO enable '--extended' and remove cherry-picked test list
 
 task:
   name: 'ARM [unit tests, no functional tests] [buster]'
@@ -232,7 +233,7 @@ task:
     FILE_ENV: "./ci/test/00_setup_env_native_fuzz.sh"
 
 task:
-  name: '[multiprocess, DEBUG] [focal]'
+  name: '[multiprocess, i686, DEBUG] [focal]'
   << : *GLOBAL_TASK_TEMPLATE
   container:
     image: ubuntu:focal
@@ -241,7 +242,7 @@ task:
   env:
     << : *CIRRUS_EPHEMERAL_WORKER_TEMPLATE_ENV
     MAKEJOBS: "-j8"
-    FILE_ENV: "./ci/test/00_setup_env_native_multiprocess.sh"
+    FILE_ENV: "./ci/test/00_setup_env_i686_multiprocess.sh"
 
 task:
   name: '[no wallet] [bionic]'
