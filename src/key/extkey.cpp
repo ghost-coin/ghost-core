@@ -296,6 +296,7 @@ void CExtPubKey::Decode(const unsigned char code[74])
     nChild = (code[5] << 24) | (code[6] << 16) | (code[7] << 8) | code[8];
     memcpy(chaincode, code+9, 32);
     pubkey.Set(code+41, code+74);
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || !pubkey.IsFullyValid()) pubkey = CPubKey();
 };
 
 bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const
@@ -374,6 +375,7 @@ void CExtKey::Decode(const unsigned char code[74])
     nChild = (code[5] << 24) | (code[6] << 16) | (code[7] << 8) | code[8];
     memcpy(chaincode, code+9, 32);
     key.Set(code+42, code+74, true);
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || code[41] != 0) key = CKey();
 };
 
 
@@ -397,6 +399,10 @@ void CExtKeyPair::DecodeV(const unsigned char code[74])
     memcpy(chaincode, code+9, 32);
     key.Set(code+42, code+74, true);
     pubkey = key.GetPubKey();
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || code[41] != 0) {
+        key = CKey();
+        pubkey = CPubKey();
+    }
 };
 
 void CExtKeyPair::EncodeP(unsigned char code[74]) const
@@ -418,6 +424,7 @@ void CExtKeyPair::DecodeP(const unsigned char code[74])
     memcpy(chaincode, code+9, 32);
     pubkey.Set(code+41, code+74);
     key.Clear();
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || !pubkey.IsFullyValid()) pubkey = CPubKey();
 };
 
 bool CExtKeyPair::Derive(CExtKey &out, unsigned int nChild) const

@@ -25,11 +25,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "wallet/wallet -> wallet/walletdb -> wallet/wallet"
     "node/coinstats -> validation -> node/coinstats"
 
-    # Temporary circular dependencies that allow wallet.h/wallet.cpp to be
-    # split up in a MOVEONLY commit. These are removed in #21206.
-    "wallet/receive -> wallet/wallet -> wallet/receive"
-    "wallet/spend -> wallet/wallet -> wallet/spend"
-
 # Particl
     "anon -> txmempool -> anon"
     "anon -> validation -> anon"
@@ -50,6 +45,8 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "usbdevice/usbdevice -> wallet/hdwallet -> usbdevice/usbdevice"
     "wallet/hdwallet -> wallet/hdwalletdb -> wallet/hdwallet"
     "wallet/hdwallet -> wallet/wallet -> wallet/hdwallet"
+    "wallet/hdwallet -> wallet/receive -> wallet/hdwallet"
+    "wallet/hdwallet -> wallet/spend -> wallet/hdwallet"
     "key/extkey -> key_io -> script/standard -> key/extkey"
     "key/stealth -> key_io -> script/standard -> key/stealth"
     "smsg/smessage -> wallet/hdwallet -> smsg/smessage"

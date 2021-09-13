@@ -4278,7 +4278,7 @@ int CSMSG::FundMsg(SecureMessage &smsg, std::string &sError, bool fTestFee, CAmo
 
         CHDWallet *const pw = GetParticlWallet(pactive_wallet.get());
         CTransactionRef tx_new;
-        CWalletTx wtx(pactive_wallet.get(), tx_new);
+        CWalletTx wtx(tx_new);
 
         if (fund_from == OUTPUT_STANDARD) {
             if (0 != pw->AddStandardInputs(wtx, rtx, vec_send, !fTestFee, nFeeRet, coin_control, sError)) {

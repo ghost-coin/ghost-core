@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     {
         LOCK(pwallet->cs_wallet);
         pwallet->SetBroadcastTransactions(true);
-        const auto bal = pwallet->GetBalance();
+        const auto bal = GetBalance(*pwallet);
         BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
 
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.emplace_back(OUTPUT_STANDARD, 1 * COIN, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl cctl;
@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));

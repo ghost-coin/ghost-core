@@ -101,7 +101,7 @@ uint256 AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes input_type,
     vecSend.emplace_back(output_type, amount, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
@@ -113,7 +113,7 @@ uint256 AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes input_type,
         pwallet->AddStandardInputs(wtx, rtx, vecSend, true, nFee, &coinControl, sError);
     BOOST_REQUIRE(rv == 0);
 
-    rv = wtx.SubmitMemoryPoolAndRelay(sError, true);
+    rv = pwallet->SubmitTxMemoryPoolAndRelay(wtx, sError, true);
     if (expect_error.empty()) {
         BOOST_REQUIRE(rv == 1);
     } else {

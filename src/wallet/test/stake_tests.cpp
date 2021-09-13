@@ -38,13 +38,13 @@ static void AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes output_
     vecSend.emplace_back(output_type, amount, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
     BOOST_CHECK(0 == pwallet->AddStandardInputs(wtx, rtx, vecSend, true, nFee, &coinControl, sError));
 
-    BOOST_REQUIRE(wtx.SubmitMemoryPoolAndRelay(sError, true));
+    BOOST_REQUIRE(pwallet->SubmitTxMemoryPoolAndRelay(wtx, sError, true));
     }
     SyncWithValidationInterfaceQueue();
 }
@@ -64,7 +64,7 @@ static void TryAddBadTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes o
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee, nFeeCheck = 0;
     CCoinControl coinControl;
@@ -76,7 +76,7 @@ static void TryAddBadTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes o
     nFee -= 1;
     BOOST_REQUIRE(wtx.tx->vpout[0]->SetCTFee(nFee));
 
-    BOOST_REQUIRE(!wtx.SubmitMemoryPoolAndRelay(sError, true));
+    BOOST_REQUIRE(!pwallet->SubmitTxMemoryPoolAndRelay(wtx, sError, true));
     BOOST_REQUIRE(sError == "bad-commitment-sum");
     }
     SyncWithValidationInterfaceQueue();
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     CAmount base_supply = 12500000000000;
     {
         LOCK(pwallet->cs_wallet);
-        const auto bal = pwallet->GetBalance();
+        const auto bal = GetBalance(*pwallet);
         BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
     }
     BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == base_supply);
@@ -317,7 +317,10 @@ BOOST_AUTO_TEST_CASE(stake_test)
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewextaddress testLbl", context));
     std::string extaddr = part::StripQuotes(rv.write());
 
-    BOOST_CHECK(pwallet->GetBalance().m_mine_trusted + pwallet->GetStaked() == 12500000108911);
+    BOOST_CHECK_NO_THROW(rv = CallRPC("listunspent", context));
+    std::string listunspent = part::StripQuotes(rv.write(1));
+
+    BOOST_CHECK(GetBalance(*pwallet).m_mine_trusted + pwallet->GetStaked() == 12500000108911);
     BOOST_CHECK(chain_active.Tip()->nMoneySupply - nAmountSendAway == 12500000108911);
 
 

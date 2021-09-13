@@ -34,7 +34,7 @@ CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount 
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
@@ -66,12 +66,12 @@ static void AddAnonTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amo
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
     assert(0 == pwallet->AddStandardInputs(wtx, rtx, vecSend, true, nFee, &coinControl, sError));
-    assert(wtx.SubmitMemoryPoolAndRelay(sError, true));
+    assert(pwallet->SubmitTxMemoryPoolAndRelay(wtx, sError, true));
     }
     SyncWithValidationInterfaceQueue();
 }

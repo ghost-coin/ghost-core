@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     {
         LOCK(pwallet->cs_wallet);
         pwallet->SetBroadcastTransactions(true);
-        const auto bal = pwallet->GetBalance();
+        const auto bal = GetBalance(*pwallet);
         BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
 
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));

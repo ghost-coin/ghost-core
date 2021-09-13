@@ -33,6 +33,7 @@
 #include <wallet/hdwalletdb.h>
 #include <wallet/coincontrol.h>
 #include <wallet/rpcwallet.h>
+#include <wallet/spend.h>
 #include <chainparams.h>
 #include <key/mnemonic.h>
 #include <pos/miner.h>
@@ -3036,7 +3037,7 @@ static bool ParseOutput(
     return true;
 }
 
-extern void WalletTxToJSON(interfaces::Chain& chain, const CWalletTx& wtx, UniValue& entry, bool fFilterMode=false);
+extern void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry, bool fFilterMode=false);
 
 static void ParseOutputs(
     UniValue            &entries,
@@ -3058,7 +3059,9 @@ static void ParseOutputs(
     std::list<COutputEntry> listReceived, listSent, listStaked;
     CAmount nFee, amount = 0;
 
-    wtx.GetAmounts(
+    CachedTxGetAmounts(
+        *pwallet,
+        wtx,
         listReceived,
         listSent,
         listStaked,
@@ -3066,7 +3069,7 @@ static void ParseOutputs(
         ISMINE_ALL,
         true);
 
-    if (wtx.IsFromMe(ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
+    if (CachedTxIsFromMe(*pwallet, wtx, ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
         return;
     }
     if (hide_zero_coinstakes && !listStaked.empty() && nFee == 0) {
@@ -3076,7 +3079,7 @@ static void ParseOutputs(
     std::vector<std::string> addresses, amounts;
 
     UniValue outputs(UniValue::VARR);
-    WalletTxToJSON(pwallet->chain(), wtx, entry, true);
+    WalletTxToJSON(*pwallet, wtx, entry, true);
 
     if (!listStaked.empty() || !listSent.empty()) {
         entry.pushKV("abandoned", wtx.isAbandoned());
@@ -3084,7 +3087,7 @@ static void ParseOutputs(
 
     // Staked
     if (!listStaked.empty()) {
-        if (wtx.GetDepthInMainChain() < 1) {
+        if (pwallet->GetTxDepthInMainChain(wtx) < 1) {
             entry.pushKV("category", "orphaned_stake");
         } else {
             entry.pushKV("category", "stake");
@@ -3165,9 +3168,9 @@ static void ParseOutputs(
         }
 
         if (wtx.IsCoinBase()) {
-            if (wtx.GetDepthInMainChain() < 1) {
+            if (pwallet->GetTxDepthInMainChain(wtx) < 1) {
                 entry.pushKV("category", "orphan");
-            } else if (wtx.GetBlocksToMaturity() > 0) {
+            } else if (pwallet->GetTxBlocksToMaturity(wtx) > 0) {
                 entry.pushKV("category", "immature");
             } else {
                 entry.pushKV("category", "coinbase");
@@ -3182,7 +3185,7 @@ static void ParseOutputs(
 
             // Handle txns partially funded by wallet
             if (nFee < 0) {
-                amount = wtx.GetCredit(ISMINE_ALL) - wtx.GetDebit(ISMINE_ALL);
+                amount = CachedTxGetCredit(*pwallet, wtx, ISMINE_ALL) - CachedTxGetDebit(*pwallet, wtx, ISMINE_ALL);
             } else {
                 entry.pushKV("fee", ValueFromAmount(-nFee));
             }
@@ -5218,7 +5221,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     switch (typeIn) {
         case OUTPUT_STANDARD:
-            if (nTotal > pwallet->GetBalance().m_mine_trusted) {
+            if (nTotal > GetBalance(*pwallet).m_mine_trusted) {
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
             }
             break;
@@ -5238,7 +5241,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     // Wallet comments
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
 
     size_t nv = nCommentOfs;
@@ -6528,7 +6531,7 @@ static RPCHelpMan debugwallet()
             vec_send.push_back(r);
 
             CTransactionRef tx_new;
-            CWalletTx wtx(pwallet, tx_new);
+            CWalletTx wtx(tx_new);
             CTransactionRecord rtx;
             CAmount nFee;
 
@@ -6544,7 +6547,7 @@ static RPCHelpMan debugwallet()
                 }
             }
 
-            rv = wtx.SubmitMemoryPoolAndRelay(sError, true);
+            rv = pwallet->SubmitTxMemoryPoolAndRelay(wtx, sError, true);
             if (rv != 1) {
                 throw JSONRPCError(RPC_WALLET_ERROR, "SubmitMemoryPoolAndRelay failed " + sError);
             }
@@ -6597,7 +6600,7 @@ static RPCHelpMan debugwallet()
 
             if (wtx.IsCoinStake()) {
                 nCoinStakes++;
-                if (wtx.GetDepthInMainChain() < 1) {
+                if (pwallet->GetTxDepthInMainChain(wtx) < 1) {
                     if (wtx.isAbandoned()) {
                         nAbandonedOrphans++;
                     } else {
@@ -8561,7 +8564,7 @@ static RPCHelpMan fundrawtransactionfrom()
     }
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new);
     CTransactionRecord rtx;
     CAmount nFee;
     std::string sError;

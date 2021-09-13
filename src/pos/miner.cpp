@@ -19,6 +19,7 @@
 #include <node/blockstorage.h>
 
 #include <wallet/hdwallet.h>
+#include <wallet/spend.h>
 
 #include <stdint.h>
 
