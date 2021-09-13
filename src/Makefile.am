@@ -648,6 +648,7 @@ libparticl_common_a_SOURCES = \
   smsg/crypter.cpp \
   key_io.cpp \
   merkleblock.cpp \
+  net_types.cpp \
   netaddress.cpp \
   netbase.cpp \
   net_permissions.cpp \
