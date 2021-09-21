@@ -160,6 +160,7 @@ public:
     bool m_preserve_state = false; // Don't clear error during ActivateBestChain (debug)
 
     // TxValidationState
+    int64_t m_time = 0;
     bool m_funds_smsg = false;
     bool m_has_anon_output = false;
     bool m_has_anon_input = false;
@@ -172,6 +173,7 @@ public:
 
     void SetStateInfo(int64_t time, int spend_height, const Consensus::Params& consensusParams, bool particl_mode, bool skip_rangeproof)
     {
+        m_time = time;
         m_consensus_params = &consensusParams;
         fEnforceSmsgFees = time >= consensusParams.nPaidSmsgTime;
         fBulletproofsActive = time >= consensusParams.bulletproof_time;

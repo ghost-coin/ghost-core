@@ -737,8 +737,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-    if (state.m_has_anon_input
-         && (::ChainActive().Height() < GetNumBlocksOfPeers()-1)) {
+    if (state.m_has_anon_input && gArgs.GetBoolArg("-checkpeerheight", true) &&
+        ::ChainActive().Height() < GetNumBlocksOfPeers()-1) {
         LogPrintf("%s: Ignoring anon transaction while chain syncs height %d - peers %d.\n",
             __func__, ::ChainActive().Height(), GetNumBlocksOfPeers());
         return false;
