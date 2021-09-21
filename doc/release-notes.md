@@ -46,7 +46,7 @@ Compatibility
 ==============
 
 Bitcoin Core is supported and extensively tested on operating systems
-using the Linux kernel, macOS 10.14+, and Windows 7 and newer.  Bitcoin
+using the Linux kernel, macOS 10.15+, and Windows 7 and newer.  Bitcoin
 Core should also work on most other Unix-like systems but is not as
 frequently tested on them.  It is not recommended to use Bitcoin Core on
 unsupported systems.
@@ -90,6 +90,10 @@ Tools and Utilities
 -------------------
 
 - Update `-getinfo` to return data in a user-friendly format that also reduces vertical space. (#21832)
+
+- CLI `-addrinfo` now returns a single field for the number of `onion` addresses
+  known to the node instead of separate `torv2` and `torv3` fields, as support
+  for Tor V2 addresses was removed from Bitcoin Core in 22.0. (#22544)
 
 Wallet
 ------

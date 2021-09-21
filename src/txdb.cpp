@@ -5,6 +5,7 @@
 
 #include <txdb.h>
 
+#include <chain.h>
 #include <node/ui_interface.h>
 #include <pow.h>
 #include <random.h>
@@ -45,6 +46,28 @@ static constexpr uint8_t DB_RCTOUTPUT_LINK = 'L';
 static constexpr uint8_t DB_RCTKEYIMAGE = 'K';
 static constexpr uint8_t DB_SPENTCACHE = 'S';
 */
+
+// Keys used in previous version that might still be found in the DB:
+static constexpr uint8_t DB_TXINDEX_BLOCK{'T'};
+//               uint8_t DB_TXINDEX{'t'}
+
+std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db)
+{
+    CBlockLocator ignored{};
+    if (block_tree_db.Read(DB_TXINDEX_BLOCK, ignored)) {
+        return _("The -txindex upgrade started by a previous version can not be completed. Restart with the previous version or run a full -reindex.");
+    }
+    bool txindex_legacy_flag{false};
+    block_tree_db.ReadFlag("txindex", txindex_legacy_flag);
+    if (txindex_legacy_flag) {
+        // Disable legacy txindex and warn once about occupied disk space
+        if (!block_tree_db.WriteFlag("txindex", false)) {
+            return Untranslated("Failed to write block index db flag 'txindex'='0'");
+        }
+        return _("The block index db contains a legacy 'txindex'. To clear the occupied disk space, run a full -reindex, otherwise ignore this error. This error message will not be displayed again.");
+    }
+    return std::nullopt;
+}
 
 namespace {
 

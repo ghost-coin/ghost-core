@@ -17,13 +17,18 @@
 #include <primitives/block.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+class CBlockFileInfo;
 class CBlockIndex;
-class CCoinsViewDBCursor;
 class uint256;
+namespace Consensus {
+struct Params;
+};
+struct bilingual_str;
 
 const char DB_RCTOUTPUT = 'A';
 const char DB_RCTOUTPUT_LINK = 'L';
@@ -133,5 +138,7 @@ public:
 
     //bool WriteRCTOutputBatch(std::vector<std::pair<int64_t, CAnonOutput> > &vao);
 };
+
+std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
 
 #endif // BITCOIN_TXDB_H

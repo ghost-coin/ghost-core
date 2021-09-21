@@ -671,7 +671,7 @@ libparticl_common_a_SOURCES = \
 
 # util: shared between all executables.
 # This library *must* be included to make sure that the glibc
-# backward-compatibility objects and their sanity checks are linked.
+# sanity checks are linked.
 libparticl_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libparticl_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_util_a_SOURCES = \
@@ -756,11 +756,6 @@ libparticl_mnemonic_a_SOURCES = \
   key/mnemonic.h \
   key/mnemonic.cpp \
   rpc/mnemonic.cpp
-
-if GLIBC_BACK_COMPAT
-libparticl_util_a_SOURCES += compat/glibc_compat.cpp
-AM_LDFLAGS += $(COMPAT_LDFLAGS)
-endif
 
 # cli: shared between bitcoin-cli and bitcoin-qt
 libparticl_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
@@ -917,12 +912,8 @@ if BUILD_BITCOIN_LIBS
 include_HEADERS = script/particlconsensus.h
 libparticlconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libparticl_crypto_base_a_SOURCES) $(libparticl_consensus_a_SOURCES)
 
-if GLIBC_BACK_COMPAT
-  libparticlconsensus_la_SOURCES += compat/glibc_compat.cpp
-endif
-
 libparticlconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libparticlconsensus_la_LIBADD = $(LIBSECP256K1) $(BOOST_LIBS)
+libparticlconsensus_la_LIBADD = $(LIBSECP256K1)
 libparticlconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 libparticlconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 

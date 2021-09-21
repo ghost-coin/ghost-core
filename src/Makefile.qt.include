@@ -350,14 +350,14 @@ particl_qt_libtoolflags = $(AM_LIBTOOLFLAGS) --tag CXX
 
 qt_particl_qt_CPPFLAGS = $(particl_qt_cppflags)
 qt_particl_qt_CXXFLAGS = $(particl_qt_cxxflags)
-qt_particl_qt_SOURCES = $(particl_qt_sources)
+qt_particl_qt_SOURCES = $(particl_qt_sources) init/bitcoind.cpp
 qt_particl_qt_LDADD = $(particl_qt_ldadd)
 qt_particl_qt_LDFLAGS = $(particl_qt_ldflags)
 qt_particl_qt_LIBTOOLFLAGS = $(particl_qt_libtoolflags)
 
 particl_gui_CPPFLAGS = $(particl_qt_cppflags)
 particl_gui_CXXFLAGS = $(particl_qt_cxxflags)
-particl_gui_SOURCES = $(particl_qt_sources)
+particl_gui_SOURCES = $(particl_qt_sources) init/bitcoind.cpp
 particl_gui_LDADD = $(particl_qt_ldadd)
 particl_gui_LDFLAGS = $(particl_qt_ldflags)
 particl_gui_LIBTOOLFLAGS = $(particl_qt_libtoolflags)

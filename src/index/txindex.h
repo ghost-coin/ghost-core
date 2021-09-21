@@ -5,9 +5,7 @@
 #ifndef BITCOIN_INDEX_TXINDEX_H
 #define BITCOIN_INDEX_TXINDEX_H
 
-#include <chain.h>
 #include <index/base.h>
-#include <txdb.h>
 
 class CBlockHeader;
 
@@ -25,9 +23,6 @@ private:
     const std::unique_ptr<DB> m_db;
 
 protected:
-    /// Override base class init to migrate from old database.
-    bool Init() override;
-
     bool WriteBlock(const CBlock& block, const CBlockIndex* pindex) override;
     bool DisconnectBlock(const CBlock& block) override;
 

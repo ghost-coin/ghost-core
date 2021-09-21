@@ -242,7 +242,7 @@ public:
 class AddrinfoRequestHandler : public BaseRequestHandler
 {
 private:
-    static constexpr std::array m_networks{"ipv4", "ipv6", "torv2", "torv3", "i2p"};
+    static constexpr std::array m_networks{"ipv4", "ipv6", "onion", "i2p"};
     int8_t NetworkStringToId(const std::string& str) const
     {
         for (size_t i = 0; i < m_networks.size(); ++i) {
@@ -268,13 +268,10 @@ public:
         if (!nodes.empty() && nodes.at(0)["network"].isNull()) {
             throw std::runtime_error("-addrinfo requires bitcoind server to be running v22.0 and up");
         }
-        // Count the number of peers we know by network, including torv2 versus torv3.
+        // Count the number of peers known to our node, by network.
         std::array<uint64_t, m_networks.size()> counts{{}};
         for (const UniValue& node : nodes) {
             std::string network_name{node["network"].get_str()};
-            if (network_name == "onion") {
-                network_name = node["address"].get_str().size() > 22 ? "torv3" : "torv2";
-            }
             const int8_t network_id{NetworkStringToId(network_name)};
             if (network_id == UNKNOWN_NETWORK) continue;
             ++counts.at(network_id);
@@ -340,7 +337,7 @@ public:
         connections.pushKV("total", batch[ID_NETWORKINFO]["result"]["connections"]);
         result.pushKV("connections", connections);
 
-        result.pushKV("proxy", batch[ID_NETWORKINFO]["result"]["networks"][0]["proxy"]);
+        result.pushKV("networks", batch[ID_NETWORKINFO]["result"]["networks"]);
         result.pushKV("difficulty", batch[ID_BLOCKCHAININFO]["result"]["difficulty"]);
         result.pushKV("chain", UniValue(batch[ID_BLOCKCHAININFO]["result"]["chain"]));
         if (!batch[ID_WALLETINFO]["result"].isNull()) {
@@ -989,8 +986,26 @@ static void ParseGetInfoResult(UniValue& result)
         RESET);
     result_string += strprintf("Version: %s\n", result["version"].getValStr());
     result_string += strprintf("Time offset (s): %s\n", result["timeoffset"].getValStr());
-    const std::string proxy = result["proxy"].getValStr();
-    result_string += strprintf("Proxy: %s\n", proxy.empty() ? "N/A" : proxy);
+
+    // proxies
+    std::map<std::string, std::vector<std::string>> proxy_networks;
+    std::vector<std::string> ordered_proxies;
+
+    for (const UniValue& network : result["networks"].getValues()) {
+        const std::string proxy = network["proxy"].getValStr();
+        if (proxy.empty()) continue;
+        // Add proxy to ordered_proxy if has not been processed
+        if (proxy_networks.find(proxy) == proxy_networks.end()) ordered_proxies.push_back(proxy);
+
+        proxy_networks[proxy].push_back(network["name"].getValStr());
+    }
+
+    std::vector<std::string> formatted_proxies;
+    for (const std::string& proxy : ordered_proxies) {
+        formatted_proxies.emplace_back(strprintf("%s (%s)", proxy, Join(proxy_networks.find(proxy)->second, ", ")));
+    }
+    result_string += strprintf("Proxies: %s\n", formatted_proxies.empty() ? "n/a" : Join(formatted_proxies, ", "));
+
     result_string += strprintf("Min tx relay fee rate (%s/kvB): %s\n\n", CURRENCY_UNIT, result["relayfee"].getValStr());
 
     if (!result["has_wallet"].isNull()) {

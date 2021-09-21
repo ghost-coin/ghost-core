@@ -79,12 +79,13 @@ class MiniWallet:
             self._address = ADDRESS_BCRT1_P2WSH_OP_TRUE
             self._scriptPubKey = bytes.fromhex(self._test_node.validateaddress(self._address)['scriptPubKey'])
 
-    def scan_blocks(self, *, start=1, num):
-        """Scan the blocks for self._address outputs and add them to self._utxos"""
-        for i in range(start, start + num):
-            block = self._test_node.getblock(blockhash=self._test_node.getblockhash(i), verbosity=2)
-            for tx in block['tx']:
-                self.scan_tx(tx)
+    def rescan_utxos(self):
+        """Drop all utxos and rescan the utxo set"""
+        self._utxos = []
+        res = self._test_node.scantxoutset(action="start", scanobjects=[f'raw({self._scriptPubKey.hex()})'])
+        assert_equal(True, res['success'])
+        for utxo in res['unspents']:
+            self._utxos.append({'txid': utxo['txid'], 'vout': utxo['vout'], 'value': utxo['amount']})
 
     def scan_tx(self, tx):
         """Scan the tx for self._scriptPubKey outputs and add them to self._utxos"""
@@ -179,8 +180,10 @@ class MiniWallet:
         return {'txid': tx_info['txid'], 'wtxid': tx_info['wtxid'], 'hex': tx_hex, 'tx': tx}
 
     def sendrawtransaction(self, *, from_node, tx_hex):
-        from_node.sendrawtransaction(tx_hex)
+        txid = from_node.sendrawtransaction(tx_hex)
         self.scan_tx(from_node.decoderawtransaction(tx_hex))
+        return txid
+
 
 def make_chain(node, address, privkeys, parent_txid, parent_value, n=0, parent_locking_script=None, fee=DEFAULT_FEE):
     """Build a transaction that spends parent_txid.vout[n] and produces one output with
