@@ -68,6 +68,8 @@ Next Major Version
   - New track-only mode, won't save keys or transactions, only updates child key counter.
 - rpc: New getblockhashafter command.
   - Returns first block at or after provided time.
+- Fix abandoning coinstakes with descendants.
+  - Avoid assert when disconnecting a spent coinstake tx
 
 
 0.19.2.13
