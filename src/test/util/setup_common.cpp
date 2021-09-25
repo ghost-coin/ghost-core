@@ -79,7 +79,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::ve
     : m_path_root{fs::temp_directory_path() / "test_common_" PACKAGE_NAME / g_insecure_rand_ctx_temp_path.rand256().ToString()}
 {
     fParticlMode = fParticlModeIn;
-    const std::vector<const char*> arguments = Cat(
+    std::vector<const char*> arguments = Cat(
         {
             "dummy",
             "-printtoconsole=0",
@@ -88,10 +88,13 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::ve
             "-debug",
             "-debugexclude=libevent",
             "-debugexclude=leveldb",
-            fParticlMode ? "" : "-btcmode",
-            fParticlMode ? "-debugexclude=hdwallet" : "",
         },
         extra_args);
+    if (fParticlMode) {
+        arguments.push_back("-debugexclude=hdwallet");
+    } else {
+        arguments.push_back("-btcmode");
+    }
     util::ThreadRename("test");
     fs::create_directories(m_path_root);
     gArgs.ForceSetArg("-datadir", m_path_root.string());
