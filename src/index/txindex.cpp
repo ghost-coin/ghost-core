@@ -15,7 +15,6 @@
 #include <wallet/ismine.h>
 #include <key_io.h>
 
-constexpr uint8_t DB_BEST_BLOCK{'B'};
 constexpr uint8_t DB_TXINDEX{'t'};
 
 /* csindex.h
@@ -64,6 +63,36 @@ TxIndex::TxIndex(size_t n_cache_size, bool f_memory, bool f_wipe)
 {}
 
 TxIndex::~TxIndex() {}
+
+bool TxIndex::Init()
+{
+    LOCK(cs_main);
+
+    if (!BaseIndex::Init()) {
+        return false;
+    }
+
+    // Set m_best_block_index to the last cs_indexed block if lower
+    CChain &active_chain = m_chainstate->m_chain;
+    if (m_cs_index) {
+        CBlockLocator locator;
+        if (!GetDB().Read(DB_TXINDEX_CSBESTBLOCK, locator)) {
+            locator.SetNull();
+        }
+        CBlockIndex *best_cs_block_index = m_chainstate->m_blockman.FindForkInGlobalIndex(active_chain, locator);
+
+        if (best_cs_block_index != active_chain.Tip()) {
+            m_synced = false;
+            if (m_best_block_index &&
+                m_best_block_index.load()->nHeight > best_cs_block_index->nHeight) {
+                LogPrintf("Setting txindex best block back to %d to sync csindex.\n", best_cs_block_index->nHeight);
+                m_best_block_index = best_cs_block_index;
+            }
+        }
+    }
+
+    return true;
+}
 
 bool TxIndex::WriteBlock(const CBlock& block, const CBlockIndex* pindex)
 {

@@ -23,6 +23,7 @@ private:
     const std::unique_ptr<DB> m_db;
 
 protected:
+    bool Init() override;
     bool WriteBlock(const CBlock& block, const CBlockIndex* pindex) override;
     bool DisconnectBlock(const CBlock& block) override;
 
