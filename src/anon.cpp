@@ -195,12 +195,13 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-dup-ki");
             }
 
-            if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+            CAnonKeyImageInfo ki_data;
+            if (pblocktree->ReadRCTKeyImage(ki, ki_data)) {
                 if (LogAcceptCategory(BCLog::RINGCT)) {
                     LogPrintf("%s: Duplicate keyimage detected %s, used in %s.\n", __func__,
                         HexStr(ki), txhashKI.ToString());
                 }
-                if (txhashKI == txhash) {
+                if (ki_data.txid == txhash) {
                     if (state.m_time > 1632177542) {
                         return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-in-chain");
                     }
@@ -336,8 +337,7 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
     return true;
 };
 
-
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi)
+bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi)
 {
     LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n", __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
     // This should hardly happen, if ever
@@ -356,7 +356,7 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     }
 
     LogPrintf("%s: Removed up to %d\n", __func__, nRemRCTOutput);
-    if (nExpectErase > nRemRCTOutput) {
+    if (nExpectErase > 0 && nExpectErase > nRemRCTOutput) {
         nRemRCTOutput = nExpectErase;
         while (nRemRCTOutput > nLastValidRCTOutput) {
             if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao)) {
@@ -372,6 +372,8 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     for (const auto &ki : setKi) {
         pblocktree->EraseRCTKeyImage(ki);
     }
+
+    pblocktree->EraseRCTKeyImagesAfterHeight(chain_height);
 
     return true;
 };

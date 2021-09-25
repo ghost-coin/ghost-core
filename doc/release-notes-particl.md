@@ -52,6 +52,9 @@
 ==============
 
 - index: Fix issue when cs index best block is set and the index best block is not.
+- validation: Fix chain sync error after incomplete shutdown.
+  - Block height is stored for newly added RCT keyimages, rollback removes > chain height.
+  - New rollbackrctindex command to manually trigger rct index rollback to chain tip.
 
 
 0.19.2.14
