@@ -2346,7 +2346,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         LogPrintf("Attempting to repair anon index.\n");
                         assert(state.m_chainman);
                         std::set<CCmpPubKey> setKi; // unused
-                        RollBackRCTIndex(*state.m_chainman, pindex->pprev->nAnonOutputs, nTestExists, setKi);
+                        RollBackRCTIndex(*state.m_chainman, pindex->pprev->nAnonOutputs, nTestExists, pindex->pprev->nHeight, setKi);
                         return false;
                     }
 
@@ -2909,7 +2909,8 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &
         CDBBatch batch(*pblocktree);
 
         for (const auto &it : view->keyImages) {
-            batch.Write(std::make_pair(DB_RCTKEYIMAGE, it.first), it.second);
+            CAnonKeyImageInfo data(it.second, state.m_spend_height);
+            batch.Write(std::make_pair(DB_RCTKEYIMAGE, it.first), data);
         }
         for (const auto &it : view->anonOutputs) {
             batch.Write(std::make_pair(DB_RCTOUTPUT, it.first), it.second);

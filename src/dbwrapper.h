@@ -266,6 +266,31 @@ public:
         return true;
     }
 
+    template <typename K>
+    bool ReadStream(const K& key, CDataStream& ssValue) const
+    {
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
+        ssKey << key;
+        leveldb::Slice slKey((const char*)ssKey.data(), ssKey.size());
+
+        std::string strValue;
+        leveldb::Status status = pdb->Get(readoptions, slKey, &strValue);
+        if (!status.ok()) {
+            if (status.IsNotFound())
+                return false;
+            LogPrintf("LevelDB read failure: %s\n", status.ToString());
+            dbwrapper_private::HandleError(status);
+        }
+        try {
+            ssValue.Init(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+            ssValue.Xor(obfuscate_key);
+        } catch (const std::exception&) {
+            return false;
+        }
+        return true;
+    }
+
     template <typename K, typename V>
     bool Write(const K& key, const V& value, bool fSync = false)
     {

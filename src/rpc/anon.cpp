@@ -8,6 +8,7 @@
 
 #include <validation.h>
 #include <txdb.h>
+#include <anon.h>
 
 
 static bool IsDigits(const std::string &str)
@@ -98,6 +99,7 @@ static RPCHelpMan checkkeyimage()
                 RPCResult::Type::OBJ, "", "", {
                     {RPCResult::Type::BOOL, "spent", "Keyimage found in chain or not"},
                     {RPCResult::Type::STR_HEX, "txid", "ID of spending transaction"},
+                    {RPCResult::Type::NUM, "height", "Chain height of containing block"},
             }},
             RPCExamples{
         HelpExampleCli("checkkeyimage", "\"keyimage\"")
@@ -119,13 +121,48 @@ static RPCHelpMan checkkeyimage()
     std::vector<uint8_t> v = ParseHex(s);
     CCmpPubKey ki(v.begin(), v.end());
 
-    uint256 txhashKI;
-    bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, txhashKI);
+    CAnonKeyImageInfo ki_data;
+    bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, ki_data);
 
     result.pushKV("spent", spent_in_chain);
     if (spent_in_chain) {
-        result.pushKV("txid", txhashKI.ToString());
+        result.pushKV("txid", ki_data.txid.ToString());
+        if (ki_data.height > 0) {
+            result.pushKV("height", ki_data.height);
+        }
     }
+
+    return result;
+},
+    };
+}
+
+static RPCHelpMan rollbackrctindex()
+{
+    return RPCHelpMan{"rollbackrctindex",
+            "\nRollback RCT index to current chain tip..\n",
+            {
+            },
+            RPCResult{
+                RPCResult::Type::OBJ, "", "", {
+                    {RPCResult::Type::NUM, "height", "Current chain height"},
+            }},
+            RPCExamples{
+        HelpExampleCli("rollbackrctindex", "")
+        + HelpExampleRpc("rollbackrctindex", "")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    LOCK(cs_main);
+    const CBlockIndex *pindex = chainman.ActiveChain().Tip();
+
+    std::set<CCmpPubKey> setKi; // unused
+    int64_t nTestExists = 0;
+    RollBackRCTIndex(chainman, pindex->nAnonOutputs, nTestExists, pindex->nHeight, setKi);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("height", pindex->nHeight);
 
     return result;
 },
@@ -140,6 +177,7 @@ static const CRPCCommand commands[] =
   //  --------------------- -----------------------
     { "anon",               &anonoutput                  },
     { "anon",               &checkkeyimage               },
+    { "anon",               &rollbackrctindex,           },
 };
 // clang-format on
     for (const auto& c : commands) {

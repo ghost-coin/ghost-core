@@ -239,6 +239,13 @@ public:
         ::SerializeMany(*this, std::forward<Args>(args)...);
     }
 
+    void Init(const char* pbegin, const char* pend, int nTypeIn, int nVersionIn)
+    {
+        nType = nTypeIn;
+        nVersion = nVersionIn;
+        vch = vector_type(pbegin, pend);
+    }
+
     std::string str() const
     {
         return (std::string(begin(), end()));

@@ -783,10 +783,10 @@ public:
         LOCK(::cs_main);
         return m_node.chainman->m_blockman.m_block_tree_db->ReadRCTOutputLink(pk, i);
     }
-    bool readRCTKeyImage(const CCmpPubKey &ki, uint256 &txhash) override
+    bool readRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &ki_data) override
     {
         LOCK(::cs_main);
-        return m_node.chainman->m_blockman.m_block_tree_db->ReadRCTKeyImage(ki, txhash);
+        return m_node.chainman->m_blockman.m_block_tree_db->ReadRCTKeyImage(ki, ki_data);
     }
 };
 } // namespace

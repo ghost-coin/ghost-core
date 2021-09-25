@@ -43,7 +43,7 @@ bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPo
 
 bool AllAnonOutputsUnknown(CChainState &active_chainstate, const CTransaction &tx, TxValidationState &state);
 
-bool RollBackRCTIndex(ChainstateManager &chainman, int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool RollBackRCTIndex(ChainstateManager &chainman, int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 

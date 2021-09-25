@@ -361,6 +361,9 @@ class AnonTest(ParticlTestFramework):
         assert(spent['spent'] is True)
         assert(spent['txid'] == spending_txid)
 
+        self.log.info('Test rollbackrctindex')
+        nodes[0].rollbackrctindex()
+
 
 if __name__ == '__main__':
     AnonTest().main()

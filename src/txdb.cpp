@@ -572,22 +572,66 @@ bool CBlockTreeDB::EraseRCTOutputLink(const CCmpPubKey &pk)
     return WriteBatch(batch);
 };
 
-bool CBlockTreeDB::ReadRCTKeyImage(const CCmpPubKey &ki, uint256 &txhash)
+bool CBlockTreeDB::ReadRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &data)
 {
-    return Read(std::make_pair(DB_RCTKEYIMAGE, ki), txhash);
-};
-
-bool CBlockTreeDB::WriteRCTKeyImage(const CCmpPubKey &ki, const uint256 &txhash)
-{
-    CDBBatch batch(*this);
-    batch.Write(std::make_pair(DB_RCTKEYIMAGE, ki), txhash);
-    return WriteBatch(batch);
+    // Versions before 0.19.2.15 store only the txid
+    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    if (!ReadStream(std::make_pair(DB_RCTKEYIMAGE, ki), ssValue)) {
+        return false;
+    }
+    try {
+        if (ssValue.size() < 36) {
+            ssValue >> data.txid;
+            data.height = -1; // unset
+        } else {
+            ssValue >> data;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
 };
 
 bool CBlockTreeDB::EraseRCTKeyImage(const CCmpPubKey &ki)
 {
     CDBBatch batch(*this);
     batch.Erase(std::make_pair(DB_RCTKEYIMAGE, ki));
+    return WriteBatch(batch);
+};
+
+bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
+{
+    CDBBatch batch(*this);
+    size_t total = 0, removing = 0;
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+    pcursor->Seek(std::make_pair(DB_RCTKEYIMAGE, CCmpPubKey()));
+
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) return false;
+        std::pair<char, CCmpPubKey> key;
+        if (pcursor->GetKey(key) && key.first == DB_RCTKEYIMAGE) {
+            CAnonKeyImageInfo ki_data;
+            total++;
+            if (pcursor->GetValueSize() >= 36) {
+                if (pcursor->GetValue(ki_data)) {
+                    if (height < ki_data.height) {
+                        removing++;
+                        batch.Erase(std::make_pair(DB_RCTKEYIMAGE, key.second));
+                    }
+                } else {
+                    return error("%s: failed to read value", __func__);
+                }
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+
+    LogPrintf("Removing %d key images after height %d, total %d.\n", removing, height, total);
+    if (removing < 1) {
+        return true;
+    }
     return WriteBatch(batch);
 };
 
