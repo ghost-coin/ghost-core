@@ -48,6 +48,12 @@
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.15
+==============
+
+- index: Fix issue when cs index best block is set and the index best block is not.
+
+
 0.19.2.14
 ==============
 
@@ -57,6 +63,8 @@
   - New track-only mode, won't save keys or transactions, only updates child key counter.
 - rpc: New getblockhashafter command.
   - Returns first block at or after provided time.
+- Fix abandoning coinstakes with descendants.
+  - Avoid assert when disconnecting a spent coinstake tx
 
 
 0.19.2.13
