@@ -1421,7 +1421,7 @@ uint256 GetOutputsSHA256(const T& txTo)
             ss << txout;
         }
     }
-    if (have_non_plain && (txTo.nVersion & 0xFF) > PARTICL_TXN_VERSION) {
+    if (have_non_plain && (txTo.nVersion & 0xFF) > GHOST_TXN_VERSION) {
         for (unsigned int n = 0; n < txTo.vpout.size(); n++) {
             ss << txTo.vpout[n]->GetType();
         }

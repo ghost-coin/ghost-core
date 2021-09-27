@@ -755,7 +755,7 @@ static int ExtractExtKeyId(const std::string &sInKey, CKeyID &keyId, CChainParam
 
 static OutputTypes WordToType(std::string &s, bool allow_data=false)
 {
-    if (s == "part" || s == "standard") {
+    if (s == "ghost" || s == "standard" ||  s == "part") {
         return OUTPUT_STANDARD;
     }
     if (s == "blind") {
@@ -5439,7 +5439,7 @@ static const char *TypeToWord(OutputTypes type)
 {
     switch (type) {
         case OUTPUT_STANDARD:
-            return "part";
+            return "ghost";
         case OUTPUT_CT:
             return "blind";
         case OUTPUT_RINGCT:
@@ -5659,7 +5659,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                     RPCResult::Type::STR_HEX, "", "The transaction id",
                 },
                 RPCExamples{
-            HelpExampleCli("sendtypeto", "anon part \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\"")
+            HelpExampleCli("sendtypeto", "anon ghost \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\"")
                 },
             }.Check(request);
 
@@ -7986,7 +7986,7 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
     UniValue outputs = request.params[1].get_array();
 
     CMutableTransaction rawTx;
-    rawTx.nVersion = PARTICL_TXN_VERSION;
+    rawTx.nVersion = GHOST_TXN_VERSION;
 
 
     if (!request.params[2].isNull()) {
@@ -8448,7 +8448,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 
     // parse hex string from parameter
     CMutableTransaction tx;
-    tx.nVersion = PARTICL_TXN_VERSION;
+    tx.nVersion = GHOST_TXN_VERSION;
     if (!DecodeHexTx(tx, request.params[1].get_str(), true)) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }

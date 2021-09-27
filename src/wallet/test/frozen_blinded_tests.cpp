@@ -194,6 +194,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Test spend_frozen_output with num_spendable == 0
     RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 100;
+    auto r = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context);
+
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
     BOOST_CHECK(rv["num_spendable"].get_int() == 0);
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
@@ -302,7 +304,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         }
         BOOST_REQUIRE(output_n > -1);
 
-        str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"show_fee\":true,\"debug\":true}",
+        str_cmd = strprintf("sendtypeto blind ghost [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         CAmount txFee = rv["fee"].get_int64();

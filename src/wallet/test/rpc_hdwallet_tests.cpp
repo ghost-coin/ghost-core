@@ -38,6 +38,7 @@ void RewindHdSxChain(CHDWallet *pwallet)
 
 BOOST_FIXTURE_TEST_SUITE(rpc_hdwallet_tests, HDWalletTestingSetup)
 
+
 BOOST_AUTO_TEST_CASE(rpc_hdwallet)
 {
     UniValue rv;
@@ -46,14 +47,15 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet)
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster xprv9s21ZrQH143K3VrEYG4rhyPddr2o53qqqpCufLP6Rb3XSta2FZsqCanRJVfpTi4UX28pRaAfVGfiGpYDczv8tzTM6Qm5TRvUA9HDStbNUbQ", context));
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
-    BOOST_CHECK(part::StripQuotes(rv.write()) == "SPGxiYZ1Q5dhAJxJNMk56ZbxcsUBYqTCsdEPPHsJJ96Vcns889gHTqSrTZoyrCd5E9NSe9XxLivK6izETniNp1Gu1DtrhVwv3VuZ3e");
+    auto res = part::StripQuotes(rv.write());
+    BOOST_CHECK(part::StripQuotes(rv.write()) == "SPGwTU7DibFptJSGsghe5yrTgPRBtJzMh2kV5DyzpHGmY2NdyGe3bLssyeszuunZKaVr62E6VJtekcDC8DcgBGobzfck2AXgkKPx5a");
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress onebit 1", context));
-    BOOST_CHECK(part::StripQuotes(rv.write()) == "2w3KaKNNRkWvgxNVymgTwxVd95hDTKRwa98eh5fUpyZfQ17XCRDsxQ3tTARJYz2pNnCekEFni7ukDwvgdbVDgbTy449DNcJYrevkyzPL");
+    BOOST_CHECK(part::StripQuotes(rv.write()) == "2w3KncdXMxuSS9C7JAMxw7PYzakeergWkn7xnje6KTmTAdhB9Nkm4dQVjDHZn3bXFn1RgbXrsYCWjC1o2Cwu9Zw8wG6wjbCnRStgURc9");
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress onebit 1 0b1", context));
     std::string sResult = part::StripQuotes(rv.write());
-    BOOST_CHECK(sResult == "2w3KJzSkeDxiZDFQ5cQdMGKyEuM2zhKHX7TWCTVFobXXcWxWS5zs3aaoF3LPWfcwKd3m65CHx7j8F9CbESmi53GqmHJmnwKggRiXQoac");
+    BOOST_CHECK(sResult == "2w3KggENVCJZnT6FGh7z4Vhe1uUke3L5QrgH7oon3X9fTWiMXWigB4mDTULUuXszjZzKLBt4XAUhJfky1RadbmXP2Hjf1YtsTa8gB6Fy");
 
     CStealthAddress s1;
     s1.SetEncoded(sResult);
@@ -66,12 +68,12 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet)
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress onebit 32", context));
     sResult = part::StripQuotes(rv.write());
-    BOOST_CHECK(sResult == "3s73gdiUKMVi4tHMTdker9YzHAS2r6F2CJvC12GfimDdTTn9CLEnEeWW8vdXXkeZouWLgxFGqzbPsnSShNRMsW3j3yL6ssEtjc3gwNSkbBfy");
+    BOOST_CHECK(sResult == "3s74EnSY8ep39a1AwTxuxxeQJp2G1vRWdN3V9nGzF1DZ4SCP4YTn5zanDXm1iDJCMqh4yKd8xW7SJQqJ5A3scg7VQGLughUdK9Lm1feZFXM2");
 
     CStealthAddress s2;
     s2.SetEncoded(sResult);
     BOOST_CHECK(s2.prefix.number_bits == 32);
-    BOOST_CHECK(s2.prefix.bitfield == 4215576597);
+    BOOST_CHECK(s2.prefix.bitfield == 2047437459);
 
     // Check the key is the same
     BOOST_CHECK(s2.scan_pubkey == s1.scan_pubkey);
@@ -81,12 +83,12 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet)
 
     // Check the same prefix is generated
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress onebit 32", context));
-    BOOST_CHECK(part::StripQuotes(rv.write()) == "3s73gdiUKMVi4tHMTdker9YzHAS2r6F2CJvC12GfimDdTTn9CLEnEeWW8vdXXkeZouWLgxFGqzbPsnSShNRMsW3j3yL6ssEtjc3gwNSkbBfy");
+    BOOST_CHECK(part::StripQuotes(rv.write()) == "3s74EnSY8ep39a1AwTxuxxeQJp2G1vRWdN3V9nGzF1DZ4SCP4YTn5zanDXm1iDJCMqh4yKd8xW7SJQqJ5A3scg7VQGLughUdK9Lm1feZFXM2");
 
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress t1bin 10 0b1010101111", context));
     sResult = part::StripQuotes(rv.write());
-    BOOST_CHECK(sResult == "9XXDiTExjRZsi1ZrvptyJr8AVpMpS5hPsi9uQ3EHgkhicC4EP5MzTg7BkLkSjbgeE69V3wRyuvuoR8WdRPCK6aTcNFKcRYJopwy7BinU3");
+    BOOST_CHECK(sResult == "9XXFK7HHbN6UG8YwxPPRJfHGVVSbP3TJLii6bMi2Qu6CGGAjxWSy55i6xk91afTrsBPG4utj6Fq7C4VfE2rC9kA3JH7vcQvA4Eq8kNNBU");
 
     RewindHdSxChain(pwalletMain.get());
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress t2hex 10 0x2AF", context));
@@ -105,6 +107,7 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet)
     sResult = part::StripQuotes(rv.write());
 }
 
+
 BOOST_AUTO_TEST_CASE(rpc_hdwallet_timelocks)
 {
     UniValue rv;
@@ -117,7 +120,7 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet_timelocks)
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewaddress", context));
     sResult = part::StripQuotes(rv.write());
-    BOOST_CHECK(sResult == "PZdYWHgyhuG7NHVCzEkkx3dcLKurTpvmo6");
+    BOOST_CHECK(sResult == "GKzUA846vxCULLhZDesMxshgtoxYQB1zSC");
 
 
     CKeyID id;
@@ -126,7 +129,7 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet_timelocks)
     CScript script = CScript() << 1487406900 << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_DUP << OP_HASH160 << ToByteVector(id) << OP_EQUALVERIFY << OP_CHECKSIG;
 
     CMutableTransaction txn;
-    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.nVersion = GHOST_TXN_VERSION;
     txn.SetType(TXN_COINBASE);
     txn.nLockTime = 0;
     OUTPUT_PTR<CTxOutStandard> out0 = MAKE_OUTPUT<CTxOutStandard>();
@@ -138,7 +141,7 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet_timelocks)
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewaddress", context));
     sResult = part::StripQuotes(rv.write());
     vAddresses.push_back(sResult);
-    BOOST_CHECK(sResult == "PdsEywwkgVLJ8bF8b8Wp9gCj63KrXX3zww");
+    BOOST_CHECK(sResult == "GJgrkH1syivmdCCZ79QaXSPjGbCSU45GgQ");
     BOOST_CHECK(CBitcoinAddress(sResult).GetKeyID(id));
 
 
@@ -225,7 +228,7 @@ BOOST_AUTO_TEST_CASE(rpc_hdwallet_timelocks)
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewaddress", context));
     std::string sAddr = part::StripQuotes(rv.write());
-    BOOST_CHECK(sAddr == "PYWn26pQyqRE84XSWGmUBMQs67AzCRtvdG");
+    BOOST_CHECK(sAddr == "GdcMkDg6Kkvf2gVgYZMfMVmaWoniWoxR4S");
 
     // 2147483648 is > 32bit signed
     BOOST_CHECK_NO_THROW(rv = CallRPC("buildscript {\"recipe\":\"abslocktime\",\"time\":2147483648,\"addr\":\"" + sAddr + "\"}", context));

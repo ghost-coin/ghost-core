@@ -4,7 +4,6 @@
 
 #include <consensus/tx_verify.h>
 
-#include <adapter.h>
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
@@ -225,11 +224,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
         if (tx.vin[i].IsAnonInput()) {
-
-            if (is_ghost_debug()) {
-                LogPrintf("      - anon input @ %s/%d\n", tx.vin[i].prevout.hash.ToString(), i);
-            }
-
             state.m_has_anon_input = true;
             nRingCTInputs++;
 
@@ -432,6 +426,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         if (spends_tainted_blinded && nPlainValueOut + txfee > state.m_consensus_params->m_max_tainted_value_out) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-too-large");
         }
+        /* TODO? Limit to spending one frozen output at a time
+        if (tx.vin.size() > 1 || nRCTPrevouts > 1) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-multiple-inputs");
+        }
+        */
     }
 
     // Track blinded balances
@@ -455,15 +454,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-plain-in-mixed-out");
     }
 
-    // figure out 'when' we are
-    uint32_t nTime = std::numeric_limits<int>::max();
-    CBlockIndex *pindexPrev = ::ChainActive().Tip()->pprev;
-    if (pindexPrev)
-        nTime = pindexPrev->GetBlockHeader().nTime;
-
-    if (exploit_fixtime_passed(nTime) &&
-        (nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0)
-    {
+    if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
         bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
         bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
         if (state.m_exploit_fix_1 &&
@@ -666,7 +657,7 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState &state)
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
 
     if (tx.IsParticlVersion()) {
-        if (state.m_clamp_tx_version && tx.GetParticlVersion() != PARTICL_TXN_VERSION) {
+        if (state.m_clamp_tx_version && tx.GetParticlVersion() != GHOST_TXN_VERSION) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txn-version");
         }
         if (tx.vpout.empty()) {

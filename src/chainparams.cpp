@@ -22,6 +22,50 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
+{
+    static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
+
+    if (strNetworkID != "regtest") {
+        // After HF2: 8%, 8%, 7%, 7%, 6%
+        if (nTime >= consensus.exploit_fix_2_time) {
+            int64_t nPeriodsSinceHF2 = (nTime - consensus.exploit_fix_2_time) / (nSecondsInYear * 2);
+            if (nPeriodsSinceHF2 >= 0 && nPeriodsSinceHF2 < 2) {
+                return (8 - nPeriodsSinceHF2) * CENT;
+            }
+            return 6 * CENT;
+        }
+
+        // Y1 5%, Y2 4%, Y3 3%, Y4 2%, ... YN 2%
+        int64_t nYearsSinceGenesis = (nTime - genesis.nTime) / nSecondsInYear;
+        if (nYearsSinceGenesis >= 0 && nYearsSinceGenesis < 3) {
+            return (5 - nYearsSinceGenesis) * CENT;
+        }
+    }
+
+    return nCoinYearReward;
+};
+
+bool CChainParams::PushTreasuryFundSettings(int64_t time_from, TreasuryFundSettings &settings)
+{
+    if (settings.nMinTreasuryStakePercent < 0 or settings.nMinTreasuryStakePercent > 100) {
+        throw std::runtime_error("minstakepercent must be in range [0, 100].");
+    }
+
+    vTreasuryFundSettings.emplace_back(time_from, settings);
+
+    return true;
+};
+
+int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const
+{
+    int64_t nSubsidy;
+
+    nSubsidy = (pindexPrev->nMoneySupply / COIN) * GetCoinYearReward(pindexPrev->nTime) / (365 * 24 * (60 * 60 / nTargetSpacing));
+
+    return nSubsidy + nFees;
+};
+
 int CChainParams::GetCoinYearPercent(int year) const
 {
     if(static_cast<std::size_t>(year) < nBlockPerc.size()) {
@@ -30,6 +74,21 @@ int CChainParams::GetCoinYearPercent(int year) const
         return 10;
     }
 };
+
+// bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
+// {
+//     // for (auto &cth : Params().vImportedCoinbaseTxns) {
+//     //     if (cth.nHeight != (uint32_t)nHeight) {
+//     //         continue;
+//     //     }
+//     //     if (hash == cth.hash) {
+//     //         return true;
+//     //     }
+//     //     return error("%s - Hash mismatch at height %d: %s, expect %s.", __func__, nHeight, hash.ToString(), cth.hash.ToString());
+//     // }
+
+//     // return error("%s - Unknown height.", __func__);
+// }
 
 CAmount CChainParams::GetBaseBlockReward() const
 {
@@ -53,11 +112,11 @@ CAmount CChainParams::GetProofOfStakeRewardAtHeight(const int nHeight) const
     return nSubsidy;
 }
 
-int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const int64_t nFees) const
-{
-    int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
-    return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
-};
+// int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const int64_t nFees) const
+// {
+//     int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
+//     return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
+// };
 
 int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const
 {
@@ -229,7 +288,7 @@ static CBlock CreateGenesisBlockRegTest(uint32_t nTime, uint32_t nNonce, uint32_
     const char *pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
 
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.SetType(TXN_COINBASE);
     txNew.vin.resize(1);
     uint32_t nHeight = 0;  // bip34
@@ -247,7 +306,7 @@ static CBlock CreateGenesisBlockRegTest(uint32_t nTime, uint32_t nNonce, uint32_
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = PARTICL_BLOCK_VERSION;
+    genesis.nVersion = GHOST_BLOCK_VERSION;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
 
     genesis.hashPrevBlock.SetNull();
@@ -262,7 +321,7 @@ static CBlock CreateGenesisBlockTestNet(uint32_t nTime, uint32_t nNonce, uint32_
     const char *pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
 
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.SetType(TXN_COINBASE);
     txNew.vin.resize(1);
     uint32_t nHeight = 0;  // bip34
@@ -280,7 +339,7 @@ static CBlock CreateGenesisBlockTestNet(uint32_t nTime, uint32_t nNonce, uint32_
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = PARTICL_BLOCK_VERSION;
+    genesis.nVersion = GHOST_BLOCK_VERSION;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
 
     genesis.hashPrevBlock.SetNull();
@@ -295,7 +354,7 @@ static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_
     const char *pszTimestamp = "BTC 000000000000000000c679bc2209676d05129834627c7b1c02d1018b224c6f37";
 
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.SetType(TXN_COINBASE);
 
     txNew.vin.resize(1);
@@ -314,7 +373,7 @@ static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = PARTICL_BLOCK_VERSION;
+    genesis.nVersion = GHOST_BLOCK_VERSION;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
 
     genesis.hashPrevBlock.SetNull();
@@ -386,7 +445,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000af273924ccacbf60");//Chainwork at Block 2913
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xeccad59c62c2b669a746297d1f3ffb49c4de8620d6ad69c240079386130b2343"); //Blockhash of Block 2913
+        consensus.defaultAssumeValid = uint256S("0xeccad59c62c2b669a746297d1f3ffb49c4de8620d6ad69c240079386130b2343k"); //Blockhash of Block 2913
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -497,6 +556,8 @@ public:
             /* dTxRate  */ 0.008253214698037342
         };
     }
+
+
 
     void SetOld()
     {
@@ -621,8 +682,8 @@ public:
 
         vTreasuryFundSettings.push_back(std::make_pair(0, TreasuryFundSettings("rTvv9vsbu269mjYYEecPYinDG8Bt7D86qD", 10, 60)));
 
-        base58Prefixes[PUBKEY_ADDRESS]     = {0x76}; // p
-        base58Prefixes[SCRIPT_ADDRESS]     = {0x7a};
+        base58Prefixes[PUBKEY_ADDRESS]     = {0x4B}; // X
+        base58Prefixes[SCRIPT_ADDRESS]     = {0x89}; // x
         base58Prefixes[PUBKEY_ADDRESS_256] = {0x77};
         base58Prefixes[SCRIPT_ADDRESS_256] = {0x7b};
         base58Prefixes[SECRET_KEY]         = {0x2e};
@@ -726,7 +787,7 @@ public:
             vSeeds = args.GetArgs("-signetseednode");
         }
 
-        strNetworkID = CBaseChainParams::SIGNET;
+        strNetworkID = CBaseChainParams::TESTNET;// TODO(me): Reactivate signet
         consensus.signet_blocks = true;
         consensus.signet_challenge.assign(bin.begin(), bin.end());
         consensus.nSubsidyHalvingInterval = 210000;
@@ -1025,9 +1086,11 @@ std::unique_ptr<CChainParams> CreateChainParams(const ArgsManager& args, const s
         return std::unique_ptr<CChainParams>(new CMainParams());
     } else if (chain == CBaseChainParams::TESTNET) {
         return std::unique_ptr<CChainParams>(new CTestNetParams());
-    } else if (chain == CBaseChainParams::SIGNET) {
+    }
+    /* else if (chain == CBaseChainParams::SIGNET) {
         return std::unique_ptr<CChainParams>(new SigNetParams(args));
-    } else if (chain == CBaseChainParams::REGTEST) {
+    }*/
+    else if (chain == CBaseChainParams::REGTEST) {
         return std::unique_ptr<CChainParams>(new CRegTestParams(args));
     }
     throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));

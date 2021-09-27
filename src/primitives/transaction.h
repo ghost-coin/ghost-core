@@ -26,9 +26,9 @@
  */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
-static const uint8_t PARTICL_BLOCK_VERSION = 0xA0;
-static const uint8_t PARTICL_TXN_VERSION = 0xA0;
-static const uint8_t MAX_PARTICL_TXN_VERSION = 0xBF;
+static const uint8_t GHOST_BLOCK_VERSION = 0xA0;
+static const uint8_t GHOST_TXN_VERSION = 0xA0;
+static const uint8_t MAX_GHOST_TXN_VERSION = 0xBF;
 static const uint8_t BTC_TXN_VERSION = 0x02;
 
 
@@ -69,7 +69,7 @@ bool ExtractCoinStakeUint32(const std::vector<uint8_t> &vData, DataOutputTypes g
 
 inline bool IsParticlTxVersion(int nVersion)
 {
-    return (nVersion & 0xFF) >= PARTICL_TXN_VERSION;
+    return (nVersion & 0xFF) >= GHOST_TXN_VERSION;
 }
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -665,7 +665,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     tx.nVersion = 0;
     s >> bv;
 
-    if (bv >= PARTICL_TXN_VERSION) {
+    if (bv >= GHOST_TXN_VERSION) {
         tx.nVersion = bv;
 
         s >> bv;
