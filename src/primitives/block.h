@@ -62,7 +62,7 @@ public:
 
     bool IsParticlVersion() const
     {
-        return nVersion == PARTICL_BLOCK_VERSION;
+        return nVersion == GHOST_BLOCK_VERSION;
     }
 
     int64_t GetBlockTime() const
@@ -124,7 +124,7 @@ public:
     {
         READWRITEAS(CBlockHeader, obj);
         READWRITE(obj.vtx);
-        if (obj.nVersion == PARTICL_BLOCK_VERSION) {
+        if (obj.nVersion == GHOST_BLOCK_VERSION) {
             READWRITE(obj.vchBlockSig);
         }
     }

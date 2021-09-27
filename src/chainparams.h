@@ -57,11 +57,11 @@ public:
 class TreasuryFundSettings
 {
 public:
-    TreasuryFundSettings(std::string sAddrTo, float nMinTreasuryStakePercent_, int nTreasuryOutputPeriod_)
+    TreasuryFundSettings(std::string sAddrTo, int nMinTreasuryStakePercent_, int nTreasuryOutputPeriod_)
         : sTreasuryFundAddresses(sAddrTo), nMinTreasuryStakePercent(nMinTreasuryStakePercent_), nTreasuryOutputPeriod(nTreasuryOutputPeriod_) {};
 
     std::string sTreasuryFundAddresses;
-    float nMinTreasuryStakePercent; // [0, 100]
+    int nMinTreasuryStakePercent; // [0, 100]
     int nTreasuryOutputPeriod; // dev fund output is created every n blocks
 };
 
@@ -103,17 +103,21 @@ public:
     uint32_t GetTargetSpacing() const { return nTargetSpacing; }
     uint32_t GetTargetTimespan() const { return nTargetTimespan; }
 
-    uint32_t GetStakeTimestampMask(int /*nHeight*/) const { return nStakeTimestampMask; }
+    uint32_t GetStakeTimestampMask(int nHeight) const { return nStakeTimestampMask; }
+    int64_t GetCoinYearReward(int64_t nTime) const;
+
     int64_t GetBaseBlockReward() const;
     int GetCoinYearPercent(int year) const;
     const TreasuryFundSettings *GetTreasuryFundSettings(int nHeight) const;
+    bool PushTreasuryFundSettings(int64_t time_from, TreasuryFundSettings &settings);
     const std::vector<std::pair<int64_t, TreasuryFundSettings> > &GetTreasuryFundSettings() const { return vTreasuryFundSettings; };
-
+  
     CAmount GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const;
     CAmount GetProofOfStakeRewardAtYear(int year) const;
     CAmount GetProofOfStakeRewardAtHeight(int nHeight) const;
     int64_t GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const;
 
+    bool CheckImportCoinbase(int nHeight, uint256 &hash) const;
     uint32_t GetLastImportHeight() const { return nLastImportHeight; }
 
     const CBlock& GenesisBlock() const { return genesis; }
@@ -154,6 +158,7 @@ public:
         assert(strNetworkID == "regtest");
         nCoinYearReward = nCoinYearReward_;
     }
+    Consensus::Params& GetConsensus_nc() { assert(strNetworkID == "regtest"); return consensus; }
 
     void SetBlockReward(int64_t nBlockReward_)
     {

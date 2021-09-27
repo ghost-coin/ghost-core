@@ -19,7 +19,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(particlchain_tests, ParticlBasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(ghostchain_tests, ParticlBasicTestingSetup)
 
 
 BOOST_AUTO_TEST_CASE(oldversion_test)
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(signature_test)
     CKeyID id = pk.GetID();
 
     CMutableTransaction txn;
-    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.nVersion = GHOST_TXN_VERSION;
     txn.nLockTime = 0;
 
     int nBlockHeight = 22;
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(signature_test)
     txn.vpout.push_back(out1);
 
     CMutableTransaction txn2;
-    txn2.nVersion = PARTICL_TXN_VERSION;
+    txn2.nVersion = GHOST_TXN_VERSION;
     txn2.vin.push_back(CTxIn(txn.GetHash(), 0));
 
     std::vector<uint8_t> vchAmount(8);
@@ -95,11 +95,11 @@ BOOST_AUTO_TEST_CASE(particlchain_test)
     CScript script = CScript() << OP_DUP << OP_HASH160 << ToByteVector(id) << OP_EQUALVERIFY << OP_CHECKSIG;
 
     CBlock blk;
-    blk.nVersion = PARTICL_BLOCK_VERSION;
+    blk.nVersion = GHOST_BLOCK_VERSION;
     blk.nTime = 1487406900;
 
     CMutableTransaction txn;
-    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.nVersion = GHOST_TXN_VERSION;
     txn.SetType(TXN_COINBASE);
     txn.nLockTime = 0;
     OUTPUT_PTR<CTxOutStandard> out0 = MAKE_OUTPUT<CTxOutStandard>();
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(varints)
 BOOST_AUTO_TEST_CASE(mixed_input_types)
 {
     CMutableTransaction txn;
-    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.nVersion = GHOST_TXN_VERSION;
     BOOST_CHECK(txn.IsParticlVersion());
 
     CAmount txfee;
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(mixed_input_types)
     CCoinsViewCache inputs(&viewDummy);
 
     CMutableTransaction txnPrev;
-    txnPrev.nVersion = PARTICL_TXN_VERSION;
+    txnPrev.nVersion = GHOST_TXN_VERSION;
     BOOST_CHECK(txnPrev.IsParticlVersion());
 
     CScript scriptPubKey;
@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(mixed_output_types)
     CCoinsViewCache inputs(&viewDummy);
 
     CMutableTransaction txnPrev;
-    txnPrev.nVersion = PARTICL_TXN_VERSION;
+    txnPrev.nVersion = GHOST_TXN_VERSION;
     BOOST_CHECK(txnPrev.IsParticlVersion());
 
     CScript scriptPubKey;
@@ -262,7 +262,7 @@ BOOST_AUTO_TEST_CASE(mixed_output_types)
     uint256 prevHash = txnPrev_c.GetHash();
 
     CMutableTransaction txn;
-    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.nVersion = GHOST_TXN_VERSION;
     BOOST_CHECK(txn.IsParticlVersion());
     txn.vin.push_back(CTxIn(prevHash, 0));
 
@@ -322,16 +322,20 @@ BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)
 
 BOOST_AUTO_TEST_CASE(coin_year_reward)
 {
-    BOOST_CHECK(Params().GetCoinYearReward(1529700000) == 5 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1531832399) == 5 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1531832400) == 4 * CENT);    // 2018-07-17 13:00:00
-    BOOST_CHECK(Params().GetCoinYearReward(1563368399) == 4 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1563368400) == 3 * CENT);    // 2019-07-17 13:00:00
-    BOOST_CHECK(Params().GetCoinYearReward(1594904399) == 3 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1594904400) == 2 * CENT);    // 2020-07-16 13:00:00
+
+    BOOST_CHECK(Params().GetCoinYearReward(1529700000) == 2 * CENT);
+
+    BOOST_CHECK(Params().GetCoinYearReward(1531832399) == 2 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1531832400) == 2 * CENT);    // 2018-07-17 13:00:00
+
+    BOOST_CHECK(Params().GetCoinYearReward(1563368399) == 5 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1563368400) == 5 * CENT);    // 2019-07-17 13:00:00
+
+    BOOST_CHECK(Params().GetCoinYearReward(1594904399) == 5 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1594904400) == 5 * CENT);    // 2020-07-16 13:00:00
 
     size_t seconds_in_year = 60 * 60 * 24 * 365;
-    BOOST_CHECK(Params().GetCoinYearReward(1626109199) == 2 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109199) == 4 * CENT);
     BOOST_CHECK(Params().GetCoinYearReward(1626109200) == 8 * CENT);                                // 2021-07-12 17:00:00 UTC
     BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year) == 8 * CENT);
     BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 2 - 1) == 8 * CENT);

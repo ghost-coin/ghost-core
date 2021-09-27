@@ -5,17 +5,15 @@
 #include <key_io.h>
 #include <bech32.h>
 #include <test/util/setup_common.h>
-#include <test/util/str.h>
 
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(bech32_tests, ParticlBasicTestingSetup)
 
 std::vector<std::pair<std::string, std::string> > testsPass = {
-    std::make_pair("PZdYWHgyhuG7NHVCzEkkx3dcLKurTpvmo6", "ph1z2kuclaye2ktkndy7mdpw3zk0nck78a7u6h8hm"),
-    std::make_pair("RJAPhgckEgRGVPZa9WoGSWW24spskSfLTQ", "pr1v9h7c4k0e3axk7jlejzyh8tnc5eryx6e4ys8vz"),
-    std::make_pair("SPGxiYZ1Q5dhAJxJNMk56ZbxcsUBYqTCsdEPPHsJJ96Vcns889gHTqSrTZoyrCd5E9NSe9XxLivK6izETniNp1Gu1DtrhVwv3VuZ3e", "ps1qqpvvvphd2zkphxxckzef2lgag67gzpz85alcemkxzvpl5tkgc8p34qpqwg58jx532dpkk0qtysnyudzg4ajk0vvqp8w9zlgjamxxz2l9cpt7qqqflt7zu"),
-    std::make_pair("PPARTKMMf4AUDYzRSBcXSJZALbUXgWKHi6qdpy95yBmABuznU3keHFyNHfjaMT33ehuYwjx3RXort1j8d9AYnqyhAvdN168J4GBsM2ZHuTb91rsj", "pep1qqqqqqqqqqqqqqqcpjvcv9trdnv8t2nscuw056mm74cps7jkmrrdq48xpdjy6ylf6vpru36q6zax883gjclngas40d7097mudl05y48ewzvulpnsk5z75kg24d5nf"),
+    std::make_pair("GQyhvPvXkXL8q8CEohoC5R8gzV28o7RQU4", "gp1fequwre702vyj6eafsrkdsnfqj9pve9swsx7j7"),
+    std::make_pair("2vPt1JSxvGXL7LvRgS6o7QysdW1iKuJASJxVJNMnKLUu6Yy4Fx1", "gl1fcmepl5tkgs6rs8s3tf5vwhrm0parf7xyjud4s3dtyal4m7nncqs66gvrx"),
+    std::make_pair("SPH1qnQwKB3iw94n9oTEXHjyF5XVpoFCFihkhSzmimxH5QKAAhcUBQcYLZYGzqyjE5SGKUAxNP4MUFmkMuvVSCtS5gpHhHrDrs1aop", "gx1qqpenerapssl0nh9pxg70zc5vm06xkep82f74ly60df3sgzgzfqdnnqpqtck42ud8kmlnk25wn9xy5rwpnsmu3a34zfpa9ekedzjxcqn2w9vwqqq2k34sa"),
 };
 
 std::vector<std::string> testsFail = {
@@ -26,16 +24,16 @@ std::vector<std::string> testsFail = {
 };
 
 std::vector<std::pair<CChainParams::Base58Type, std::string>> testsType = {
-    std::make_pair(CChainParams::PUBKEY_ADDRESS, "ph1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx7sxra"),
-    std::make_pair(CChainParams::SCRIPT_ADDRESS, "pr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqwp6w94"),
-    std::make_pair(CChainParams::PUBKEY_ADDRESS_256, "pl1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqra7r7c"),
-    std::make_pair(CChainParams::SCRIPT_ADDRESS_256, "pj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsthset"),
-    std::make_pair(CChainParams::SECRET_KEY, "px1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqjjpjvf"),
-    std::make_pair(CChainParams::EXT_PUBLIC_KEY, "pep1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq5cjrsh"),
-    std::make_pair(CChainParams::EXT_SECRET_KEY, "pex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq77wfra"),
-    std::make_pair(CChainParams::STEALTH_ADDRESS, "ps1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9ld9g7"),
-    std::make_pair(CChainParams::EXT_KEY_HASH, "pek1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhe0qm5"),
-    std::make_pair(CChainParams::EXT_ACC_HASH, "pea1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqt25ujg"),
+    std::make_pair(CChainParams::PUBKEY_ADDRESS, "gp1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqd9hhzy"),
+    std::make_pair(CChainParams::SCRIPT_ADDRESS, "gw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq4df0gu"),
+    std::make_pair(CChainParams::PUBKEY_ADDRESS_256, "gl1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqkv5vrl"),
+    std::make_pair(CChainParams::SCRIPT_ADDRESS_256, "gj1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq96alyv"),
+    std::make_pair(CChainParams::SECRET_KEY, "gtx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsrmekd"),
+    std::make_pair(CChainParams::EXT_PUBLIC_KEY, "gep1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz0r4sv"),
+    std::make_pair(CChainParams::EXT_SECRET_KEY, "gex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqgfllrx"),
+    std::make_pair(CChainParams::STEALTH_ADDRESS, "gx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8rta3w"),
+    std::make_pair(CChainParams::EXT_KEY_HASH, "gek1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpw7km0"),
+    std::make_pair(CChainParams::EXT_ACC_HASH, "gea1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqaa92jn"),
 };
 
 
@@ -72,11 +70,25 @@ BOOST_AUTO_TEST_CASE(bech32_test)
     {
         CBitcoinAddress addr;
         addr.Set(knull, v.first, true);
+        BOOST_MESSAGE(addr.ToString());
         BOOST_CHECK(addr.ToString() == v.second);
     };
 }
 
-BOOST_AUTO_TEST_CASE(bech32_testvectors_valid)
+static bool CaseInsensitiveEqual(const std::string &s1, const std::string &s2)
+{
+    if (s1.size() != s2.size()) return false;
+    for (size_t i = 0; i < s1.size(); ++i) {
+        char c1 = s1[i];
+        if (c1 >= 'A' && c1 <= 'Z') c1 -= ('A' - 'a');
+        char c2 = s2[i];
+        if (c2 >= 'A' && c2 <= 'Z') c2 -= ('A' - 'a');
+        if (c1 != c2) return false;
+    }
+    return true;
+}
+
+BOOST_AUTO_TEST_CASE(bip173_testvectors_valid)
 {
     static const std::string CASES[] = {
         "A12UEL5L",
@@ -88,35 +100,15 @@ BOOST_AUTO_TEST_CASE(bech32_testvectors_valid)
         "?1ezyfcl",
     };
     for (const std::string& str : CASES) {
-        const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::BECH32);
-        std::string recode = bech32::Encode(bech32::Encoding::BECH32, dec.hrp, dec.data);
+        auto ret = bech32::Decode(str);
+        BOOST_CHECK(!ret.hrp.empty());
+        std::string recode = bech32::Encode(ret.encoding, ret.hrp, ret.data);
         BOOST_CHECK(!recode.empty());
         BOOST_CHECK(CaseInsensitiveEqual(str, recode));
     }
 }
 
-BOOST_AUTO_TEST_CASE(bech32m_testvectors_valid)
-{
-    static const std::string CASES[] = {
-        "A1LQFN3A",
-        "a1lqfn3a",
-        "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6",
-        "abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx",
-        "11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8",
-        "split1checkupstagehandshakeupstreamerranterredcaperredlc445v",
-        "?1v759aa"
-    };
-    for (const std::string& str : CASES) {
-        const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::BECH32M);
-        std::string recode = bech32::Encode(bech32::Encoding::BECH32M, dec.hrp, dec.data);
-        BOOST_CHECK(!recode.empty());
-        BOOST_CHECK(CaseInsensitiveEqual(str, recode));
-    }
-}
-
-BOOST_AUTO_TEST_CASE(bech32_testvectors_invalid)
+BOOST_AUTO_TEST_CASE(bip173_testvectors_invalid)
 {
     static const std::string CASES[] = {
         " 1nwldj5",
@@ -135,32 +127,8 @@ BOOST_AUTO_TEST_CASE(bech32_testvectors_invalid)
         "A12uEL5L",
     };
     for (const std::string& str : CASES) {
-        const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::INVALID);
-    }
-}
-
-BOOST_AUTO_TEST_CASE(bech32m_testvectors_invalid)
-{
-    static const std::string CASES[] = {
-        " 1xj0phk",
-        "\x7f""1g6xzxy",
-        "\x80""1vctc34",
-        "an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4",
-        "qyrz8wqd2c9m",
-        "1qyrz8wqd2c9m",
-        "y1b0jsk6g",
-        "lt1igcx5c0",
-        "in1muywd",
-        "mm1crxm3i",
-        "au1s5cgom",
-        "M1VUXWEZ",
-        "16plkw9",
-        "1p2gdwpf"
-    };
-    for (const std::string& str : CASES) {
-        const auto dec = bech32::Decode(str);
-        BOOST_CHECK(dec.encoding == bech32::Encoding::INVALID);
+        auto ret = bech32::Decode(str);
+        BOOST_CHECK(ret.hrp.empty());
     }
 }
 

@@ -18,7 +18,6 @@
 #include <miner.h>
 #include <pos/kernel.h>
 #include <pos/miner.h>
-#include <pow.h>
 #include <util/moneystr.h>
 #include <util/translation.h>
 #include <script/script.h>
@@ -30,6 +29,7 @@
 #include <blind.h>
 #include <anon.h>
 #include <txdb.h>
+#include <pow.h>
 #include <txmempool.h>
 #include <rpc/util.h>
 #include <util/fees.h>
@@ -3886,7 +3886,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.fTimeReceivedIsTxTime = true;
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
@@ -4492,7 +4492,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.fTimeReceivedIsTxTime = true;
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
@@ -5315,7 +5315,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.fTimeReceivedIsTxTime = true;
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.vout.clear();
 
     txNew.nLockTime = 0;
@@ -13308,7 +13308,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             txNew.vpout.clear();
 
             // Mark as coin stake transaction
-            txNew.nVersion = PARTICL_TXN_VERSION;
+            txNew.nVersion = GHOST_TXN_VERSION;
             txNew.SetType(TXN_COINSTAKE);
 
             txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
@@ -13413,14 +13413,13 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     // Process development fund
     CTransactionRef txPrevCoinstake = nullptr;
     CAmount nRewardOut;
-    const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(pindexPrev->nHeight + 1);
+    const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
     if (!pTreasuryFundSettings || pTreasuryFundSettings->nMinTreasuryStakePercent <= 0) {
         nRewardOut = nReward;
     } else {
-        float nStakeSplit = std::max(pTreasuryFundSettings->nMinTreasuryStakePercent, (float) nWalletTreasuryFundCedePercent);
-        float nRewardFloat = nReward / COIN;
-        float nTreasuryPartFloat = (nRewardFloat * nStakeSplit) / 100;
-        CAmount nTreasuryPart = (CAmount) (nTreasuryPartFloat * COIN);
+        int64_t nStakeSplit = std::max(pTreasuryFundSettings->nMinTreasuryStakePercent, nWalletTreasuryFundCedePercent);
+
+        CAmount nTreasuryPart = (nReward * nStakeSplit) / 100;
         nRewardOut = nReward - nTreasuryPart;
 
         CAmount nTreasuryBfwd = 0;
@@ -13436,26 +13435,14 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         }
 
         CAmount nTreasuryCfwd = nTreasuryBfwd + nTreasuryPart;
-        if(nBlockHeight == consensusParams.nOneTimeGVRPayHeight){
-            // Place gvr one time pay
-            OUTPUT_PTR<CTxOutStandard> outTreasurySplit = MAKE_OUTPUT<CTxOutStandard>();
-            outTreasurySplit->nValue = consensusParams.nGVRPayOnetimeAmt;
-            CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
-            if (dfDest.type() == typeid(CNoDestination)) {
-                return werror("%s: Failed to get foundation fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
-            }
-            outTreasurySplit->scriptPubKey = GetScriptForDestination(dfDest);
-
-            txNew.vpout.insert(txNew.vpout.begin()+1, outTreasurySplit);
-        }
         if (nBlockHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
             // Place treasury fund output
             OUTPUT_PTR<CTxOutStandard> outTreasurySplit = MAKE_OUTPUT<CTxOutStandard>();
             outTreasurySplit->nValue = nTreasuryCfwd;
 
-            CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
+            CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
             if (dfDest.type() == typeid(CNoDestination)) {
-                return werror("%s: Failed to get foundation fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
+                return werror("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
             }
             outTreasurySplit->scriptPubKey = GetScriptForDestination(dfDest);
 
@@ -13473,7 +13460,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             assert(test_cfwd == nTreasuryCfwd);
         }
         if (LogAcceptCategory(BCLog::POS)) {
-            WalletLogPrintf("%s: Coinstake reward split %d%%, foundation %s, reward %s.\n",
+            WalletLogPrintf("%s: Coinstake reward split %d%%, treasury %s, reward %s.\n",
                 __func__, nStakeSplit, FormatMoney(nTreasuryPart), FormatMoney(nRewardOut));
         }
     }
@@ -13647,7 +13634,7 @@ bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t n
     CBlockIndex *pindexPrev = ::ChainActive().Tip();
 
     CKey key;
-    pblock->nVersion = PARTICL_BLOCK_VERSION;
+    pblock->nVersion = GHOST_BLOCK_VERSION;
     pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, Params().GetConsensus());
     if (LogAcceptCategory(BCLog::POS)) {
         WalletLogPrintf("%s, nBits %d\n", __func__, pblock->nBits);

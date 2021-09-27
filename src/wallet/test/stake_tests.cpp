@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     CAmount stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
 
     StakeNBlocks(pwallet, 2);
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == 12500000079274);
+    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == 12500001902586);
     BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply + stake_reward * 2);
 
     CBlockIndex *pindexDelete = ::ChainActive().Tip();
@@ -307,15 +307,15 @@ BOOST_AUTO_TEST_CASE(stake_test)
             UpdateTip(*m_node.mempool.get(), pindexDelete, chainparams);
 
             BOOST_CHECK(tipHash == ::ChainActive().Tip()->GetBlockHash());
-            BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500000118911);
+            BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500002853879);
         }
     }
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewextaddress testLbl", context));
     std::string extaddr = part::StripQuotes(rv.write());
 
-    BOOST_CHECK(pwallet->GetBalance().m_mine_trusted + pwallet->GetStaked() == 12500000108911);
-    BOOST_CHECK(::ChainActive().Tip()->nMoneySupply - nAmountSendAway == 12500000108911);
+    BOOST_CHECK(pwallet->GetBalance().m_mine_trusted + pwallet->GetStaked() == 12500002843879);
+    BOOST_CHECK(::ChainActive().Tip()->nMoneySupply - nAmountSendAway == 12500002843879);
 
 
     {
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         }
 
         BOOST_CHECK(::ChainActive().Tip()->nAnonOutputs == 0);
-        BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500000118911);
+        BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500002853879);
     }
 }
 
