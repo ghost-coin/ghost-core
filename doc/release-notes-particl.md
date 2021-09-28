@@ -48,6 +48,11 @@
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.16
+==============
+ - Limited automatic rollbackrctindex attempt to one try.
+
+
 0.19.2.15
 ==============
 
