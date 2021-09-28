@@ -646,7 +646,7 @@ static int ManageExtKey(CStoredExtKey &sek, std::string &sOptName, std::string &
         result.pushKV("track_only", sek.IsTrackOnly() ? "true" : "false");
     } else
     if (sOptName == "look_ahead") {
-        uint64_t nLookAhead = gArgs.GetArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
+        uint64_t nLookAhead = gArgs.GetIntArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
 
         if (sOptValue.length() > 0) {
             if (!ParseUInt64(sOptValue, &nLookAhead)) {
@@ -1787,10 +1787,10 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     // Reset to defaults
     {
         LOCK(pwallet->cs_wallet);
-        pwallet->m_rescan_stealth_v1_lookahead = gArgs.GetArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
-        pwallet->m_rescan_stealth_v2_lookahead = gArgs.GetArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
+        pwallet->m_rescan_stealth_v1_lookahead = gArgs.GetIntArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
+        pwallet->m_rescan_stealth_v2_lookahead = gArgs.GetIntArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
 
-        pwallet->m_default_lookahead = gArgs.GetArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
+        pwallet->m_default_lookahead = gArgs.GetIntArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
         pwallet->PrepareLookahead();
     }
 

@@ -179,8 +179,8 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
 
 void StartThreadStakeMiner(WalletContext &wallet_context, ChainstateManager &chainman)
 {
-    nMinStakeInterval = gArgs.GetArg("-minstakeinterval", 0);
-    nMinerSleep = gArgs.GetArg("-minersleep", 500);
+    nMinStakeInterval = gArgs.GetIntArg("-minstakeinterval", 0);
+    nMinerSleep = gArgs.GetIntArg("-minersleep", 500);
 
     if (!gArgs.GetBoolArg("-staking", true)) {
         LogPrintf("Staking disabled\n");
@@ -191,7 +191,7 @@ void StartThreadStakeMiner(WalletContext &wallet_context, ChainstateManager &cha
         if (nWallets < 1) {
             return;
         }
-        size_t nThreads = std::min(nWallets, (size_t)gArgs.GetArg("-stakingthreads", 1));
+        size_t nThreads = std::min(nWallets, (size_t)gArgs.GetIntArg("-stakingthreads", 1));
 
         size_t nPerThread = nWallets / nThreads;
         for (size_t i = 0; i < nThreads; ++i) {
@@ -269,7 +269,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
         return;
     }
 
-    const size_t stake_thread_cond_delay_ms = gArgs.GetArg("-stakethreadconddelayms", 60000);
+    const size_t stake_thread_cond_delay_ms = gArgs.GetIntArg("-stakethreadconddelayms", 60000);
     const bool check_peer_height = gArgs.GetBoolArg("-checkpeerheight", true);
     LogPrint(BCLog::POS, "Stake thread conditional delay set to %d.\n", stake_thread_cond_delay_ms);
 

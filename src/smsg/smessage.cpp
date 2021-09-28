@@ -876,7 +876,7 @@ bool CSMSG::Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_pt
         return error("%s: Secure messaging is already started.", __func__);
     }
     if (Params().NetworkIDString() == "regtest" &&
-        gArgs.GetArg("-smsgsregtestadjust", true)) {
+        gArgs.GetBoolArg("-smsgsregtestadjust", true)) {
         SMSG_SECONDS_IN_HOUR    = 60 * 2; // seconds
         SMSG_BUCKET_LEN         = 60 * 2; // seconds
         SMSG_SECONDS_IN_DAY     = 600;
@@ -887,7 +887,7 @@ bool CSMSG::Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_pt
         LogPrintf("Adjusted SMSG_SECONDS_IN_DAY to %d for regtest.\n", SMSG_SECONDS_IN_DAY);
     }
 
-    m_smsg_max_receive_count = gArgs.GetArg("-smsgmaxreceive", SMSG_DEFAULT_MAXRCV);
+    m_smsg_max_receive_count = gArgs.GetIntArg("-smsgmaxreceive", SMSG_DEFAULT_MAXRCV);
 
 #ifdef ENABLE_WALLET
     UnloadAllWallets();
@@ -3033,7 +3033,7 @@ int CSMSG::SmsgMisbehaving(CNode *pfrom, uint8_t n)
 
     if (pfrom->smsgData.misbehaving > 100) {
         pfrom->smsgData.misbehaving = 0;
-        pfrom->smsgData.ignoreUntil = GetTime() + gArgs.GetArg("-smsgbantime", SMSG_DEFAULT_BANTIME);
+        pfrom->smsgData.ignoreUntil = GetTime() + gArgs.GetIntArg("-smsgbantime", SMSG_DEFAULT_BANTIME);
         LogPrintf("Node is ignoring peer %d until %d.\n", pfrom->GetId(), pfrom->smsgData.ignoreUntil);
     }
 

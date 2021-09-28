@@ -166,7 +166,7 @@ bool CHDWallet::ProcessStakingSettings(std::string &sError)
     nStakeSplitThreshold = 2000 * COIN;
     m_min_stakeable_value = 1;
     nMaxStakeCombine = 3;
-    nWalletTreasuryFundCedePercent = gArgs.GetArg("-treasurydonationpercent", 0);
+    nWalletTreasuryFundCedePercent = gArgs.GetIntArg("-treasurydonationpercent", 0);
     m_reward_address = CNoDestination();
     m_smsg_fee_rate_target = 0;
     m_smsg_difficulty_target = 0;
@@ -1518,9 +1518,9 @@ DBErrors CHDWallet::LoadWallet()
     }
     nReserveBalance = reserve_balance.value();
 
-    m_rescan_stealth_v1_lookahead = gArgs.GetArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
-    m_rescan_stealth_v2_lookahead = gArgs.GetArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
-    m_default_lookahead = gArgs.GetArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
+    m_rescan_stealth_v1_lookahead = gArgs.GetIntArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
+    m_rescan_stealth_v2_lookahead = gArgs.GetIntArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
+    m_default_lookahead = gArgs.GetIntArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
 
     std::string sError;
     ProcessStakingSettings(sError);
@@ -10229,7 +10229,7 @@ bool CHDWallet::HaveSpend(const COutPoint &outpoint, const uint256 &txid)
     return false;
 };
 
-void CHDWallet::AddToSpends(const uint256& wtxid)
+void CHDWallet::AddToSpends(const uint256& wtxid, WalletBatch* batch)
 {
     auto it = mapWallet.find(wtxid);
     assert(it != mapWallet.end());
@@ -10238,7 +10238,7 @@ void CHDWallet::AddToSpends(const uint256& wtxid)
         return;
 
     for (const CTxIn& txin : thisTx.tx->vin) {
-        AddToSpends(txin.prevout, wtxid);
+        AddToSpends(txin.prevout, wtxid, batch);
         if (m_collapse_spent_mode > 0) {
             UnloadSpent(txin.prevout.hash, 1, wtxid);
         }
@@ -11888,8 +11888,8 @@ bool CHDWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins,
         }
     }
 
-    size_t max_ancestors = (size_t)std::max<int64_t>(1, gArgs.GetArg("-limitancestorcount", DEFAULT_ANCESTOR_LIMIT));
-    size_t max_descendants = (size_t)std::max<int64_t>(1, gArgs.GetArg("-limitdescendantcount", DEFAULT_DESCENDANT_LIMIT));
+    size_t max_ancestors = (size_t)std::max<int64_t>(1, gArgs.GetIntArg("-limitancestorcount", DEFAULT_ANCESTOR_LIMIT));
+    size_t max_descendants = (size_t)std::max<int64_t>(1, gArgs.GetIntArg("-limitdescendantcount", DEFAULT_DESCENDANT_LIMIT));
     bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
     bool res = nTargetValue <= nValueFromPresetInputs;
     if (!res) {
