@@ -4571,7 +4571,7 @@ static RPCHelpMan listunspentanon()
             "                  See description of \"safe\" attribute below."},
                     {"query_options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "JSON with query options",
                         {
-                            {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(1)}, "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
                             {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO in " + CURRENCY_UNIT + ""},
                             {"maximumCount", RPCArg::Type::NUM, RPCArg::DefaultHint{"unlimited"}, "Maximum number of UTXOs"},
                             {"minimumSumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Minimum sum value of all UTXOs in " + CURRENCY_UNIT + ""},
@@ -4629,10 +4629,12 @@ static RPCHelpMan listunspentanon()
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
             CBitcoinAddress address(input.get_str());
-            if (!address.IsValidStealthAddress())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Particl stealth address: ")+input.get_str());
-            if (setAddress.count(address))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ")+input.get_str());
+            if (!address.IsValidStealthAddress()) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Particl stealth address: ") + input.get_str());
+            }
+            if (setAddress.count(address)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + input.get_str());
+            }
            setAddress.insert(address);
         }
     }
@@ -4647,7 +4649,7 @@ static RPCHelpMan listunspentanon()
     bool fCCFormat = false;
     bool fIncludeImmature = false;
     bool show_pubkeys = false;
-    CAmount nMinimumAmount = 0;
+    CAmount nMinimumAmount = 1;
     CAmount nMaximumAmount = MAX_MONEY;
     CAmount nMinimumSumAmount = MAX_MONEY;
     uint64_t nMaximumCount = 0;
