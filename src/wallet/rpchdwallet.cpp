@@ -4577,10 +4577,12 @@ static UniValue listunspentanon(const JSONRPCRequest &request)
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
             CBitcoinAddress address(input.get_str());
-            if (!address.IsValidStealthAddress())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Particl stealth address: ")+input.get_str());
-            if (setAddress.count(address))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ")+input.get_str());
+            if (!address.IsValidStealthAddress()) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Particl stealth address: ") + input.get_str());
+            }
+            if (setAddress.count(address)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + input.get_str());
+            }
            setAddress.insert(address);
         }
     }
@@ -4595,7 +4597,7 @@ static UniValue listunspentanon(const JSONRPCRequest &request)
     bool fCCFormat = false;
     bool fIncludeImmature = false;
     bool show_pubkeys = false;
-    CAmount nMinimumAmount = 0;
+    CAmount nMinimumAmount = 1;
     CAmount nMaximumAmount = MAX_MONEY;
     CAmount nMinimumSumAmount = MAX_MONEY;
     uint64_t nMaximumCount = 0;
