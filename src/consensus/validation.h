@@ -175,12 +175,15 @@ public:
     bool m_clamp_tx_version = false;
     bool m_exploit_fix_1 = false;
     bool m_exploit_fix_2 = false;
+    bool m_in_block = false;
+    bool m_check_equal_rct_txid = true;
     CAmount tx_balances[6] = {0};
     std::set<CCmpPubKey> m_setHaveKI;
 
-    void SetStateInfo(int64_t time, int spend_height, const Consensus::Params& consensusParams, bool particl_mode, bool skip_rangeproof)
+    void SetStateInfo(int64_t time, int spend_height, const Consensus::Params& consensusParams, bool particl_mode, bool skip_rangeproof, bool in_block=false)
     {
         m_time = time;
+        m_in_block = in_block;
         m_consensus_params = &consensusParams;
         fEnforceSmsgFees = time >= consensusParams.nPaidSmsgTime;
         fBulletproofsActive = time >= consensusParams.bulletproof_time;
@@ -194,6 +197,9 @@ public:
         m_clamp_tx_version = time >= consensusParams.clamp_tx_version_time;
         m_exploit_fix_1 = time >= consensusParams.exploit_fix_1_time;
         m_exploit_fix_2 = time >= consensusParams.exploit_fix_2_time;
+        if (m_in_block && m_time < 1632177542) {
+            m_check_equal_rct_txid = false;
+        }
     }
 };
 
