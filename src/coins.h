@@ -332,6 +332,15 @@ public:
         return false;
     };
 
+    void ClearFlushed()
+    {
+        // Clear data that would normally be flushed to disk, for VerifyDB
+        anonOutputs.clear();
+        anonOutputLinks.clear();
+        keyImages.clear();
+        spent_cache.clear();
+    };
+
 public:
     CCoinsViewCache(CCoinsView *baseIn);
 
