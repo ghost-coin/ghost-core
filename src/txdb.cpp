@@ -571,7 +571,6 @@ bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
     pcursor->Seek(std::make_pair(DB_RCTKEYIMAGE, CCmpPubKey()));
 
     while (pcursor->Valid()) {
-        boost::this_thread::interruption_point();
         if (ShutdownRequested()) return false;
         std::pair<char, CCmpPubKey> key;
         if (pcursor->GetKey(key) && key.first == DB_RCTKEYIMAGE) {
