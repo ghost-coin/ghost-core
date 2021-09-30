@@ -154,7 +154,7 @@ upnp_packages_$(NO_UPNP) = $(upnp_packages)
 natpmp_packages_$(NO_NATPMP) = $(natpmp_packages)
 
 zmq_packages_$(NO_ZMQ) = $(zmq_packages)
-usb_packages_$(NO_USB) = $(usb_packages)
+usb_packages_$(NO_USB) = $(usb_packages) $(usb_$(host_os)_packages)
 ifeq ($(NO_USB),)
     native_packages += $(usb_native_packages)
 endif

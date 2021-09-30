@@ -144,7 +144,7 @@ def check_PE_DYNAMIC_BASE(executable) -> bool:
 def check_PE_HIGH_ENTROPY_VA(executable) -> bool:
     '''PIE: DllCharacteristics bit 0x20 signifies high-entropy ASLR'''
     binary = lief.parse(executable)
-    if binary.header.is_32():
+    if binary.header.machine != lief.PE.MACHINE_TYPES.AMD64:
         # HIGHENTROPYVA isn't applicable to 32-bit executable images
         return True
     return lief.PE.DLL_CHARACTERISTICS.HIGH_ENTROPY_VA in binary.optional_header.dll_characteristics_lists

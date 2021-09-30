@@ -94,7 +94,15 @@ esac
 case "$HOST" in
     *mingw*)
         # Determine output paths to use in CROSS_* environment variables
-        CROSS_GLIBC="$(store_path "mingw-w64-x86_64-winpthreads")"
+        #CROSS_GLIBC="$(store_path "mingw-w64-x86_64-winpthreads")"
+        case "$HOST" in
+            *x86_64*)
+            CROSS_GLIBC="$(store_path "mingw-w64-x86_64-winpthreads")"
+            ;;
+            *i686*)
+            CROSS_GLIBC="$(store_path "mingw-w64-i686-winpthreads")"
+            ;;
+        esac
         CROSS_GCC="$(store_path "gcc-cross-${HOST}")"
         CROSS_GCC_LIB_STORE="$(store_path "gcc-cross-${HOST}" lib)"
         CROSS_GCC_LIBS=( "${CROSS_GCC_LIB_STORE}/lib/gcc/${HOST}"/* ) # This expands to an array of directories...
@@ -215,8 +223,7 @@ make -C depends --jobs="$JOBS" HOST="$HOST" \
                                    x86_64_linux_STRIP=x86_64-linux-gnu-strip \
                                    qt_config_opts_i686_linux='-platform linux-g++ -xplatform bitcoin-linux-g++' \
                                    qt_config_opts_x86_64_linux='-platform linux-g++ -xplatform bitcoin-linux-g++' \
-                                   FORCE_USE_SYSTEM_CLANG=1
-
+                                   ${NO_USB:+NO_USB=1}
 
 ###########################
 # Source Tarball Building #
@@ -237,7 +244,7 @@ mkdir -p "$OUTDIR"
 ###########################
 
 # CONFIGFLAGS
-CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests --disable-fuzz-binary"
+CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests --disable-fuzz-binary ${PARTICL_CONFIG_FLAGS}"
 case "$HOST" in
     *linux*) CONFIGFLAGS+=" --disable-threadlocal" ;;
 esac
