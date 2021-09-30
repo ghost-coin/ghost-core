@@ -108,7 +108,7 @@ class PosTest(ParticlTestFramework):
         fFound = False
         for vout in ro['vout']:
             try:
-                addr0 = vout['scriptPubKey']['addresses'][0]
+                addr0 = vout['scriptPubKey']['address']
             except:
                 continue
             if addr0 == addrReward:
@@ -136,7 +136,7 @@ class PosTest(ParticlTestFramework):
         fFound = False
         for vout in ro['vout']:
             try:
-                addr0 = vout['scriptPubKey']['addresses'][0]
+                addr0 = vout['scriptPubKey']['address']
                 ro = nodes[0].getaddressinfo(addr0)
                 if ro['from_ext_address_id'] == 'xXZRLYvJgbJyrqJhgNzMjEvVGViCdGmVAt':
                     assert(addr0 == 'pgaKYsNmHTuQB83FguN44WW4ADKmwJwV7e')
@@ -158,7 +158,7 @@ class PosTest(ParticlTestFramework):
         fFound = False
         for vout in ro['vout']:
             try:
-                addr0 = vout['scriptPubKey']['addresses'][0]
+                addr0 = vout['scriptPubKey']['address']
                 ro = nodes[0].getaddressinfo(addr0)
                 if ro['from_stealth_address'] == addrRewardSx:
                     fFound = True

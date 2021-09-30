@@ -390,7 +390,7 @@ public:
     using CWallet::AddToSpends;
     bool HaveSpend(const COutPoint &outpoint, const uint256 &txid) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void AddToSpends(const uint256& wtxid, WalletBatch* batch = nullptr) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool fUpdate) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool fUpdate, bool rescanning_old_block) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     CWalletTx *GetTempWalletTx(const uint256& hash);
 

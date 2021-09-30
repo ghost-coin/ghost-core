@@ -72,7 +72,7 @@ class SmsgPaidFeeTest(ParticlTestFramework):
         self.stakeBlocks(1, fSync=False)
 
         ro = nodes[0].getblock(nodes[0].getblockhash(2), 2)
-        stakedaddress = ro['tx'][0]['vout'][1]['scriptPubKey']['addresses'][0]
+        stakedaddress = ro['tx'][0]['vout'][1]['scriptPubKey']['address']
         coinstaketx = ro['tx'][0]['hex']
         assert(float(ro['tx'][0]['vout'][0]['smsgfeerate']) == 0.00050215)
         blk2_hex = nodes[0].getblock(nodes[0].getblockhash(2), 0)

@@ -320,9 +320,9 @@ class ColdStakingTest(ParticlTestFramework):
             rtx = nodes[0].createrawtransaction([], {addr_to: 0.0001})
             ftx = nodes[0].fundrawtransaction(rtx)
             dtx = nodes[0].decoderawtransaction(ftx['hex'])
-            n_change = 1 if dtx['vout'][0]['scriptPubKey']['addresses'][0] == addr_to else 0
-            assert(dtx['vout'][n_change]['scriptPubKey']['addresses'][0] == ms_addr)
-            stake_addr = dtx['vout'][n_change]['scriptPubKey']['stakeaddresses'][0]
+            n_change = 1 if dtx['vout'][0]['scriptPubKey']['address'] == addr_to else 0
+            assert(dtx['vout'][n_change]['scriptPubKey']['address'] == ms_addr)
+            stake_addr = dtx['vout'][n_change]['scriptPubKey']['stakeaddress']
             stake_addr_alt = nodes[0].validateaddress(stake_addr, True)['stakeonly_address']
             assert(stake_addr_alt == coldstakingaddr)
 
@@ -358,9 +358,9 @@ class ColdStakingTest(ParticlTestFramework):
         tx = nodes[0].decoderawtransaction(rv['hex'])
         for output in tx['vout']:
             for a in addrs_count.keys():
-                if output['scriptPubKey']['addresses'][0] == a:
+                if output['scriptPubKey']['address'] == a:
                     addrs_count[a] += 1
-                if output['scriptPubKey']['stakeaddresses'][0] == a:
+                if output['scriptPubKey']['stakeaddress'] == a:
                     addrs_count[a] += 1
         for k, v in addrs_count.items():
             assert(v == 1)

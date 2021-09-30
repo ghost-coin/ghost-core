@@ -775,6 +775,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 {
     CWalletScanState wss;
     bool fNoncriticalErrors = false;
+    bool rescan_required = false;
     DBErrors result = DBErrors::LOAD_OK;
 
     LOCK(pwallet->cs_wallet);
@@ -843,7 +844,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
                     fNoncriticalErrors = true; // ... but do warn the user there is something wrong.
                     if (strType == DBKeys::TX)
                         // Rescan if there is a bad transaction record:
-                        gArgs.SoftSetBoolArg("-rescan", true);
+                        rescan_required = true;
                 }
             }
             if (!strErr.empty())
@@ -879,8 +880,11 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
         ((DescriptorScriptPubKeyMan*)spk_man)->AddCryptedKey(desc_key_pair.first.second, desc_key_pair.second.first, desc_key_pair.second.second);
     }
 
-    if (fNoncriticalErrors && result == DBErrors::LOAD_OK)
+    if (rescan_required && result == DBErrors::LOAD_OK) {
+        result = DBErrors::RESCAN_REQUIRED;
+    } else if (fNoncriticalErrors && result == DBErrors::LOAD_OK) {
         result = DBErrors::NONCRITICAL_ERROR;
+    }
 
     // Any wallet corruption at all: skip any rewriting or
     // upgrading, we don't want to make it worse.

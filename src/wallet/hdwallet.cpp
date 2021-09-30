@@ -10245,7 +10245,7 @@ void CHDWallet::AddToSpends(const uint256& wtxid, WalletBatch* batch)
     }
 }
 
-bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool fUpdate)
+bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool fUpdate, bool rescanning_old_block)
 {
     const CTransaction& tx = *ptx;
     {
@@ -10461,7 +10461,7 @@ int CHDWallet::InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx)
     bool fInsertedNew = ret.second;
     if (fInsertedNew) {
         wtx.nTimeReceived = chain().getAdjustedTime();
-        wtx.nTimeSmart = ComputeTimeSmart(wtx);
+        wtx.nTimeSmart = ComputeTimeSmart(wtx, false);
     }
 
     return 0;

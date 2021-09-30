@@ -117,7 +117,7 @@ def CreateAtomicSwapScript(payTo, refundTo, lockTime, secretHash):
 def getOutputByAddr(tx, addr):
     for i, vout in enumerate(tx['vout']):
         try:
-            if addr in vout['scriptPubKey']['addresses']:
+            if addr == vout['scriptPubKey']['address']:
                 return i
         except:
             continue

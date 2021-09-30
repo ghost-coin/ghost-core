@@ -211,11 +211,10 @@ void WalletView::showOutOfSyncWarning(bool fShow)
 
 void WalletView::encryptWallet()
 {
-    AskPassphraseDialog dlg(AskPassphraseDialog::Encrypt, this);
-    dlg.setModel(walletModel);
-    dlg.exec();
-
-    Q_EMIT encryptionStatusChanged();
+    auto dlg = new AskPassphraseDialog(AskPassphraseDialog::Encrypt, this);
+    dlg->setModel(walletModel);
+    connect(dlg, &QDialog::finished, this, &WalletView::encryptionStatusChanged);
+    GUIUtil::ShowModalDialogAndDeleteOnClose(dlg);
 }
 
 void WalletView::backupWallet()
@@ -240,9 +239,9 @@ void WalletView::backupWallet()
 
 void WalletView::changePassphrase()
 {
-    AskPassphraseDialog dlg(AskPassphraseDialog::ChangePass, this);
-    dlg.setModel(walletModel);
-    dlg.exec();
+    auto dlg = new AskPassphraseDialog(AskPassphraseDialog::ChangePass, this);
+    dlg->setModel(walletModel);
+    GUIUtil::ShowModalDialogAndDeleteOnClose(dlg);
 }
 
 void WalletView::unlockWallet(bool iconClicked)
@@ -251,10 +250,10 @@ void WalletView::unlockWallet(bool iconClicked)
     if (walletModel->getEncryptionStatus() == WalletModel::Locked
         || (!iconClicked && walletModel->getEncryptionStatus() == WalletModel::UnlockedForStaking))
     {
-        AskPassphraseDialog dlg(
+        auto dlg = new AskPassphraseDialog(
             iconClicked ? AskPassphraseDialog::UnlockManual : AskPassphraseDialog::Unlock, this);
-        dlg.setModel(walletModel);
-        dlg.exec();
+        dlg->setModel(walletModel);
+        GUIUtil::ShowModalDialogAndDeleteOnClose(dlg);
     }
 }
 

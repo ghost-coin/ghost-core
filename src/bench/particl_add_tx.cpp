@@ -225,7 +225,7 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
     CWalletTx::Confirmation confirm;
     bench.run([&] {
         LOCK(pwallet_b.get()->cs_wallet);
-        pwallet_b.get()->AddToWalletIfInvolvingMe(tx, confirm, true);
+        pwallet_b.get()->AddToWalletIfInvolvingMe(tx, confirm, true, false);
     });
 
     RemoveWallet(wallet_context, pwallet_a, std::nullopt);

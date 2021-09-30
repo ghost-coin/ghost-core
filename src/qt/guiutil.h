@@ -41,6 +41,7 @@ class QAbstractButton;
 class QAbstractItemView;
 class QAction;
 class QDateTime;
+class QDialog;
 class QFont;
 class QKeySequence;
 class QLineEdit;
@@ -417,10 +418,16 @@ namespace GUIUtil
             type);
     }
 
+    /**
+     * Shows a QDialog instance asynchronously, and deletes it on close.
+     */
+    void ShowModalDialogAndDeleteOnClose(QDialog* dialog);
+
 namespace particl
 {
     QString escapeQString(const QString& si);
 }
+
 } // namespace GUIUtil
 
 #endif // BITCOIN_QT_GUIUTIL_H

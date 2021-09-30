@@ -456,17 +456,11 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
     }
     {
         std::vector<valtype> solutions;
-        TxoutType whichType;
         CScript s;
         s << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
         BOOST_CHECK(Solver(s, solutions) != TxoutType::NONSTANDARD);
         BOOST_CHECK_EQUAL(solutions.size(), 4U);
         std::vector<CTxDestination> addrs;
-        int nRequired;
-        BOOST_CHECK(ExtractDestinations(s, whichType, addrs, nRequired));
-        BOOST_CHECK(addrs[0] == keyaddr[0]);
-        BOOST_CHECK(addrs[1] == keyaddr[1]);
-        BOOST_CHECK(nRequired == 1);
         {
             LOCK(keystore.cs_wallet);
             BOOST_CHECK(keystore.IsMineP2SH(s));

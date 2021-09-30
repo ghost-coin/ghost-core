@@ -71,6 +71,7 @@ public:
         ShowIncomingStakeNotifications, // bool
         ShowZeroValueCoinstakes, // bool
         Listen,                 // bool
+        Server,                 // bool
         ReserveBalance,         // int
         OptionIDRowCount,
     };
