@@ -7,10 +7,11 @@
 
 #include <secp256k1.h>
 #include <secp256k1_bulletproofs.h>
+#include <consensus/params.h>
+#include <amount.h>
 #include <stdint.h>
 #include <vector>
 
-#include <amount.h>
 
 class uint256;
 
@@ -23,13 +24,13 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
 int GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &rmantissa, CAmount &min_value, CAmount &max_value);
 
 void LoadRCTBlacklist(const int64_t indices[], size_t num_indices);
-void LoadRCTWhitelist(const int64_t indices[], size_t num_indices);
+void LoadRCTWhitelist(const int64_t indices[], size_t num_indices, int list_id);
 void LoadCTWhitelist(const unsigned char *data, size_t data_length);
 void LoadCTTaintedFilter(const unsigned char *data, size_t data_length);
 void LoadBlindedOutputFilters();
 bool IsFrozenBlindOutput(const uint256 &txid);  // tainted && !whitelisted
 bool IsBlacklistedAnonOutput(int64_t anon_index);
-bool IsWhitelistedAnonOutput(int64_t anon_index);
+bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::Params &consensus_params);
 
 void ECC_Start_Blinding();
 void ECC_Stop_Blinding();

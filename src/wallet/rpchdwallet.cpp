@@ -6183,6 +6183,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
     std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
     std::set<COutPoint> extra_txouts;  // Trace these outputs even if spent
     std::set<COutPoint> top_level, set_forced;
+    int64_t time_now = GetAdjustedTime();
 
     if (uv_extra_outputs.isArray()) {
         for (size_t i = 0; i < uv_extra_outputs.size(); ++i) {
@@ -6263,7 +6264,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
                 if (r.nValue > max_frozen_output_spendable) {
                     // TODO: Store pubkey on COutputRecord - in scriptPubKey
                     if (r.nType == OUTPUT_RINGCT) {
-                        if (!IsWhitelistedAnonOutput(anon_index)) {
+                        if (!IsWhitelistedAnonOutput(anon_index, time_now, consensusParams)) {
                             is_spendable = false;
                         }
                     } else
@@ -6448,6 +6449,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
     bool clear_stakes_seen = false;
     bool downgrade_wallets = false;
     CAmount max_frozen_output_spendable = Params().GetConsensus().m_max_tainted_value_out;
+    int64_t time_now = GetAdjustedTime();
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -6560,7 +6562,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                         !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
                         IsBlacklistedAnonOutput(anon_index) ||
-                        (!IsWhitelistedAnonOutput(anon_index) && r.nValue > max_frozen_output_spendable)) {
+                        (!IsWhitelistedAnonOutput(anon_index, time_now, consensusParams) && r.nValue > max_frozen_output_spendable)) {
                         is_spendable = false;
                     }
                 } else

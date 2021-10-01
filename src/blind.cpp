@@ -29,6 +29,7 @@ static CBloomFilter ct_tainted_filter;
 static std::set<uint256> ct_whitelist;
 static std::set<int64_t> rct_whitelist;
 static std::set<int64_t> rct_blacklist;
+static std::set<int64_t> rct_whitelist2;
 
 static int CountLeadingZeros(uint64_t nValueIn)
 {
@@ -147,10 +148,21 @@ void LoadRCTBlacklist(const int64_t indices[], size_t num_indices)
     LogPrintf("RCT blacklist size %d\n", rct_blacklist.size());
 }
 
-void LoadRCTWhitelist(const int64_t indices[], size_t num_indices)
+void LoadRCTWhitelist(const int64_t indices[], size_t num_indices, int list_id)
 {
-    rct_whitelist = std::set<int64_t>(indices, indices + num_indices);
-    LogPrintf("RCT whitelist size %d\n", rct_whitelist.size());
+    switch (list_id) {
+        case 1:
+            rct_whitelist = std::set<int64_t>(indices, indices + num_indices);
+            LogPrintf("RCT whitelist size %d\n", rct_whitelist.size());
+            break;
+        case 2:
+            rct_whitelist2 = std::set<int64_t>(indices, indices + num_indices);
+            LogPrintf("RCT whitelist2 size %d\n", rct_whitelist2.size());
+            break;
+        default:
+            LogPrintf("Error: Unknown RCT whitelist %d\n", list_id);
+            break;
+    }
 }
 
 void LoadCTWhitelist(const unsigned char *data, size_t data_length)
@@ -174,8 +186,9 @@ void LoadBlindedOutputFilters()
 {
     LoadCTTaintedFilter(ct_tainted_filter_data, ct_tainted_filter_data_len);
     LoadCTWhitelist(tx_whitelist_data, tx_whitelist_data_len);
-    LoadRCTWhitelist(anon_index_whitelist, anon_index_whitelist_size);
+    LoadRCTWhitelist(anon_index_whitelist, anon_index_whitelist_size, 1);
     LoadRCTBlacklist(anon_index_blacklist, anon_index_blacklist_size);
+    LoadRCTWhitelist(anon_index_whitelist2, anon_index_whitelist2_size, 2);
 }
 
 bool IsFrozenBlindOutput(const uint256 &txid)
@@ -191,8 +204,12 @@ bool IsBlacklistedAnonOutput(int64_t anon_index)
     return rct_blacklist.count(anon_index);
 }
 
-bool IsWhitelistedAnonOutput(int64_t anon_index)
+bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::Params &consensus_params)
 {
+    if (time >= consensus_params.exploit_fix_3_time &&
+        rct_whitelist2.count(anon_index)) {
+        return true;
+    }
     return rct_whitelist.count(anon_index);
 }
 
