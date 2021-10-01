@@ -272,7 +272,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                     ofs += nB;
                     if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
                         state.m_spends_frozen_blinded = true;
-                        if (!IsWhitelistedAnonOutput(nIndex)) {
+                        if (!IsWhitelistedAnonOutput(nIndex, state.m_time, *state.m_consensus_params)) {
                             spends_tainted_blinded = true;
                         }
                         if (state.m_exploit_fix_2 && IsBlacklistedAnonOutput(nIndex)) {

@@ -11976,6 +11976,8 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinCon
     const bool include_tainted_frozen = {coinControl ? coinControl->m_include_tainted_frozen : false};
     const bool only_safe = {coinControl ? !coinControl->m_include_unsafe_inputs : true};
 
+    int64_t time_now = GetAdjustedTime();
+
     CHDWalletDB wdb(*m_database);
 
     const Consensus::Params &consensusParams = Params().GetConsensus();
@@ -12041,7 +12043,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinCon
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                     !chain().readRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
                     IsBlacklistedAnonOutput(index) ||
-                    (!IsWhitelistedAnonOutput(index) && r.nValue > consensusParams.m_max_tainted_value_out)) {
+                    (!IsWhitelistedAnonOutput(index, time_now, consensusParams) && r.nValue > consensusParams.m_max_tainted_value_out)) {
                     continue;
                 }
             }

@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         int64_t aoi_whitelist[] = {
             ao_index,
         };
-        LoadRCTWhitelist(aoi_whitelist, 1);
+        LoadRCTWhitelist(aoi_whitelist, 1, 1);
 
         // Test blacklist, should override whitelist
         int64_t aoi_blacklist[] = {
