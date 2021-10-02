@@ -59,7 +59,7 @@ class TestSecurityChecks(unittest.TestCase):
         cc = determine_wellknown_cmd('CC', 'x86_64-w64-mingw32-gcc')
         write_testcode(source)
 
-        if 'i686' in cc:
+        if 'i686' in str(cc):
             self.assertEqual(call_security_check(cc, source, executable, ['-Wl,--no-nxcompat','-Wl,--disable-reloc-section','-Wl,--no-dynamicbase','-no-pie','-fno-PIE']),
                 (1, executable+': failed PIE DYNAMIC_BASE NX RELOC_SECTION'))
             self.assertEqual(call_security_check(cc, source, executable, ['-Wl,--nxcompat','-Wl,--disable-reloc-section','-Wl,--no-dynamicbase','-no-pie','-fno-PIE']),

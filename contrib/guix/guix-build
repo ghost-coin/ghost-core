@@ -471,8 +471,9 @@ EOF
                                         DISTSRC="$(DISTSRC_BASE=/distsrc-base && distsrc_for_host "$HOST")" \
                                         OUTDIR="$(OUTDIR_BASE=/outdir-base && outdir_for_host "$HOST")" \
                                         DIST_ARCHIVE_BASE=/outdir-base/dist-archive \
+                                        FORCE_USE_SYSTEM_CLANG=1 \
                                         ${NO_USB:+NO_USB=1} \
-                                        ${PARTICL_CONFIG_FLAGS:+PARTICL_CONFIG_FLAGS=1} \
+                                        ${PARTICL_CONFIG_FLAGS:+PARTICL_CONFIG_FLAGS="$PARTICL_CONFIG_FLAGS"} \
                                       bash -c "cd /particl-core && bash contrib/guix/libexec/build.sh"
     )
 
