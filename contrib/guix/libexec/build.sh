@@ -281,6 +281,11 @@ case "$HOST" in
     powerpc64-linux-*|riscv64-linux-*) HOST_LDFLAGS="${HOST_LDFLAGS} -Wl,-z,noexecstack" ;;
 esac
 
+case "$HOST" in
+    *i686*) WIN_NAME=win32 ;;
+    *)      WIN_NAME=win64 ;;
+esac
+
 # Make $HOST-specific native binaries from depends available in $PATH
 export PATH="${BASEPREFIX}/${HOST}/native/bin:${PATH}"
 mkdir -p "$DISTSRC"
@@ -321,7 +326,7 @@ mkdir -p "$DISTSRC"
     # Make the os-specific installers
     case "$HOST" in
         *mingw*)
-            make deploy ${V:+V=1} BITCOIN_WIN_INSTALLER="${OUTDIR}/${DISTNAME}-win64-setup-unsigned.exe"
+            make deploy ${V:+V=1} BITCOIN_WIN_INSTALLER="${OUTDIR}/${DISTNAME}-${WIN_NAME}-setup-unsigned.exe"
             ;;
     esac
 
@@ -405,14 +410,14 @@ mkdir -p "$DISTSRC"
                     | xargs -0r touch --no-dereference --date="@${SOURCE_DATE_EPOCH}"
                 find "${DISTNAME}" -not -name "*.dbg" \
                     | sort \
-                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/win64}.zip" \
-                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/win64}.zip" && exit 1 )
+                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}.zip" \
+                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}.zip" && exit 1 )
                 find "${DISTNAME}" -name "*.dbg" -print0 \
                     | xargs -0r touch --no-dereference --date="@${SOURCE_DATE_EPOCH}"
                 find "${DISTNAME}" -name "*.dbg" \
                     | sort \
-                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/win64}-debug.zip" \
-                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/win64}-debug.zip" && exit 1 )
+                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}-debug.zip" \
+                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}-debug.zip" && exit 1 )
                 ;;
             *linux*)
                 find "${DISTNAME}" -not -name "*.dbg" -print0 \
@@ -442,7 +447,7 @@ mkdir -p "$DISTSRC"
             (
                 cd ./windeploy
                 mkdir -p unsigned
-                cp --target-directory=unsigned/ "${OUTDIR}/${DISTNAME}-win64-setup-unsigned.exe"
+                cp --target-directory=unsigned/ "${OUTDIR}/${DISTNAME}-${WIN_NAME}-setup-unsigned.exe"
                 find . -print0 \
                     | sort --zero-terminated \
                     | tar --create --no-recursion --mode='u+rw,go+r-w,a+X' --null --files-from=- \
