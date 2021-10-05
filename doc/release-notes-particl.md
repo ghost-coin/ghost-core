@@ -51,6 +51,7 @@
 0.19.2.17
 ==============
  - smsg: Prefer selecting confirmed inputs for funding txns.
+ - net: Ignore smsg for peers with connection type one shot or feeler.
 
 
 0.19.2.16

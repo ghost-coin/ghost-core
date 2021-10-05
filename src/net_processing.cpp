@@ -4182,7 +4182,9 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         return;
     }
 
-    if (smsg::SMSG_UNKNOWN_MESSAGE != smsgModule.ReceiveData(this, &pfrom, msg_type, vRecv)) {
+    if (!(pfrom.IsAddrFetchConn() || pfrom.IsFeelerConn()) &&
+        smsg::SMSG_UNKNOWN_MESSAGE != smsgModule.ReceiveData(this, &pfrom, msg_type, vRecv)) {
+        // If smsg::fSecMsgEnabled is false smsgModule.ReceiveData will ignore SMSGMsgType::PING messages to avoid the Unknown command message
         return;
     }
 
@@ -5037,7 +5039,8 @@ bool PeerManager::SendMessages(CNode* pto)
         }
     } // release cs_main
 
-    if (smsg::fSecMsgEnabled) {
+    if (smsg::fSecMsgEnabled &&
+        !(pto->IsAddrFetchConn() || pto->IsFeelerConn())) {
         bool fSendTrickle = pto->HasPermission(PF_NOBAN);
         smsgModule.SendData(pto, fSendTrickle);
     }
