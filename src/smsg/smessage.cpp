@@ -4281,7 +4281,13 @@ int CSMSG::FundMsg(SecureMessage &smsg, std::string &sError, bool fTestFee, CAmo
         CWalletTx wtx(tx_new);
 
         if (fund_from == OUTPUT_STANDARD) {
+            // Try confirmed inputs first
+            coin_control->m_min_depth = 1;
             if (0 != pw->AddStandardInputs(wtx, rtx, vec_send, !fTestFee, nFeeRet, coin_control, sError)) {
+                coin_control->m_min_depth = DEFAULT_MIN_DEPTH;
+                if (0 != pw->AddStandardInputs(wtx, rtx, vec_send, !fTestFee, nFeeRet, coin_control, sError)) {
+                    return SMSG_FUND_FAILED;
+                }
                 return SMSG_FUND_FAILED;
             }
         } else
