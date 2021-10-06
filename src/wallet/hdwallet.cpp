@@ -8983,22 +8983,6 @@ bool CHDWallet::CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx, Tx
     return true;
 };
 
-// Helper for producing a max-sized low-S signature (eg 72 bytes)
-bool CHDWallet::DummySignInput(CTxIn &tx_in, const CTxOut &txout, bool use_max_sig) const
-{
-    // Fill in dummy signatures for fee calculation.
-    const CScript &scriptPubKey = txout.scriptPubKey;
-    std::unique_ptr<SigningProvider> provider = GetSolvingProvider(scriptPubKey);
-    SignatureData sigdata;
-
-    if (!ProduceSignature(*provider, DUMMY_SIGNATURE_CREATOR_PARTICL, scriptPubKey, sigdata)) {
-        return false;
-    } else {
-        UpdateInput(tx_in, sigdata);
-    }
-    return true;
-}
-
 bool CHDWallet::DummySignInput(CTxIn &tx_in, const CTxOutBaseRef &txout) const
 {
     // Fill in dummy signatures for fee calculation.
@@ -9011,9 +8995,8 @@ bool CHDWallet::DummySignInput(CTxIn &tx_in, const CTxOutBaseRef &txout) const
 
     if (!ProduceSignature(*provider, DUMMY_SIGNATURE_CREATOR_PARTICL, scriptPubKey, sigdata)) {
         return false;
-    } else {
-        UpdateInput(tx_in, sigdata);
     }
+    UpdateInput(tx_in, sigdata);
     return true;
 }
 

@@ -9,7 +9,7 @@
 
 #include <threadsafety.h>
 
-#include <amount.h>
+#include <consensus/amount.h>
 #include <sync.h>
 #include <stdint.h>
 #include <vector>

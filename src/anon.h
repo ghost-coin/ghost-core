@@ -7,7 +7,7 @@
 
 #include <sync.h>
 #include <pubkey.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <set>
 
 

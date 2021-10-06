@@ -7,7 +7,7 @@
 #define BITCOIN_INSIGHT_ADDRESSINDEX_H
 
 #include <uint256.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <script/script.h>
 
 enum AddressIndexType {

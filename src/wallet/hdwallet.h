@@ -358,8 +358,6 @@ public:
                            mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
                            bool is_record=false, bool broadcast_tx=true, CAmount override_max_fee=-1);
 
-    bool DummySignInput(CTxIn &tx_in, const CTxOut &txout, bool use_max_sig = false) const override;
-
     bool DummySignInput(CTxIn &tx_in, const CTxOutBaseRef &txout) const;
     bool DummySignTx(CMutableTransaction &txNew, const std::vector<CTxOutBaseRef> &txouts) const;
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,7 +11,7 @@
 #include <blind.h>
 #include <random.h>
 #include <key.h>
-#include <amount.h>
+#include <consensus/amount.h>
 
 #include <secp256k1_rangeproof.h>
 #include <secp256k1_mlsag.h>

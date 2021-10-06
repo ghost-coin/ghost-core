@@ -5,8 +5,8 @@
 #ifndef BITCOIN_QT_OPTIONSMODEL_H
 #define BITCOIN_QT_OPTIONSMODEL_H
 
-#include <amount.h>
 #include <cstdint>
+#include <consensus/amount.h>
 #include <qt/guiconstants.h>
 
 #include <QAbstractListModel>

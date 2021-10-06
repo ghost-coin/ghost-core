@@ -102,6 +102,7 @@ BASE_SCRIPTS = [
     'rpc_fundrawtransaction.py --legacy-wallet',
     'rpc_fundrawtransaction.py --descriptors',
     'p2p_compactblocks.py',
+    'p2p_compactblocks_blocksonly.py',
     'feature_segwit.py --legacy-wallet',
     # vv Tests less than 2m vv
     'wallet_basic.py --legacy-wallet',
@@ -174,6 +175,7 @@ BASE_SCRIPTS = [
     'rpc_users.py',
     'rpc_whitelist.py',
     'feature_proxy.py',
+    'feature_syscall_sandbox.py',
     'rpc_signrawtransaction.py --legacy-wallet',
     'rpc_signrawtransaction.py --descriptors',
     'rpc_rawtransaction.py --legacy-wallet',

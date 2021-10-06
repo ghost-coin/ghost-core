@@ -8,7 +8,7 @@
 #include <secp256k1.h>
 #include <secp256k1_bulletproofs.h>
 #include <consensus/params.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <stdint.h>
 #include <vector>
 

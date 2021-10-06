@@ -9,7 +9,7 @@
 #include <key/extkey.h>
 #include <key/stealth.h>
 #include <primitives/transaction.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <serialize.h>
 
 #include <stdint.h>
