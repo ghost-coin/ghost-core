@@ -184,7 +184,6 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             }
         }
 
-        uint256 txhashKI;
         for (size_t k = 0; k < nInputs; ++k) {
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
@@ -199,7 +198,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             if (pblocktree->ReadRCTKeyImage(ki, ki_data)) {
                 if (LogAcceptCategory(BCLog::RINGCT)) {
                     LogPrintf("%s: Duplicate keyimage detected %s, used in %s.\n", __func__,
-                        HexStr(ki), txhashKI.ToString());
+                        HexStr(ki), ki_data.txid.ToString());
                 }
                 if (ki_data.txid == txhash) {
                     if (state.m_check_equal_rct_txid &&
