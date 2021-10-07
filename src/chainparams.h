@@ -153,6 +153,8 @@ public:
 
     std::string NetworkID() const { return strNetworkID; }
 
+    const std::vector<std::string>& SporkAddresses() const { return vSporkAddresses; }
+
     void SetCoinYearReward(int64_t nCoinYearReward_)
     {
         assert(strNetworkID == "regtest");
@@ -206,6 +208,8 @@ protected:
     bool m_is_mockable_chain;
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
+    std::vector<std::string> vSporkAddresses;
+    int nMinSporkKeys;
 };
 
 /**

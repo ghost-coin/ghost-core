@@ -36,6 +36,7 @@
 #include <util/rbf.h>
 #include <wallet/fees.h>
 #include <node/ui_interface.h>
+#include <pos/diffalgo.h>
 
 #if ENABLE_USBDEVICE
 #include <usbdevice/usbdevice.h>
@@ -13635,7 +13636,7 @@ bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t n
 
     CKey key;
     pblock->nVersion = GHOST_BLOCK_VERSION;
-    pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, Params().GetConsensus());
+    pblock->nBits = GetNextTargetRequired(pindexPrev, pblock);
     if (LogAcceptCategory(BCLog::POS)) {
         WalletLogPrintf("%s, nBits %d\n", __func__, pblock->nBits);
     }

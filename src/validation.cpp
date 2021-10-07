@@ -26,6 +26,7 @@
 #include <policy/policy.h>
 #include <policy/settings.h>
 #include <pow.h>
+#include <pos/diffalgo.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <random.h>
@@ -4746,7 +4747,13 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
     const Consensus::Params& consensusParams = params.GetConsensus();
 
-    if (pindexPrev && fParticlMode) {
+    if (fParticlMode && pindexPrev) {
+        // Check proof-of-stake: This should be normally GetNextWorkRequiredPoS
+        // This GetNextWorkRequired is defined in diffalgo.cpp
+        if (block.nBits != GetNextTargetRequired(pindexPrev, &block))
+            return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "bad-diffbits-pos", "incorrect proof of stake");
+    } else {
+        // Check proof of work
         if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "bad-diffbits", "incorrect proof of work");
     }

@@ -51,7 +51,7 @@ class BalancesIndexTest(ParticlTestFramework):
         self.stakeBlocks(1)
 
         r = nodes[1].getblockbalances(nodes[0].getblockhash(1), {'in_sats': True})
-        assert(r['plain'] == 12497900039637)
+        assert(r['plain'] == 12498500000000)
         assert(r['blind'] == 1100000000)
         assert(r['anon'] == 1000000000)
 

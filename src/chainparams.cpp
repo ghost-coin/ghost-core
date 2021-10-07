@@ -57,14 +57,15 @@ bool CChainParams::PushTreasuryFundSettings(int64_t time_from, TreasuryFundSetti
     return true;
 };
 
-int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const
-{
-    int64_t nSubsidy;
+// @notes(me) This one is from Particl Commenting it to use the version from legacy
+// int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const
+// {
+//     int64_t nSubsidy;
 
-    nSubsidy = (pindexPrev->nMoneySupply / COIN) * GetCoinYearReward(pindexPrev->nTime) / (365 * 24 * (60 * 60 / nTargetSpacing));
+//     nSubsidy = (pindexPrev->nMoneySupply / COIN) * GetCoinYearReward(pindexPrev->nTime) / (365 * 24 * (60 * 60 / nTargetSpacing));
 
-    return nSubsidy + nFees;
-};
+//     return nSubsidy + nFees;
+// };
 
 int CChainParams::GetCoinYearPercent(int year) const
 {
@@ -112,11 +113,11 @@ CAmount CChainParams::GetProofOfStakeRewardAtHeight(const int nHeight) const
     return nSubsidy;
 }
 
-// int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const int64_t nFees) const
-// {
-//     int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
-//     return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
-// };
+int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const int64_t nFees) const
+{
+    int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
+    return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
+};
 
 int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const
 {
@@ -716,6 +717,12 @@ public:
         m_is_test_chain = true;
         m_is_mockable_chain = false;
 
+        // Private key:  6qnvC4cuz6Fb5cBXBVcTfJZfiYBrsC3UNPU6wr61cuE9yz6ubrA
+        // Address:      pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn
+        vSporkAddresses = {"pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn"};
+        nMinSporkKeys = 1;
+
+
         checkpointData = {
             {
                 {127620, uint256S("0xe5ab909fc029b253bad300ccf859eb509e03897e7853e8bfdde2710dbf248dd1")},
@@ -845,6 +852,13 @@ public:
         fRequireStandard = true;
         m_is_test_chain = true;
         m_is_mockable_chain = false;
+
+
+
+        // Private key:  DKXHWgYF9pbikLji2CWBh9JGB2f1DmfJhEj1YPZgSeEMHjSBSTN
+        // Address:      mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h
+        vSporkAddresses = {"mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h"};
+        nMinSporkKeys = 1;
     }
 };
 
@@ -915,10 +929,10 @@ public:
         nBIP44IDCurrent = 0x80000001;
         nBIP44IDLegacy = nBIP44IDCurrent;
 
-        nModifierInterval = 10 * 60;    // 10 minutes
-        nStakeMinConfirmations = 225;   // 225 * 2 minutes
-        nTargetSpacing = 120;           // 2 minutes
-        nTargetTimespan = 24 * 60;      // 24 mins
+        nModifierInterval = 2 * 60;    // 10 minutes
+        nStakeMinConfirmations = 12;   // 12 * 2 minutes
+        nTargetSpacing = 5;           // 5 seconds
+        nTargetTimespan = 16 * 60;      // 16 mins
         consensus.nLWMADiffUpgradeHeight = 40863;
         consensus.nZawyLwmaAveragingWindow = 45;
         nBlockReward = 6 * COIN;
@@ -927,6 +941,7 @@ public:
         consensus.nOneTimeGVRPayHeight = 42308;
         consensus.nGVRTreasuryFundAdjustment = 140536;
         nBlockRewardIncrease = 2;
+        nStakeTimestampMask = 0;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
 
         nPruneAfterHeight = 1000;
@@ -949,6 +964,11 @@ public:
         fRequireStandard = true;
         m_is_test_chain = true;
         m_is_mockable_chain = true;
+
+        // Private key:  6qnvC4cuz6Fb5cBXBVcTfJZfiYBrsC3UNPU6wr61cuE9yz6ubrA
+        // Address:      pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn
+        vSporkAddresses = {"pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn"};
+        nMinSporkKeys = 1;
 
         checkpointData = {
             {
@@ -1008,6 +1028,12 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "bcrt";
+
+
+        // Private key:  DKXHWgYF9pbikLji2CWBh9JGB2f1DmfJhEj1YPZgSeEMHjSBSTN
+        // Address:      mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h
+        vSporkAddresses = {"mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h"};
+        nMinSporkKeys = 1;
     }
 
     /**
