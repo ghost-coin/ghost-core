@@ -400,6 +400,39 @@ class SmsgPaidTest(ParticlTestFramework):
         ro = nodes[0].smsgoutbox('all', '', {'sending': True})
         assert(len(ro['messages']) == 0)
 
+        self.log.info('Test delayed funding')
+
+        msgids = []
+        for i in range(3):
+            msg = f'Test msg {i}'
+            sendoptions = {'fundmsg': False}
+            sent_msg = nodes[0].smsgsend(address0, address1, msg, True, 4, False, sendoptions)
+            assert(sent_msg['result'] == 'Not Sent.')
+            msgids.append(sent_msg['msgid'])
+
+        ro = nodes[0].smsgoutbox('all', '', {'stashed': True})
+        assert(len(ro['messages']) == 3)
+
+        fundoptions = {'fundtype': 'anon', 'testfee': True}
+        sent_msgs = nodes[0].smsgfund(msgids, fundoptions)
+        assert(sent_msgs['tx_bytes'] > 500)
+        assert(not 'txid' in sent_msgs)
+
+        fundoptions = {}
+
+        sent_msgs = nodes[0].smsgfund(msgids, fundoptions)
+        assert('txid' in sent_msgs)
+
+        ro = nodes[0].smsgoutbox('all', '', {'stashed': True})
+        assert(len(ro['messages']) == 0)
+
+        self.sync_mempools([nodes[0], nodes[1]])
+        self.stakeBlocks(1, nStakeNode=1)
+
+        self.waitForSmsgExchange(10, 1, 0)
+        inb = nodes[1].smsginbox()
+        assert(len(inb['messages']) == 3)
+
 
 if __name__ == '__main__':
     SmsgPaidTest().main()

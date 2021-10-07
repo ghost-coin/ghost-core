@@ -28,6 +28,7 @@ extern const std::string DBK_SECRETKEY;
 extern const std::string DBK_INBOX;
 extern const std::string DBK_OUTBOX;
 extern const std::string DBK_QUEUED;
+extern const std::string DBK_STASHED;
 extern const std::string DBK_PURGED_TOKEN;
 extern const std::string DBK_FUNDING_TX_DATA;
 extern const std::string DBK_FUNDING_TX_LINK;

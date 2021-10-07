@@ -828,6 +828,7 @@ static RPCHelpMan smsgsend()
                             {"ttl_is_seconds", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true days_retention parameter is interpreted as seconds to live."},
                             {"fund_from_rct", RPCArg::Type::BOOL, RPCArg::Default{false}, "Fund message from anon balance."},
                             {"rct_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size to use with fund_from_rct."},
+                            {"fundmsg", RPCArg::Type::BOOL, RPCArg::Default{true}, "Fund paid message, if false message will be stashed for later funding."},
                         },
                         "options"},
                     {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
@@ -890,6 +891,7 @@ static RPCHelpMan smsgsend()
     bool save_msg = true;
     bool ttl_in_seconds = false;
     bool fund_from_rct = false;
+    bool fund_paid_msg = true;
     size_t rct_ring_size = DEFAULT_RING_SIZE;
 
     UniValue options = request.params[6];
@@ -903,6 +905,7 @@ static RPCHelpMan smsgsend()
             {"ttl_is_seconds",    UniValueType(UniValue::VBOOL)},
             {"fund_from_rct",     UniValueType(UniValue::VBOOL)},
             {"rct_ring_size",     UniValueType(UniValue::VNUM)},
+            {"fundmsg",           UniValueType(UniValue::VBOOL)},
         }, true, false);
         if (!options["fromfile"].isNull()) {
             fFromFile = options["fromfile"].get_bool();
@@ -924,6 +927,9 @@ static RPCHelpMan smsgsend()
         }
         if (!options["rct_ring_size"].isNull()) {
             rct_ring_size = options["rct_ring_size"].get_int();
+        }
+        if (!options["fundmsg"].isNull()) {
+            fund_paid_msg = options["fundmsg"].get_bool();
         }
     }
 
@@ -980,7 +986,7 @@ static RPCHelpMan smsgsend()
         }
     }
     if (smsgModule.Send(kiFrom, kiTo, msg, smsgOut, sError, fPaid, nRetention, fTestFee, &nFee, &nTxBytes,
-                        fFromFile, submit_msg, save_msg, fund_from_rct, rct_ring_size, &cctl) != 0) {
+                        fFromFile, submit_msg, save_msg, fund_from_rct, rct_ring_size, &cctl, fund_paid_msg) != 0) {
 #else
     if (smsgModule.Send(kiFrom, kiTo, msg, smsgOut, sError, fPaid, nRetention, fTestFee, &nFee, &nTxBytes,
                         fFromFile, submit_msg, save_msg) != 0) {
@@ -988,7 +994,7 @@ static RPCHelpMan smsgsend()
         result.pushKV("result", "Send failed.");
         result.pushKV("error", sError);
     } else {
-        result.pushKV("result", (!submit_msg || fTestFee) ? "Not Sent." : "Sent.");
+        result.pushKV("result", (!submit_msg || fTestFee || !fund_paid_msg) ? "Not Sent." : "Sent.");
 
         if (!fTestFee) {
             result.pushKV("msgid", HexStr(smsgModule.GetMsgID(smsgOut)));
@@ -1002,7 +1008,7 @@ static RPCHelpMan smsgsend()
         }
 
         if (fPaid) {
-            if (!fTestFee) {
+            if (!fTestFee && fund_paid_msg) {
                 uint256 txid;
                 smsgOut.GetFundingTxid(txid);
                 result.pushKV("txid", txid.ToString());
@@ -1011,6 +1017,222 @@ static RPCHelpMan smsgsend()
             result.pushKV("tx_bytes", (int)nTxBytes);
         }
     }
+
+    return result;
+},
+    };
+}
+
+static OutputTypes WordToType(std::string &s)
+{
+    if (s == "part" || s == "standard") {
+        return OUTPUT_STANDARD;
+    }
+    if (s == "blind") {
+        //return OUTPUT_CT;
+    }
+    if (s == "anon") {
+        return OUTPUT_RINGCT;
+    }
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid fund from type.");
+};
+
+static RPCHelpMan smsgfund()
+{
+    return RPCHelpMan{"smsgfund",
+        "\nFund and send stashed messages.\n",
+        {
+            {"msgids", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array of smsg ids to fund",
+                {
+                    {"msgid", RPCArg::Type::STR, RPCArg::Default{""}, "smsg id"},
+                },
+            },
+            {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
+                {
+                    {"fundtype", RPCArg::Type::STR, RPCArg::Default{"plain"}, "Fund from \"plain\" or \"anon\" balance."},
+                    {"testfee", RPCArg::Type::BOOL, RPCArg::Default{false}, "Test fee only."},
+                    {"rct_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size to use with fund_from_rct."},
+                },
+                "options"},
+            {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
+                {
+                    {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change"},
+                    {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of json objects",
+                        {
+                            {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
+                                {
+                                    {"tx", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "txn id"},
+                                    {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "txn vout"},
+                                },
+                            },
+                        },
+                    },
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{""}, "Marks this transaction as BIP125 replaceable.\n"
+                    "                              Allows this transaction to be replaced by a transaction with higher fees"},
+                    {"conf_target", RPCArg::Type::NUM, RPCArg::Default{""}, "Confirmation target (in blocks)"},
+                    {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"UNSET"}, "The fee estimate mode, must be one of:\n"
+                    "         \"UNSET\"\n"
+                    "         \"ECONOMICAL\"\n"
+                    "         \"CONSERVATIVE\""},
+                    {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
+                    "                             dirty if they have previously been used in a transaction."},
+                    {"feeRate", RPCArg::Type::AMOUNT, RPCArg::Default{"not set: makes wallet determine the fee"}, "Set a specific fee rate in " + CURRENCY_UNIT + "/kB"},
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                {RPCResult::Type::STR_HEX, "txid", "funding txid"},
+                {RPCResult::Type::STR_AMOUNT, "fee", "tx fee paid"},
+        }},
+        RPCExamples{
+    HelpExampleCli("smsgfund", "[\"msgid\"]") +
+    "\nAs a JSON-RPC call\n"
+    + HelpExampleRpc("smsgfund", "[\"msgid\"]")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    EnsureSMSGIsEnabled();
+
+    RPCTypeCheckArgument(request.params[0], UniValue::VARR);
+    UniValue uv_msgids = request.params[0].get_array();
+    std::vector<smsg::SecureMessage> v_smsgs(uv_msgids.size());
+    std::vector<smsg::SecureMessage*> v_psmsgs(uv_msgids.size());
+    std::vector<CKeyID> v_msg_addr_to(uv_msgids.size()); // Not required
+    {
+        LOCK(smsg::cs_smsgDB);
+        smsg::SecMsgDB dbMsg;
+        if (!dbMsg.Open("cr+")) {
+            throw std::runtime_error("Could not open DB.");
+        }
+
+        for (unsigned int idx = 0; idx < uv_msgids.size(); idx++) {
+            const UniValue &uv_msgid = uv_msgids[idx];
+
+            std::string sMsgId = uv_msgid.get_str();
+            if (!IsHex(sMsgId) || sMsgId.size() != 56) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "msgid must be 28 bytes in hex string.");
+            }
+            std::vector<uint8_t> vMsgId = ParseHex(sMsgId.c_str());
+
+            uint8_t chKey[30];
+            chKey[0] = 'T'; // stashed
+            chKey[1] = 'M';
+            memcpy(chKey + 2, vMsgId.data(), 28);
+            smsg::SecMsgStored smsgStored;
+            if (!dbMsg.ReadSmesg(chKey, smsgStored)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown message id '%s'", sMsgId));
+            }
+            v_smsgs[idx] = smsg::SecureMessage(smsgStored.vchMessage.data());
+            auto &smsg = v_smsgs[idx];
+            if (!smsg.IsPaidVersion()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Non-paid message id '%s'", sMsgId));
+            }
+            try { smsg.pPayload = new uint8_t[smsg.nPayload]; } catch (std::exception &e) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Could not allocate payload %s", e.what()));
+            }
+            memcpy(smsg.pPayload, &smsgStored.vchMessage[smsg::SMSG_HDR_LEN], smsg.nPayload);
+            v_msg_addr_to[idx] = smsgStored.addrTo;
+        }
+    }
+    for (size_t k = 0; k < v_smsgs.size(); ++k) {
+        v_psmsgs[k] = &v_smsgs[k];
+    }
+
+    if (v_psmsgs.size() < 1) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Must specify one or more message ids");
+    }
+    if (v_psmsgs.size() > 3) {
+        // TODO: Raise MAX_DATA_OUTPUT_SIZE in CheckDataOutput
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Limited to funding three messages until next HF");
+    }
+
+    OutputTypes fund_from = OUTPUT_STANDARD;
+    bool test_fee = false;
+    size_t rct_ring_size = DEFAULT_RING_SIZE;
+
+    UniValue options = request.params[1];
+    if (options.isObject()) {
+        RPCTypeCheckObj(options,
+        {
+            {"fundtype",          UniValueType(UniValue::VSTR)},
+            {"testfee",           UniValueType(UniValue::VBOOL)},
+            {"rct_ring_size",     UniValueType(UniValue::VNUM)},
+        }, true, false);
+        if (!options["fundtype"].isNull()) {
+            std::string str_fund_from = options["fundtype"].get_str();
+            fund_from = WordToType(str_fund_from);
+        }
+        if (!options["testfee"].isNull()) {
+            test_fee = options["testfee"].get_bool();
+        }
+        if (!options["rct_ring_size"].isNull()) {
+            rct_ring_size = options["rct_ring_size"].get_int();
+        }
+    }
+
+    std::string sError;
+    UniValue result(UniValue::VOBJ);
+
+    CAmount nTxFee = 0;
+    size_t nTxBytes = 0;
+
+#ifdef ENABLE_WALLET
+    CCoinControl cctl;
+    if (!smsgModule.pactive_wallet) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Active wallet must be set.");
+    }
+    CHDWallet *const pw = GetParticlWallet(smsgModule.pactive_wallet.get());
+    if (!test_fee) {
+        EnsureWalletIsUnlocked(pw);
+    }
+    UniValue uv_cctl = request.params[2];
+    if (uv_cctl.isObject()) {
+        ParseCoinControlOptions(uv_cctl, pw, cctl);
+    }
+
+    bool fund_from_rct = (fund_from == OUTPUT_RINGCT) ? true : false;
+    if (0 != smsgModule.FundMsgs(v_psmsgs, sError, test_fee, &nTxFee, &nTxBytes, fund_from_rct, rct_ring_size, &cctl)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("SecureMsgFund failed %s", sError));
+    }
+
+#else
+    throw JSONRPCError(RPC_MISC_ERROR, "Wallet is disabled.");
+#endif
+
+    if (!test_fee) {
+        for (size_t k = 0; k < v_psmsgs.size(); ++k) {
+            const smsg::SecureMessage &smsg = *v_psmsgs[k];
+            if (0 != smsgModule.SubmitMsg(smsg, v_msg_addr_to[k], false, sError)) {
+                LogPrintf("SubmitMsg failed: %s.\n", HexStr(smsgModule.GetMsgID(smsg)));
+                // throw
+            } else {
+                 // Erase from stash
+                LOCK(smsg::cs_smsgDB);
+                smsg::SecMsgDB dbMsg;
+                if (!dbMsg.Open("cr+")) {
+                    throw std::runtime_error("Could not open DB.");
+                }
+                auto vMsgId = smsgModule.GetMsgID(smsg);
+
+                uint8_t chKey[30];
+                chKey[0] = 'T'; // stashed
+                chKey[1] = 'M';
+                memcpy(chKey + 2, vMsgId.data(), 28);
+                dbMsg.EraseSmesg(chKey);
+            }
+        }
+    }
+
+    if (!test_fee) {
+        uint256 txid;
+        const smsg::SecureMessage &smsg = *v_psmsgs[0];
+        smsg.GetFundingTxid(txid);
+        result.pushKV("txid", txid.ToString());
+    }
+
+    result.pushKV("fee", ValueFromAmount(nTxFee));
+    result.pushKV("tx_bytes", (int)nTxBytes);
 
     return result;
 },
@@ -1248,6 +1470,7 @@ static RPCHelpMan smsgoutbox()
                         {
                             {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
                             {"sending", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display messages in sending queue."},
+                            {"stashed", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display stashed messages."},
                         },
                         "options"},
                 },
@@ -1274,6 +1497,7 @@ static RPCHelpMan smsgoutbox()
     std::string filter = request.params[1].isStr() ? request.params[1].get_str() : "";
 
     bool show_sending = false;
+    bool show_stashed = false;
     std::string sEnc = "text";
     if (request.params[2].isObject()) {
         UniValue options = request.params[2].get_obj();
@@ -1283,6 +1507,13 @@ static RPCHelpMan smsgoutbox()
         if (options["sending"].isBool()) {
             show_sending = options["sending"].get_bool();
         }
+        if (options["stashed"].isBool()) {
+            show_stashed = options["stashed"].get_bool();
+        }
+    }
+
+    if (show_sending && show_stashed) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Select sending or stashed.");
     }
 
     UniValue result(UniValue::VOBJ);
@@ -1300,7 +1531,7 @@ static RPCHelpMan smsgoutbox()
 
         uint32_t nMessages = 0;
 
-        std::string db_prefix = show_sending ? smsg::DBK_QUEUED : smsg::DBK_OUTBOX;
+        std::string db_prefix = show_sending ? smsg::DBK_QUEUED : show_stashed ? smsg::DBK_STASHED : smsg::DBK_OUTBOX;
         if (mode == "clear") {
             dbOutbox.TxnBegin();
 
@@ -1857,16 +2088,17 @@ static RPCHelpMan smsgone()
 
     uint8_t chKey[30];
     chKey[1] = 'M';
-    memcpy(chKey+2, vMsgId.data(), 28);
+    memcpy(chKey + 2, vMsgId.data(), 28);
     smsg::SecMsgStored smsgStored;
-    UniValue result(UniValue::VOBJ);
 
+    UniValue result(UniValue::VOBJ);
     UniValue options = request.params[1];
     {
         LOCK(smsg::cs_smsgDB);
         smsg::SecMsgDB dbMsg;
-        if (!dbMsg.Open("cr+"))
+        if (!dbMsg.Open("cr+")) {
             throw std::runtime_error("Could not open DB.");
+        }
 
         if ((chKey[0] = 'I') && dbMsg.ReadSmesg(chKey, smsgStored)) {
             sType = "inbox";
@@ -1876,9 +2108,12 @@ static RPCHelpMan smsgone()
         } else
         if ((chKey[0] = 'Q') && dbMsg.ReadSmesg(chKey, smsgStored)) {
             sType = "sending";
+        } else
+        if ((chKey[0] = 'T') && dbMsg.ReadSmesg(chKey, smsgStored)) {
+            sType = "stashed";
         } else {
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "Unknown message id.");
-        };
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown message id.");
+        }
 
         if (options.isObject()) {
             options = request.params[1].get_obj();
@@ -2311,7 +2546,7 @@ static RPCHelpMan smsgzmqpush()
         }
     }
 
-     {
+    {
         LOCK(smsg::cs_smsgDB);
 
         smsg::SecMsgDB dbInbox;
@@ -2455,6 +2690,7 @@ static const CRPCCommand commands[] =
     { "smsg",               &smsgdumpprivkey            },
     { "smsg",               &smsggetpubkey              },
     { "smsg",               &smsgsend                   },
+    { "smsg",               &smsgfund                   },
     { "smsg",               &smsgsendanon               },
     { "smsg",               &smsginbox                  },
     { "smsg",               &smsgoutbox                 },

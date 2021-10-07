@@ -2354,7 +2354,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                             attempted_rct_index_repair = true;
                             return false;
                         } else {
-                            LogPrintf("Not attempting repair, already tried once.\n");
+                            LogPrintf("Not attempting anon index repair, already tried once.\n");
                         }
                     }
 
