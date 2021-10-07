@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     CAmount stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
 
     StakeNBlocks(pwallet, 2);
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == 12500001902586);
+    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == 12501200000000);
     BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply + stake_reward * 2);
 
     CBlockIndex *pindexDelete = ::ChainActive().Tip();
@@ -281,7 +281,8 @@ BOOST_AUTO_TEST_CASE(stake_test)
 
             // Reduce the reward
             RegtestParams().SetCoinYearReward(1 * CENT);
-            BOOST_CHECK(Params().GetCoinYearReward(0) == 1 * CENT);
+            RegtestParams().SetBlockReward(1* CENT);
+            BOOST_CHECK(Params().GetBaseBlockReward() == 1 * CENT);
 
             BlockValidationState state;
             CCoinsViewCache view(&::ChainstateActive().CoinsTip());
@@ -292,8 +293,10 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_CHECK(prevTipHash == ::ChainActive().Tip()->GetBlockHash());
 
             // Restore the reward
-            RegtestParams().SetCoinYearReward(2 * CENT);
-            BOOST_CHECK(Params().GetCoinYearReward(0) == 2 * CENT);
+            RegtestParams().SetCoinYearReward(6 * COIN);
+            RegtestParams().SetBlockReward(6 * COIN);
+            BOOST_CHECK(Params().GetCoinYearReward(0) == 6 * COIN);
+            BOOST_CHECK(Params().GetBaseBlockReward() == 6 * COIN);
 
             // Block should connect now
             BlockValidationState clearstate;
@@ -305,17 +308,16 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_REQUIRE(::ChainstateActive().FlushStateToDisk(chainparams, clearstate, FlushStateMode::IF_NEEDED));
             ::ChainActive().SetTip(pindexDelete);
             UpdateTip(*m_node.mempool.get(), pindexDelete, chainparams);
-
             BOOST_CHECK(tipHash == ::ChainActive().Tip()->GetBlockHash());
-            BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500002853879);
+            BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12501800000000);
         }
     }
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewextaddress testLbl", context));
     std::string extaddr = part::StripQuotes(rv.write());
 
-    BOOST_CHECK(pwallet->GetBalance().m_mine_trusted + pwallet->GetStaked() == 12500002843879);
-    BOOST_CHECK(::ChainActive().Tip()->nMoneySupply - nAmountSendAway == 12500002843879);
+    BOOST_CHECK(pwallet->GetBalance().m_mine_trusted + pwallet->GetStaked() == 12501799990000);
+    BOOST_CHECK(::ChainActive().Tip()->nMoneySupply - nAmountSendAway == 12501799990000);
 
 
     {
@@ -354,7 +356,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         }
 
         BOOST_CHECK(::ChainActive().Tip()->nAnonOutputs == 0);
-        BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12500002853879);
+        BOOST_CHECK(::ChainActive().Tip()->nMoneySupply == 12501800000000);
     }
 }
 
