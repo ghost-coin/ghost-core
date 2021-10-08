@@ -343,6 +343,108 @@ BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)
     BOOST_CHECK(scriptOutB == scriptSpend);
 }
 
+inline static void memput_uint32_le(uint8_t *p, uint32_t v) {
+    v = htole32((uint32_t) v);
+    memcpy(p, &v, 4);
+}
+
+BOOST_AUTO_TEST_CASE(smsg_fees)
+{
+    int nSpendHeight = 1;
+    CCoinsView viewDummy;
+    CCoinsViewCache inputs(&viewDummy);
+
+    CMutableTransaction txnPrev;
+    txnPrev.nVersion = PARTICL_TXN_VERSION;
+    BOOST_CHECK(txnPrev.IsParticlVersion());
+
+    CScript scriptPubKey;
+    txnPrev.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, scriptPubKey));
+
+    CTransaction txnPrev_c(txnPrev);
+    AddCoins(inputs, txnPrev_c, 1);
+    uint256 prevHash = txnPrev_c.GetHash();
+
+    CMutableTransaction txn;
+    txn.nVersion = PARTICL_TXN_VERSION;
+    BOOST_CHECK(txn.IsParticlVersion());
+    txn.vin.push_back(CTxIn(prevHash, 0));
+
+    CAmount smsg_fee = 20000;
+    std::vector<uint8_t> vData(1 + 24);
+    vData[0] = DO_FUND_MSG;
+    memset(&vData[1], 0, 20);
+    memput_uint32_le(&vData[21], smsg_fee);
+
+
+    OUTPUT_PTR<CTxOutData> out_smsg_fees = MAKE_OUTPUT<CTxOutData>();
+    out_smsg_fees->vData = vData;
+    txn.vpout.push_back(out_smsg_fees);
+    txn.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN - smsg_fee, scriptPubKey));
+
+    CFeeRate funding_tx_fee = CFeeRate(Params().GetConsensus().smsg_fee_funding_tx_per_k);
+    size_t nBytes = GetVirtualTransactionSize(CTransaction(txn));
+    CAmount txfee = funding_tx_fee.GetFee(nBytes);
+
+    {
+        CTransaction tx_c(txn);
+        TxValidationState state;
+        state.SetStateInfo(GetTime(), nSpendHeight, Params().GetConsensus(), true /* particl_mode */, false /* skip_rangeproof */);
+        BOOST_CHECK(CheckTransaction(tx_c, state));
+        BOOST_CHECK(!Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee));
+        BOOST_CHECK(state.GetRejectReason() == "bad-txns-fee-smsg");
+    }
+
+    ((CTxOutStandard*)txn.vpout.back().get())->nValue -= txfee;
+    {
+        CTransaction tx_c(txn);
+        TxValidationState state;
+        state.SetStateInfo(GetTime(), nSpendHeight, Params().GetConsensus(), true /* particl_mode */, false /* skip_rangeproof */);
+        BOOST_CHECK(CheckTransaction(tx_c, state));
+        BOOST_CHECK(Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee));
+    }
+
+    txn.vpout.push_back(out_smsg_fees);
+    txn.vpout.push_back(out_smsg_fees);
+    {
+        CTransaction tx_c(txn);
+        TxValidationState state;
+        state.SetStateInfo(GetTime(), nSpendHeight, Params().GetConsensus(), true /* particl_mode */, false /* skip_rangeproof */);
+        BOOST_CHECK(!CheckTransaction(tx_c, state));
+        BOOST_CHECK(state.GetRejectReason() == "too-many-data-outputs");
+    }
+
+    // Test multiple messages
+    txn.vpout.pop_back();
+    txn.vpout.pop_back();
+
+    CAmount smsg_fee_2 = 10000;
+    {
+        std::vector<uint8_t> &vData = *txn.vpout[0]->GetPData();
+        vData.resize(49);
+        memset(&vData[25], 0, 20);
+        memput_uint32_le(&vData[1 + 24 + 20], smsg_fee_2);
+    }
+    {
+        CTransaction tx_c(txn);
+        TxValidationState state;
+        state.SetStateInfo(GetTime(), nSpendHeight, Params().GetConsensus(), true /* particl_mode */, false /* skip_rangeproof */);
+        BOOST_CHECK(CheckTransaction(tx_c, state));
+        BOOST_CHECK(!Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee));
+        BOOST_CHECK(state.GetRejectReason() == "bad-txns-fee-smsg");
+    }
+    nBytes = GetVirtualTransactionSize(CTransaction(txn));
+    txfee = funding_tx_fee.GetFee(nBytes);
+    ((CTxOutStandard*)txn.vpout[1].get())->nValue = 1 * COIN - (smsg_fee + smsg_fee_2 + txfee);
+    {
+        CTransaction tx_c(txn);
+        TxValidationState state;
+        state.SetStateInfo(GetTime(), nSpendHeight, Params().GetConsensus(), true /* particl_mode */, false /* skip_rangeproof */);
+        BOOST_CHECK(CheckTransaction(tx_c, state));
+        BOOST_CHECK(Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee));
+    }
+}
+
 BOOST_AUTO_TEST_CASE(coin_year_reward)
 {
     BOOST_CHECK(Params().GetCoinYearReward(1529700000) == 5 * CENT);
