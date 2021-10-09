@@ -2,13 +2,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-bin_PROGRAMS += qt/particl-qt
+bin_PROGRAMS += qt/ghost-qt
 
 if BUILD_BITCOIN_GUI
-  bin_PROGRAMS += particl-gui
+  bin_PROGRAMS += ghost-gui
 endif
 
-EXTRA_LIBRARIES += qt/libparticlqt.a
+EXTRA_LIBRARIES += qt/libghostqt.a
 
 # bitcoin qt core #
 include Makefile.qt_locale.include
@@ -292,18 +292,18 @@ BITCOIN_RC = qt/res/bitcoin-qt-res.rc
 
 BITCOIN_QT_INCLUDES = -DQT_NO_KEYWORDS
 
-qt_libparticlqt_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
+qt_libghostqt_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(QT_DBUS_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
-qt_libparticlqt_a_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
-qt_libparticlqt_a_OBJCXXFLAGS = $(AM_OBJCXXFLAGS) $(QT_PIE_FLAGS)
+qt_libghostqt_a_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
+qt_libghostqt_a_OBJCXXFLAGS = $(AM_OBJCXXFLAGS) $(QT_PIE_FLAGS)
 
-qt_libparticlqt_a_SOURCES = $(BITCOIN_QT_CPP) $(BITCOIN_QT_H) $(QT_FORMS_UI) \
+qt_libghostqt_a_SOURCES = $(BITCOIN_QT_CPP) $(BITCOIN_QT_H) $(QT_FORMS_UI) \
   $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(RES_ICONS) $(RES_ANIMATION) $(PROTOBUF_PROTO)
 if TARGET_DARWIN
-  qt_libparticlqt_a_SOURCES += $(BITCOIN_MM)
+  qt_libghostqt_a_SOURCES += $(BITCOIN_MM)
 endif
 
-nodist_qt_libparticlqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
+nodist_qt_libghostqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
   $(PROTOBUF_H) $(QT_QRC_CPP) $(QT_QRC_LOCALE_CPP)
 
 # forms/foo.h -> forms/ui_foo.h
@@ -312,7 +312,7 @@ QT_FORMS_H=$(join $(dir $(QT_FORMS_UI)),$(addprefix ui_, $(notdir $(QT_FORMS_UI:
 # Most files will depend on the forms and moc files as includes. Generate them
 # before anything else.
 $(QT_MOC): $(QT_FORMS_H)
-$(qt_libparticlqt_a_OBJECTS) $(qt_particl_qt_OBJECTS) $(particl_gui_OBJECTS) : | $(QT_MOC)
+$(qt_libghostqt_a_OBJECTS) $(qt_ghost_qt_OBJECTS) $(ghost_gui_OBJECTS) : | $(QT_MOC)
 
 # bitcoin-qt and bitcoin-gui binaries #
 particl_qt_cppflags = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
@@ -323,35 +323,35 @@ particl_qt_sources = qt/main.cpp
 if TARGET_WINDOWS
   particl_qt_sources += $(BITCOIN_RC)
 endif
-particl_qt_ldadd = qt/libparticlqt.a $(LIBPARTICL_SERVER)
+particl_qt_ldadd = qt/libghostqt.a $(LIBGHOST_SERVER)
 if ENABLE_WALLET
-particl_qt_ldadd += $(LIBPARTICL_UTIL) $(LIBPARTICL_WALLET)
+particl_qt_ldadd += $(LIBGHOST_UTIL) $(LIBGHOST_WALLET)
 endif
 if ENABLE_ZMQ
-particl_qt_ldadd += $(LIBPARTICL_ZMQ) $(ZMQ_LIBS)
+particl_qt_ldadd += $(LIBGHOST_ZMQ) $(ZMQ_LIBS)
 endif
 if ENABLE_USBDEVICE
-particl_qt_ldadd += $(LIBPARTICL_USBDEVICE) $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
+particl_qt_ldadd += $(LIBGHOST_USBDEVICE) $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
-particl_qt_ldadd += $(LIBPARTICL_CLI) $(LIBPARTICL_COMMON) $(LIBPARTICL_UTIL) $(LIBPARTICL_CONSENSUS) $(LIBPARTICL_CRYPTO) $(LIBPARTICL_SMSG) $(LIBPARTICL_MNEMONIC)  $(LIBUNIVALUE) $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) \
+particl_qt_ldadd += $(LIBGHOST_CLI) $(LIBGHOST_COMMON) $(LIBGHOST_UTIL) $(LIBGHOST_CONSENSUS) $(LIBGHOST_CRYPTO) $(LIBGHOST_SMSG) $(LIBGHOST_MNEMONIC)  $(LIBUNIVALUE) $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) \
   $(BOOST_LIBS) $(QT_LIBS) $(QT_DBUS_LIBS) $(QR_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(LIBSECP256K1) \
   $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(SQLITE_LIBS)
 particl_qt_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 particl_qt_libtoolflags = $(AM_LIBTOOLFLAGS) --tag CXX
 
-qt_particl_qt_CPPFLAGS = $(particl_qt_cppflags)
-qt_particl_qt_CXXFLAGS = $(particl_qt_cxxflags)
-qt_particl_qt_SOURCES = $(particl_qt_sources)
-qt_particl_qt_LDADD = $(particl_qt_ldadd)
-qt_particl_qt_LDFLAGS = $(particl_qt_ldflags)
-qt_particl_qt_LIBTOOLFLAGS = $(particl_qt_libtoolflags)
+qt_ghost_qt_CPPFLAGS = $(particl_qt_cppflags)
+qt_ghost_qt_CXXFLAGS = $(particl_qt_cxxflags)
+qt_ghost_qt_SOURCES = $(particl_qt_sources)
+qt_ghost_qt_LDADD = $(particl_qt_ldadd)
+qt_ghost_qt_LDFLAGS = $(particl_qt_ldflags)
+qt_ghost_qt_LIBTOOLFLAGS = $(particl_qt_libtoolflags)
 
-particl_gui_CPPFLAGS = $(particl_qt_cppflags)
-particl_gui_CXXFLAGS = $(particl_qt_cxxflags)
-particl_gui_SOURCES = $(particl_qt_sources)
-particl_gui_LDADD = $(particl_qt_ldadd)
-particl_gui_LDFLAGS = $(particl_qt_ldflags)
-particl_gui_LIBTOOLFLAGS = $(particl_qt_libtoolflags)
+ghost_gui_CPPFLAGS = $(particl_qt_cppflags)
+ghost_gui_CXXFLAGS = $(particl_qt_cxxflags)
+ghost_gui_SOURCES = $(particl_qt_sources)
+ghost_gui_LDADD = $(particl_qt_ldadd)
+ghost_gui_LDFLAGS = $(particl_qt_ldflags)
+ghost_gui_LIBTOOLFLAGS = $(particl_qt_libtoolflags)
 
 #locale/foo.ts -> locale/foo.qm
 QT_QM=$(QT_TS:.ts=.qm)
@@ -360,7 +360,7 @@ SECONDARY: $(QT_QM)
 
 $(srcdir)/qt/bitcoinstrings.cpp: FORCE
 	@test -n $(XGETTEXT) || echo "xgettext is required for updating translations"
-	$(AM_V_GEN) cd $(srcdir); XGETTEXT=$(XGETTEXT) COPYRIGHT_HOLDERS="$(COPYRIGHT_HOLDERS)" $(PYTHON) ../share/qt/extract_strings_qt.py $(libparticl_server_a_SOURCES) $(libparticl_wallet_a_SOURCES) $(libparticl_common_a_SOURCES) $(libparticl_zmq_a_SOURCES) $(libparticl_consensus_a_SOURCES) $(libparticl_util_a_SOURCES)
+	$(AM_V_GEN) cd $(srcdir); XGETTEXT=$(XGETTEXT) COPYRIGHT_HOLDERS="$(COPYRIGHT_HOLDERS)" $(PYTHON) ../share/qt/extract_strings_qt.py $(libghost_server_a_SOURCES) $(libghost_wallet_a_SOURCES) $(libghost_common_a_SOURCES) $(libghost_zmq_a_SOURCES) $(libghost_consensus_a_SOURCES) $(libghost_util_a_SOURCES)
 
 translate: $(srcdir)/qt/bitcoinstrings.cpp $(QT_FORMS_UI) $(QT_FORMS_UI) $(BITCOIN_QT_BASE_CPP) qt/bitcoin.cpp $(BITCOIN_QT_WINDOWS_CPP) $(BITCOIN_QT_WALLET_CPP) $(BITCOIN_QT_H) $(BITCOIN_MM)
 	@test -n $(LUPDATE) || echo "lupdate is required for updating translations"
@@ -378,14 +378,14 @@ $(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_ANIMATION)
 	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name bitcoin $< | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 
-CLEAN_QT = $(nodist_qt_libparticlqt_a_SOURCES) $(QT_QM) $(QT_FORMS_H) qt/*.gcda qt/*.gcno qt/temp_bitcoin_locale.qrc
+CLEAN_QT = $(nodist_qt_libghostqt_a_SOURCES) $(QT_QM) $(QT_FORMS_H) qt/*.gcda qt/*.gcno qt/temp_bitcoin_locale.qrc
 
 CLEANFILES += $(CLEAN_QT)
 
 particl_qt_clean: FORCE
-	rm -f $(CLEAN_QT) $(qt_libparticlqt_a_OBJECTS) $(qt_particl_qt_OBJECTS) qt/particl-qt$(EXEEXT) $(LIBPARTICLQT)
+	rm -f $(CLEAN_QT) $(qt_libghostqt_a_OBJECTS) $(qt_ghost_qt_OBJECTS) qt/ghost-qt$(EXEEXT) $(LIBGHOSTQT)
 
-particl_qt : qt/particl-qt$(EXEEXT)
+particl_qt : qt/ghost-qt$(EXEEXT)
 
 ui_%.h: %.ui
 	@test -f $(UIC)

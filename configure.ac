@@ -8,7 +8,7 @@ define(_CLIENT_VERSION_RC, 0)
 define(_CLIENT_VERSION_IS_RELEASE, true)
 define(_COPYRIGHT_YEAR, 2021)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
-define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Particl Core]])
+define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Ghost Core]])
 AC_INIT([Particl Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION._CLIENT_VERSION_PARTICL],[https://github.com/particl/particl-core/issues],[particl],[https://particl.io/])
 AC_CONFIG_SRCDIR([src/validation.cpp])
 AC_CONFIG_HEADERS([src/config/bitcoin-config.h])
@@ -21,11 +21,11 @@ if test "x$PKG_CONFIG" = x; then
   AC_MSG_ERROR([pkg-config not found])
 fi
 
-BITCOIN_DAEMON_NAME=particld
-BITCOIN_GUI_NAME=particl-qt
-BITCOIN_CLI_NAME=particl-cli
-BITCOIN_TX_NAME=particl-tx
-BITCOIN_WALLET_TOOL_NAME=particl-wallet
+BITCOIN_DAEMON_NAME=ghostd
+BITCOIN_GUI_NAME=ghost-qt
+BITCOIN_CLI_NAME=ghost-cli
+BITCOIN_TX_NAME=ghost-tx
+BITCOIN_WALLET_TOOL_NAME=ghost-wallet
 
 dnl Unless the user specified ARFLAGS, force it to be cr
 AC_ARG_VAR(ARFLAGS, [Flags for the archiver, defaults to <cr> if not set])
@@ -1561,7 +1561,7 @@ AC_MSG_CHECKING([whether to build libraries])
 AM_CONDITIONAL([BUILD_BITCOIN_LIBS], [test x$build_bitcoin_libs = xyes])
 if test x$build_bitcoin_libs = xyes; then
   AC_DEFINE(HAVE_CONSENSUS_LIB, 1, [Define this symbol if the consensus lib has been built])
-  AC_CONFIG_FILES([libparticlconsensus.pc:libparticlconsensus.pc.in])
+  AC_CONFIG_FILES([libghostconsensus.pc:libghostconsensus.pc.in])
 fi
 AC_MSG_RESULT($build_bitcoin_libs)
 
