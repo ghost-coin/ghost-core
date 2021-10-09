@@ -66,6 +66,7 @@ Next Major Version
  - smsg: Fund multiple messages per txn.
    - Sent messages can be stashed in db for later bulk funding.
  - rpc: gettransaction and filtertransactions can display smsg funding info.
+ - rpc: Fixed sendtypeto with show_hex set.
 
 
 0.19.2.16
