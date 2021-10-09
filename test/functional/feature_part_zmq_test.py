@@ -10,11 +10,11 @@ import struct
 import time
 import base64
 
-from test_framework.test_particl import ParticlTestFramework
+from test_framework.test_particl import GhostTestFramework
 from test_framework.test_framework import SkipTest
 
 
-class ZMQTest(ParticlTestFramework):
+class ZMQTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2

@@ -6,7 +6,7 @@
 import struct
 import copy
 
-from test_framework.test_particl import ParticlTestFramework
+from test_framework.test_particl import GhostTestFramework
 from test_framework.util import assert_raises_rpc_error
 
 
@@ -33,7 +33,7 @@ def putvarint(i):
     return bb
 
 
-class SmsgPaidFeeTest(ParticlTestFramework):
+class SmsgPaidFeeTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3

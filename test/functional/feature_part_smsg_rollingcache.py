@@ -6,13 +6,13 @@
 import time
 
 from test_framework.test_particl import (
-    ParticlTestFramework,
+    GhostTestFramework,
     isclose
 )
 
 KEEP_FUNDING_TX_DATA = 86400 * 31
 
-class SmsgRollingCacheTest(ParticlTestFramework):
+class SmsgRollingCacheTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True  # Don't copy from cache
         self.num_nodes = 3

@@ -5,11 +5,11 @@
 
 import json
 
-from test_framework.test_particl import ParticlTestFramework, isclose
+from test_framework.test_particl import GhostTestFramework, isclose
 from test_framework.util import assert_raises_rpc_error
 
 
-class StealthTest(ParticlTestFramework):
+class StealthTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3

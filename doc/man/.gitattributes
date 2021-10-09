@@ -1,5 +1,5 @@
-particl-cli.1 merge=ours
-particl-qt.1 merge=ours
-particl-wallet.1 merge=ours
-particld.1 merge=ours
-particl-tx.1 merge=ours
+ghost-cli.1 merge=ours
+ghost-qt.1 merge=ours
+ghost-wallet.1 merge=ours
+ghostd.1 merge=ours
+ghost-tx.1 merge=ours

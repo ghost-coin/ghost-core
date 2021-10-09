@@ -3,7 +3,7 @@ exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
-Name: Particl Core consensus library
+Name: ghost Core consensus library
 Description: Library for the Ghost consensus protocol.
 Version: 0.21.1.2
 Libs: -L${libdir} -lghostconsensus

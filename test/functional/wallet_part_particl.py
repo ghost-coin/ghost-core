@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2021 The Ghost Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,7 +10,7 @@ import subprocess
 
 from test_framework.util import assert_raises_rpc_error, assert_equal
 from test_framework.authproxy import JSONRPCException
-from test_framework.test_particl import ParticlTestFramework
+from test_framework.test_particl import GhostTestFramework
 
 
 def read_dump(file_name):
@@ -35,7 +35,7 @@ def read_dump(file_name):
     return sJson, nLines
 
 
-class WalletParticlTest(ParticlTestFramework):
+class WalletParticlTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 4
@@ -50,7 +50,7 @@ class WalletParticlTest(ParticlTestFramework):
         self.start_nodes()
 
     def particl_wallet_process(self, *args):
-        binary = self.config["environment"]["BUILDDIR"] + '/src/particl-wallet' + self.config["environment"]["EXEEXT"]
+        binary = self.config["environment"]["BUILDDIR"] + '/src/ghost-wallet' + self.config["environment"]["EXEEXT"]
         args = ['-datadir={}'.format(self.nodes[0].datadir), '-regtest'] + list(args)
         return subprocess.Popen([binary] + args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
