@@ -8,7 +8,7 @@ import json
 import binascii
 
 from test_framework.test_particl import (
-    ParticlTestFramework,
+    GhostTestFramework,
     isclose,
     getIndexAtProperty,
 )
@@ -16,7 +16,7 @@ from test_framework.util import assert_raises_rpc_error
 from test_framework.authproxy import JSONRPCException
 
 
-class SmsgPaidTest(ParticlTestFramework):
+class SmsgPaidTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3

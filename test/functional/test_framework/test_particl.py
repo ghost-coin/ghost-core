@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2020 The Particl Core developers
+# Copyright (c) 2017-2020 The ghost Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,13 +28,13 @@ def getIndexAtProperty(arr, name, value):
     return -1
 
 
-class ParticlTestFramework(BitcoinTestFramework):
+class GhostTestFramework(BitcoinTestFramework):
     def start_node(self, i, *args, **kwargs):
         kwargs['btcmode'] = False
         return super().start_node(i, *args, **kwargs)
 
-    def particl_wallet(self, node, *args):
-        binary = self.config["environment"]["BUILDDIR"] + '/src/particl-wallet' + self.config["environment"]["EXEEXT"]
+    def ghost_wallet(self, node, *args):
+        binary = self.config["environment"]["BUILDDIR"] + '/src/ghost-wallet' + self.config["environment"]["EXEEXT"]
         args = ['-datadir={}'.format(node.datadir), '-regtest'] + list(args)
         p = subprocess.Popen([binary] + args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         stdout, stderr = p.communicate()
@@ -42,7 +42,7 @@ class ParticlTestFramework(BitcoinTestFramework):
         return p.poll()
 
     def start_nodes(self, extra_args=None, *args, **kwargs):
-        """Start multiple particlds"""
+        """Start multiple ghostds"""
         kwargs['btcmode'] = False
         if extra_args is None:
             if hasattr(self, "extra_args"):
@@ -63,7 +63,7 @@ class ParticlTestFramework(BitcoinTestFramework):
                 # Create all specified wallets
                 for a in ea:
                     if a.startswith('-wallet'):
-                        self.particl_wallet(node, a, 'create')
+                        self.ghost_wallet(node, a, 'create')
 
                 node.start(ea, *args, **kwargs)
             for node in self.nodes:

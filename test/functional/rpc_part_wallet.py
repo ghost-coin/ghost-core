@@ -3,10 +3,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.test_particl import ParticlTestFramework, isclose
+from test_framework.test_particl import GhostTestFramework, isclose
 
 
-class WalletRPCTest(ParticlTestFramework):
+class WalletRPCTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2

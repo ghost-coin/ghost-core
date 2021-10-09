@@ -3,11 +3,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.test_particl import ParticlTestFramework
+from test_framework.test_particl import GhostTestFramework
 from test_framework.authproxy import JSONRPCException
 
 
-class FilterTransactionsTest(ParticlTestFramework):
+class FilterTransactionsTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3

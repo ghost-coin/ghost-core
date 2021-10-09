@@ -5,10 +5,10 @@
 
 import json
 
-from test_framework.test_particl import ParticlTestFramework, isclose
+from test_framework.test_particl import GhostTestFramework, isclose
 
 
-class ExtKeyTest(ParticlTestFramework):
+class ExtKeyTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3

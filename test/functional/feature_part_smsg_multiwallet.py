@@ -5,11 +5,11 @@
 
 import time
 
-from test_framework.test_particl import ParticlTestFramework
+from test_framework.test_particl import GhostTestFramework
 from test_framework.authproxy import JSONRPCException
 
 
-class SmsgMultiWalletTest(ParticlTestFramework):
+class SmsgMultiWalletTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True  # Don't copy from cache
         self.num_nodes = 3
