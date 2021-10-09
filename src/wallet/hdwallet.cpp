@@ -11034,6 +11034,8 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
         stx.vBlinds.clear();
     }
 
+    CAmount smsg_fees = 0;
+    int smsgs_funded = 0;
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];
 
@@ -11080,6 +11082,20 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
                     rtx.InsertOutput(*pout);
                 }
                 break;
+            case OUTPUT_DATA:
+                CTxOutData *txd = (CTxOutData*)txout.get();
+                if (txd->vData.size() < 25 || txd->vData[0] != DO_FUND_MSG) {
+                    continue;
+                }
+                size_t n = (txd->vData.size()-1) / 24;
+                for (size_t k = 0; k < n; ++k) {
+                    uint32_t nAmount;
+                    memcpy(&nAmount, &txd->vData[1+k*24+20], 4);
+                    nAmount = le32toh(nAmount);
+                    smsg_fees += nAmount;
+                    smsgs_funded += 1;
+                }
+                break;
         }
 
         if (IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
@@ -11088,6 +11104,14 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
                 SetSpentKeyState(pscript, true);
             }
         }
+    }
+
+    if (smsgs_funded > 0) {
+        std::vector<uint8_t> v;
+        v.resize(12);
+        memcpy(v.data(), &smsgs_funded, 4);
+        memcpy(v.data() + 4, &smsg_fees, 8);
+        rtx.mapValue[RTXVT_SMSG_FEES] = v;
     }
 
     if (fInsertedNew || fUpdated) {

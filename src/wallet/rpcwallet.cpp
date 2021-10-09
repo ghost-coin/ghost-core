@@ -257,6 +257,36 @@ void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint2
     */
 }
 
+static void AddSmsgFundingInfo(const CTransaction &tx, UniValue &entry)
+{
+    CAmount smsg_fees = 0;
+    UniValue smsges(UniValue::VARR);
+    for (const auto &v : tx.vpout) {
+        if (!v->IsType(OUTPUT_DATA)) {
+            continue;
+        }
+        CTxOutData *txd = (CTxOutData*) v.get();
+        if (txd->vData.size() < 25 || txd->vData[0] != DO_FUND_MSG) {
+            continue;
+        }
+        size_t n = (txd->vData.size()-1) / 24;
+        for (size_t k = 0; k < n; ++k) {
+            uint32_t nAmount;
+            memcpy(&nAmount, &txd->vData[1+k*24+20], 4);
+            nAmount = le32toh(nAmount);
+            smsg_fees += nAmount;
+            UniValue funded_smsg(UniValue::VOBJ);
+            funded_smsg.pushKV("smsghash", HexStr(Span<const unsigned char>(&txd->vData[1+k*24], 20)));
+            funded_smsg.pushKV("fee", ValueFromAmount(nAmount));
+            smsges.push_back(funded_smsg);
+        }
+    }
+    if (smsg_fees > 0) {
+        entry.pushKV("smsgs_funded", smsges);
+        entry.pushKV("smsg_fees", ValueFromAmount(smsg_fees));
+    }
+}
+
 static std::string LabelFromValue(const UniValue& value)
 {
     std::string label = value.get_str();
@@ -2311,6 +2341,10 @@ UniValue gettransaction_inner(JSONRPCRequest const &request)
                         TxToUniv(*(stx.tx.get()), uint256(), decoded, false);
                         entry.pushKV("decoded", decoded);
                     }
+                    mapRTxValue_t::const_iterator mvi = rtx.mapValue.find(RTXVT_SMSG_FEES);
+                    if (mvi != rtx.mapValue.end()) {
+                        AddSmsgFundingInfo(*(stx.tx.get()), entry);
+                    }
                 }
 
                 return entry;
@@ -2344,6 +2378,7 @@ UniValue gettransaction_inner(JSONRPCRequest const &request)
         TxToUniv(*wtx.tx, uint256(), decoded, false);
         entry.pushKV("decoded", decoded);
     }
+    AddSmsgFundingInfo(*wtx.tx, entry);
 
     return entry;
 }

@@ -65,6 +65,7 @@ Next Major Version
  - net: Ignore smsg for peers with connection type one shot or feeler.
  - smsg: Fund multiple messages per txn.
    - Sent messages can be stashed in db for later bulk funding.
+ - rpc: gettransaction and filtertransactions can display smsg funding info.
 
 
 0.19.2.16

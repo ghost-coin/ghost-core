@@ -62,6 +62,8 @@ enum RTxAddonValueTypes
     RTXVT_COMMENT               = 4,
     RTXVT_TO                    = 5,
 
+    RTXVT_SMSG_FEES             = 6,
+
     /*
     RTXVT_STEALTH_KEYID     = 2,
     RTXVT_STEALTH_KEYID_N   = 3, // n0:pk0:n1:pk1:...
