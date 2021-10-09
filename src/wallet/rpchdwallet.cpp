@@ -5416,7 +5416,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
         result.pushKV("mempool-allowed", mempool_allowed);
     }
-    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept || !fSubmitTx) {
+    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept || !fSubmitTx || fShowHex) {
         if (fDebug) {
             result.pushKV("fee", nFeeRet);
         } else {
