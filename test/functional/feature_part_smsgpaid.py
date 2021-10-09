@@ -401,6 +401,7 @@ class SmsgPaidTest(ParticlTestFramework):
         assert(len(ro['messages']) == 0)
 
         self.log.info('Test delayed funding')
+        w_rpc = nodes[0].get_wallet_rpc('default_wallet')
 
         msgids = []
         for i in range(3):
@@ -432,6 +433,21 @@ class SmsgPaidTest(ParticlTestFramework):
         self.waitForSmsgExchange(10, 1, 0)
         inb = nodes[1].smsginbox()
         assert(len(inb['messages']) == 3)
+
+        txns = w_rpc.filtertransactions({'show_smsg_fees': True})
+        num_funded = 0
+        funding_txids = []
+        for tx in txns:
+            try:
+                num_funded += tx['smsges_funded']
+                funding_txids.append(tx['txid'])
+            except Exception:
+                continue
+        assert(num_funded == 4)
+
+        for txid in funding_txids:
+            txn = w_rpc.gettransaction(txid)
+            assert('smsgs_funded' in txn)
 
 
 if __name__ == '__main__':
