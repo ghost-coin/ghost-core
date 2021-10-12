@@ -147,7 +147,6 @@ std::map<COutPoint, uint256> mapStakeSeen;
 std::list<COutPoint> listStakeSeen;
 
 CoinStakeCache coinStakeCache GUARDED_BY(cs_main);
-std::set<CCmpPubKey> setConnectKi; // hacky workaround
 
 CBlockIndex *pindexBestHeader = nullptr;
 Mutex g_best_block_mutex;
@@ -2053,7 +2052,8 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
 
     if (view.HaveCoin(out)) fClean = false; // overwriting transaction output
 
-    if (undo.nHeight == 0) {
+    if (undo.nHeight == 0 && // Genesis block txns are spendable in Particl
+        (!fParticlMode || out.hash != Params().GenesisBlock().vtx[0]->GetHash())) {
         // Missing undo metadata (height and coinbase). Older versions included this
         // information only in undo records for the last spend of a transactions'
         // outputs. This implies that it must be present for some other output of the same tx.
@@ -2148,7 +2148,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             const CTxOutBase *out = tx.vpout[k].get();
 
             if (out->IsType(OUTPUT_RINGCT)) {
-                CTxOutRingCT *txout = (CTxOutRingCT*)out;
+                const CTxOutRingCT *txout = (CTxOutRingCT*)out;
 
                 if (view.nLastRCTOutput == 0) {
                     view.nLastRCTOutput = pindex->nAnonOutputs;
@@ -2181,7 +2181,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 if (!pScript->IsUnspendable()) {
                     COutPoint op(hash, k);
                     Coin coin;
-
                     CTxOut txout(0, *pScript);
 
                     if (out->IsType(OUTPUT_STANDARD)) {
@@ -2194,9 +2193,9 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 }
             }
 
-            if (!fAddressIndex
-                || (!out->IsType(OUTPUT_STANDARD)
-                && !out->IsType(OUTPUT_CT))) {
+            if (!fAddressIndex ||
+                (!out->IsType(OUTPUT_STANDARD) &&
+                 !out->IsType(OUTPUT_CT))) {
                 continue;
             }
 
@@ -2774,8 +2773,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     std::vector<uint8_t> hashBytes;
                     int scriptType = 0;
 
-                    if (!ExtractIndexInfo(pScript, scriptType, hashBytes)
-                        || scriptType == 0) {
+                    if (!ExtractIndexInfo(pScript, scriptType, hashBytes)) {
                         continue;
                     }
 
@@ -3658,7 +3656,6 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     int64_t nTime3;
 
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
-    setConnectKi.clear();
     {
         CCoinsViewCache view(&CoinsTip());
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
@@ -6369,7 +6366,7 @@ bool RebuildRollingIndices(CTxMemPool* mempool)
         CBlockIndex *pindex = pindex_tip;
         while (pindex && pindex->nTime >= now - smsg::KEEP_FUNDING_TX_DATA) {
             max_height_to_keep = pindex->nHeight;
-            pindex = ::ChainActive()[pindex->nHeight-1];
+            pindex = pindex->pprev;
         }
 
         LogPrintf("%s: Rewinding to block %d.\n", __func__, max_height_to_keep);

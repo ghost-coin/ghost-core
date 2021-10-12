@@ -57,6 +57,10 @@ bool ExtractIndexInfo(const CScript *pScript, int &scriptType, std::vector<uint8
     if (pScript->IsWitnessProgram(witnessversion, witnessprogram)) {
         hashBytes.assign(witnessprogram.begin(), witnessprogram.begin() + witnessprogram.size());
         scriptType = ADDR_INDT_WITNESS_V0_KEYHASH;
+    } else
+    if (pScript->IsPayToTimeLockedScriptHash()) {
+        hashBytes.assign(pScript->begin()+2+7, pScript->begin()+22+7);
+        scriptType = ADDR_INDT_SCRIPT_ADDRESS;
     }
 
     return true;
