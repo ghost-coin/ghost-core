@@ -67,6 +67,8 @@ Next Major Version
    - Sent messages can be stashed in db for later bulk funding.
  - rpc: gettransaction and filtertransactions can display smsg funding info.
  - rpc: Fixed sendtypeto with show_hex set.
+ - insight: Spent index should update even if addressindex can't.
+ - insight: Add PayToTimeLockedScriptHash to addressindex.
 
 
 0.19.2.16

@@ -279,6 +279,16 @@ bool CScript::MatchPayToScriptHash256(size_t ofs) const
         (*this)[ofs+34] == OP_EQUAL);
 }
 
+bool CScript::IsPayToTimeLockedScriptHash() const
+{
+    // Extra-fast test for pay-to-script-hash CScripts:
+    int offset = 7;
+    return (this->size() == 30 &&
+            (*this)[offset + 0] == OP_HASH160 &&
+            (*this)[offset + 1] == 0x14 &&
+            (*this)[offset + 22] == OP_EQUAL);
+}
+
 bool CScript::IsPayToWitnessScriptHash() const
 {
     // Extra-fast test for pay-to-witness-script-hash CScripts:

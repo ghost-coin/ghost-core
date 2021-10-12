@@ -715,7 +715,7 @@ bool CHDWallet::LoadVoteTokens(CHDWalletDB *pwdb)
         return false;
     }
 
-    int nBestHeight = GetLastBlockHeight();
+    int nBestHeight = m_last_block_processed_height > -1 ? GetLastBlockHeight() : 0;
 
     for (const auto &v : vVoteTokensRead) {
         if (v.nEnd > nBestHeight - 1000) { // 1000 block buffer in case of reorg etc

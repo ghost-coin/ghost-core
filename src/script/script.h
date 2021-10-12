@@ -540,6 +540,7 @@ public:
     bool MatchPayToPublicKeyHash256(size_t ofs) const;
     bool IsPayToScriptHash256() const;
     bool MatchPayToScriptHash256(size_t ofs) const;
+    bool IsPayToTimeLockedScriptHash() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
 
