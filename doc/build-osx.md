@@ -109,9 +109,9 @@ Before running, you may create an empty configuration file:
 ```shell
 mkdir -p "/Users/${USER}/Library/Application Support/Particl"
 
-touch "/Users/${USER}/Library/Application Support/Particl/particl.conf"
+touch "/Users/${USER}/Library/Application Support/Particl/ghost.conf"
 
-chmod 600 "/Users/${USER}/Library/Application Support/Particl/particl.conf"
+chmod 600 "/Users/${USER}/Library/Application Support/Particl/ghost.conf"
 ```
 
 The first time you run particld, it will start downloading the blockchain. This process could

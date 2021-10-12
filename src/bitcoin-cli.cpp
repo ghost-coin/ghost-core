@@ -118,10 +118,10 @@ static int AppInitRPC(int argc, char* argv[])
         std::string strUsage = PACKAGE_NAME " RPC client version " + FormatFullVersion() + "\n";
         if (!gArgs.IsArgSet("-version")) {
             strUsage += "\n"
-                "Usage:  particl-cli [options] <command> [params]  Send command to " PACKAGE_NAME "\n"
-                "or:     particl-cli [options] -named <command> [name=value]...  Send command to " PACKAGE_NAME " (with named arguments)\n"
-                "or:     particl-cli [options] help                List commands\n"
-                "or:     particl-cli [options] help <command>      Get help for a command\n";
+                "Usage:  ghost-cli [options] <command> [params]  Send command to " PACKAGE_NAME "\n"
+                "or:     ghost-cli [options] -named <command> [name=value]...  Send command to " PACKAGE_NAME " (with named arguments)\n"
+                "or:     ghost-cli [options] help                List commands\n"
+                "or:     ghost-cli [options] help <command>      Get help for a command\n";
             strUsage += "\n" + gArgs.GetHelpMessage();
         }
 

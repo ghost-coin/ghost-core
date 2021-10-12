@@ -827,7 +827,7 @@ static RPCHelpMan getblockheader()
                             {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the current chain"},
                             {RPCResult::Type::NUM, "nTx", "The number of transactions in the block"},
                             {RPCResult::Type::NUM, "anonoutputs", "The number of RCT outputs in the chain at this block"},
-                            {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of particl in the chain at this block"},
+                            {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of ghost in the chain at this block"},
                             {RPCResult::Type::STR_HEX, "previousblockhash", "The hash of the previous block"},
                             {RPCResult::Type::STR_HEX, "nextblockhash", "The hash of the next block"},
                         }},
@@ -1137,8 +1137,8 @@ static RPCHelpMan gettxout()
                                 {RPCResult::Type::STR_HEX, "hex", ""},
                                 {RPCResult::Type::NUM, "reqSigs", "Number of required signatures"},
                                 {RPCResult::Type::STR_HEX, "type", "The type, eg pubkeyhash"},
-                                {RPCResult::Type::ARR, "addresses", "array of particl addresses",
-                                    {{RPCResult::Type::STR, "address", "particl address"}}},
+                                {RPCResult::Type::ARR, "addresses", "array of ghost addresses",
+                                    {{RPCResult::Type::STR, "address", "ghost address"}}},
                             }},
                         {RPCResult::Type::BOOL, "coinbase", "Coinbase or not"},
                     }},
@@ -1997,7 +1997,7 @@ static RPCHelpMan getblockstats()
 
         if (loop_inputs) {
             CAmount tx_total_in = 0;
-            const auto& txundo = blockUndo.vtxundo.at(fParticlMode ? i : i - 1); // Particl includes coinbase/coinstake in undo data
+            const auto& txundo = blockUndo.vtxundo.at(fParticlMode ? i : i - 1); // Ghost includes coinbase/coinstake in undo data
             for (const Coin& coin: txundo.vprevout) {
                 const CTxOut& prevoutput = coin.out;
 

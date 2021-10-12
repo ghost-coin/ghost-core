@@ -654,7 +654,7 @@ static UniValue smsgdumpprivkey(const JSONRPCRequest &request)
     RPCHelpMan{"smsgdumpprivkey",
         "\nReveals the private key corresponding to 'address'.\n",
         {
-            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address for the private key"},
+            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The ghost address for the private key"},
         },
         RPCResult{
             RPCResult::Type::STR, "key", "The private key"
@@ -669,7 +669,7 @@ static UniValue smsgdumpprivkey(const JSONRPCRequest &request)
     std::string strAddress = request.params[0].get_str();
     CTxDestination dest = DecodeDestination(strAddress);
     if (!IsValidDestination(dest)) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Particl address");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ghost address");
     }
 
     if (dest.type() != typeid(PKHash)) {
@@ -779,7 +779,7 @@ static UniValue smsgsend(const JSONRPCRequest &request)
                         "options"},
                     {"coin_control", RPCArg::Type::OBJ, /* default */ "", "",
                         {
-                            {"changeaddress", RPCArg::Type::STR, /* default */ "", "The particl address to receive the change"},
+                            {"changeaddress", RPCArg::Type::STR, /* default */ "", "The ghost address to receive the change"},
                             {"inputs", RPCArg::Type::ARR, /* default */ "", "A json array of json objects",
                                 {
                                     {"", RPCArg::Type::OBJ, /* default */ "", "",

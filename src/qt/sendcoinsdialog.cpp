@@ -696,8 +696,8 @@ void SendCoinsDialog::clear()
         ui->entries->takeAt(0)->widget()->deleteLater();
     }
 
-    ui->cbxTypeFrom->setCurrentIndex(ui->cbxTypeFrom->findText("Part"));
-    ui->cbxTypeTo->setCurrentIndex(ui->cbxTypeTo->findText("Part"));
+    ui->cbxTypeFrom->setCurrentIndex(ui->cbxTypeFrom->findText("Ghost"));
+    ui->cbxTypeTo->setCurrentIndex(ui->cbxTypeTo->findText("Ghost"));
 
     addEntry();
 
@@ -1150,7 +1150,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
         }
         else if (!IsValidDestination(dest)) // Invalid address
         {
-            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Particl address"));
+            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Ghost address"));
         }
         else // Valid address
         {

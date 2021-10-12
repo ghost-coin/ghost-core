@@ -66,14 +66,14 @@
         <translation>Alıcı adresler</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Ghost addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation>Bunlar Particlleriniz için gönderici adreslerinizdir.
 Gönderim yapmadan önce her zaman tutarı ve alıcı adresi kontrol ediniz.</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
+        <source>These are your Ghost addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
 Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation>Bunlar ödeme almak için kullanacağınız particl adreslerinizdir. Yeni adres oluşturmak için ödeme alma sekmesindeki 'Yeni alıcı adresi oluşturun' kısmına tıklayın.
+        <translation>Bunlar ödeme almak için kullanacağınız ghost adreslerinizdir. Yeni adres oluşturmak için ödeme alma sekmesindeki 'Yeni alıcı adresi oluşturun' kısmına tıklayın.
 İmzalama sadece 'legacy' tipindeki adreslerle mümkündür.</translation>
     </message>
     <message>
@@ -192,7 +192,7 @@ Cüzdan kilidini aç.</translation>
         <translation>Cüzdanınızın eski ve yeni parolasını giriniz.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
         <translation>Cüzdanınızı şifrelemenin bilgisayarınıza bulaşan kötü amaçlı yazılımlar tarafından particllerinizin çalınmasına karşı tamamen koruyamayacağını unutmayın.</translation>
     </message>
     <message>
@@ -366,8 +366,8 @@ Cüzdan kilidini aç.</translation>
         <translation>Proxy &lt;b&gt;etkinleştirildi&lt;/b&gt;: %1 </translation>
     </message>
     <message>
-        <source>Send coins to a Particl address</source>
-        <translation>Bir Particl adresine Particl yolla</translation>
+        <source>Send coins to a Ghost address</source>
+        <translation>Bir Ghost adresine Ghost yolla</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -402,12 +402,12 @@ Cüzdan kilidini aç.</translation>
         <translation>Cüzdanınıza ait özel anahtarları şifreleyin</translation>
     </message>
     <message>
-        <source>Sign messages with your Particl addresses to prove you own them</source>
-        <translation>Particl adreslerine sahip olduğunuzu kanıtlamak için mesajlarınızı imzalayın</translation>
+        <source>Sign messages with your Ghost addresses to prove you own them</source>
+        <translation>Ghost adreslerine sahip olduğunuzu kanıtlamak için mesajlarınızı imzalayın</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Particl addresses</source>
-        <translation>Belirtilen Particl adresleriyle imzalandıklarından emin olmak için mesajları doğrulayın</translation>
+        <source>Verify messages to ensure they were signed with specified Ghost addresses</source>
+        <translation>Belirtilen Ghost adresleriyle imzalandıklarından emin olmak için mesajları doğrulayın</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -426,8 +426,8 @@ Cüzdan kilidini aç.</translation>
         <translation>Araç çubuğu sekmeleri</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and particl: URIs)</source>
-        <translation>Ödeme isteyin (QR kodları ve particl: URI'ler üretir)</translation>
+        <source>Request payments (generates QR codes and ghost: URIs)</source>
+        <translation>Ödeme isteyin (QR kodları ve ghost: URI'ler üretir)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -442,8 +442,8 @@ Cüzdan kilidini aç.</translation>
         <translation>&amp;Komut satırı seçenekleri</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Particl network</source>
-        <translation><numerusform>Particl ağına %n etkin bağlantı</numerusform><numerusform>Particl ağına %n etkin bağlantı</numerusform></translation>
+        <source>%n active connection(s) to Ghost network</source>
+        <translation><numerusform>Ghost ağına %n etkin bağlantı</numerusform><numerusform>Ghost ağına %n etkin bağlantı</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -486,16 +486,16 @@ Cüzdan kilidini aç.</translation>
         <translation>PSBT'yi dosyadan yükle ...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Particl Transaction</source>
-        <translation>Kısmen İmzalanmış Particl İşlemini Yükle </translation>
+        <source>Load Partially Signed Ghost Transaction</source>
+        <translation>Kısmen İmzalanmış Ghost İşlemini Yükle </translation>
     </message>
     <message>
         <source>Load PSBT from clipboard...</source>
         <translation>PBT'yi panadon yükle ...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Particl Transaction from clipboard</source>
-        <translation>Kısmen İmzalanmış Particl işlemini panodan yükle</translation>
+        <source>Load Partially Signed Ghost Transaction from clipboard</source>
+        <translation>Kısmen İmzalanmış Ghost işlemini panodan yükle</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -514,8 +514,8 @@ Cüzdan kilidini aç.</translation>
         <translation>&amp; Adresler alınıyor</translation>
     </message>
     <message>
-        <source>Open a particl: URI</source>
-        <translation>Particl’i aç.</translation>
+        <source>Open a ghost: URI</source>
+        <translation>Ghost’i aç.</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -892,8 +892,8 @@ Cüzdan kilidini aç.</translation>
         <translation>Gönderme adresini  düzenleyin</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Particl address.</source>
-        <translation>Girilen "%1" adresi geçerli bir Particl adresi değildir.</translation>
+        <source>The entered address "%1" is not a valid Ghost address.</source>
+        <translation>Girilen "%1" adresi geçerli bir Ghost adresi değildir.</translation>
     </message>
     </context>
 <context>
@@ -937,8 +937,8 @@ Cüzdan kilidini aç.</translation>
         <translation>Özel bir veri klasörü kullan:</translation>
     </message>
     <message>
-        <source>Particl</source>
-        <translation>Particl</translation>
+        <source>Ghost</source>
+        <translation>Ghost</translation>
     </message>
     <message>
         <source>At least %1 GB of data will be stored in this directory, and it will grow over time.</source>
@@ -956,8 +956,8 @@ Cüzdan kilidini aç.</translation>
 <context>
     <name>ModalOverlay</name>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the particl network, as detailed below.</source>
-        <translation>Son işlemler henüz görünmeyebilir ve bu nedenle cüzdanınızın bakiyesi yanlış olabilir. Bu bilgiler, aşağıda detaylandırıldığı gibi, cüzdanınız particl ağı ile senkronizasyonunu tamamladığında doğru olacaktır. </translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the ghost network, as detailed below.</source>
+        <translation>Son işlemler henüz görünmeyebilir ve bu nedenle cüzdanınızın bakiyesi yanlış olabilir. Bu bilgiler, aşağıda detaylandırıldığı gibi, cüzdanınız ghost ağı ile senkronizasyonunu tamamladığında doğru olacaktır. </translation>
     </message>
     <message>
         <source>Unknown...</source>
@@ -1158,8 +1158,8 @@ Cüzdan kilidini aç.</translation>
         <translation>Ödeme isteği hatası</translation>
     </message>
     <message>
-        <source>'particl://' is not a valid URI. Use 'particl:' instead.</source>
-        <translation>'particl://' geçerli bir URI değil. Onun yerine 'particl:' kullanın.</translation>
+        <source>'ghost://' is not a valid URI. Use 'ghost:' instead.</source>
+        <translation>'ghost://' geçerli bir URI değil. Onun yerine 'ghost:' kullanın.</translation>
     </message>
     </context>
 <context>
@@ -1180,8 +1180,8 @@ Cüzdan kilidini aç.</translation>
         <translation>Mitar</translation>
     </message>
     <message>
-        <source>Enter a Particl address (e.g. %1)</source>
-        <translation>Bir particl adresi giriniz (örneğin %1)</translation>
+        <source>Enter a Ghost address (e.g. %1)</source>
+        <translation>Bir ghost adresi giriniz (örneğin %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
