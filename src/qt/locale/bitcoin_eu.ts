@@ -66,8 +66,8 @@
         <translation>Helbideak jasotzen</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Hauek dira zuk dirua jaso dezaketen Particl helbideak. Egiaztatu beti diru-kopurua eta dirua jasoko duen helbidea zuzen egon daitezen, txanponak bidali baino lehen.</translation>
+        <source>These are your Ghost addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Hauek dira zuk dirua jaso dezaketen Ghost helbideak. Egiaztatu beti diru-kopurua eta dirua jasoko duen helbidea zuzen egon daitezen, txanponak bidali baino lehen.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -184,7 +184,7 @@
         <translation>Diruzorroaren pasahitz zahar zein berria sartu.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
         <translation>Gogoan izan diruzorroaren enkripzioak ezin dituela zure particlak zure ordenagailuan izan dezakezun malware batengandik lapurtuak izatetik guztiz babestu .</translation>
     </message>
     <message>
@@ -354,8 +354,8 @@
         <translation>Blokeak diskoan berriro zerrendatzen...</translation>
     </message>
     <message>
-        <source>Send coins to a Particl address</source>
-        <translation>Bidali txanponak Particl helbide batera</translation>
+        <source>Send coins to a Ghost address</source>
+        <translation>Bidali txanponak Ghost helbide batera</translation>
     </message>
     <message>
         <source>Change the passphrase used for wallet encryption</source>
@@ -382,8 +382,8 @@
         <translation>Lehio nagusia erakutsi edo izkutatu</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Particl addresses</source>
-        <translation>Egiaztatu mesua Particl helbide espezifikoarekin erregistratu direla ziurtatzeko</translation>
+        <source>Verify messages to ensure they were signed with specified Ghost addresses</source>
+        <translation>Egiaztatu mesua Ghost helbide espezifikoarekin erregistratu direla ziurtatzeko</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -689,8 +689,8 @@
         <translation>Ongietorri %1-ra</translation>
     </message>
     <message>
-        <source>Particl</source>
-        <translation>Particl</translation>
+        <source>Ghost</source>
+        <translation>Ghost</translation>
     </message>
     <message>
         <source>Error</source>

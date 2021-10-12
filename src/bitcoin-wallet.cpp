@@ -35,7 +35,7 @@ static void SetupWalletToolArgs(ArgsManager& argsman)
     argsman.AddArg("create", "Create new wallet file", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("salvage", "Attempt to recover private keys from a corrupt wallet. Warning: 'salvage' is experimental.", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
 
-    // Particl
+    // Ghost
     argsman.AddArg("generatemnemonic", "Generate a new mnemonic: <language> <bytes_entropy>", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
     argsman.AddArg("-btcmode", "", ArgsManager::ALLOW_ANY, OptionsCategory::HIDDEN);
 }
@@ -49,12 +49,12 @@ static bool WalletAppInit(int argc, char* argv[])
         return false;
     }
     if (argc < 2 || HelpRequested(gArgs)) {
-        std::string usage = strprintf("%s particl-wallet version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
-                                      "particl-wallet is an offline tool for creating and interacting with " PACKAGE_NAME " wallet files.\n" +
-                                      "By default particl-wallet will act on wallets in the default mainnet wallet directory in the datadir.\n" +
+        std::string usage = strprintf("%s ghost-wallet version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
+                                      "ghost-wallet is an offline tool for creating and interacting with " PACKAGE_NAME " wallet files.\n" +
+                                      "By default ghost-wallet will act on wallets in the default mainnet wallet directory in the datadir.\n" +
                                       "To change the target wallet, use the -datadir, -wallet and -testnet/-regtest arguments.\n\n" +
                                       "Usage:\n" +
-                                     "  particl-wallet [options] <command>\n\n" +
+                                     "  ghost-wallet [options] <command>\n\n" +
                                      gArgs.GetHelpMessage();
 
         tfm::format(std::cout, "%s", usage);
@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
     }
 
     if (method.empty()) {
-        tfm::format(std::cerr, "No method provided. Run `particl-wallet -help` for valid methods.\n");
+        tfm::format(std::cerr, "No method provided. Run `ghost-wallet -help` for valid methods.\n");
         return EXIT_FAILURE;
     }
 

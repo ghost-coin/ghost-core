@@ -911,7 +911,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
 
 std::string CTrezorDevice::GetCoinName()
 {
-    return Params().NetworkIDString() == "main" ? "Particl" : "Particl Testnet";
+    return Params().NetworkIDString() == "main" ? "Ghost" : "Ghost Testnet";
 };
 
 int CTrezorDevice::LoadMnemonic(uint32_t wordcount, bool pinprotection, std::string& sError)

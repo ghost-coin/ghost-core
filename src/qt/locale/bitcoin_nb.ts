@@ -66,13 +66,13 @@
         <translation>Mottager adresser</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Dette er dine Particl adresser for å sende  å sende betalinger. Husk å sjekke beløp og mottager adresser før du sender mynter.</translation>
+        <source>These are your Ghost addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Dette er dine Ghost adresser for å sende  å sende betalinger. Husk å sjekke beløp og mottager adresser før du sender mynter.</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
+        <source>These are your Ghost addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
 Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation>Dette er dine Particl adresser for å motta betalinger. Bruk 'Lag ny mottaksadresse' knappen i motta tabben for å lage nye adresser. Signering er bare mulig for adresser av typen 'legacy'.</translation>
+        <translation>Dette er dine Ghost adresser for å motta betalinger. Bruk 'Lag ny mottaksadresse' knappen i motta tabben for å lage nye adresser. Signering er bare mulig for adresser av typen 'legacy'.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -189,8 +189,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Svriv inn den gamle passfrasen og den nye passordfrasen for lommeboken.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Husk at å kryptere lommeboken ikke vil beskytte dine particl fullstendig fra å bli stjålet av skadevare som infiserer datamaskinen din.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
+        <translation>Husk at å kryptere lommeboken ikke vil beskytte dine ghost fullstendig fra å bli stjålet av skadevare som infiserer datamaskinen din.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -363,8 +363,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Proxy er &lt;b&gt;slått på&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Particl address</source>
-        <translation>Send mynter til en Particl adresse</translation>
+        <source>Send coins to a Ghost address</source>
+        <translation>Send mynter til en Ghost adresse</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -399,12 +399,12 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Krypter de private nøklene som tilhører lommeboken din</translation>
     </message>
     <message>
-        <source>Sign messages with your Particl addresses to prove you own them</source>
-        <translation>Signer meldingene med Particl adresse for å bevise at diu eier dem</translation>
+        <source>Sign messages with your Ghost addresses to prove you own them</source>
+        <translation>Signer meldingene med Ghost adresse for å bevise at diu eier dem</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Particl addresses</source>
-        <translation>Verifiser meldinger for å sikre at de ble signert med en angitt Particl adresse</translation>
+        <source>Verify messages to ensure they were signed with specified Ghost addresses</source>
+        <translation>Verifiser meldinger for å sikre at de ble signert med en angitt Ghost adresse</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -423,8 +423,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Hjelpelinje for fliker</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and particl: URIs)</source>
-        <translation>Be om betalinger (genererer QR-koder og particl-URIer)</translation>
+        <source>Request payments (generates QR codes and ghost: URIs)</source>
+        <translation>Be om betalinger (genererer QR-koder og ghost-URIer)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -439,8 +439,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>&amp;Kommandolinjealternativer</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Particl network</source>
-        <translation><numerusform>%n aktiv tilkobling til Particl nettverket</numerusform><numerusform>%n aktive tilkoblinger til Particl nettverket</numerusform></translation>
+        <source>%n active connection(s) to Ghost network</source>
+        <translation><numerusform>%n aktiv tilkobling til Ghost nettverket</numerusform><numerusform>%n aktive tilkoblinger til Ghost nettverket</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -487,16 +487,16 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>&amp;Last PSBT fra fil...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Particl Transaction</source>
-        <translation>Last delvis signert Particl transaksjon</translation>
+        <source>Load Partially Signed Ghost Transaction</source>
+        <translation>Last delvis signert Ghost transaksjon</translation>
     </message>
     <message>
         <source>Load PSBT from clipboard...</source>
         <translation>Last PSBT fra utklippstavlen...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Particl Transaction from clipboard</source>
-        <translation>Last Delvis Signert Particl Transaksjon fra utklippstavle</translation>
+        <source>Load Partially Signed Ghost Transaction from clipboard</source>
+        <translation>Last Delvis Signert Ghost Transaksjon fra utklippstavle</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -515,8 +515,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>&amp;Mottaker adresser</translation>
     </message>
     <message>
-        <source>Open a particl: URI</source>
-        <translation>Åpne en particl: URI</translation>
+        <source>Open a ghost: URI</source>
+        <translation>Åpne en ghost: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -543,8 +543,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Lukk alle lommebøker</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Particl command-line options</source>
-        <translation>Vis %1-hjelpemeldingen for å få en liste over mulige Particl-kommandolinjealternativer</translation>
+        <source>Show the %1 help message to get a list with possible Ghost command-line options</source>
+        <translation>Vis %1-hjelpemeldingen for å få en liste over mulige Ghost-kommandolinjealternativer</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -923,8 +923,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Rediger utsendingsadresse</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Particl address.</source>
-        <translation>Den angitte adressen "%1" er ikke en gyldig Particl-adresse.</translation>
+        <source>The entered address "%1" is not a valid Ghost address.</source>
+        <translation>Den angitte adressen "%1" er ikke en gyldig Ghost-adresse.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1020,8 +1020,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Bruk en egendefinert datamappe:</translation>
     </message>
     <message>
-        <source>Particl</source>
-        <translation>Particl</translation>
+        <source>Ghost</source>
+        <translation>Ghost</translation>
     </message>
     <message>
         <source>Discard blocks after verification, except most recent %1 GB (prune)</source>
@@ -1036,8 +1036,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Omtrent %1GB data vil bli lagret i denne mappen.</translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Particl block chain.</source>
-        <translation>%1 vil laste ned og lagre en kopi av Particl blokkjeden.</translation>
+        <source>%1 will download and store a copy of the Ghost block chain.</source>
+        <translation>%1 vil laste ned og lagre en kopi av Ghost blokkjeden.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1067,12 +1067,12 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Skjema</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the particl network, as detailed below.</source>
-        <translation>Det kan hende nylige transaksjoner ikke vises enda, og at lommeboksaldoen dermed blir uriktig. Denne informasjonen vil rette seg når synkronisering av lommeboka mot particl-nettverket er fullført, som anvist nedenfor.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the ghost network, as detailed below.</source>
+        <translation>Det kan hende nylige transaksjoner ikke vises enda, og at lommeboksaldoen dermed blir uriktig. Denne informasjonen vil rette seg når synkronisering av lommeboka mot ghost-nettverket er fullført, som anvist nedenfor.</translation>
     </message>
     <message>
-        <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Forsøk på å bruke particl som er påvirket av transaksjoner som ikke er vist enda godtas ikke av nettverket.</translation>
+        <source>Attempting to spend ghost that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation>Forsøk på å bruke ghost som er påvirket av transaksjoner som ikke er vist enda godtas ikke av nettverket.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1122,8 +1122,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open particl URI</source>
-        <translation>Åpne particl URI</translation>
+        <source>Open ghost URI</source>
+        <translation>Åpne ghost URI</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1264,8 +1264,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>&amp;Bruk ubekreftet veksel</translation>
     </message>
     <message>
-        <source>Automatically open the Particl client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Åpne automatisk Particl klientporten på ruteren. Dette virker kun om din ruter støtter UPnP og dette er påslått.</translation>
+        <source>Automatically open the Ghost client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Åpne automatisk Ghost klientporten på ruteren. Dette virker kun om din ruter støtter UPnP og dette er påslått.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1280,8 +1280,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Tillatt innkommend&amp;e tilkoblinger</translation>
     </message>
     <message>
-        <source>Connect to the Particl network through a SOCKS5 proxy.</source>
-        <translation>Koble til Particl-nettverket gjennom en SOCKS5 proxy.</translation>
+        <source>Connect to the Ghost network through a SOCKS5 proxy.</source>
+        <translation>Koble til Ghost-nettverket gjennom en SOCKS5 proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1349,15 +1349,15 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation>Velg standard delt enhet for visning i grensesnittet og for sending av particl.</translation>
+        <translation>Velg standard delt enhet for visning i grensesnittet og for sending av ghost.</translation>
     </message>
     <message>
         <source>Whether to show coin control features or not.</source>
         <translation>Skal myntkontroll funksjoner vises eller ikke.</translation>
     </message>
     <message>
-        <source>Connect to the Particl network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation>Kobl til Particl nettverket gjennom en separat SOCKS5 proxy for Tor onion tjenester. </translation>
+        <source>Connect to the Ghost network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation>Kobl til Ghost nettverket gjennom en separat SOCKS5 proxy for Tor onion tjenester. </translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1431,8 +1431,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Skjema</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Particl network after a connection is established, but this process has not completed yet.</source>
-        <translation>Informasjonen som vises kan være foreldet. Din lommebok synkroniseres automatisk med Particl-nettverket etter at tilkobling er opprettet, men denne prosessen er ikke ferdig enda.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Ghost network after a connection is established, but this process has not completed yet.</source>
+        <translation>Informasjonen som vises kan være foreldet. Din lommebok synkroniseres automatisk med Ghost-nettverket etter at tilkobling er opprettet, men denne prosessen er ikke ferdig enda.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1633,16 +1633,16 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Feil ved betalingsforespørsel</translation>
     </message>
     <message>
-        <source>Cannot start particl: click-to-pay handler</source>
-        <translation>Kan ikke starte particl: Klikk-og-betal håndterer</translation>
+        <source>Cannot start ghost: click-to-pay handler</source>
+        <translation>Kan ikke starte ghost: Klikk-og-betal håndterer</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation>URI-håndtering</translation>
     </message>
     <message>
-        <source>'particl://' is not a valid URI. Use 'particl:' instead.</source>
-        <translation>'particl: //' er ikke en gyldig URI. Bruk 'particl:' i stedet.</translation>
+        <source>'ghost://' is not a valid URI. Use 'ghost:' instead.</source>
+        <translation>'ghost: //' er ikke en gyldig URI. Bruk 'ghost:' i stedet.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.</source>
@@ -1661,8 +1661,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Ugyldig betalingsadresse %1</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Particl address or malformed URI parameters.</source>
-        <translation>URI kan ikke fortolkes! Dette kan være forårsaket av en ugyldig particl-adresse eller feilformede URI-parametre.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Ghost address or malformed URI parameters.</source>
+        <translation>URI kan ikke fortolkes! Dette kan være forårsaket av en ugyldig ghost-adresse eller feilformede URI-parametre.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1703,8 +1703,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Beløp</translation>
     </message>
     <message>
-        <source>Enter a Particl address (e.g. %1)</source>
-        <translation>Oppgi en Particl-adresse (f.eks. %1)</translation>
+        <source>Enter a Ghost address (e.g. %1)</source>
+        <translation>Oppgi en Ghost-adresse (f.eks. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -2152,8 +2152,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>&amp;Melding:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Particl network.</source>
-        <translation>En valgfri melding å tilknytte betalingsetterspørringen, som vil bli vist når forespørselen er åpnet. Meldingen vil ikke bli sendt med betalingen over Particl-nettverket.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Ghost network.</source>
+        <translation>En valgfri melding å tilknytte betalingsetterspørringen, som vil bli vist når forespørselen er åpnet. Meldingen vil ikke bli sendt med betalingen over Ghost-nettverket.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2322,7 +2322,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
     <name>SendCoinsDialog</name>
     <message>
         <source>Send Coins</source>
-        <translation>Send Particl</translation>
+        <translation>Send Ghost</translation>
     </message>
     <message>
         <source>Coin Control Features</source>
@@ -2437,8 +2437,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>Skjul innstillinger for transaksjonsgebyr</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for particl transactions than the network can process.</source>
-        <translation>Når det er mindre transaksjonsvolum enn plass i blokkene, kan gruvearbeidere så vel som videresende noder håndheve et minimumsgebyr. Å betale bare denne minsteavgiften er helt greit, men vær klar over at dette kan resultere i en aldri bekreftende transaksjon når det er større etterspørsel etter particl-transaksjoner enn nettverket kan behandle.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for ghost transactions than the network can process.</source>
+        <translation>Når det er mindre transaksjonsvolum enn plass i blokkene, kan gruvearbeidere så vel som videresende noder håndheve et minimumsgebyr. Å betale bare denne minsteavgiften er helt greit, men vær klar over at dette kan resultere i en aldri bekreftende transaksjon når det er større etterspørsel etter ghost-transaksjoner enn nettverket kan behandle.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2545,8 +2545,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>Du kan øke gebyret senere (signaliserer Replace-By-Fee, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Particl Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation>Se over ditt transaksjonsforslag. Dette kommer til å produsere en Delvis Signert Particl Transaksjon (PSBT) som du kan lagre eller kopiere og så signere med f.eks. en offline %1 lommebok, eller en PSBT kompatibel hardware lommebok.</translation>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Ghost Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation>Se over ditt transaksjonsforslag. Dette kommer til å produsere en Delvis Signert Ghost Transaksjon (PSBT) som du kan lagre eller kopiere og så signere med f.eks. en offline %1 lommebok, eller en PSBT kompatibel hardware lommebok.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -2621,8 +2621,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation><numerusform>Antatt bekreftelsesbegynnelse innen %n blokk.</numerusform><numerusform>Antatt bekreftelsesbegynnelse innen %n blokker.</numerusform></translation>
     </message>
     <message>
-        <source>Warning: Invalid Particl address</source>
-        <translation>Advarsel Ugyldig particl-adresse</translation>
+        <source>Warning: Invalid Ghost address</source>
+        <translation>Advarsel Ugyldig ghost-adresse</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2660,8 +2660,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>Velg tidligere brukt adresse</translation>
     </message>
     <message>
-        <source>The Particl address to send the payment to</source>
-        <translation>Particl-adressen betalingen skal sendes til</translation>
+        <source>The Ghost address to send the payment to</source>
+        <translation>Ghost-adressen betalingen skal sendes til</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2684,8 +2684,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>beløpet som skal sendes inn den valgte enheten.</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Gebyret vil bli trukket fra beløpet som blir sendt. Mottakeren vil motta mindre particl enn det du skriver inn i beløpsfeltet. Hvis det er valgt flere mottakere, deles gebyret likt.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less ghost than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation>Gebyret vil bli trukket fra beløpet som blir sendt. Mottakeren vil motta mindre ghost enn det du skriver inn i beløpsfeltet. Hvis det er valgt flere mottakere, deles gebyret likt.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2712,8 +2712,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>Skriv inn en merkelapp for denne adressen for å legge den til listen av brukte adresser</translation>
     </message>
     <message>
-        <source>A message that was attached to the particl: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</source>
-        <translation>En melding som var tilknyttet particlen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Particl-nettverket.</translation>
+        <source>A message that was attached to the ghost: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Ghost network.</source>
+        <translation>En melding som var tilknyttet particlen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Ghost-nettverket.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2746,12 +2746,12 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>&amp;Signer Melding</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Du kan signere meldinger/avtaler med adresser for å bevise at du kan motta particl sendt til dem. Vær forsiktig med å signere noe vagt eller tilfeldig, siden phishing-angrep kan prøve å lure deg til å signere din identitet over til dem. Bare signer fullt detaljerte utsagn som du er enig i.</translation>
+        <source>You can sign messages/agreements with your addresses to prove you can receive ghost sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <translation>Du kan signere meldinger/avtaler med adresser for å bevise at du kan motta ghost sendt til dem. Vær forsiktig med å signere noe vagt eller tilfeldig, siden phishing-angrep kan prøve å lure deg til å signere din identitet over til dem. Bare signer fullt detaljerte utsagn som du er enig i.</translation>
     </message>
     <message>
-        <source>The Particl address to sign the message with</source>
-        <translation>Particl-adressen meldingen skal signeres med</translation>
+        <source>The Ghost address to sign the message with</source>
+        <translation>Ghost-adressen meldingen skal signeres med</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2782,8 +2782,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>Kopier valgt signatur til utklippstavle</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Particl address</source>
-        <translation>Signer meldingen for å bevise at du eier denne Particl-adressen</translation>
+        <source>Sign the message to prove you own this Ghost address</source>
+        <translation>Signer meldingen for å bevise at du eier denne Ghost-adressen</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -2806,8 +2806,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>Skriv inn mottakerens adresse, melding (forsikre deg om at du kopier linjeskift, mellomrom, faner osv. nøyaktig) og underskrift nedenfor for å bekrefte meldingen. Vær forsiktig så du ikke leser mer ut av signaturen enn hva som er i den signerte meldingen i seg selv, for å unngå å bli lurt av et man-in-the-middle-angrep. Merk at dette bare beviser at den som signerer kan motta med adressen, dette beviser ikke hvem som har sendt transaksjoner!</translation>
     </message>
     <message>
-        <source>The Particl address the message was signed with</source>
-        <translation>Particl-adressen meldingen ble signert med</translation>
+        <source>The Ghost address the message was signed with</source>
+        <translation>Ghost-adressen meldingen ble signert med</translation>
     </message>
     <message>
         <source>The signed message to verify</source>
@@ -2818,8 +2818,8 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
         <translation>signaturen som ble gitt da meldingen ble signert</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Particl address</source>
-        <translation>Verifiser meldingen for å være sikker på at den ble signert av den angitte Particl-adressen</translation>
+        <source>Verify the message to ensure it was signed with the specified Ghost address</source>
+        <translation>Verifiser meldingen for å være sikker på at den ble signert av den angitte Ghost-adressen</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -3037,7 +3037,7 @@ Merk: Siden avgiften er beregnet per byte-basis, vil et gebyr på "100 satoshis 
     </message>
     <message>
         <source>Generated coins must mature %1 blocks before they can be spent. When you generated this block, it was broadcast to the network to be added to the block chain. If it fails to get into the chain, its state will change to "not accepted" and it won't be spendable. This may occasionally happen if another node generates a block within a few seconds of yours.</source>
-        <translation>Genererte particl må modne %1 blokker før de kan brukes. Da du genererte denne blokken ble den kringkastet på nettverket for å bli lagt til i kjeden av blokker. Hvis den ikke kommer med i kjeden vil den endre seg til "ikke akseptert", og vil ikke kunne brukes. Dette vil noen ganger skje hvis en annen node genererer en blokk innen noen sekunder av din.</translation>
+        <translation>Genererte ghost må modne %1 blokker før de kan brukes. Da du genererte denne blokken ble den kringkastet på nettverket for å bli lagt til i kjeden av blokker. Hvis den ikke kommer med i kjeden vil den endre seg til "ikke akseptert", og vil ikke kunne brukes. Dette vil noen ganger skje hvis en annen node genererer en blokk innen noen sekunder av din.</translation>
     </message>
     <message>
         <source>Debug information</source>
@@ -3755,8 +3755,8 @@ Gå til Fil &gt; Åpne lommebok for å laste en lommebok.
         <translation>Feil: Lytting etter innkommende tilkoblinger feilet (lytting returnerte feil %s)</translation>
     </message>
     <message>
-        <source>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</source>
-        <translation>%s korrupt. Prøv å bruk lommebokverktøyet particl-wallet til å fikse det eller laste en backup.</translation>
+        <source>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</source>
+        <translation>%s korrupt. Prøv å bruk lommebokverktøyet ghost-wallet til å fikse det eller laste en backup.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>

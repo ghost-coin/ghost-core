@@ -220,7 +220,7 @@ bool TransactionCanBeBumped(const CWallet& wallet, const uint256& txid)
 Result CreateTotalBumpTransaction(const CWallet* wallet, const uint256& txid, const CCoinControl& coin_control, std::vector<bilingual_str>& errors,
                                   CAmount& old_fee, CAmount& new_fee, CMutableTransaction& mtx)
 {
-    // Particl TODO: Remove CreateTotalBumpTransaction, convert CreateRateBumpTransaction
+    // Ghost TODO: Remove CreateTotalBumpTransaction, convert CreateRateBumpTransaction
     new_fee = 0;
     errors.clear();
 

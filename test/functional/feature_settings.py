@@ -22,7 +22,7 @@ class SettingsTest(BitcoinTestFramework):
     def run_test(self):
         node, = self.nodes
         settings = Path(node.datadir, self.chain, "settings.json")
-        conf = Path(node.datadir, "particl.conf")
+        conf = Path(node.datadir, "ghost.conf")
 
         # Assert empty settings file was created
         self.stop_node(0)

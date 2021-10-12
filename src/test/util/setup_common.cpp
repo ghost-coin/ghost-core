@@ -35,7 +35,7 @@
 #include <validationinterface.h>
 #include <walletinitinterface.h>
 
-// Particl
+// Ghost
 #include <insight/insight.h>
 
 #include <functional>

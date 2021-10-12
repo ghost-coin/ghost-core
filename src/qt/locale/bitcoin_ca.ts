@@ -66,13 +66,13 @@
         <translation>Adreces de recepció</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Aquestes són les vostres adreces de Particl per enviar els pagaments. Sempre reviseu l'import i l'adreça del destinatari abans de transferir monedes.</translation>
+        <source>These are your Ghost addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Aquestes són les vostres adreces de Ghost per enviar els pagaments. Sempre reviseu l'import i l'adreça del destinatari abans de transferir monedes.</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
+        <source>These are your Ghost addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
 Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation>Aquestes son les teves adreces de Particl per rebre pagaments. Utilitza el botó "Crear nova adreça de recepció" de la pestanya de recepció per crear una nova adreça.
+        <translation>Aquestes son les teves adreces de Ghost per rebre pagaments. Utilitza el botó "Crear nova adreça de recepció" de la pestanya de recepció per crear una nova adreça.
 Només és possible firmar amb adreces del tipus "legacy".</translation>
     </message>
     <message>
@@ -190,8 +190,8 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>Introduïu la contrasenya antiga i la contrasenya nova a la cartera.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Recorda que tot i xifrant la teva cartera, els teus particl no estan completament protegits de robatori a través de programari maliciós que estigui infectant el teu ordinador.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
+        <translation>Recorda que tot i xifrant la teva cartera, els teus ghost no estan completament protegits de robatori a través de programari maliciós que estigui infectant el teu ordinador.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -364,8 +364,8 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>El servidor proxy està &lt;b&gt;activat&lt;/b&gt;: %1</translation>
     </message>
     <message>
-        <source>Send coins to a Particl address</source>
-        <translation>Envia monedes a una adreça Particl</translation>
+        <source>Send coins to a Ghost address</source>
+        <translation>Envia monedes a una adreça Ghost</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -400,12 +400,12 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>Encripta les claus privades pertanyents de la cartera</translation>
     </message>
     <message>
-        <source>Sign messages with your Particl addresses to prove you own them</source>
-        <translation>Signa el missatges amb la seva adreça de Particl per provar que les poseeixes</translation>
+        <source>Sign messages with your Ghost addresses to prove you own them</source>
+        <translation>Signa el missatges amb la seva adreça de Ghost per provar que les poseeixes</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Particl addresses</source>
-        <translation>Verifiqueu els missatges per assegurar-vos que han estat signats amb una adreça Particl específica.</translation>
+        <source>Verify messages to ensure they were signed with specified Ghost addresses</source>
+        <translation>Verifiqueu els missatges per assegurar-vos que han estat signats amb una adreça Ghost específica.</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -424,8 +424,8 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>Barra d'eines de les pestanyes</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and particl: URIs)</source>
-        <translation>Sol·licita pagaments (genera codis QR i particl: URI)</translation>
+        <source>Request payments (generates QR codes and ghost: URIs)</source>
+        <translation>Sol·licita pagaments (genera codis QR i ghost: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -440,8 +440,8 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>Opcions de la &amp;línia d'ordres</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Particl network</source>
-        <translation><numerusform>Una connexió activa a la xarxa de Particl</numerusform><numerusform>%n connexions actives a la xarxa de Particl</numerusform></translation>
+        <source>%n active connection(s) to Ghost network</source>
+        <translation><numerusform>Una connexió activa a la xarxa de Ghost</numerusform><numerusform>%n connexions actives a la xarxa de Ghost</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -488,16 +488,16 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>&amp;Carrega el PSBT des del fitxer ...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Particl Transaction</source>
-        <translation>Carrega la transacció Particl signada parcialment</translation>
+        <source>Load Partially Signed Ghost Transaction</source>
+        <translation>Carrega la transacció Ghost signada parcialment</translation>
     </message>
     <message>
         <source>Load PSBT from clipboard...</source>
         <translation>Carrega PSBT des del porta-retalls ...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Particl Transaction from clipboard</source>
-        <translation>Carrega la transacció de Particl signada parcialment des del porta-retalls</translation>
+        <source>Load Partially Signed Ghost Transaction from clipboard</source>
+        <translation>Carrega la transacció de Ghost signada parcialment des del porta-retalls</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -516,8 +516,8 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>Adreces de &amp;recepció</translation>
     </message>
     <message>
-        <source>Open a particl: URI</source>
-        <translation>Obrir un particl: URI</translation>
+        <source>Open a ghost: URI</source>
+        <translation>Obrir un ghost: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -544,8 +544,8 @@ Només és possible firmar amb adreces del tipus "legacy".</translation>
         <translation>Tanqueu totes les carteres</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Particl command-line options</source>
-        <translation>Mostra el missatge d'ajuda del %1 per obtenir una llista amb les possibles opcions de línia d'ordres de Particl</translation>
+        <source>Show the %1 help message to get a list with possible Ghost command-line options</source>
+        <translation>Mostra el missatge d'ajuda del %1 per obtenir una llista amb les possibles opcions de línia d'ordres de Ghost</translation>
     </message>
     <message>
         <source>&amp;Mask values</source>
@@ -925,8 +925,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Edita l'adreça d'enviament</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Particl address.</source>
-        <translation>L'adreça introduïda «%1» no és una adreça de Particl vàlida.</translation>
+        <source>The entered address "%1" is not a valid Ghost address.</source>
+        <translation>L'adreça introduïda «%1» no és una adreça de Ghost vàlida.</translation>
     </message>
     <message>
         <source>Address "%1" already exists as a receiving address with label "%2" and so cannot be added as a sending address.</source>
@@ -1022,8 +1022,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Utilitza un directori de dades personalitzat:</translation>
     </message>
     <message>
-        <source>Particl</source>
-        <translation>Particl</translation>
+        <source>Ghost</source>
+        <translation>Ghost</translation>
     </message>
     <message>
         <source>Discard blocks after verification, except most recent %1 GB (prune)</source>
@@ -1038,8 +1038,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Aproximadament %1GB de dades seran emmagetzamades en aquest directori.</translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Particl block chain.</source>
-        <translation>%1 descarregarà i emmagatzemarà una còpia de la cadena de blocs Particl.</translation>
+        <source>%1 will download and store a copy of the Ghost block chain.</source>
+        <translation>%1 descarregarà i emmagatzemarà una còpia de la cadena de blocs Ghost.</translation>
     </message>
     <message>
         <source>The wallet will also be stored in this directory.</source>
@@ -1073,12 +1073,12 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Formulari</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the particl network, as detailed below.</source>
-        <translation>És possible que les transaccions recents encara no siguin visibles i, per tant, el saldo de la vostra cartera podria ser incorrecte. Aquesta informació serà correcta una vegada que la cartera hagi finalitzat la sincronització amb la xarxa particl, tal com es detalla més avall.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the ghost network, as detailed below.</source>
+        <translation>És possible que les transaccions recents encara no siguin visibles i, per tant, el saldo de la vostra cartera podria ser incorrecte. Aquesta informació serà correcta una vegada que la cartera hagi finalitzat la sincronització amb la xarxa ghost, tal com es detalla més avall.</translation>
     </message>
     <message>
-        <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Els intents de gastar particl que es veuen afectats per les transaccions que encara no s'hagin mostrat no seran acceptats per la xarxa.</translation>
+        <source>Attempting to spend ghost that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation>Els intents de gastar ghost que es veuen afectats per les transaccions que encara no s'hagin mostrat no seran acceptats per la xarxa.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1128,8 +1128,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open particl URI</source>
-        <translation>Obre Particl URI</translation>
+        <source>Open ghost URI</source>
+        <translation>Obre Ghost URI</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1270,8 +1270,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>&amp;Gasta el canvi sense confirmar</translation>
     </message>
     <message>
-        <source>Automatically open the Particl client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Obre el port del client de Particl al router de forma automàtica. Això només funciona quan el router implementa UPnP i l'opció està activada.</translation>
+        <source>Automatically open the Ghost client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Obre el port del client de Ghost al router de forma automàtica. Això només funciona quan el router implementa UPnP i l'opció està activada.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1286,8 +1286,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Permet connexions entrants</translation>
     </message>
     <message>
-        <source>Connect to the Particl network through a SOCKS5 proxy.</source>
-        <translation>Connecta a la xarxa Particl a través d'un proxy SOCKS5.</translation>
+        <source>Connect to the Ghost network through a SOCKS5 proxy.</source>
+        <translation>Connecta a la xarxa Ghost a través d'un proxy SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1362,8 +1362,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Si voleu mostrar les funcions de control de monedes o no.</translation>
     </message>
     <message>
-        <source>Connect to the Particl network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation>Connecteu-vos a la xarxa Particl mitjançant un servidor intermediari SOCKS5 separat per als serveis de ceba Tor.</translation>
+        <source>Connect to the Ghost network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation>Connecteu-vos a la xarxa Ghost mitjançant un servidor intermediari SOCKS5 separat per als serveis de ceba Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -1437,8 +1437,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Formulari</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Particl network after a connection is established, but this process has not completed yet.</source>
-        <translation>La informació mostrada pot no estar al dia. El vostra cartera se sincronitza automàticament amb la xarxa Particl un cop s'ha establert connexió, però aquest proces encara no ha finalitzat.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Ghost network after a connection is established, but this process has not completed yet.</source>
+        <translation>La informació mostrada pot no estar al dia. El vostra cartera se sincronitza automàticament amb la xarxa Ghost un cop s'ha establert connexió, però aquest proces encara no ha finalitzat.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1635,16 +1635,16 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Error de la sol·licitud de pagament</translation>
     </message>
     <message>
-        <source>Cannot start particl: click-to-pay handler</source>
-        <translation>No es pot iniciar particl: controlador click-to-pay</translation>
+        <source>Cannot start ghost: click-to-pay handler</source>
+        <translation>No es pot iniciar ghost: controlador click-to-pay</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation>Gestió d'URI</translation>
     </message>
     <message>
-        <source>'particl://' is not a valid URI. Use 'particl:' instead.</source>
-        <translation>'particl://' no és una URI vàlida. Usi 'particl:' en lloc seu.</translation>
+        <source>'ghost://' is not a valid URI. Use 'ghost:' instead.</source>
+        <translation>'ghost://' no és una URI vàlida. Usi 'ghost:' en lloc seu.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.</source>
@@ -1663,8 +1663,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Adreça de pagament no vàlida %1</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Particl address or malformed URI parameters.</source>
-        <translation>L'URI no pot ser analitzat! Això pot ser a causa d'una adreça de Particl no vàlida o per paràmetres URI amb mal format.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid Ghost address or malformed URI parameters.</source>
+        <translation>L'URI no pot ser analitzat! Això pot ser a causa d'una adreça de Ghost no vàlida o per paràmetres URI amb mal format.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1705,8 +1705,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>Import</translation>
     </message>
     <message>
-        <source>Enter a Particl address (e.g. %1)</source>
-        <translation>Introduïu una adreça de Particl (p. ex. %1)</translation>
+        <source>Enter a Ghost address (e.g. %1)</source>
+        <translation>Introduïu una adreça de Ghost (p. ex. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -2166,8 +2166,8 @@ Això és ideal per a carteres de mode només lectura.</translation>
         <translation>&amp;Missatge:</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Particl network.</source>
-        <translation>Un missatge opcional que s'adjuntarà a la sol·licitud de pagament, que es mostrarà quan s'obri la sol·licitud. Nota: El missatge no s'enviarà amb el pagament per la xarxa Particl.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Ghost network.</source>
+        <translation>Un missatge opcional que s'adjuntarà a la sol·licitud de pagament, que es mostrarà quan s'obri la sol·licitud. Nota: El missatge no s'enviarà amb el pagament per la xarxa Ghost.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2451,8 +2451,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Amagueu la configuració de les tarifes de transacció</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for particl transactions than the network can process.</source>
-        <translation>Quan no hi ha prou espai en els blocs per encabir totes les transaccions, els miners i així mateix els nodes repetidors poden exigir una taxa mínima. És acceptable pagar únicament la taxa mínima, però tingueu present que pot resultar que la vostra transacció no sigui mai confirmada mentre hi hagi més demanda de transaccions particl de les que la xarxa pot processar.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for ghost transactions than the network can process.</source>
+        <translation>Quan no hi ha prou espai en els blocs per encabir totes les transaccions, els miners i així mateix els nodes repetidors poden exigir una taxa mínima. És acceptable pagar únicament la taxa mínima, però tingueu present que pot resultar que la vostra transacció no sigui mai confirmada mentre hi hagi més demanda de transaccions ghost de les que la xarxa pot processar.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2523,8 +2523,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Creació sense firmar</translation>
     </message>
     <message>
-        <source>Creates a Partially Signed Particl Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation>Crea una transacció particl parcialment signada (PSBT) per a utilitzar, per exemple,  amb una cartera %1 fora de línia o amb una cartera compatible amb PSBT.</translation>
+        <source>Creates a Partially Signed Ghost Transaction (PSBT) for use with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation>Crea una transacció ghost parcialment signada (PSBT) per a utilitzar, per exemple,  amb una cartera %1 fora de línia o amb una cartera compatible amb PSBT.</translation>
     </message>
     <message>
         <source> from wallet '%1'</source>
@@ -2571,8 +2571,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Pot incrementar la comissió més tard (senyala Replace-By-Fee o substitució per comissió, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Particl Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
-        <translation>Si us plau, revisa la teva proposta de transacció. Es produirà una transacció de Particl amb firma parcial (PSBT) que podeu guardar o copiar i després firmar, per exemple, amb una cartera %1, o amb una cartera física compatible amb PSBT.</translation>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed Ghost Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <translation>Si us plau, revisa la teva proposta de transacció. Es produirà una transacció de Ghost amb firma parcial (PSBT) que podeu guardar o copiar i després firmar, per exemple, amb una cartera %1, o amb una cartera física compatible amb PSBT.</translation>
     </message>
     <message>
         <source>Please, review your transaction.</source>
@@ -2647,8 +2647,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation><numerusform>S’estima que comenci la confirmació dintre d'un bloc.</numerusform><numerusform>S’estima que comenci la confirmació dintre de %n blocs.</numerusform></translation>
     </message>
     <message>
-        <source>Warning: Invalid Particl address</source>
-        <translation>Avís: adreça Particl no vàlida</translation>
+        <source>Warning: Invalid Ghost address</source>
+        <translation>Avís: adreça Ghost no vàlida</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2686,8 +2686,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Escull una adreça feta servir anteriorment</translation>
     </message>
     <message>
-        <source>The Particl address to send the payment to</source>
-        <translation>L'adreça Particl on enviar el pagament</translation>
+        <source>The Ghost address to send the payment to</source>
+        <translation>L'adreça Ghost on enviar el pagament</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2710,8 +2710,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>L’import a enviar a la unitat seleccionada</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>La comissió es deduirà de l'import que s'enviarà. El destinatari rebrà menys particl que les que introduïu al camp d'import. Si se seleccionen múltiples destinataris, la comissió es dividirà per igual.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less ghost than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation>La comissió es deduirà de l'import que s'enviarà. El destinatari rebrà menys ghost que les que introduïu al camp d'import. Si se seleccionen múltiples destinataris, la comissió es dividirà per igual.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2738,8 +2738,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Introduïu una etiqueta per a aquesta adreça per afegir-la a la llista d'adreces utilitzades</translation>
     </message>
     <message>
-        <source>A message that was attached to the particl: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</source>
-        <translation>Un missatge que s'ha adjuntat al particl: URI que s'emmagatzemarà amb la transacció per a la vostra referència. Nota: el missatge no s'enviarà a través de la xarxa Particl.</translation>
+        <source>A message that was attached to the ghost: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Ghost network.</source>
+        <translation>Un missatge que s'ha adjuntat al ghost: URI que s'emmagatzemarà amb la transacció per a la vostra referència. Nota: el missatge no s'enviarà a través de la xarxa Ghost.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2772,12 +2772,12 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>&amp;Signa el missatge</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Podeu signar missatges/acords amb les vostres adreces per provar que rebeu les particl que s'hi envien. Aneu amb compte no signar res que sigui vague o aleatori, perquè en alguns atacs de suplantació es pot provar que hi signeu la vostra identitat. Només signeu aquelles declaracions completament detallades en què hi esteu d'acord. </translation>
+        <source>You can sign messages/agreements with your addresses to prove you can receive ghost sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <translation>Podeu signar missatges/acords amb les vostres adreces per provar que rebeu les ghost que s'hi envien. Aneu amb compte no signar res que sigui vague o aleatori, perquè en alguns atacs de suplantació es pot provar que hi signeu la vostra identitat. Només signeu aquelles declaracions completament detallades en què hi esteu d'acord. </translation>
     </message>
     <message>
-        <source>The Particl address to sign the message with</source>
-        <translation>L'adreça Particl amb què signar el missatge</translation>
+        <source>The Ghost address to sign the message with</source>
+        <translation>L'adreça Ghost amb què signar el missatge</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2808,8 +2808,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Copia la signatura actual al porta-retalls del sistema</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Particl address</source>
-        <translation>Signa el missatge per provar que ets propietari d'aquesta adreça Particl</translation>
+        <source>Sign the message to prove you own this Ghost address</source>
+        <translation>Signa el missatge per provar que ets propietari d'aquesta adreça Ghost</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -2832,8 +2832,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>Introduïu l'adreça del receptor, el missatge (assegureu-vos de copiar els salts de línia, espais, tabuladors, etc. exactament) i signatura de sota per verificar el missatge. Tingueu cura de no llegir més en la signatura del que està al missatge signat, per evitar ser enganyat per un atac d'home-en-el-mig. Tingueu en compte que això només demostra que la part que signa rep amb l'adreça, i no es pot provar l'enviament de qualsevol transacció!</translation>
     </message>
     <message>
-        <source>The Particl address the message was signed with</source>
-        <translation>L'adreça Particl amb què va ser signat el missatge</translation>
+        <source>The Ghost address the message was signed with</source>
+        <translation>L'adreça Ghost amb què va ser signat el missatge</translation>
     </message>
     <message>
         <source>The signed message to verify</source>
@@ -2844,8 +2844,8 @@ Nota: Com que la comissió es calcula en funció dels bytes, una comissió de "1
         <translation>La signatura donada quan es va signar el missatge</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Particl address</source>
-        <translation>Verificar el missatge per assegurar-se que ha estat signat amb una adreça Particl específica</translation>
+        <source>Verify the message to ensure it was signed with the specified Ghost address</source>
+        <translation>Verificar el missatge per assegurar-se que ha estat signat amb una adreça Ghost específica</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -3845,8 +3845,8 @@ Ves a Arxiu &gt; Obrir Cartera per a carregar cartera.
         <translation>Error: ha fallat escoltar les connexions entrants (l'escoltament ha retornat l'error %s)</translation>
     </message>
     <message>
-        <source>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</source>
-        <translation>%s està malmès. Proveu d’utilitzar l’eina particl-wallet per recuperar o restaurar una còpia de seguretat.</translation>
+        <source>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</source>
+        <translation>%s està malmès. Proveu d’utilitzar l’eina ghost-wallet per recuperar o restaurar una còpia de seguretat.</translation>
     </message>
     <message>
         <source>Cannot upgrade a non HD split wallet without upgrading to support pre split keypool. Please use version 169900 or no version specified.</source>

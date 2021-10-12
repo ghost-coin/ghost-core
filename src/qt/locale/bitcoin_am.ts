@@ -62,7 +62,7 @@
         <translation>የመቀበያ አድራሻዎች</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Ghost addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation>እነኚ የቢትኮይን ክፍያ የመላኪያ አድራሻዎችዎ ናቸው:: ገንዘብ/ኮይኖች ከመላክዎ በፊት መጠኑን እና የመቀበያ አድራሻውን ሁልጊዜ ያረጋግጡ::</translation>
     </message>
     <message>
@@ -465,7 +465,7 @@
         <translation>እንኳን  ወድ %1 በደህና መጣህ።</translation>
     </message>
     <message>
-        <source>Particl</source>
+        <source>Ghost</source>
         <translation>ቢትኮይን</translation>
     </message>
     <message>

@@ -66,8 +66,8 @@
         <translation>Adresa na koju se prima</translation>
     </message>
     <message>
-        <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Ovo su Vaše Particl adrese na koju se vrše uplate. Uvek proverite iznos i prijemnu adresu pre slanja novčića.</translation>
+        <source>These are your Ghost addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Ovo su Vaše Ghost adrese na koju se vrše uplate. Uvek proverite iznos i prijemnu adresu pre slanja novčića.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -338,8 +338,8 @@
         <translation>Ponovo obeležavam blokove na disku...</translation>
     </message>
     <message>
-        <source>Send coins to a Particl address</source>
-        <translation>Pošalji novčiće na Particl adresu</translation>
+        <source>Send coins to a Ghost address</source>
+        <translation>Pošalji novčiće na Ghost adresu</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -374,12 +374,12 @@
         <translation>Enkriptuj privatne ključeve novčanika</translation>
     </message>
     <message>
-        <source>Sign messages with your Particl addresses to prove you own them</source>
-        <translation>Potpišite poruke sa svojim Particl adresama da biste dokazali njihovo vlasništvo</translation>
+        <source>Sign messages with your Ghost addresses to prove you own them</source>
+        <translation>Potpišite poruke sa svojim Ghost adresama da biste dokazali njihovo vlasništvo</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Particl addresses</source>
-        <translation>Proverite poruke da biste utvrdili sa kojim Particl adresama su potpisane</translation>
+        <source>Verify messages to ensure they were signed with specified Ghost addresses</source>
+        <translation>Proverite poruke da biste utvrdili sa kojim Ghost adresama su potpisane</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -398,8 +398,8 @@
         <translation>Alatke za tabove</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and particl: URIs)</source>
-        <translation>Zatražite plaćanje (generiše QR kodove i particl: URI-e)</translation>
+        <source>Request payments (generates QR codes and ghost: URIs)</source>
+        <translation>Zatražite plaćanje (generiše QR kodove i ghost: URI-e)</translation>
     </message>
     <message>
         <source>Error</source>
@@ -517,8 +517,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>Particl</source>
-        <translation>Particl</translation>
+        <source>Ghost</source>
+        <translation>Ghost</translation>
     </message>
     <message>
         <source>Error</source>

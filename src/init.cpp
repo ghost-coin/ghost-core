@@ -185,7 +185,7 @@ static const char* DEFAULT_ASMAP_FILENAME="ip_asn.map";
 /**
  * The PID file facilities.
  */
-static const char* BITCOIN_PID_FILENAME = "particl.pid";
+static const char* BITCOIN_PID_FILENAME = "ghost.pid";
 
 static fs::path GetPidFile(const ArgsManager& args)
 {
@@ -546,7 +546,7 @@ void SetupServerArgs(NodeContext& node)
                  " If <type> is not supplied or if <type> = 1, indexes for all known types are enabled.",
                  ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
-    // Particl specific
+    // Ghost specific
     argsman.AddArg("-addressindex", strprintf("Maintain a full address index, used to query for the balance, txids and unspent outputs for addresses (default: %u)", DEFAULT_ADDRESSINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-timestampindex", strprintf("Maintain a timestamp index for block hashes, used to query blocks hashes by a range of timestamps (default: %u)", DEFAULT_TIMESTAMPINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-spentindex", strprintf("Maintain a full spent index, used to query the spending txid and input index for an outpoint (default: %u)", DEFAULT_SPENTINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -560,7 +560,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-findpeers", "Node will search for peers (default: 1)", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
 
     argsman.AddArg("-lookuptorcontrolhost=<protocol>", strprintf("Allow a hostname to be specified for the -torcontrol option. Must be \"any\", \"ipv4\", or \"ipv6\" (default: %s)", ""), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
-    // end Particl specific
+    // end Ghost specific
 
     argsman.AddArg("-addnode=<ip>", "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.", ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::CONNECTION);
     argsman.AddArg("-banscore=<n>", strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DEFAULT_BANSCORE_THRESHOLD), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
@@ -632,7 +632,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-zmqpubrawtxhwm=<n>", strprintf("Set publish raw transaction outbound message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubsequencehwm=<n>", strprintf("Set publish hash sequence message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
 
-    // Particl
+    // Ghost
     argsman.AddArg("-zmqpubhashwtx=<address>", "Enable publish hash transaction received by wallets in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubsmsg=<address>", "Enable publish secure message in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-serverkeyzmq=<secret_key>", "Base64 encoded string of the z85 encoded secret key for CurveZMQ.", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
@@ -724,9 +724,9 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpcwhitelistdefault", "Sets default behavior for rpc whitelisting. Unless rpcwhitelistdefault is set to 0, if any -rpcwhitelist is set, the rpc server acts as if all rpc users are subject to empty-unless-otherwise-specified whitelists. If rpcwhitelistdefault is set to 1 and no -rpcwhitelist is set, rpc server acts as if all rpc users are subject to empty whitelists.", ArgsManager::ALLOW_BOOL, OptionsCategory::RPC);
     argsman.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::RPC);
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
-    argsman.AddArg("-rpccorsdomain=<domain>", "Allow JSON-RPC connections from specified domain (e.g. http://localhost:4200 or \"*\"). This needs to be set if you are using the Particl GUI in a browser.", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-rpccorsdomain=<domain>", "Allow JSON-RPC connections from specified domain (e.g. http://localhost:4200 or \"*\"). This needs to be set if you are using the Ghost GUI in a browser.", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
-    // Particl
+    // Ghost
     argsman.AddArg("-displaylocaltime", "Display human readable time strings in local timezone (default: false)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-displayutctime", "Display human readable time strings in UTC (default: false)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rebuildrollingindices", "Force rebuild of rolling indices (default: false)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
@@ -749,7 +749,7 @@ void SetupServerArgs(NodeContext& node)
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/particl/particl-core>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/ghost-coin/ghost-core>";
 
     return CopyrightHolders(strprintf(_("Copyright (C)").translated)) + "\n" +
            "\n" +
