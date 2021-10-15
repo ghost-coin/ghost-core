@@ -450,8 +450,6 @@ public:
 
     bool operator()(const PKHash& id) const { return addr->Set(ToKeyID(id), fBech32); }
     bool operator()(const ScriptHash& id) const { return addr->Set(CScriptID(id), fBech32); }
-    bool operator()(const CKeyID& id) const { return addr->Set(id, fBech32); }
-    bool operator()(const CScriptID& id) const { return addr->Set(id, fBech32); }
     bool operator()(const CExtPubKey &ek) const { return addr->Set(ek, fBech32); }
     bool operator()(const CStealthAddress &sxAddr) const { return addr->Set(sxAddr, fBech32); }
     bool operator()(const CKeyID256& id) const { return addr->Set(id, fBech32); }

@@ -110,6 +110,4 @@ shift-base:util/bip32.cpp
 
 # Particl specific
 unsigned-integer-overflow:xxhash/
-implicit-signed-integer-truncation:unilib/
-implicit-integer-sign-change:unilib/
-
+implicit-signed-integer-truncation,implicit-integer-sign-change:unilib/

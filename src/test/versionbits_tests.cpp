@@ -84,12 +84,6 @@ class VersionBitsTester
     // Test counter (to identify failures)
     int num{1000};
 
-    // Optimise by removing new/delete, speeds up test in some cases (Travis CI win32)
-
-    std::vector<CBlockIndex> vblocks;
-    size_t nMaxHeight = 0;
-    size_t n = 0;
-
 public:
     VersionBitsTester& Reset() {
         // Have each group of tests be counted by the 1000s part, starting at 1000
