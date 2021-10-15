@@ -2624,10 +2624,10 @@ static RPCHelpMan smsgdebug()
     if (mode == "dumpids") {
         fs::path filepath = "smsg_ids.txt";
         if (request.params[1].isStr()) {
-            filepath = request.params[1].get_str();
+            filepath = fs::PathFromString(request.params[1].get_str());
         }
         if (fs::exists(filepath)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, filepath.string() + " already exists. If you are sure this is what you want, move it out of the way first");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, fs::PathToString(filepath) + " already exists. If you are sure this is what you want, move it out of the way first");
         }
 
         fsbridge::ofstream file;

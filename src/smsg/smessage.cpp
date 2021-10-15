@@ -227,7 +227,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
                             LogPrintf("Error removing bucket file %s.\n", ex.what());
                         }
                     } else {
-                        LogPrintf("Path %s does not exist.\n", fullPath.string());
+                        LogPrintf("Path %s does not exist.\n", fs::PathToString(fullPath));
                     }
 
                     // Look for a wl file, it stores incoming messages when wallet is locked
@@ -747,7 +747,7 @@ int CSMSG::ReadIni()
 
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fullpath.string().c_str(), "r"))) {
+    if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "r"))) {
         return errorN(SMSG_GENERAL_ERROR, "%s: Error opening file: %s", __func__, strerror(errno));
     }
 
@@ -817,7 +817,7 @@ int CSMSG::WriteIni()
 
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fullpath.string().c_str(), "w"))) {
+    if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "w"))) {
         return errorN(SMSG_GENERAL_ERROR, "%s: Error opening file: %s", __func__, strerror(errno));
     }
 
@@ -863,7 +863,7 @@ int CSMSG::WriteIni()
         fs::path finalpath = gArgs.GetDataDirNet() / "smsg.ini";
         fs::rename(fullpath, finalpath);
     } catch (const fs::filesystem_error &ex) {
-        LogPrintf("Error renaming file %s, %s.\n", fullpath.string(), ex.what());
+        LogPrintf("Error renaming file %s, %s.\n", fs::PathToString(fullpath), ex.what());
     }
     return SMSG_NO_ERROR;
 };
@@ -2931,8 +2931,8 @@ int CSMSG::Retrieve(const SecMsgToken &token, std::vector<uint8_t> &vchData)
 
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fullpath.string().c_str(), "rb"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, strerror(errno), fullpath.string());
+    if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "rb"))) {
+        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, strerror(errno), fs::PathToString(fullpath));
     }
 
     errno = 0;
@@ -2983,8 +2983,8 @@ int CSMSG::Remove(const SecMsgToken &token)
 
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fullpath.string().c_str(), "rb+"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, strerror(errno), fullpath.string());
+    if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "rb+"))) {
+        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, strerror(errno), fs::PathToString(fullpath));
     }
 
     errno = 0;
@@ -3227,7 +3227,7 @@ int CSMSG::StoreUnscanned(const uint8_t *pHeader, const uint8_t *pPayload, uint3
         pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
         fs::create_directory(pathSmsgDir);
     } catch (const fs::filesystem_error &ex) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - Failed to create directory %s - %s.", __func__, pathSmsgDir.string(), ex.what());
+        return errorN(SMSG_GENERAL_ERROR, "%s - Failed to create directory %s - %s.", __func__, fs::PathToString(pathSmsgDir), ex.what());
     }
 
     int64_t now = GetAdjustedTime();
@@ -3245,7 +3245,7 @@ int CSMSG::StoreUnscanned(const uint8_t *pHeader, const uint8_t *pPayload, uint3
 
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fullpath.string().c_str(), "ab"))) {
+    if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "ab"))) {
         return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file, strerror: %s.", __func__, strerror(errno));
     }
 
@@ -3281,7 +3281,7 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
         pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
         fs::create_directory(pathSmsgDir);
     } catch (const fs::filesystem_error &ex) {
-        return errorN(SMSG_GENERAL_ERROR, "Failed to create directory %s - %s.", pathSmsgDir.string(), ex.what());
+        return errorN(SMSG_GENERAL_ERROR, "Failed to create directory %s - %s.", fs::PathToString(pathSmsgDir), ex.what());
     }
 
     int64_t now = GetAdjustedTime();
@@ -3313,7 +3313,7 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
 
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fullpath.string().c_str(), "ab"))) {
+    if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "ab"))) {
         return errorN(SMSG_GENERAL_ERROR, "fopen failed: %s.", strerror(errno));
     }
 

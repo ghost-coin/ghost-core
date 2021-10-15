@@ -102,7 +102,7 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
     const int nMaxOutputsPerTxn = 80;
     FILE *fp;
     errno = 0;
-    if (!(fp = fopen(fPath.string().c_str(), "rb"))) {
+    if (!(fp = fopen(fs::PathToString(fPath).c_str(), "rb"))) {
         return error("%s - Can't open file, strerror: %s.", __func__, strerror(errno));
     }
 

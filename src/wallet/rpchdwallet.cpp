@@ -9213,7 +9213,7 @@ static bool PruneBlockFile(ChainstateManager &chainman, FILE *fp, bool test_only
 {
     fs::path tmp_filepath = gArgs.GetBlocksDirPath() / strprintf("tmp.dat");
 
-    FILE *fpt = fopen(tmp_filepath.string().c_str(), "w");
+    FILE *fpt = fopen(fs::PathToString(tmp_filepath).c_str(), "w");
     if (!fpt) {
         return error("%s: Couldn't open temp file.\n", __func__);
     }
@@ -9363,14 +9363,14 @@ static RPCHelpMan pruneorphanedblocks()
             if (!test_only) {
                 fs::path tmp_filepath = gArgs.GetBlocksDirPath() / strprintf("tmp.dat");
                 if (!RenameOver(tmp_filepath, blk_filepath)) {
-                    LogPrintf("Unable to rename file %s to %s\n", tmp_filepath.string(), blk_filepath.string());
+                    LogPrintf("Unable to rename file %s to %s\n", fs::PathToString(tmp_filepath), fs::PathToString(blk_filepath));
                     return false;
                 }
             }
 
             UniValue obj(UniValue::VOBJ);
             obj.pushKV("test_mode", test_only);
-            obj.pushKV("filename", GetBlockPosFilename(pos).string());
+            obj.pushKV("filename", fs::PathToString(GetBlockPosFilename(pos)));
             obj.pushKV("blocks_in_file", (int)num_blocks_in_file);
             obj.pushKV("blocks_removed", (int)num_blocks_removed);
             files.push_back(obj);

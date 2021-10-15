@@ -61,6 +61,7 @@ namespace BCLog {
         IPC         = (1 << 23),
         LOCK        = (1 << 24),
         UTIL        = (1 << 25),
+        BLOCKSTORE  = (1 << 26),
 
         SMSG        = (1 << 27),
         RINGCT      = (1 << 28),

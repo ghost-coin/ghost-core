@@ -302,7 +302,7 @@ public:
     virtual void requestMempoolTransactions(Notifications& notifications) = 0;
 
     //! Check if Taproot has activated
-    virtual bool isTaprootActive() const = 0;
+    virtual bool isTaprootActive() = 0;
 
     //! Particl Specific
     virtual int getHeightInt() = 0;

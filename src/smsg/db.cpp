@@ -47,7 +47,7 @@ bool SecMsgDB::Open(const char *pszMode)
 
     leveldb::Options options;
     options.create_if_missing = fCreate;
-    leveldb::Status s = leveldb::DB::Open(options, fullpath.string(), &smsgDB);
+    leveldb::Status s = leveldb::DB::Open(options, fs::PathToString(fullpath), &smsgDB);
 
     if (!s.ok()) {
         LogPrintf("%s: Error opening db: %s.\n", __func__, s.ToString());
