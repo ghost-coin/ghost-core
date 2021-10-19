@@ -13459,14 +13459,17 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
         if (m_smsg_fee_rate_target > 0) {
             int64_t diff = m_smsg_fee_rate_target - smsg_fee_rate;
-            int64_t max_delta = Params().GetMaxSmsgFeeRateDelta(smsg_fee_rate);
+            int64_t max_delta = Params().GetMaxSmsgFeeRateDelta(smsg_fee_rate, nTime);
             if (diff > max_delta) {
                 diff = max_delta;
-            }
+            } else
             if (diff < -max_delta) {
                 diff = -max_delta;
             }
             smsg_fee_rate += diff;
+            if (smsg_fee_rate < 1) {
+                smsg_fee_rate = 1;
+            }
         }
         std::vector<uint8_t> vSmsgFeeRate(1), &vData = *txNew.vpout[0]->GetPData();
         vSmsgFeeRate[0] = DO_SMSG_FEE;
