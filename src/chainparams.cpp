@@ -66,9 +66,13 @@ int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64
     return nSubsidy + nFees;
 };
 
-int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const
+int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev, int64_t time) const
 {
-    return (smsg_fee_prev * consensus.smsg_fee_max_delta_percent) / 1000000;
+    int64_t max_delta = (smsg_fee_prev * consensus.smsg_fee_max_delta_percent) / 1000000;
+    if (time >= consensus.smsg_fee_rate_fix_time) {
+        return std::max((int64_t)1, max_delta);
+    }
+    return max_delta;
 };
 
 bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
@@ -930,6 +934,7 @@ public:
         consensus.smsg_fee_max_delta_percent = 4300;
         consensus.smsg_min_difficulty = 0x1f0fffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
+        consensus.smsg_fee_rate_fix_time = 0;
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
