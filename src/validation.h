@@ -79,7 +79,7 @@ typedef int64_t NodeId;
 
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
-/** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of ::ChainActive().Tip() will not be pruned. */
+/** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of ActiveChain().Tip() will not be pruned. */
 extern unsigned int MIN_BLOCKS_TO_KEEP;
 extern unsigned int NODE_NETWORK_LIMITED_MIN_BLOCKS;
 static const signed int DEFAULT_CHECKBLOCKS = 6;

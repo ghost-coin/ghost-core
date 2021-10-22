@@ -11,6 +11,7 @@
 /** Amount in satoshis (Can be negative) */
 typedef int64_t CAmount;
 
+/** The amount of satoshis in one BTC. */
 static constexpr CAmount COIN = 100000000;
 static constexpr CAmount CENT = 1000000;
 

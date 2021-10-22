@@ -14,7 +14,7 @@
 #include <streams.h>
 #include <version.h>
 
-#include <bloom.h>
+#include <common/bloom.h>
 #include <chain/ct_tainted.h>
 #include <chain/tx_blacklist.h>
 #include <chain/tx_whitelist.h>
