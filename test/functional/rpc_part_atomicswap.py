@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2019 The Particl Core developers
+# Copyright (c) 2018-2021 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +7,6 @@
 
 import os
 import time
-import binascii
 from random import random
 from decimal import Decimal
 
@@ -168,7 +167,7 @@ def createRefundTx(node, rawtx, script, lockTime, addrRefundFrom, addrRefundTo):
     rawtxrefund = node.tx([rawtxrefund, 'delout=0', 'outaddr=' + str(amountOut) + ':' + addrRefundTo])
 
 
-    scripthex = binascii.hexlify(script).decode("utf-8")
+    scripthex = script.hex()
     prevtx = {
         'txid': txnid,
         'vout': n,
@@ -212,7 +211,7 @@ def createClaimTx(node, rawtx, script, secret, addrClaimFrom, addrClaimTo):
 
     rawtxClaim = node.tx([rawtxClaim, 'delout=0', 'outaddr=' + str(amountOut) + ':' + addrClaimTo])
 
-    scripthex = binascii.hexlify(script).decode("utf-8")
+    scripthex = script.hex()
     prevtx = {
         'txid': txnid,
         'vout': n,
@@ -224,11 +223,10 @@ def createClaimTx(node, rawtx, script, secret, addrClaimFrom, addrClaimTo):
 
     addrClaimFromInfo = node.getaddressinfo(addrClaimFrom)
 
-    secrethex = binascii.hexlify(secret).decode("utf-8")
     witnessStack = [
         claimSig,
         addrClaimFromInfo['pubkey'],
-        secrethex,
+        secret.hex(),
         '01',
         scripthex
     ]
@@ -261,20 +259,20 @@ def createRefundTxCT(node, rawtx, output_amounts, script, lockTime, privKeySign,
     rawtxrefund = ro['hex']
 
     witnessSize = 5 + 73 + 33 + 1 + len(script)
-    tempBytes = bytearray(witnessSize) # Needed for fee estimation
+    tempBytes = bytes(witnessSize) # Needed for fee estimation
 
     # Set fee and commitment sum
     options = {'subtractFeeFromOutputs': [0,]}
     input_amounts = {'0': {
             'value': amountIn,
             'blind': blindIn,
-            'witness': binascii.hexlify(tempBytes).decode("utf-8")
+            'witness': tempBytes.hex()
         }
     }
     ro = node.fundrawtransactionfrom('blind', ro['hex'], input_amounts, ro['amounts'], options)
     rawtxrefund = ro['hex']
 
-    scripthex = binascii.hexlify(script).decode("utf-8")
+    scripthex = script.hex()
     prevtx = {
         'txid': txnid,
         'vout': n,
@@ -322,20 +320,20 @@ def createClaimTxCT(node, rawtx, output_amounts, script, secret, privKeySign, pu
 
     # Need estimated witnessSize for fee estimation
     witnessSize = 6 + 73 + 33 + 32 + 1 + 1 + len(script)
-    tempBytes = bytearray(witnessSize)
+    tempBytes = bytes(witnessSize)
 
     # Set fee and commitment sum
     options = {'subtractFeeFromOutputs':[0,]}
     input_amounts = {'0': {
             'value': amountIn,
             'blind': blindIn,
-            'witness': binascii.hexlify(tempBytes).decode("utf-8")
+            'witness': tempBytes.hex()
         }
     }
     ro = node.fundrawtransactionfrom('blind', ro['hex'], input_amounts, ro['amounts'], options)
     rawtxClaim = ro['hex']
 
-    scripthex = binascii.hexlify(script).decode("utf-8")
+    scripthex = script.hex()
     prevtx = {
         'txid': txnid,
         'vout': n,
@@ -345,11 +343,10 @@ def createClaimTxCT(node, rawtx, output_amounts, script, secret, privKeySign, pu
     }
     claimSig = node.createsignaturewithkey(rawtxClaim, prevtx, privKeySign)
 
-    secrethex = binascii.hexlify(secret).decode("utf-8")
     witnessStack = [
         claimSig,
         pubKeySign,
-        secrethex,
+        secret.hex(),
         '01',
         scripthex
     ]
@@ -735,8 +732,8 @@ class AtomicSwapTest(ParticlTestFramework):
     def test_generatematchingblindfactor(self):
         nodes = self.nodes
 
-        bfA = binascii.hexlify(os.urandom(32)).decode("utf-8")
-        bfB = binascii.hexlify(os.urandom(32)).decode("utf-8")
+        bfA = os.urandom(32).hex()
+        bfB = os.urandom(32).hex()
 
         # A + B = A + ?
         # B = ?
@@ -768,7 +765,7 @@ class AtomicSwapTest(ParticlTestFramework):
 
         addrA_sx = nodes[0].getnewstealthaddress()
         ephem = nodes[0].derivefromstealthaddress(addrA_sx)['ephemeral_privatekey']
-        blind = binascii.hexlify(os.urandom(32)).decode("utf-8")
+        blind = os.urandom(32).hex()
         amount = getRandomAmount()
 
         outputs = [{
