@@ -4776,7 +4776,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             nFeeRet = nFeeNeeded;
             continue;
         }
-        coinControl->nChangePos = nChangePosInOut;
+        coinControl->nChangePos = nChangePosInOut + 1; // Add one for the fee output
 
 
         nValueOutPlain += nFeeRet;
@@ -5567,7 +5567,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             nFeeRet = nFeeNeeded;
             continue;
         }
-        coinControl->nChangePos = nChangePosInOut;
+        coinControl->nChangePos = nChangePosInOut + 1; // Add one for the fee output
 
         LogPrint(BCLog::HDWALLET, "%s: Using %d inputs, ringsize %d.\n", __func__, setCoins.size(), nRingSize);
 
