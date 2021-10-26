@@ -69,6 +69,7 @@ Next Major Version
  - rpc: Fixed sendtypeto with show_hex set.
  - insight: Spent index should update even if addressindex can't.
  - insight: Add PayToTimeLockedScriptHash to addressindex.
+ - wallet: Fix changepos return value for anon and blind txns off by one.
 
 
 0.19.2.16
