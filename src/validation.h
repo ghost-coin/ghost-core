@@ -267,8 +267,7 @@ PackageMempoolAcceptResult ProcessNewPackage(CChainState& active_chainstate, CTx
                                                    const Package& txns, bool test_accept, bool ignore_locks=false)
                                                    EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-/** Apply the effects of this transaction on the UTXO set represented by view */
-void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight);
+/** Transaction validation functions */
 
 /**
  * Check if transaction will be final in the next block to be created.

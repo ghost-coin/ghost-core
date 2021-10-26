@@ -756,7 +756,7 @@ class WalletParticlTest(ParticlTestFramework):
             Transactions: 0
             Address Book: 0
         ''')
-        self.assert_tool_output(out, '-wallet=w_created', 'create')
+        self.assert_tool_output(out, '-wallet=w_created', '-legacy', 'create')
 
         self.log.info('Test permanent lockunspent')
         unspent = nodes[2].listunspent()

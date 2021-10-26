@@ -848,6 +848,7 @@ particl_tx_LDADD += $(BOOST_LIBS)
 
 # bitcoin-wallet binary #
 particl_wallet_SOURCES = bitcoin-wallet.cpp
+particl_wallet_SOURCES += init/bitcoin-wallet.cpp
 particl_wallet_CPPFLAGS = $(particl_bin_cppflags)
 particl_wallet_CXXFLAGS = $(particl_bin_cxxflags)
 particl_wallet_LDFLAGS = $(particl_bin_ldflags)

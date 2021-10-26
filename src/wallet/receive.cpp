@@ -510,11 +510,7 @@ Balance GetBalance(const CWallet& wallet, const int min_depth, bool avoid_reuse)
                     }
                 }
                 if (!is_trusted && tx_depth == 0) {
-                    CTransactionRef ptx = nullptr;
-                    if (phdw->HaveChain()) {
-                        ptx = phdw->chain().transactionFromMempool(txhash);
-                    }
-                    if (!ptx) {
+                    if (!phdw->InMempool(txhash)) {
                         continue;
                     }
                     if (r.nFlags & ORF_OWNED) {

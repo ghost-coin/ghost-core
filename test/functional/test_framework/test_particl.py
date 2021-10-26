@@ -35,7 +35,7 @@ class ParticlTestFramework(BitcoinTestFramework):
 
     def particl_wallet(self, node, *args):
         binary = self.config["environment"]["BUILDDIR"] + '/src/particl-wallet' + self.config["environment"]["EXEEXT"]
-        args = ['-datadir={}'.format(node.datadir), '-regtest'] + list(args)
+        args = ['-datadir={}'.format(node.datadir), '-regtest', '-legacy'] + list(args)
         p = subprocess.Popen([binary] + args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         stdout, stderr = p.communicate()
         assert_equal(stderr, '')

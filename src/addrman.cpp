@@ -395,7 +395,7 @@ void AddrManImpl::Unserialize(Stream& s_)
     }
 }
 
-AddrInfo* AddrManImpl::Find(const CNetAddr& addr, int* pnId)
+AddrInfo* AddrManImpl::Find(const CService& addr, int* pnId)
 {
     AssertLockHeld(cs);
 
@@ -553,10 +553,6 @@ void AddrManImpl::Good_(const CService& addr, bool test_before_evict, int64_t nT
 
     AddrInfo& info = *pinfo;
 
-    // check whether we are talking about the exact same CService (including same port)
-    if (info != addr)
-        return;
-
     // update info
     info.nLastSuccess = nTime;
     info.nLastTry = nTime;
@@ -685,10 +681,6 @@ void AddrManImpl::Attempt_(const CService& addr, bool fCountFailure, int64_t nTi
 
     AddrInfo& info = *pinfo;
 
-    // check whether we are talking about the exact same CService (including same port)
-    if (info != addr)
-        return;
-
     // update info
     info.nLastTry = nTime;
     if (fCountFailure && info.nLastCountAttempt < nLastGood) {
@@ -711,40 +703,56 @@ std::pair<CAddress, int64_t> AddrManImpl::Select_(bool newOnly) const
         // use a tried node
         double fChanceFactor = 1.0;
         while (1) {
+            // Pick a tried bucket, and an initial position in that bucket.
             int nKBucket = insecure_rand.randrange(ADDRMAN_TRIED_BUCKET_COUNT);
             int nKBucketPos = insecure_rand.randrange(ADDRMAN_BUCKET_SIZE);
-            while (vvTried[nKBucket][nKBucketPos] == -1) {
-                nKBucket = (nKBucket + insecure_rand.randbits(ADDRMAN_TRIED_BUCKET_COUNT_LOG2)) % ADDRMAN_TRIED_BUCKET_COUNT;
-                nKBucketPos = (nKBucketPos + insecure_rand.randbits(ADDRMAN_BUCKET_SIZE_LOG2)) % ADDRMAN_BUCKET_SIZE;
+            // Iterate over the positions of that bucket, starting at the initial one,
+            // and looping around.
+            int i;
+            for (i = 0; i < ADDRMAN_BUCKET_SIZE; ++i) {
+                if (vvTried[nKBucket][(nKBucketPos + i) % ADDRMAN_BUCKET_SIZE] != -1) break;
             }
-            int nId = vvTried[nKBucket][nKBucketPos];
+            // If the bucket is entirely empty, start over with a (likely) different one.
+            if (i == ADDRMAN_BUCKET_SIZE) continue;
+            // Find the entry to return.
+            int nId = vvTried[nKBucket][(nKBucketPos + i) % ADDRMAN_BUCKET_SIZE];
             const auto it_found{mapInfo.find(nId)};
             assert(it_found != mapInfo.end());
             const AddrInfo& info{it_found->second};
+            // With probability GetChance() * fChanceFactor, return the entry.
             if (insecure_rand.randbits(30) < fChanceFactor * info.GetChance() * (1 << 30)) {
                 LogPrint(BCLog::ADDRMAN, "Selected %s from tried\n", info.ToString());
                 return {info, info.nLastTry};
             }
+            // Otherwise start over with a (likely) different bucket, and increased chance factor.
             fChanceFactor *= 1.2;
         }
     } else {
         // use a new node
         double fChanceFactor = 1.0;
         while (1) {
+            // Pick a new bucket, and an initial position in that bucket.
             int nUBucket = insecure_rand.randrange(ADDRMAN_NEW_BUCKET_COUNT);
             int nUBucketPos = insecure_rand.randrange(ADDRMAN_BUCKET_SIZE);
-            while (vvNew[nUBucket][nUBucketPos] == -1) {
-                nUBucket = (nUBucket + insecure_rand.randbits(ADDRMAN_NEW_BUCKET_COUNT_LOG2)) % ADDRMAN_NEW_BUCKET_COUNT;
-                nUBucketPos = (nUBucketPos + insecure_rand.randbits(ADDRMAN_BUCKET_SIZE_LOG2)) % ADDRMAN_BUCKET_SIZE;
+            // Iterate over the positions of that bucket, starting at the initial one,
+            // and looping around.
+            int i;
+            for (i = 0; i < ADDRMAN_BUCKET_SIZE; ++i) {
+                if (vvNew[nUBucket][(nUBucketPos + i) % ADDRMAN_BUCKET_SIZE] != -1) break;
             }
-            int nId = vvNew[nUBucket][nUBucketPos];
+            // If the bucket is entirely empty, start over with a (likely) different one.
+            if (i == ADDRMAN_BUCKET_SIZE) continue;
+            // Find the entry to return.
+            int nId = vvNew[nUBucket][(nUBucketPos + i) % ADDRMAN_BUCKET_SIZE];
             const auto it_found{mapInfo.find(nId)};
             assert(it_found != mapInfo.end());
             const AddrInfo& info{it_found->second};
+            // With probability GetChance() * fChanceFactor, return the entry.
             if (insecure_rand.randbits(30) < fChanceFactor * info.GetChance() * (1 << 30)) {
                 LogPrint(BCLog::ADDRMAN, "Selected %s from new\n", info.ToString());
                 return {info, info.nLastTry};
             }
+            // Otherwise start over with a (likely) different bucket, and increased chance factor.
             fChanceFactor *= 1.2;
         }
     }
@@ -800,10 +808,6 @@ void AddrManImpl::Connected_(const CService& addr, int64_t nTime)
 
     AddrInfo& info = *pinfo;
 
-    // check whether we are talking about the exact same CService (including same port)
-    if (info != addr)
-        return;
-
     // update info
     int64_t nUpdateInterval = 20 * 60;
     if (nTime - info.nTime > nUpdateInterval)
@@ -821,10 +825,6 @@ void AddrManImpl::SetServices_(const CService& addr, ServiceFlags nServices)
         return;
 
     AddrInfo& info = *pinfo;
-
-    // check whether we are talking about the exact same CService (including same port)
-    if (info != addr)
-        return;
 
     // update info
     info.nServices = nServices;

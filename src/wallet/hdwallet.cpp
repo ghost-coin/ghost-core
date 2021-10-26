@@ -2387,7 +2387,7 @@ bool CHDWallet::InMempool(const uint256 &hash) const
     if (!HaveChain()) {
         return false;
     }
-    return chain().transactionInMempool(hash);
+    return chain().isInMempool(hash);
 };
 
 bool hashUnset(const uint256 &hash)
@@ -2632,11 +2632,7 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal, bool avoid_reuse) const
         bool fTrusted = IsTrusted(txhash, rtx, &depth);
         bool fInMempool = false;
         if (!fTrusted) {
-            CTransactionRef ptx = nullptr;
-            if (HaveChain()) {
-                ptx = chain().transactionFromMempool(txhash);
-            }
-            fInMempool = !ptx ? false : true;
+            fInMempool = InMempool(txhash);
         }
 
         for (const auto &r : rtx.vout) {

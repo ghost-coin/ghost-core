@@ -647,7 +647,7 @@ public:
      * all inputs are in the mapNextTx array). If sanity-checking is turned off,
      * check does nothing.
      */
-    void check(CChainState& active_chainstate) const EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    void check(const CCoinsViewCache& active_coins_tip, int64_t spendheight) const EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     // addUnchecked must updated state for all ancestors of a given transaction,
     // to track size/count of descendant transactions.  First version of
@@ -819,7 +819,6 @@ public:
         }
         return (mapTx.count(gtxid.GetHash()) != 0);
     }
-    bool exists(const uint256& txid) const { return exists(GenTxid{false, txid}); }
 
     CTransactionRef get(const uint256& hash) const;
     txiter get_iter_from_wtxid(const uint256& wtxid) const EXCLUSIVE_LOCKS_REQUIRED(cs)
@@ -827,7 +826,6 @@ public:
         AssertLockHeld(cs);
         return mapTx.project<0>(mapTx.get<index_by_wtxid>().find(wtxid));
     }
-    TxMempoolInfo info(const uint256& hash) const;
     TxMempoolInfo info(const GenTxid& gtxid) const;
     std::vector<TxMempoolInfo> infoAll() const;
 
@@ -839,7 +837,7 @@ public:
         LOCK(cs);
         // Sanity check the transaction is in the mempool & insert into
         // unbroadcast set.
-        if (exists(txid)) m_unbroadcast_txids.insert(txid);
+        if (exists(GenTxid::Txid(txid))) m_unbroadcast_txids.insert(txid);
     };
 
     /** Removes a transaction from the unbroadcast set */
