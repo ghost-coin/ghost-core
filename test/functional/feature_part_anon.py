@@ -136,6 +136,9 @@ class AnonTest(ParticlTestFramework):
         assert(nodes[1].lockunspent(False, [unspent[0]], True) == True)
         assert(nodes[1].lockunspent(False, [unspent[1]], True) == True)
         assert(len(nodes[1].listlockunspent()) == 2)
+        locked_balances = nodes[1].getlockedbalances()
+        assert(locked_balances['trusted_anon'] > 0.0)
+        assert(locked_balances['num_locked'] == 2)
         # Restart node
         self.sync_all()
         self.stop_node(1)

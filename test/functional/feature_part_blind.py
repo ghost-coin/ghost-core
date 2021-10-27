@@ -162,6 +162,9 @@ class BlindTest(ParticlTestFramework):
         assert(nodes[1].lockunspent(False, [unspent[0]]) == True)
         assert(len(nodes[1].listlockunspent()) == 1)
         assert(len(nodes[1].listunspentblind(minconf=0)) < len(unspent))
+        locked_balances = nodes[1].getlockedbalances()
+        assert(locked_balances['trusted_blind'] > 0.0)
+        assert(locked_balances['num_locked'] == 1)
         assert(nodes[1].lockunspent(True, [unspent[0]]) == True)
         assert(len(nodes[1].listunspentblind(minconf=0)) == len(unspent))
 
