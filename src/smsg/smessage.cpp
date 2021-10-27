@@ -3517,8 +3517,8 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
             return SMSG_GENERAL_ERROR;
         }
         if (!db.ReadFundingData(txid, db_data)) {
-            LogPrintf("%s: ReadFundingData failed for txn: %s.\n", __func__, txid.ToString());
-            return SMSG_GENERAL_ERROR;
+            LogPrint(BCLog::SMSG, "ReadFundingData failed for smsg: %s, txn: %s.\n", msgId.ToString(), txid.ToString());
+            return SMSG_FUND_DATA_NOT_FOUND;
         }
     }
     const uint256 &hashBlock = *((const uint256*) db_data.data());
@@ -3657,6 +3657,13 @@ int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_
 
         int rv_funded = CheckFundingTx(consensusParams, psmsg, pPayload);
         if (rv_funded != SMSG_NO_ERROR) {
+            if (rv_funded == SMSG_FUND_DATA_NOT_FOUND &&
+                !LogAcceptCategory(BCLog::SMSG)) {
+                uint256 txid;
+                if (GetFundingTxid(pPayload, nPayload, txid)) {
+                    LogPrintf("%s: ReadFundingData failed for txn: %s.\n", __func__, txid.ToString());
+                }
+            }
             return rv_funded;
         }
 
