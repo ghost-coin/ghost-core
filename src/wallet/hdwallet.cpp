@@ -3605,6 +3605,13 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
 
         return true;
     }
+    if (coinControl && coinControl->m_changepubkey.IsValid()) {
+        PKHash idChange = PKHash(coinControl->m_changepubkey);
+        r.pkTo = coinControl->m_changepubkey;
+        r.address = idChange;
+        r.scriptPubKey = GetScriptForDestination(idChange);
+        return true;
+    }
 
     UniValue jsonSettings;
     GetSetting("changeaddress", jsonSettings);
