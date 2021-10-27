@@ -4052,6 +4052,7 @@ void FundTransaction(CWallet* const pwallet, CMutableTransaction& tx, CAmount& f
                 {"add_inputs", UniValueType(UniValue::VBOOL)},
                 {"add_to_wallet", UniValueType(UniValue::VBOOL)},
                 {"changeAddress", UniValueType(UniValue::VSTR)},
+                {"changepubkey", UniValueType(UniValue::VSTR)},
                 {"change_address", UniValueType(UniValue::VSTR)},
                 {"changePosition", UniValueType(UniValue::VNUM)},
                 {"change_position", UniValueType(UniValue::VNUM)},

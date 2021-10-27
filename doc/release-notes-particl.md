@@ -60,6 +60,7 @@
  - insight: Add PayToTimeLockedScriptHash to addressindex.
  - wallet: Fix changepos return value for anon and blind txns off by one.
  - rpc: New getlockedbalances command.
+ - rpc: fundrawtransactionfrom can set the public key used for the change output.
 
 
 0.19.2.16

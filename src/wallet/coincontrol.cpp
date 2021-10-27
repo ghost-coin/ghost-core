@@ -26,8 +26,23 @@ void CCoinControl::SetNull()
 
     nCoinType = OUTPUT_STANDARD;
     fHaveAnonOutputs = false;
+    fNeedHardwareKey = false;
     m_extrafee = 0;
+    m_inputData.clear();
+    fAllowLocked = false;
+    nChangePos = -1;
+    m_addChangeOutput = true;
+    m_include_immature = false;
+    m_blind_watchonly_visible = false;
     m_extra_data0.clear();
+    m_spend_frozen_blinded = false;
+    m_include_tainted_frozen = false;
+    m_debug_exploit_anon = 0;
+    m_use_mixins.clear();
+    m_mixin_selection_mode = 1;
+    vSplitCommitBlindingKeys.clear();
+    scriptChange = CScript();
+    m_changepubkey = CPubKey();
 }
 
 bool CCoinControl::SetKeyFromInputData(const CKeyID &idk, CKey &key) const

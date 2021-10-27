@@ -784,9 +784,21 @@ static void ParseSecretKey(const std::string &s, CKey &key)
 
 void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinControl &coin_control)
 {
+    std::string sChangeAddress;
     if (obj.exists("changeaddress")) {
-        std::string sChangeAddress = obj["changeaddress"].get_str();
+        sChangeAddress = obj["changeaddress"].get_str();
+    } else
+    if (obj.exists("changeAddress")) {
+        sChangeAddress = obj["changeAddress"].get_str();
+    } else
+    if (obj.exists("change_address")) {
+        sChangeAddress = obj["change_address"].get_str();
+    }
 
+    if (sChangeAddress.size() > 0) {
+        if (obj.exists("changepubkey")) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Can't set changepubkey and changeaddress");
+        }
         // Check for script
         bool fHaveScript = false;
         if (IsHex(sChangeAddress)) {
@@ -807,6 +819,14 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
             }
             coin_control.destChange = dest;
         }
+    } else
+    if (obj.exists("changepubkey")) {
+        std::string s = obj["changepubkey"].get_str();
+        if (!IsHex(s) || !(s.size() == 66)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 33 bytes and hex encoded.");
+        }
+        std::vector<uint8_t> v = ParseHex(s);
+        coin_control.m_changepubkey = CPubKey(v.begin(), v.end());
     }
 
     const UniValue &uvInputs = obj["inputs"];
@@ -8456,6 +8476,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                                 },
                             },
                             {"changeAddress", RPCArg::Type::STR, /* default */ "", "The particl address to receive the change."},
+                            {"changepubkey", RPCArg::Type::STR, /* default */ "", "The public key to use for the change output if changeAddress isn't set."},
                             {"changePosition", RPCArg::Type::NUM, /* default */ "random", "The index of the change output."},
                             //{"change_type", RPCArg::Type::STR, /* default */ "", "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\". Default is set by -changetype."},
                             {"includeWatching", RPCArg::Type::BOOL, /* default */ "false", "Also select inputs which are watch only."},
@@ -8547,7 +8568,9 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 
         RPCTypeCheckObj(options,
             {
+                {"changeaddress", UniValueType(UniValue::VSTR)},
                 {"changeAddress", UniValueType(UniValue::VSTR)},
+                {"changepubkey", UniValueType(UniValue::VSTR)},
                 {"changePosition", UniValueType(UniValue::VNUM)},
                 {"inputs", UniValueType(UniValue::VARR)},
                 {"includeWatching", UniValueType(UniValue::VBOOL)},
