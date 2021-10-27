@@ -59,6 +59,7 @@
  - insight: Spent index should update even if addressindex can't.
  - insight: Add PayToTimeLockedScriptHash to addressindex.
  - wallet: Fix changepos return value for anon and blind txns off by one.
+ - rpc: New getlockedbalances command.
 
 
 0.19.2.16

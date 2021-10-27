@@ -2899,7 +2899,7 @@ static UniValue clearwallettransactions(const JSONRPCRequest &request)
 
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
 
-        std::map<uint256, CWalletTx>::iterator itw;
+        std::map<uint256, CWalletTx>::const_iterator itw;
         std::string strType;
         uint256 hash;
         uint32_t fFlags = DB_SET_RANGE;
@@ -2919,7 +2919,7 @@ static UniValue clearwallettransactions(const JSONRPCRequest &request)
                     continue; // err on the side of caution
                 }
 
-                CWalletTx *pcoin = &itw->second;
+                const CWalletTx *pcoin = &itw->second;
                 if (!pcoin->IsCoinStake() || !pcoin->isAbandoned()) {
                     continue;
                 }
@@ -5041,6 +5041,100 @@ static UniValue listunspentblind(const JSONRPCRequest &request)
     return results;
 };
 
+
+static UniValue getlockedbalances(const JSONRPCRequest &request)
+{
+    RPCHelpMan{"getlockedbalances",
+        "\nReturns an object with locked balances in " + CURRENCY_UNIT + ".\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                {RPCResult::Type::STR_AMOUNT, "trusted_plain", "Total locked trusted plain balance"},
+                {RPCResult::Type::STR_AMOUNT, "trusted_blind", "Total locked trusted blind balance"},
+                {RPCResult::Type::STR_AMOUNT, "trusted_anon", "Total locked trusted anon balance"},
+                {RPCResult::Type::STR_AMOUNT, "untrusted_plain", "Total locked untrusted plain balance"},
+                {RPCResult::Type::STR_AMOUNT, "untrusted_blind", "Total locked untrusted blind balance"},
+                {RPCResult::Type::STR_AMOUNT, "untrusted_anon", "Total locked untrusted anon balance"},
+                {RPCResult::Type::NUM, "num_locked", "Count of locked outputs"},
+        }},
+        RPCExamples{
+    HelpExampleCli("getlockedbalances", "") +
+    "\nAs a JSON-RPC call\n"
+    + HelpExampleRpc("getlockedbalances", "")
+        },
+    }.Check(request);
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    UniValue balances{UniValue::VOBJ};
+
+    CAmount trusted_plain = 0, trusted_blind = 0, trusted_anon = 0;
+    CAmount untrusted_plain = 0, untrusted_blind = 0, untrusted_anon = 0;
+
+    LOCK(pwallet->cs_wallet);
+
+    MapRecords_t::const_iterator mri;
+    MapWallet_t::const_iterator mwi;
+
+    // All outputs in setLockedCoins are assumed to be unspent as spending would remove output from setLockedCoins
+
+    for (std::set<COutPoint>::const_iterator it = pwallet->setLockedCoins.begin();
+         it != pwallet->setLockedCoins.end(); it++) {
+        const auto &locked_outpoint = *it;
+
+        if ((mri = pwallet->mapRecords.find(locked_outpoint.hash)) != pwallet->mapRecords.end()) {
+            const auto &prevtx = mri->second;
+            const COutputRecord *oR = mri->second.GetOutput(locked_outpoint.n);
+            if (!oR || !(oR->nFlags & ORF_OWNED)) {
+                continue;
+            }
+            if (pwallet->IsTrusted(locked_outpoint.hash, prevtx)) {
+                switch (oR->nType) {
+                    case OUTPUT_RINGCT:     trusted_anon += oR->nValue;     break;
+                    case OUTPUT_CT:         trusted_blind += oR->nValue;    break;
+                    case OUTPUT_STANDARD:   trusted_plain += oR->nValue;    break;
+                    default:                break;
+                }
+            } else {
+                switch (oR->nType) {
+                    case OUTPUT_RINGCT:     untrusted_anon += oR->nValue;   break;
+                    case OUTPUT_CT:         untrusted_blind += oR->nValue;  break;
+                    case OUTPUT_STANDARD:   untrusted_plain += oR->nValue;  break;
+                    default:                break;
+                }
+            }
+        } else
+        if ((mwi = pwallet->mapWallet.find(locked_outpoint.hash)) != pwallet->mapWallet.end()) {
+            const auto &prevtx = mwi->second;
+            if (locked_outpoint.n >= prevtx.tx->vpout.size() ||
+                pwallet->IsMine(prevtx.tx->vpout[locked_outpoint.n].get()) != ISMINE_SPENDABLE) {
+                continue;
+            }
+            CAmount value = prevtx.tx->vpout[locked_outpoint.n]->GetValue();
+            if (prevtx.IsTrusted()) {
+                trusted_plain += value;
+            } else {
+                untrusted_plain += value;
+            }
+        }
+    }
+
+    balances.pushKV("trusted_plain", ValueFromAmount(trusted_plain));
+    balances.pushKV("trusted_blind", ValueFromAmount(trusted_blind));
+    balances.pushKV("trusted_anon", ValueFromAmount(trusted_anon));
+    balances.pushKV("untrusted_plain", ValueFromAmount(untrusted_plain));
+    balances.pushKV("untrusted_blind", ValueFromAmount(untrusted_blind));
+    balances.pushKV("untrusted_anon", ValueFromAmount(untrusted_anon));
+    balances.pushKV("num_locked", (int)pwallet->setLockedCoins.size());
+
+    return balances;
+}
 
 static int AddOutput(uint8_t nType, std::vector<CTempRecipient> &vecSend, const CTxDestination &address, CAmount nValue,
     bool fSubtractFeeFromAmount, std::string &sNarr, std::string &sBlind, std::string &sError)
@@ -9639,6 +9733,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "listunspentanon",                  &listunspentanon,               {"minconf","maxconf","addresses","include_unsafe","query_options"} },
     { "wallet",             "listunspentblind",                 &listunspentblind,              {"minconf","maxconf","addresses","include_unsafe","query_options"} },
 
+    { "wallet",             "getlockedbalances",                &getlockedbalances,             {} },
 
     //sendparttopart // normal txn
     { "wallet",             "sendparttoblind",                  &sendparttoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
