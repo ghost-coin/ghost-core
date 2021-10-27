@@ -67,6 +67,7 @@ enum SecureMessageCodes {
     SMSG_ENCRYPT_FAILED,
     SMSG_FUND_FAILED,
     SMSG_PURGED_MSG,
+    SMSG_FUND_DATA_NOT_FOUND,
 };
 
 const uint32_t SMSG_HDR_LEN        = 108;               // length of unencrypted header, 4 + 4 + 2 + 1 + 8 + 4 + 16 + 33 + 32 + 4
