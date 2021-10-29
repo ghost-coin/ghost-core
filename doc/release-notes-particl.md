@@ -11,7 +11,13 @@ Next Major Version
 - script: Remove timelocked script signing.
 
 
-0.21.1.3
+0.21.2.4
+==============
+
+- wallet will record txns with blinded outputs to known addresses.
+
+
+0.21.2.3
 ==============
 
 - rpc: New command getposdifficulty, returns the network weight at block heights.

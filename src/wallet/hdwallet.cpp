@@ -2090,7 +2090,7 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
     }
     case TxoutType::WITNESS_V0_KEYHASH:
     case TxoutType::WITNESS_V0_SCRIPTHASH:
-        LogPrintf("%s: Ignoring TX_WITNESS script type.\n", __func__); // shouldn't happen
+        LogPrintf("%s: Ignoring WITNESS_V0 script type.\n", __func__); // shouldn't happen
         return ISMINE_NO;
 
     case TxoutType::MULTISIG:
@@ -10017,11 +10017,18 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
             const CTxOutCT *ctout = (CTxOutCT*) txout.get();
 
             CTxDestination address;
-            if (!ExtractDestination(ctout->scriptPubKey, address)
-                || address.index() != DI::_PKHash) {
+            if (!ExtractDestination(ctout->scriptPubKey, address)) {
                 //WalletLogPrintf("%s: ExtractDestination failed.\n", __func__);
                 continue;
             }
+            if (IsMine(address)) {
+                fIsMine = true;
+            }
+
+            if (address.index() != DI::_PKHash) {
+                continue;
+            }
+
 
             // Uncover stealth
             uint32_t prefix = 0;
