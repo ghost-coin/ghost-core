@@ -8446,7 +8446,11 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                         {
                             {"value", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, ""},
                             {"blind", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, ""},
-                            {"witnessstack", RPCArg::Type::STR_HEX, /* default */ "[]", ""},
+                            {"witnessstack", RPCArg::Type::ARR, /* default */ "", "A json array of witness elements, used for the fee.\n",
+                                {
+                                    {"witnesselement", RPCArg::Type::STR_HEX, /* default */ "", ""},
+                                },
+                            },
                             {"type", RPCArg::Type::STR, /* default */ "standard", "Type of input"},
                         },
                     },
@@ -8704,11 +8708,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             const UniValue &stack = inputAmounts[sKey]["witnessstack"].get_array();
 
             for (size_t k = 0; k < stack.size(); ++k) {
-                if (!stack[k].isStr()) {
-                    continue;
-                }
-                std::string s = stack.get_str();
-                if (!IsHex(s)) {
+                std::string s = stack[k].get_str();
+                if (!IsHex(s) && s.size() > 0) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Input witness must be hex encoded.");
                 }
                 std::vector<uint8_t> v = ParseHex(s);
@@ -9217,12 +9218,14 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
                         {
                             {"returndecoded", RPCArg::Type::BOOL, /* default */ "false", "Return the decoded txn as a json object."},
                             {"checkvalues", RPCArg::Type::BOOL, /* default */ "true", "Check amounts and amount commitments match up."},
+                            {"spendheight", RPCArg::Type::NUM, /* default */ "chainheight", "Height the tx is spent at, set to current chain height if not provided."},
                         },
                         "options"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
                     {
+                        {RPCResult::Type::BOOL, "outputs_valid", "If the transaction passed output verification"},
                         {RPCResult::Type::BOOL, "inputs_valid", "If the transaction passed input verification"},
                         {RPCResult::Type::BOOL, "complete", "If the transaction has a complete set of signatures"},
                         {RPCResult::Type::NUM, "validscripts", "The number of scripts which passed verification"},
@@ -9251,6 +9254,8 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
 
     bool return_decoded = false;
     bool check_values = true;
+    int nSpendHeight = -1;
+    int64_t nSpendTime = 0;
 
     if (!request.params[2].isNull()) {
         const UniValue& options = request.params[2].get_obj();
@@ -9259,6 +9264,7 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
             {
                 {"returndecoded",            UniValueType(UniValue::VBOOL)},
                 {"checkvalues",              UniValueType(UniValue::VBOOL)},
+                {"spendheight",              UniValueType(UniValue::VNUM)},
             }, true, false);
 
         if (options.exists("returndecoded")) {
@@ -9266,6 +9272,9 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
         }
         if (options.exists("checkvalues")) {
             check_values = options["checkvalues"].get_bool();
+        }
+        if (options.exists("spendheight")) {
+            nSpendHeight = options["spendheight"].get_int();
         }
     }
 
@@ -9372,17 +9381,37 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
     // Script verification errors
     UniValue vErrors(UniValue::VARR);
 
-
-    int nSpendHeight = 0; // TODO: make option
-    {
+    if (nSpendHeight < 0) {
         LOCK(cs_main);
         nSpendHeight = ::ChainActive().Tip()->nHeight;
+        nSpendTime = ::ChainActive().Tip()->nTime;
+    } else {
+        LOCK(cs_main);
+        if (nSpendHeight > ::ChainActive().Height()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend height out of range");
+        }
+        const CBlockIndex *pblockindex = ::ChainActive()[nSpendHeight];
+        nSpendHeight = pblockindex->nHeight;
+        nSpendTime = pblockindex->nTime;
     }
 
+    const Consensus::Params& consensusParams = Params().GetConsensus();
     UniValue result(UniValue::VOBJ);
+
+     {
+        TxValidationState state;
+        state.SetStateInfo(nSpendTime, nSpendHeight, consensusParams, true /* particl_mode */, false /* skip_rangeproof */);
+        if (!CheckTransaction(txConst, state)) {
+            result.pushKV("outputs_valid", false);
+            vErrors.push_back("CheckTransaction: \"" + state.GetRejectReason() + "\"");
+        } else {
+            result.pushKV("outputs_valid", true);
+        }
+    }
 
     if (check_values) {
         TxValidationState state;
+        state.SetStateInfo(nSpendTime, nSpendHeight, consensusParams, true /* particl_mode */, false /* skip_rangeproof */);
         CAmount nFee = 0;
         if (!Consensus::CheckTxInputs(txConst, state, view, nSpendHeight, nFee)) {
             result.pushKV("inputs_valid", false);

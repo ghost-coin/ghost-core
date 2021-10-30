@@ -711,6 +711,7 @@ class AtomicSwapTest(ParticlTestFramework):
         rawtx_i = ro['hex']
 
         r2 = nodes[0].verifyrawtransaction(rawtx_i)
+        assert(r2['outputs_valid'] == True)
         assert(r2['complete'] == True)
 
 
