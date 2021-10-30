@@ -67,25 +67,29 @@ Next Major Version
 
 0.19.2.17
 ==============
- - smsg: Prefer selecting confirmed inputs for funding txns.
- - net: Ignore smsg for peers with connection type one shot or feeler.
- - smsg: Fund multiple messages per txn.
-   - Sent messages can be stashed in db for later bulk funding.
- - rpc: gettransaction and filtertransactions can display smsg funding info.
- - rpc: Fixed sendtypeto with show_hex set.
- - insight: Spent index should update even if addressindex can't.
- - insight: Add PayToTimeLockedScriptHash to addressindex.
- - wallet: Fix changepos return value for anon and blind txns off by one.
- - rpc: New getlockedbalances command.
- - rpc: fundrawtransactionfrom can set the public key used for the change output.
+- smsg: Prefer selecting confirmed inputs for funding txns.
+- net: Ignore smsg for peers with connection type one shot or feeler.
+- smsg: Fund multiple messages per txn.
+  - Sent messages can be stashed in db for later bulk funding.
+- rpc: gettransaction and filtertransactions can display smsg funding info.
+- rpc: Fixed sendtypeto with show_hex set.
+- insight: Spent index should update even if addressindex can't.
+- insight: Add PayToTimeLockedScriptHash to addressindex.
+- wallet: Fix changepos return value for anon and blind txns off by one.
+- rpc: New getlockedbalances command.
+- rpc: fundrawtransactionfrom can set the public key used for the change output.
+- rpc: verifyrawtransaction
+  - Checks transaction outputs.
+  - spendheight can be specified.
+- Fixed fundrawtransactionfrom witnessstack
 
 
 0.19.2.16
 ==============
- - Limited automatic rollbackrctindex attempt to one try.
- - wallet: listunspentanon default minimum output value set to 1sat.
-   - Excludes 0 value change outputs.
- - Fixed VerifyDB at -checklevel=4
+- Limited automatic rollbackrctindex attempt to one try.
+- wallet: listunspentanon default minimum output value set to 1sat.
+  - Excludes 0 value change outputs.
+- Fixed VerifyDB at -checklevel=4
 
 
 0.19.2.15
