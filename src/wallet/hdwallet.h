@@ -451,14 +451,14 @@ public:
     void MarkConflicted(const uint256 &hashBlock, int conflicting_height, const uint256 &hashTx) override;
     void SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator>) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    bool GetSetting(const std::string &setting, UniValue &json);
+    bool GetSetting(const std::string &setting, UniValue &json) const;
     bool SetSetting(const std::string &setting, const UniValue &json);
     bool EraseSetting(const std::string &setting);
 
     int64_t GetTimeFirstKey();
 
     /** Return a prevout if it exists in the wallet. */
-    bool GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     size_t CountColdstakeOutputs();
     void ClearMapTempRecords();

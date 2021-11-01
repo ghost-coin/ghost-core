@@ -12743,7 +12743,7 @@ void CHDWallet::SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator> r
     return;
 }
 
-bool CHDWallet::GetSetting(const std::string &setting, UniValue &json)
+bool CHDWallet::GetSetting(const std::string &setting, UniValue &json) const
 {
     LOCK(cs_wallet);
 
@@ -12799,7 +12799,7 @@ int64_t CHDWallet::GetTimeFirstKey()
     return time_first_key;
 };
 
-bool CHDWallet::GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout)
+bool CHDWallet::GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) const
 {
     MapWallet_t::const_iterator mi = mapWallet.find(prevout.hash);
     if (mi != mapWallet.end()) {

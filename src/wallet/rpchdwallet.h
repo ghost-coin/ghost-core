@@ -9,7 +9,7 @@ class CRPCCommand;
 class CHDWallet;
 class CRPCTable;
 
-void EnsureWalletIsUnlocked(CHDWallet *pwallet);
+void EnsureWalletIsUnlocked(const CHDWallet *pwallet);
 
 Span<const CRPCCommand> GetHDWalletRPCCommands();
 

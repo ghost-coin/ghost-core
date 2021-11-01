@@ -31,8 +31,8 @@
 #ifdef ENABLE_WALLET
 #include <wallet/hdwallet.h>
 #include <wallet/coincontrol.h>
-extern void EnsureWalletIsUnlocked(CHDWallet *pwallet);
-extern void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinControl &coin_control);
+extern void EnsureWalletIsUnlocked(const CHDWallet *pwallet);
+extern void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoinControl &coin_control);
 #endif
 
 #include <univalue.h>
