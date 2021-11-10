@@ -144,6 +144,7 @@ struct CExtKey {
     bool Derive(CExtKey &out, unsigned int nChild) const;
     CExtPubKey Neutered() const;
     void SetSeed(const unsigned char *seed, unsigned int nSeedLen);
+    void SetSeed(Span<const uint8_t> seed);
     void SetKeyCode(const unsigned char *pkey, const unsigned char *pcode);
 
     size_t GetSerializeSize(int nType, int nVersion) const
