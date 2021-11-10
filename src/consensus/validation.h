@@ -194,6 +194,25 @@ public:
             m_check_equal_rct_txid = false;
         }
     }
+
+    void CopyStateInfo(const ValidationState &state_from)
+    {
+        m_time = state_from.m_time;
+        m_in_block = state_from.m_in_block;
+        m_consensus_params = state_from.m_consensus_params;
+        fEnforceSmsgFees = state_from.fEnforceSmsgFees;
+        fBulletproofsActive = state_from.fBulletproofsActive;
+        rct_active = state_from.rct_active;
+        m_spend_height = state_from.m_spend_height;
+
+        m_particl_mode = state_from.m_particl_mode;
+        m_skip_rangeproof = state_from.m_skip_rangeproof;
+
+        m_clamp_tx_version = state_from.m_clamp_tx_version;
+        m_exploit_fix_1 = state_from.m_exploit_fix_1;
+        m_exploit_fix_2 = state_from.m_exploit_fix_2;
+        m_check_equal_rct_txid = state_from.m_check_equal_rct_txid;
+    }
 };
 
 class TxValidationState : public ValidationState<TxValidationResult> {};
