@@ -35,7 +35,7 @@ class TxValidationState;
 class CHDWallet : public CWallet
 {
 public:
-    CHDWallet(interfaces::Chain* chain, const std::string& name, std::unique_ptr<WalletDatabase> database) : CWallet(chain, name, std::move(database))
+    CHDWallet(interfaces::Chain* chain, const std::string& name, const ArgsManager& args, std::unique_ptr<WalletDatabase> database) : CWallet(chain, name, args, std::move(database))
     {
         m_default_address_type = OutputType::LEGACY; // In Particl segwit is enabled for all types
         m_fallback_fee = CFeeRate(DEFAULT_FALLBACK_FEE_PART);

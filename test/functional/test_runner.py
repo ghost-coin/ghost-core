@@ -300,6 +300,7 @@ BASE_SCRIPTS = [
     'rpc_deriveaddresses.py --usecli',
     'p2p_ping.py',
     'rpc_scantxoutset.py',
+    'feature_txindex_compatibility.py',
     'feature_logging.py',
     'feature_anchors.py',
     'feature_coinstatsindex.py',
@@ -403,7 +404,7 @@ def main():
     parser.add_argument('--keepcache', '-k', action='store_true', help='the default behavior is to flush the cache directory on startup. --keepcache retains the cache from the previous testrun.')
     parser.add_argument('--quiet', '-q', action='store_true', help='only print dots, results summary and failure logs')
     parser.add_argument('--tmpdirprefix', '-t', default=tempfile.gettempdir(), help="Root directory for datadirs")
-    parser.add_argument('--failfast', action='store_true', help='stop execution after the first test failure')
+    parser.add_argument('--failfast', '-F', action='store_true', help='stop execution after the first test failure')
     parser.add_argument('--filter', help='filter scripts to run by regular expression')
 
     args, unknown_args = parser.parse_known_args()

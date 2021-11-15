@@ -16,7 +16,7 @@ AM_LIBTOOLFLAGS = --preserve-dup-deps
 PTHREAD_FLAGS = $(PTHREAD_CFLAGS) $(PTHREAD_LIBS)
 EXTRA_LIBRARIES =
 
-BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
+BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
 
 LIBPARTICL_SERVER=libparticl_server.a
 LIBPARTICL_COMMON=libparticl_common.a
@@ -187,6 +187,7 @@ BITCOIN_CORE_H = \
   memusage.h \
   merkleblock.h \
   miner.h \
+  minisketchwrapper.h \
   net.h \
   net_permissions.h \
   net_processing.h \
@@ -376,6 +377,7 @@ libparticl_server_a_SOURCES = \
   init.cpp \
   mapport.cpp \
   miner.cpp \
+  minisketchwrapper.cpp \
   net.cpp \
   net_processing.cpp \
   node/blockstorage.cpp \
@@ -852,7 +854,6 @@ particl_wallet_SOURCES += init/bitcoin-wallet.cpp
 particl_wallet_CPPFLAGS = $(particl_bin_cppflags)
 particl_wallet_CXXFLAGS = $(particl_bin_cxxflags)
 particl_wallet_LDFLAGS = $(particl_bin_ldflags)
-#particl_wallet_LDADD = $(LIBPARTICL_WALLET_TOOL) $(particl_bin_ldadd)
 particl_wallet_LDADD = \
   $(LIBPARTICL_WALLET_TOOL) \
   $(LIBPARTICL_WALLET) \
@@ -1014,8 +1015,11 @@ nodist_libparticl_ipc_a_SOURCES = $(libparticl_ipc_mpgen_output)
 CLEANFILES += $(libparticl_ipc_mpgen_output)
 endif
 
+include Makefile.minisketch.include
+
 include Makefile.crc32c.include
 include Makefile.leveldb.include
+
 include Makefile.test_util.include
 include Makefile.test_fuzz.include
 
