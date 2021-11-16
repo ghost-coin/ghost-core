@@ -907,6 +907,10 @@ public:
     bool fSentAddr{false};
     CSemaphoreGrant grantOutbound;
     std::atomic<int> nRefCount{0};
+    bool fSupportsDandelion{false};
+
+    //! relating to network sporks
+    bool m_asked_sporks{false};
 
     const uint64_t nKeyedNetGroup;
     std::atomic_bool fPauseRecv{false};
