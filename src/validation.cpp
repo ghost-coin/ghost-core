@@ -4432,6 +4432,19 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
         && fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
+    // Check if we have the previous header
+    const uint256& hashPrevBlock = block.hashPrevBlock;
+    const CBlockIndex* hashPrevPtr = LookupBlockIndex(hashPrevBlock);
+    if (!hashPrevPtr) {
+        const uint256& blockHash = block.GetHash();
+        //! allow for genesis which has no parent
+        if (blockHash == consensusParams.hashGenesisBlock &&
+            pindexBestHeader->nHeight < 1) {
+            return true;
+        }
+        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "no-prevblk", "blockheader has no parent");
+    }
+
     return true;
 }
 
