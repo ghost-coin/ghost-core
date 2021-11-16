@@ -20,6 +20,7 @@
 
 CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amount, int type_in, int type_out, int nRingSize = 5)
 {
+    gArgs.ForceSetArg("-anonrestricted", "0");
     LOCK(pwallet->cs_wallet);
 
     assert(address.IsValid());
@@ -52,6 +53,7 @@ CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount 
 static void AddAnonTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amount, OutputTypes output_type)
 {
     {
+    gArgs.ForceSetArg("-anonrestricted", "0");
     LOCK(pwallet->cs_wallet);
 
     assert(address.IsValid());
@@ -126,6 +128,7 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
 {
     gArgs.ForceSetArg("-acceptanontxn", "1"); // TODO: remove
     gArgs.ForceSetArg("-acceptblindtxn", "1"); // TODO: remove
+    gArgs.ForceSetArg("-anonrestricted", "0");
 
     TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
     util::Ref context{test_setup.m_node};

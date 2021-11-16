@@ -146,7 +146,7 @@ class ToolWalletTest(BitcoinTestFramework):
         Mutate the wallet with a transaction to verify that the info command
         output changes accordingly.
         """
-        self.start_node(0)
+        self.start_node(0, ['-anonrestricted=0'])
         self.log.info('Generating transaction to mutate wallet')
         self.nodes[0].generate(1)
         self.stop_node(0)
@@ -223,7 +223,7 @@ class ToolWalletTest(BitcoinTestFramework):
 
     def test_getwalletinfo_on_different_wallet(self):
         self.log.info('Starting node with arg -wallet=foo')
-        self.start_node(0, ['-nowallet', '-wallet=foo'])
+        self.start_node(0, ['-nowallet', '-anonrestricted=0', '-wallet=foo'])
 
         self.log.info('Calling getwalletinfo on a different wallet ("foo"), testing output')
         shasum_before = self.wallet_shasum()
@@ -249,7 +249,7 @@ class ToolWalletTest(BitcoinTestFramework):
     def test_salvage(self):
         # TODO: Check salvage actually salvages and doesn't break things. https://github.com/bitcoin/bitcoin/issues/7463
         self.log.info('Check salvage')
-        self.start_node(0)
+        self.start_node(0, ['-anonrestricted=0'])
         self.nodes[0].createwallet("salvage")
         self.stop_node(0)
 

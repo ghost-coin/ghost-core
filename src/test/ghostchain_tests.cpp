@@ -170,6 +170,9 @@ BOOST_AUTO_TEST_CASE(varints)
 
 BOOST_AUTO_TEST_CASE(mixed_input_types)
 {
+    RegtestParams().SetAnonRestricted(false);
+    RegtestParams().SetAnonMaxOutputSize(4);
+
     CMutableTransaction txn;
     txn.nVersion = GHOST_TXN_VERSION;
     BOOST_CHECK(txn.IsParticlVersion());

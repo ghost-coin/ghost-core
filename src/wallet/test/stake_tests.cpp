@@ -97,6 +97,10 @@ BOOST_AUTO_TEST_CASE(stake_test)
     gArgs.ForceSetArg("-acceptanontxn", "1"); // TODO: remove
     gArgs.ForceSetArg("-acceptblindtxn", "1"); // TODO: remove
 
+    // Enabling anon for testing
+    RegtestParams().SetAnonRestricted(false);
+    RegtestParams().SetAnonMaxOutputSize(4);
+
     SeedInsecureRand();
     CHDWallet *pwallet = pwalletMain.get();
     util::Ref context{m_node};
