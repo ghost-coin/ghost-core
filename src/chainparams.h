@@ -168,6 +168,30 @@ public:
         nBlockReward = nBlockReward_;
     }
 
+    void SetAnonRestricted(bool bFlag) {
+        anonRestricted = bFlag;
+    }
+
+    bool IsAnonRestricted() const {
+        return anonRestricted;
+    }
+
+    std::string GetRecoveryAddress() const {
+        return anonRecoveryAddress;
+    }
+
+    void SetRecoveryAddress(const std::string& addr) {
+        anonRecoveryAddress = addr;
+    }
+
+    void SetAnonMaxOutputSize(uint32_t size){
+        anonMaxOutputSize = size;
+    }
+
+    uint32_t GetAnonMaxOutputSize() const {
+        return anonMaxOutputSize;
+    }
+
 protected:
     CChainParams() {}
 
@@ -188,6 +212,9 @@ protected:
 
     std::array<int, 47> nBlockPerc; //reward percentage each year
     uint32_t nLastImportHeight = 0;       // always 0 on ghost
+    bool anonRestricted = false;
+    std::string anonRecoveryAddress = "005ef4ba72b101cc05ba7edc";
+    std::uint32_t anonMaxOutputSize = 3;
 
     std::vector<std::pair<int64_t, TreasuryFundSettings> > vTreasuryFundSettings;
 

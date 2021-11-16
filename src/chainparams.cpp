@@ -14,7 +14,7 @@
 #include <util/moneystr.h>
 #include <key/keyutil.h>
 #include <versionbitsinfo.h>
-
+#include <validation.h>
 #include <chain/chainparamsimport.h>
 
 #include <assert.h>
@@ -412,7 +412,7 @@ public:
         consensus.exploit_fix_1_time = 1614992554;      // 2021-03-06 01:00:00 GMT+8
         consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
-        consensus.m_frozen_anon_index = 27340;
+        consensus.m_frozen_anon_index = 2379; // Called LAST_ANONINDEX = 2379 by Barry 
         consensus.m_frozen_blinded_height = 884433;
 
 
@@ -556,9 +556,10 @@ public:
             /* nTxCount */ 3317,
             /* dTxRate  */ 0.008253214698037342
         };
+
+       anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
+
     }
-
-
 
     void SetOld()
     {
@@ -641,6 +642,7 @@ public:
         consensus.defaultAssumeValid = uint256S("0xa7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31"); // 940090
 
         consensus.nMinRCTOutputDepth = 12;
+        consensus.m_frozen_anon_index = 0;
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -722,7 +724,7 @@ public:
         vSporkAddresses = {"pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn"};
         nMinSporkKeys = 1;
 
-
+        anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         checkpointData = {
             {
                 {127620, uint256S("0xe5ab909fc029b253bad300ccf859eb509e03897e7853e8bfdde2710dbf248dd1")},
@@ -852,8 +854,7 @@ public:
         fRequireStandard = true;
         m_is_test_chain = true;
         m_is_mockable_chain = false;
-
-
+        anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
 
         // Private key:  DKXHWgYF9pbikLji2CWBh9JGB2f1DmfJhEj1YPZgSeEMHjSBSTN
         // Address:      mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h
@@ -1008,6 +1009,16 @@ public:
             0,
             0
         };
+        
+        anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
+        consensus.m_frozen_anon_index = gArgs.GetArg("-lastanonindex", DEFAULT_LAST_ANON_INDEX);
+
+        // Full Script pubkey of the recovery addr: 76a91418cf988c85fdff42269cf1d39c526aa3530c778d88ac
+        anonRecoveryAddress = "69cf1d39c526aa3530c778d88ac";
+        // Pubkey:  pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it
+        // PrivKey: 7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU
+        anonMaxOutputSize = 5;
+
     }
 
     void SetOld()

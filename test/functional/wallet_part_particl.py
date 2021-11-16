@@ -39,7 +39,7 @@ class WalletParticlTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 4
-        self.extra_args = [ ['-debug',] for i in range(self.num_nodes)]
+        self.extra_args = [ ['-debug', '-anonrestricted=0'] for i in range(self.num_nodes)]
         self.extra_args[3].append('-disablewallet')
 
     def skip_test_if_missing_module(self):
@@ -302,7 +302,7 @@ class WalletParticlTest(GhostTestFramework):
 
         # Restart node
         self.stop_node(1)
-        self.start_node(1, self.extra_args[1] + ['-wallet=default_wallet',])
+        self.start_node(1, self.extra_args[1] + ['-wallet=default_wallet', '-anonrestricted=0'])
 
         assert(nodes[1].getwalletinfo()['total_balance'] == 100000)
         try:
@@ -527,7 +527,7 @@ class WalletParticlTest(GhostTestFramework):
 
         # Restart node
         self.stop_node(0)
-        self.start_node(0, self.extra_args[0] + ['-wallet=default_wallet',])
+        self.start_node(0, self.extra_args[0] + ['-wallet=default_wallet', '-anonrestricted=0'])
 
         ro = nodes[0].filteraddresses(0, 100)
         assert(nOrigLen-1 == len(ro))
@@ -762,7 +762,7 @@ class WalletParticlTest(GhostTestFramework):
         assert(len(nodes[2].listlockunspent()) == 2)
         # Restart node
         self.stop_node(2)
-        self.start_node(2, self.extra_args[2] + ['-wallet=default_wallet',])
+        self.start_node(2, self.extra_args[2] + ['-wallet=default_wallet', '-anonrestricted=0'])
         assert(len(nodes[2].listlockunspent()) == 2)
         assert(len(nodes[2].listunspent()) < len(unspent))
         assert(nodes[2].lockunspent(True, [unspent[0]]) == True)

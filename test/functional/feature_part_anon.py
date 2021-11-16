@@ -16,7 +16,7 @@ class AnonTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [ ['-debug','-noacceptnonstdtxn','-reservebalance=10000000'] for i in range(self.num_nodes)]
+        self.extra_args = [ ['-debug','-noacceptnonstdtxn', '-anonrestricted=0', '-reservebalance=10000000'] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

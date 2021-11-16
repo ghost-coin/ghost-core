@@ -193,7 +193,6 @@ int main(int argc, char* argv[])
     std::tie(argc, argv) = winArgs.get();
 #endif
     SetupEnvironment();
-
     // Connect bitcoind signal handlers
     noui_connect();
 

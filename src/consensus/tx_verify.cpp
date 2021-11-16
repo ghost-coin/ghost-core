@@ -26,7 +26,7 @@
 // Ghost dependencies
 #include <blind.h>
 #include <insight/balanceindex.h>
-
+#include <adapter.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -261,16 +261,26 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-extract-i");
                     }
                     ofs += nB;
-                    if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
-                        state.m_spends_frozen_blinded = true;
-                        if (!IsWhitelistedAnonOutput(nIndex)) {
-                            spends_tainted_blinded = true;
+                    // if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
+                    //     LogPrintf("%s: Attempt to spend from deprecated anon RCT set (index: %d)\n", __func__, nIndex);
+                    //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-extract-i");
+                    // }
+
+                    if (::Params().IsAnonRestricted()) {
+                        if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
+                            /* TODO(Sonkeng): Watch this out when re enable RINGCT
+                            state.m_spends_frozen_blinded = true;
+                            if (!IsWhitelistedAnonOutput(nIndex)) {
+                                spends_tainted_blinded = true;
+                            }
+                            if (state.m_exploit_fix_2 && IsBlacklistedAnonOutput(nIndex)) {
+                                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-blacklisted");
+                            } */
+                            LogPrintf("%s: Attempt to spend from deprecated anon RCT set (index: %d)\n", __func__, nIndex);
+                            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-extract-i");
+                        } else {
+                            spends_post_fork_blinded = true;
                         }
-                        if (state.m_exploit_fix_2 && IsBlacklistedAnonOutput(nIndex)) {
-                            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-blacklisted");
-                        }
-                    } else {
-                        spends_post_fork_blinded = true;
                     }
                 }
             }
@@ -518,6 +528,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
         if (rv != 1) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-commitment-sum");
+        }
+    }
+
+    //! all other contextual/indepth tests must pass first
+    const size_t totalBlindInOut = nCTInputs + nCTOutputs + nRingCTInputs + nRingCTOutputs;
+    const CTransactionRef& in_tx = MakeTransactionRef(tx);
+
+    if (::Params().IsAnonRestricted()) {
+        if (totalBlindInOut > 0 && !is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-invalid");
         }
     }
 
