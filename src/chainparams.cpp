@@ -422,6 +422,7 @@ public:
         consensus.smsg_fee_max_delta_percent = 43;
         consensus.smsg_min_difficulty = 0x1effffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
+        consensus.anonHeight = 297000;
 
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
