@@ -2617,10 +2617,6 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     PeerRef peer = GetPeerRef(pfrom.GetId());
     if (peer == nullptr) return;
 
-    //! const for fork condition
-    const bool haveForked = pindexBestHeader->nHeight >= Params().GetConsensus().anonHeight;
-    const int nMinPeerVersion = haveForked ? MIN_PEER_PROTO_POSTFORK : MIN_PEER_PROTO_VERSION;
-
     if (msg_type == NetMsgType::VERSION) {
         // Each connection can only send one version message
         if (pfrom.nVersion != 0)
@@ -2661,7 +2657,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             return;
         }
 
-        if (nVersion < nMinPeerVersion) {
+        if (nVersion < MIN_PEER_PROTO_VERSION) {
             // disconnect from peers older than this proto version
             LogPrint(BCLog::NET, "peer=%d using obsolete version %i; disconnecting\n", pfrom.GetId(), nVersion);
             pfrom.fDisconnect = true;
@@ -2834,13 +2830,6 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     if (pfrom.nVersion == 0) {
         // Must have a version message before anything else
         Misbehaving(pfrom.GetId(), 1, "non-version message before version handshake");
-        return;
-    }
-
-    // Drop any stragglers
-    if (pfrom.nVersion < nMinPeerVersion) {
-        LogPrint(BCLog::NET, "Dropping outdated peer=%d (post-fork)\n", pfrom.GetId());
-        pfrom.fDisconnect = true;
         return;
     }
 
