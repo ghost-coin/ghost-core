@@ -52,6 +52,8 @@ struct DisconnectedBlockTransactions;
 struct PrecomputedTransactionData;
 struct LockPoints;
 
+/** Disable MLSAG tests before a given block height */
+static const unsigned int DISABLE_MLSAG_VER_BEFORE_HEIGHT = 300000;
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000;
 /** Default for -limitancestorcount, max number of in-mempool ancestors */
