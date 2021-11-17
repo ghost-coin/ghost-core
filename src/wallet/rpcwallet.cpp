@@ -654,8 +654,8 @@ static RPCHelpMan sendtoaddress()
         newRequest.fSkipBlock = true; // already blocked in this function
         newRequest.URI = request.URI;
         UniValue params(UniValue::VARR);
-        params.push_back("part");
-        params.push_back("part");
+        params.push_back("ghost");
+        params.push_back("ghost");
         UniValue arr(UniValue::VARR);
         UniValue out(UniValue::VOBJ);
 
@@ -1158,8 +1158,8 @@ static RPCHelpMan sendmany()
         newRequest.fSkipBlock = true; // already blocked in this function
         newRequest.URI = request.URI;
         UniValue params(UniValue::VARR);
-        params.push_back("part");
-        params.push_back("part");
+        params.push_back("ghost");
+        params.push_back("ghost");
         UniValue arr(UniValue::VARR);
 
         std::vector<std::string> keys = sendTo.getKeys();
