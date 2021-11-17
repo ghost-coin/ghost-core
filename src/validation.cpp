@@ -241,6 +241,29 @@ static FILE* OpenUndoFile(const FlatFilePos &pos, bool fReadOnly = false);
 static FlatFileSeq BlockFileSeq();
 static FlatFileSeq UndoFileSeq();
 
+// Ensure blockindex entries form a valid chain
+bool checkChainContinuity()
+{
+    uint256 blkHash{}, prevHash{};
+    CBlockIndex *pindex = ::ChainActive().Tip();
+    if (pindex->nHeight == 0) {
+       return true;
+    }
+    while (prevHash != Params().GetConsensus().hashGenesisBlock) {
+       blkHash = pindex->GetBlockHeader().GetHash();
+       prevHash = pindex->pprev->GetBlockHeader().GetHash();
+       if (pindex->GetBlockHeader().hashPrevBlock != prevHash) {
+           throw std::runtime_error("Reindex required");
+       }
+       pindex = pindex->pprev;
+       if (!pindex) {
+           break;
+       }
+    }
+
+    return true;
+}
+
 bool CheckFinalTx(const CTransaction &tx, int flags)
 {
     AssertLockHeld(cs_main);
