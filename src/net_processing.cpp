@@ -1775,6 +1775,52 @@ void RelayTransaction(const uint256& txid, const uint256& wtxid, const CConnman&
     });
 }
 
+static void RelayDandelionTransaction(const CTransaction& tx, CTxMemPool& mempool, CTxMemPool& stempool, CConnman* connman, CNode* pfrom)
+{
+    FastRandomContext rng;
+    if (rng.randrange(100) < DANDELION_FLUFF) {
+        LogPrint(BCLog::DANDELION, "Dandelion fluff: %s\n", tx.GetHash().ToString());
+        TxValidationState state;
+        CTransactionRef ptx = stempool.get(tx.GetHash());
+        std::list<CTransactionRef> lRemovedTxn;
+        AcceptToMemoryPool(mempool, stempool, state, ptx, nullptr, false);
+        LogPrint(BCLog::MEMPOOL, "AcceptToMemoryPool: peer=%d: accepted %s (poolsz %u txn, %u kB)\n",
+                 pfrom->GetId(), tx.GetHash().ToString(), mempool.size(), mempool.DynamicMemoryUsage() / 1000);
+        RelayTransaction(tx, *connman);
+    } else {
+        CInv inv(MSG_DANDELION_TX, tx.GetHash());
+        CNode* destination = connman->getDandelionDestination(pfrom);
+        if (destination!=nullptr) {
+            destination->PushOtherInventory(inv);
+        }
+    }
+}
+
+static void CheckDandelionEmbargoes(CTxMemPool& mempool, CTxMemPool& stempool, CConnman* connman)
+{
+    auto current_time = GetTime<std::chrono::milliseconds>();
+    for (auto iter = connman->mDandelionEmbargo.begin(); iter != connman->mDandelionEmbargo.end();) {
+        if (mempool.exists(iter->first)) {
+            LogPrint(BCLog::DANDELION, "Embargoed dandeliontx %s found in mempool; removing from embargo map\n", iter->first.ToString());
+            iter = connman->mDandelionEmbargo.erase(iter);
+        } else if (iter->second < current_time) {
+            LogPrint(BCLog::DANDELION, "dandeliontx %s embargo expired\n", iter->first.ToString());
+            TxValidationState state;
+            CTransactionRef ptx = stempool.get(iter->first);
+            if (ptx) {
+                std::list<CTransactionRef> lRemovedTxn;
+                AcceptToMemoryPool(mempool, stempool, state, ptx, &lRemovedTxn, false /* bypass_limits */, 0 /* nAbsurdFee */);
+                LogPrint(BCLog::MEMPOOL, "AcceptToMemoryPool: accepted %s (poolsz %u txn, %u kB)\n",
+                         iter->first.ToString(), mempool.size(), mempool.DynamicMemoryUsage() / 1000);
+                RelayTransaction(ptx->GetHash(), ptx->GetWitnessHash(), *connman);
+            }
+            iter = connman->mDandelionEmbargo.erase(iter);
+        } else {
+            iter++;
+        }
+    }
+}
+
 static void RelayAddress(const CAddress& addr, bool fReachable, const CConnman& connman)
 {
     if (!fReachable && !addr.IsRelayable()) return;
