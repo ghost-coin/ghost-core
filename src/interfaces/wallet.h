@@ -337,8 +337,8 @@ public:
 class WalletClient : public ChainClient
 {
 public:
-    //! Create new wallet.
-    virtual std::unique_ptr<Wallet> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings) = 0;
+   //! Create new wallet.
+   virtual std::unique_ptr<Wallet> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings, bool fLegacy = false) = 0;
 
    //! Load existing wallet.
    virtual std::unique_ptr<Wallet> loadWallet(const std::string& name, bilingual_str& error, std::vector<bilingual_str>& warnings) = 0;

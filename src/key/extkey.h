@@ -926,6 +926,6 @@ int AppendPath(const CStoredExtKey *pc, std::vector<uint32_t> &vPath);
 std::string HDAccIDToString(const CKeyID &id);
 std::string HDKeyIDToString(const CKeyID &id);
 
-std::string GetDefaultAccountPath();
+std::string GetDefaultAccountPath(bool fLegacy = false);
 
 #endif // PARTICL_KEY_EXTKEY_H

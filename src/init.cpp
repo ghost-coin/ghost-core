@@ -2293,7 +2293,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
     // seems odd to have this here, but particl can get past
     // this point with an invalid blockindex it seems..
-    {
+    if (!fReindex && !fImporting) {
         LOCK(cs_main);
         checkChainContinuity();
     }

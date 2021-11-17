@@ -251,7 +251,7 @@ std::shared_ptr<CWallet> LoadWallet(interfaces::Chain& chain, const std::string&
     return wallet;
 }
 
-std::shared_ptr<CWallet> CreateWallet(interfaces::Chain& chain, const std::string& name, Optional<bool> load_on_start, DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings)
+std::shared_ptr<CWallet> CreateWallet(interfaces::Chain& chain, const std::string& name, Optional<bool> load_on_start, DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool fLegacy)
 {
     uint64_t wallet_creation_flags = options.create_flags;
     const SecureString& passphrase = options.create_passphrase;
@@ -306,7 +306,7 @@ std::shared_ptr<CWallet> CreateWallet(interfaces::Chain& chain, const std::strin
 
             // Set a seed for the wallet
             if (fParticlMode) {
-                if (0 != GetParticlWallet(wallet.get())->MakeDefaultAccount()) {
+                if (0 != GetParticlWallet(wallet.get())->MakeDefaultAccount(fLegacy)) {
                     error = Untranslated("Error: MakeDefaultAccount failed");
                     return nullptr;
                 }

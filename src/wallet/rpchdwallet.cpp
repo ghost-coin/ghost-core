@@ -930,7 +930,7 @@ static UniValue extkey(const JSONRPCRequest &request)
         "    Show default account when called without parameters or \"key/id\" = \"default\".\n"
         "extkey key \"key/id\" ( show_secrets )\n"
         "    Display details of loose extkey in wallet.\n"
-        "extkey import \"key\" ( \"label\" bip44 save_bip44_key )\n"
+        "extkey import \"key\" ( \"label\" bip44 save_bip44_key fLegacy)\n"
         "    Add loose key to wallet.\n"
         "    If bip44 is set import will add the key derived from <key> on the bip44 path.\n"
         "    If save_bip44_key is set import will save the bip44 key to the wallet.\n"
@@ -1178,6 +1178,11 @@ static UniValue extkey(const JSONRPCRequest &request)
         }
 
         sek.kp = eKey58.GetKey();
+        bool fLegacy = false;
+        if (request.params.size() > nParamOffset) {
+            fLegacy = GetBool(request.params[nParamOffset]);
+            nParamOffset++;
+        }
 
         {
             LOCK(pwallet->cs_wallet);
@@ -1188,7 +1193,7 @@ static UniValue extkey(const JSONRPCRequest &request)
 
             int rv;
             CKeyID idDerived;
-            if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44))) {
+            if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44, fLegacy))) {
                 wdb.TxnAbort();
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
             }
@@ -1395,8 +1400,10 @@ static UniValue extkey(const JSONRPCRequest &request)
             nParamOffset++;
         }
 
-        if (nParamOffset < request.params.size()) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[nParamOffset].get_str().c_str()));
+        for (; nParamOffset < request.params.size(); nParamOffset++) {
+            std::string strParam = request.params[nParamOffset].get_str();
+            std::transform(strParam.begin(), strParam.end(), strParam.begin(), ::tolower);
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", strParam.c_str()));
         }
 
         CExtKeyAccount *sea = new CExtKeyAccount();
@@ -1569,7 +1576,7 @@ static UniValue extkey(const JSONRPCRequest &request)
     return result;
 };
 
-static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesisChain)
+static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesisChain, bool fLegacy = false)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
@@ -1592,7 +1599,8 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     std::string sPassphrase = "";
     std::string sError;
     int64_t nScanFrom = 1;
-    int create_extkeys = 0;
+
+    fLegacy = request.params.size() > 6 ? GetBool(request.params[6]) : fLegacy;
 
     if (request.params.size() > 1) {
         sPassphrase = request.params[1].get_str();
@@ -1613,48 +1621,6 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     } else
     if (request.params[5].isNum()) {
         nScanFrom = request.params[5].get_int64();
-    }
-    if (!request.params[6].isNull()) {
-        LOCK(pwallet->cs_wallet);
-        const UniValue &options = request.params[6].get_obj();
-
-        RPCTypeCheckObj(options,
-            {
-                {"createextkeys", UniValueType(UniValue::VNUM)},
-                {"lookaheadsize", UniValueType(UniValue::VNUM)},
-                {"stealthv1lookaheadsize", UniValueType(UniValue::VNUM)},
-                {"stealthv2lookaheadsize", UniValueType(UniValue::VNUM)},
-            },
-            true, true);
-
-        if (options.exists("createextkeys")) {
-            create_extkeys = options["createextkeys"].get_int();
-            if (create_extkeys < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "createextkeys must be positive.");
-            }
-        }
-        if (options.exists("lookaheadsize")) {
-            int override_lookaheadsize = options["lookaheadsize"].get_int();
-            if (override_lookaheadsize < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "lookaheadsize must be positive.");
-            }
-            pwallet->m_default_lookahead = override_lookaheadsize;
-            pwallet->PrepareLookahead();
-        }
-        if (options.exists("stealthv1lookaheadsize")) {
-            int override_stealthv1lookaheadsize = options["stealthv1lookaheadsize"].get_int();
-            if (override_stealthv1lookaheadsize < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "stealthv1lookaheadsize must be positive.");
-            }
-            pwallet->m_rescan_stealth_v1_lookahead = override_stealthv1lookaheadsize;
-        }
-        if (options.exists("stealthv2lookaheadsize")) {
-            int override_stealthv2lookaheadsize = options["stealthv2lookaheadsize"].get_int();
-            if (override_stealthv2lookaheadsize < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "stealthv2lookaheadsize must be positive.");
-            }
-            pwallet->m_rescan_stealth_v2_lookahead = override_stealthv2lookaheadsize;
-        }
     }
     if (request.params.size() > 7) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[6].get_str()));
@@ -1713,7 +1679,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
         }
 
-        if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44Root))) {
+        if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44Root, fLegacy))) {
             wdb.TxnAbort();
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
         }
@@ -1759,31 +1725,11 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
         }
     } // cs_wallet
 
-    for (int k = 0; k < create_extkeys; ++k) {
-        CStoredExtKey *sek = new CStoredExtKey();
-        std::string str_label = "Imported";
-        const char *plabel = str_label.c_str();
-        if (0 != pwallet->NewExtKeyFromAccount(str_label, sek, plabel)) {
-            delete sek;
-            throw JSONRPCError(RPC_WALLET_ERROR, "NewExtKeyFromAccount failed.");
-        }
-    }
-
     if (nScanFrom >= 0) {
         pwallet->RescanFromTime(nScanFrom, reserver, true);
         pwallet->MarkDirty();
         LOCK(pwallet->cs_wallet);
         pwallet->ReacceptWalletTransactions();
-    }
-
-    // Reset to defaults
-    {
-        LOCK(pwallet->cs_wallet);
-        pwallet->m_rescan_stealth_v1_lookahead = gArgs.GetArg("-stealthv1lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
-        pwallet->m_rescan_stealth_v2_lookahead = gArgs.GetArg("-stealthv2lookaheadsize", DEFAULT_STEALTH_LOOKAHEAD_SIZE);
-
-        pwallet->m_default_lookahead = gArgs.GetArg("-defaultlookaheadsize", DEFAULT_LOOKAHEAD_SIZE);
-        pwallet->PrepareLookahead();
     }
 
     UniValue warnings(UniValue::VARR);
@@ -1830,14 +1776,7 @@ static UniValue extkeyimportmaster(const JSONRPCRequest &request)
                     {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
                     {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
-                        {
-                            {"createextkeys", RPCArg::Type::NUM, /* default */ "", "Run getnewextaddress \"createextkeys\" times before rescanning the wallet."},
-                            {"lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the defaultlookaheadsize parameter."},
-                            {"stealthv1lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv1lookaheadsize parameter."},
-                            {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
-                        },
-                        "options"},
+                    {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 derivation."},
                 },
             RPCResults{},
             RPCExamples{
@@ -1870,14 +1809,7 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
                     {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
                     {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
-                        {
-                            {"createextkeys", RPCArg::Type::NUM, /* default */ "", "Run getnewextaddress \"createextkeys\" times before rescanning the wallet."},
-                            {"lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the defaultlookaheadsize parameter."},
-                            {"stealthv1lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv1lookaheadsize parameter."},
-                            {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
-                        },
-                        "options"},
+                    {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 derivation."},
                 },
             RPCResults{},
             RPCExamples{
@@ -1892,6 +1824,64 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
     if (!wallet) return NullUniValue;
 
     return extkeyimportinternal(request, true);
+}
+
+static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
+{
+            RPCHelpMan{"extkeyimportmasterlegacy",
+                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
+                "Derives an extra chain from path 444444 to receive imported coin." +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase.\n"
+        "       if mnemonic is blank, defaults to '-stdin'."},
+                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
+                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
+                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
+                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                },
+            RPCResults{},
+            RPCExamples{
+        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
+        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
+            },
+        }.Check(request);
+
+    return extkeyimportinternal(request, false, true);
+}
+
+static UniValue extkeygenesisimportlegacy(const JSONRPCRequest &request)
+{
+            RPCHelpMan{"extkeyimportmasterlegacy",
+                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
+                "Derives an extra chain from path 444444 to receive imported coin." +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase.\n"
+        "       if mnemonic is blank, defaults to '-stdin'."},
+                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
+                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
+                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
+                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                },
+            RPCResults{},
+            RPCExamples{
+        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
+        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
+            },
+        }.Check(request);
+
+    return extkeyimportinternal(request, true, true);
 }
 
 static UniValue extkeyaltversion(const JSONRPCRequest &request)
@@ -9556,8 +9546,11 @@ static const CRPCCommand commands[] =
 { //  category              name                                actor (function)                argNames
   //  --------------------- ------------------------            -----------------------         ----------
     { "wallet",             "extkey",                           &extkey,                        {} },
-    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
-    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options"} },
+    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","use_legacy"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
+    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","use_legacy"} },
+    { "wallet",             "extkeyimportmasterlegacy",         &extkeyimportmasterlegacy,      {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
+    { "wallet",             "extkeygenesisimportlegacy",        &extkeygenesisimportlegacy,     {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
+
     { "wallet",             "extkeyaltversion",                 &extkeyaltversion,              {"ext_key"} },
     { "wallet",             "getnewextaddress",                 &getnewextaddress,              {"label","childnum","bech32","hardened"} },
     { "wallet",             "getnewstealthaddress",             &getnewstealthaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
