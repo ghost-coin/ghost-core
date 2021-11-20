@@ -2291,13 +2291,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
     // ********************************************************* Step 13: finished
 
-    // seems odd to have this here, but particl can get past
-    // this point with an invalid blockindex it seems..
-    if (!fReindex && !fImporting) {
-        LOCK(cs_main);
-        checkChainContinuity();
-    }
-
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading").translated);
 
