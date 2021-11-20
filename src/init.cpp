@@ -2311,9 +2311,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     }, DUMP_BANS_INTERVAL);
 
     CConnman* connman = node.connman.get();
-    node.scheduler->scheduleEvery([connman]{
-        //connman->ThreadDandelionShuffle();
-    }, std::chrono::milliseconds{1000});
 
     node.scheduler->scheduleEvery([]{
         ReclaimAbandonedStake();
