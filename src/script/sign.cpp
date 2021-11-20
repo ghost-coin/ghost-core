@@ -18,8 +18,8 @@
 extern bool fParticlMode;
 typedef std::vector<unsigned char> valtype;
 
-MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* txToIn, unsigned int nInIn, const std::vector<uint8_t>& amountIn, int nHashTypeIn)
-    : txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn, MissingDataBehavior::FAIL),
+MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const std::vector<uint8_t>& amountIn, int hash_type)
+    : txTo(tx), nIn(input_idx), nHashType(hash_type), amount(amountIn), checker(txTo, nIn, amountIn, MissingDataBehavior::FAIL),
       m_txdata(nullptr)
 {
 }
@@ -32,14 +32,14 @@ MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMu
 {
 }
 
-MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* txToIn, unsigned int nInIn, const CAmount& amountIn, int nHashTypeIn)
-    : txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(part::VectorFromAmount(amountIn)), checker(txTo, nIn, amount, MissingDataBehavior::FAIL),
+MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const CAmount& amountIn, int hash_type)
+    : txTo(tx), nIn(input_idx), nHashType(hash_type), amount(part::VectorFromAmount(amountIn)), checker(txTo, nIn, amount, MissingDataBehavior::FAIL),
       m_txdata(nullptr)
 {
 }
 
-MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* txToIn, unsigned int nInIn, const CAmount& amountIn, const PrecomputedTransactionData* txdata, int nHashTypeIn)
-    : txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(part::VectorFromAmount(amountIn)),
+MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const CAmount& amountIn, const PrecomputedTransactionData* txdata, int hash_type)
+    : txTo(tx), nIn(input_idx), nHashType(hash_type), amount(part::VectorFromAmount(amountIn)),
       checker(txdata ? MutableTransactionSignatureChecker(txTo, nIn, amount, *txdata, MissingDataBehavior::FAIL) :
           MutableTransactionSignatureChecker(txTo, nIn, amount, MissingDataBehavior::FAIL)),
       m_txdata(txdata)

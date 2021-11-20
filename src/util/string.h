@@ -124,4 +124,4 @@ namespace part
     bool endsWith(const std::string &str, const std::string &suffix);
 }
 
-#endif // BITCOIN_UTIL_STRENCODINGS_H
+#endif // BITCOIN_UTIL_STRING_H

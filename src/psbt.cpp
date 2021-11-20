@@ -225,7 +225,7 @@ void UpdatePSBTOutput(const SigningProvider& provider, PartiallySignedTransactio
     // so provider does not need to provide any private keys (it can be a HidingSigningProvider).
     std::vector<uint8_t> amount(8);
     part::SetAmount(amount, out.nValue);
-    MutableTransactionSignatureCreator creator(&tx, /* index */ 0, amount, SIGHASH_ALL);
+    MutableTransactionSignatureCreator creator(&tx, /*input_idx=*/0, amount, SIGHASH_ALL);
     ProduceSignature(provider, creator, out.scriptPubKey, sigdata);
 
     // Put redeem_script, witness_script, key paths, into PSBTOutput.

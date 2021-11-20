@@ -42,4 +42,4 @@ RPCHelpMan getaddressinfo();
 RPCHelpMan signrawtransactionwithwallet();
 
 bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param);
-#endif //BITCOIN_WALLET_RPCWALLET_H
+#endif // BITCOIN_WALLET_RPCWALLET_H
