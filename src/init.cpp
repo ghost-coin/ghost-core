@@ -2310,12 +2310,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         banman->DumpBanlist();
     }, DUMP_BANS_INTERVAL);
 
-    CConnman* connman = node.connman.get();
-
-    node.scheduler->scheduleEvery([]{
-        ReclaimAbandonedStake();
-    }, std::chrono::seconds{60});
-
 #if HAVE_SYSTEM
     StartupNotify(args);
 #endif

@@ -184,7 +184,7 @@ UniValue mnemonicrpc(const JSONRPCRequest &request)
             // m / purpose' / coin_type' / account' / change / address_index
             CExtKey ekDerived;
             ekMaster.Derive(ekDerived, BIP44_PURPOSE);
-            ekDerived.Derive(ekDerived, (uint32_t)Params().BIP44ID());
+            ekDerived.Derive(ekDerived, (uint32_t)Params().BIP44ID(fLegacy));
 
             eKey58.SetKey(CExtKeyPair(ekDerived), CChainParams::EXT_SECRET_KEY);
             result.pushKV("derived", eKey58.ToString());

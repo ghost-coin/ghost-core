@@ -1972,11 +1972,11 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState &state, const C
         }
     }
 
-    // figure out 'when' we are
-    uint32_t nTime = std::numeric_limits<int>::max();
-    CBlockIndex *pindexPrev = ::ChainActive().Tip()->pprev;
-    if (pindexPrev)
-        nTime = pindexPrev->GetBlockHeader().nTime;
+    //    // figure out 'when' we are
+    //    uint32_t nTime = std::numeric_limits<int>::max();
+    //    CBlockIndex *pindexPrev = ::ChainActive().Tip()->pprev;
+    //    if (pindexPrev)
+    //        nTime = pindexPrev->GetBlockHeader().nTime;
     
     if ( /*exploit_fixtime_passed(nTime) &&*/
         m_has_anon_input && fAnonChecks

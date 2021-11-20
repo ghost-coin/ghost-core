@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 1);
 
     pwallet->GetBalances(balances);
-    CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    // CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     // BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
     // BOOST_REQUIRE(GetUTXOSum() == moneysupply_before_post_fork_to_blinded);
 
@@ -505,8 +505,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
 
     pwallet->GetBalances(balances);
-    CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    CAmount utxosum = GetUTXOSum();
+    // CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    // CAmount utxosum = GetUTXOSum();
     // @todo(Sonkeng) : Take this back when we're removing anon restrictions
     
     // BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
@@ -625,7 +625,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Check moneysupply didn't climb more than stakes
     stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
-    CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    // CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     // BOOST_REQUIRE(moneysupply_after_post_fork_to_blinded + stake_reward * 2 ==  moneysupply_after_post_fork_blind_spends);
 
     // Test debugwallet spend_frozen_output
@@ -648,11 +648,11 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getbalances", context));
     CAmount blind_trusted = AmountFromValue(rv["mine"]["blind_trusted"]);
-    CAmount anon_trusted = AmountFromValue(rv["mine"]["anon_trusted"]);
+    // CAmount anon_trusted = AmountFromValue(rv["mine"]["anon_trusted"]);
     BOOST_CHECK(blind_trusted > blockbalances.blind()); // anon -> blind
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    CAmount anon_spendable = anon_trusted - AmountFromValue(rv["total_unspendable"]);
+    // CAmount anon_spendable = anon_trusted - AmountFromValue(rv["total_unspendable"]);
     // BOOST_CHECK(anon_spendable < blockbalances.anon()); // anon -> blind
     // BOOST_CHECK(anon_spendable + blind_trusted == blockbalances.blind() + blockbalances.anon());
 
