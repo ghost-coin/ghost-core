@@ -2022,26 +2022,6 @@ void CWallet::ReacceptWalletTransactions()
     }
 }
 
-void CWallet::AbandonOrphanedCoinstakes()
-{
-    LOCK(cs_wallet);
-    
-    for (std::pair<const uint256, CWalletTx>& item : mapWallet) {
-        const uint256& wtxid = item.first;
-        CWalletTx& wtx = item.second;
-        assert(wtx.GetHash() == wtxid);
-
-        int nDepth = wtx.GetDepthInMainChain();
-
-        if (nDepth == 0 && !wtx.isAbandoned() && wtx.IsCoinStake()) {
-            LogPrintf("Abandoning coinstake wtx %s\n", wtx.GetHash().ToString());
-            if (!AbandonTransaction(wtxid)) {
-                LogPrintf("Failed to abandon coinstake tx %s\n", wtx.GetHash().ToString());
-            }
-        }
-    }
-}
-
 bool CWalletTx::SubmitMemoryPoolAndRelay(std::string& err_string, bool relay, CAmount override_max_fee)
 {
     // Can't relay if wallet is not broadcasting
