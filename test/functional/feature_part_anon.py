@@ -43,15 +43,15 @@ class AnonTest(GhostTestFramework):
 
         sxAddrTo0_1 = nodes[0].getnewstealthaddress('lblsx01')
 
-        txnHashes.append(nodes[0].sendparttoanon(sxAddrTo1_1, 1, '', '', False, 'node0 -> node1 p->a'))
-        txnHashes.append(nodes[0].sendparttoblind(sxAddrTo0_1, 1000, '', '', False, 'node0 -> node0 p->b'))
+        txnHashes.append(nodes[0].sendghosttoanon(sxAddrTo1_1, 1, '', '', False, 'node0 -> node1 p->a'))
+        txnHashes.append(nodes[0].sendghosttoblind(sxAddrTo0_1, 1000, '', '', False, 'node0 -> node0 p->b'))
         txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 100, '', '', False, 'node0 -> node1 b->a 1'))
         txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 100, '', '', False, 'node0 -> node1 b->a 2'))
         txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 100, '', '', False, 'node0 -> node1 b->a 3'))
         txnHashes.append(nodes[0].sendblindtoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 b->a 4'))
 
         for k in range(5):
-            txnHash = nodes[0].sendparttoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 p->a')
+            txnHash = nodes[0].sendghosttoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 p->a')
             txnHashes.append(txnHash)
         for k in range(10):
             txnHash = nodes[0].sendblindtoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 b->a')
@@ -194,7 +194,7 @@ class AnonTest(GhostTestFramework):
 
         # Coverage
         w1_3.sendanontoblind(sxAddrTo0_1, 1.0)
-        w1_3.sendanontopart(sxAddrTo0_1, 1.0)
+        w1_3.sendanontoghost(sxAddrTo0_1, 1.0)
 
         self.log.info('Test sendtypeto coincontrol')
         w1_inputs = w1_2.listunspentanon()

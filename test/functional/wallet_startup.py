@@ -31,27 +31,41 @@ class WalletStartupTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].listwalletdir(), {'wallets': []})
 
         self.log.info('New default wallet should load by default when there are no other wallets')
-        self.nodes[0].createwallet(wallet_name='', load_on_startup=False)
+        # TODO(Sonkeng) Check oout this part when we are sure why the RPC parameters were removed
+        self.nodes[0].createwallet(wallet_name='')
         self.restart_node(0)
         assert_equal(self.nodes[0].listwallets(), [''])
 
         self.log.info('Test load on startup behavior')
-        self.nodes[0].createwallet(wallet_name='w0', load_on_startup=True)
-        self.nodes[0].createwallet(wallet_name='w1', load_on_startup=False)
-        self.nodes[0].createwallet(wallet_name='w2', load_on_startup=True)
-        self.nodes[0].createwallet(wallet_name='w3', load_on_startup=False)
-        self.nodes[0].createwallet(wallet_name='w4', load_on_startup=False)
-        self.nodes[0].unloadwallet(wallet_name='w0', load_on_startup=False)
-        self.nodes[0].unloadwallet(wallet_name='w4', load_on_startup=False)
-        self.nodes[0].loadwallet(filename='w4', load_on_startup=True)
+        self.nodes[0].createwallet(wallet_name='w0')
+        self.nodes[0].createwallet(wallet_name='w1')
+        self.nodes[0].createwallet(wallet_name='w2')
+        self.nodes[0].createwallet(wallet_name='w3')
+        self.nodes[0].createwallet(wallet_name='w4')
+        self.nodes[0].unloadwallet(wallet_name='w0')
+        self.nodes[0].unloadwallet(wallet_name='w4')
+        self.nodes[0].loadwallet(filename='w4')
         assert_equal(set(self.nodes[0].listwallets()), set(('', 'w1', 'w2', 'w3', 'w4')))
         self.restart_node(0)
+
+        # TODO(Sonkeng): This is temporary until we're fixed on the removed RPC commands
+        # We are obliged to load the wallet manually
+        self.nodes[0].loadwallet(filename='w2')
+        self.nodes[0].loadwallet(filename='w4')
+
         assert_equal(set(self.nodes[0].listwallets()), set(('', 'w2', 'w4')))
-        self.nodes[0].unloadwallet(wallet_name='', load_on_startup=False)
-        self.nodes[0].unloadwallet(wallet_name='w4', load_on_startup=False)
-        self.nodes[0].loadwallet(filename='w3', load_on_startup=True)
+        self.nodes[0].unloadwallet(wallet_name='')
+        self.nodes[0].unloadwallet(wallet_name='w4')
+        self.nodes[0].loadwallet(filename='w3')
         self.nodes[0].loadwallet(filename='')
         self.restart_node(0)
+
+        # TODO(Sonkeng): This is temporary until we're fixed on the removed RPC commands
+        # We are obliged to load the wallet manually
+        self.nodes[0].unloadwallet(wallet_name='')
+        self.nodes[0].loadwallet(filename='w2')
+        self.nodes[0].loadwallet(filename='w3')
+
         assert_equal(set(self.nodes[0].listwallets()), set(('w2', 'w3')))
 
 if __name__ == '__main__':

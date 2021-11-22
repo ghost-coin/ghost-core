@@ -118,7 +118,7 @@ class MultiWalletTest(GhostTestFramework):
 
         nodes[2].createwallet('w8')
         w8 = nodes[2].get_wallet_rpc('w8')
-        w8.extkeyimportmaster(w7_mnemonic, '', 'false', '', '', 0, {'lookaheadsize': 0, 'stealthv1lookaheadsize': 6})
+        w8.extkeyimportmaster(w7_mnemonic, '', 'false', '', '', 0)
         print(w7.getbalances())
         print(w8.getbalances())
         assert(float(w8.getbalances()['mine']['trusted']) == 1.0)

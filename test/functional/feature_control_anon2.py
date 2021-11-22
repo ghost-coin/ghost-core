@@ -38,7 +38,7 @@ class ControlAnonTest2(GhostTestFramework):
         while True:
             unspent_fil_node0 = nodes[0].listunspentanon(0, 9999, [node0_receiving_addr])
             if len(unspent_fil_node0) < ring_size * len(unspent_filtered_node1):
-                nodes[0].sendparttoanon(node0_receiving_addr, 1000, '', '', False, 'node0 -> node1 p->a')
+                nodes[0].sendghosttoanon(node0_receiving_addr, 1000, '', '', False, 'node0 -> node1 p->a')
                 self.stakeBlocks(4)
             else:
                 break
