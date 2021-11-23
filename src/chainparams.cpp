@@ -463,6 +463,7 @@ public:
         consensus.smsg_difficulty_time = 0x5D2DBC40;    // 2019-07-16 12:00:00 UTC
         consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00 UTC
         consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
+        consensus.exploit_fix_2_height = 976263;
 
         consensus.m_frozen_anon_index = 27340;
         consensus.m_frozen_blinded_height = 884433;

@@ -2631,8 +2631,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     if (fJustCheck)
         return true;
 
-    if (block.nTime >= consensus.exploit_fix_2_time && pindex->pprev && pindex->pprev->nTime < consensus.exploit_fix_2_time) {
-        // TODO: Set to block height after fork
+    if (consensus.exploit_fix_2_height && pindex->nHeight == consensus.exploit_fix_2_height) {
         // Set moneysupply to utxoset sum
         pindex->nMoneySupply = particl::GetUTXOSum(*this) + nMoneyCreated;
         LogPrintf("RCT mint fix HF2, set nMoneySupply to: %d\n", pindex->nMoneySupply);
