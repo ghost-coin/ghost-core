@@ -19,6 +19,7 @@
 
 #include <boost/signals2/signal.hpp>
 
+#include <optional>
 #include <unordered_map>
 
 enum class OutputType;
@@ -211,7 +212,7 @@ public:
     //! The action to do when the DB needs rewrite
     virtual void RewriteDB() {}
 
-    virtual int64_t GetOldestKeyPoolTime() const { return GetTime(); }
+    virtual std::optional<int64_t> GetOldestKeyPoolTime() const { return GetTime(); }
 
     virtual unsigned int GetKeyPoolSize() const { return 0; }
 
@@ -381,7 +382,7 @@ public:
 
     void RewriteDB() override;
 
-    int64_t GetOldestKeyPoolTime() const override;
+    std::optional<int64_t> GetOldestKeyPoolTime() const override;
     size_t KeypoolCountExternalKeys() const;
     unsigned int GetKeyPoolSize() const override;
 
@@ -595,7 +596,7 @@ public:
 
     bool HavePrivateKeys() const override;
 
-    int64_t GetOldestKeyPoolTime() const override;
+    std::optional<int64_t> GetOldestKeyPoolTime() const override;
     unsigned int GetKeyPoolSize() const override;
 
     int64_t GetTimeFirstKey() const override;

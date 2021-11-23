@@ -3375,9 +3375,9 @@ static RPCHelpMan getwalletinfo()
     } else {
         size_t kpExternalSize = pwallet->KeypoolCountExternalKeys();
 
-        int64_t kp_oldest = pwallet->GetOldestKeyPoolTime();
-        if (kp_oldest > 0) {
-            obj.pushKV("keypoololdest", pwallet->GetOldestKeyPoolTime());
+        const auto kp_oldest = pwallet->GetOldestKeyPoolTime();
+        if (kp_oldest.has_value()) {
+            obj.pushKV("keypoololdest", kp_oldest.value());
         }
         obj.pushKV("keypoolsize", (int64_t)kpExternalSize);
         LegacyScriptPubKeyMan* spk_man = pwallet->GetLegacyScriptPubKeyMan();
