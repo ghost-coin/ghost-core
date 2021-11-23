@@ -5,6 +5,11 @@
 
 from test_framework.test_particl import ParticlTestFramework, isclose
 from test_framework.authproxy import JSONRPCException
+from test_framework.script import (
+    CScript,
+    OP_RETURN,
+)
+import decimal
 
 
 class PosTest(ParticlTestFramework):
@@ -167,11 +172,20 @@ class PosTest(ParticlTestFramework):
                 continue
         assert(fFound)
 
+        self.log.info('Test that unspendable outputs reduce moneysupply')
+        header_before = nodes[0].getblockheader(nodes[0].getbestblockhash())
+        burn_script = CScript([OP_RETURN, ])
+        nodes[0].sendtypeto('part', 'part', [{'address': 'script', 'amount': 100, 'script': burn_script.hex()},])
+        self.stakeBlocks(1)
+        stakereward = nodes[0].getblockreward(header_before['height'] + 1)['stakereward']
+        header_after = nodes[0].getblockheader(nodes[0].getbestblockhash())
+        assert(abs(header_before['moneysupply'] - (header_after['moneysupply'] + decimal.Decimal(100.0) - stakereward)) < 0.00000002)
+
         self.log.info('Test clearing rewardaddress')
         ro = nodes[0].walletsettings('stakingoptions', {})
 
         self.stakeBlocks(1)
-        coinstakehash = nodes[0].getblock(nodes[0].getblockhash(7))['tx'][0]
+        coinstakehash = nodes[0].getblock(nodes[0].getbestblockhash())['tx'][0]
         ro = nodes[0].getrawtransaction(coinstakehash, True)
         stake_kernel_txid = ro['vin'][0]['txid']
         stake_kernel_n = ro['vin'][0]['vout']
@@ -185,7 +199,7 @@ class PosTest(ParticlTestFramework):
             assert(output['txid'] != stake_kernel_txid or output['vout'] != stake_kernel_n)
 
         self.log.info('Test that orphaned coinstake inputs are abandoned')
-        nodes[0].rewindchain(6)
+        nodes[0].rewindchain(nodes[0].getblockcount() - 1)
         txns = nodes[0].filtertransactions()
 
         found_orphaned_coinstake = False
