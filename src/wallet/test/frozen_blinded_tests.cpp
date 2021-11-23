@@ -186,6 +186,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Enable HF2
     RegtestParams().GetConsensus_nc().exploit_fix_2_time = tip->nTime + 1;
+    RegtestParams().GetConsensus_nc().exploit_fix_2_height = tip->nHeight + 1;
     CAmount moneysupply_before_fork = tip->nMoneySupply;
 
     while (GetTime() < tip->nTime + 1) {
