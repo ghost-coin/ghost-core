@@ -879,6 +879,9 @@ public:
     // Return sum of standard txouts and counts of output types
     CAmount GetPlainValueOut(size_t &nStandard, size_t &nCT, size_t &nRingCT) const;
 
+    // Return sum of standard txouts with unspendable scripts
+    CAmount GetPlainValueBurned() const;
+
     /**
      * Get the total transaction size in bytes, including witness data.
      * "Total Size" defined in BIP141 and BIP144.

@@ -5,6 +5,11 @@
 
 from test_framework.test_particl import ParticlTestFramework, isclose
 from test_framework.authproxy import JSONRPCException
+from test_framework.script import (
+    CScript,
+    OP_RETURN,
+)
+import decimal
 
 
 class PosTest(ParticlTestFramework):
@@ -214,6 +219,18 @@ class PosTest(ParticlTestFramework):
         self.log.info('Test pruneorphanedblocks')
         rv = nodes[0].pruneorphanedblocks()
         assert(rv['files'][0]['blocks_removed'] == 0)
+        self.connect_nodes_bi(0, 1)
+        self.connect_nodes_bi(0, 2)
+        self.connect_nodes_bi(0, 3)
+
+        self.log.info('Test that unspendable outputs reduce moneysupply')
+        header_before = nodes[0].getblockheader(nodes[0].getbestblockhash())
+        burn_script = CScript([OP_RETURN, ])
+        nodes[0].sendtypeto('part', 'part', [{'address': 'script', 'amount': 100, 'script': burn_script.hex()},])
+        self.stakeBlocks(1)
+        stakereward = nodes[0].getblockreward(8)['stakereward']
+        header_after = nodes[0].getblockheader(nodes[0].getbestblockhash())
+        assert(abs(header_before['moneysupply'] - (header_after['moneysupply'] + decimal.Decimal(100.0) - stakereward)) < 0.00000002 )
 
 
 if __name__ == '__main__':
