@@ -7,6 +7,7 @@
 
 /**
  * network protocol versioning
+ * NOTE: After changing this value don't forget to update MY_VERSION inside message.py
  */
 
 static const int PROTOCOL_VERSION = 90040;

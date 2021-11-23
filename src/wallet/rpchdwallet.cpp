@@ -1776,6 +1776,14 @@ static UniValue extkeyimportmaster(const JSONRPCRequest &request)
                     {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
                     {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                        {
+                            {"createextkeys", RPCArg::Type::NUM, /* default */ "", "Run getnewextaddress \"createextkeys\" times before rescanning the wallet."},
+                            {"lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the defaultlookaheadsize parameter."},
+                            {"stealthv1lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv1lookaheadsize parameter."},
+                            {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
+                        },
+                        "options"},
                     {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 derivation."},
                 },
             RPCResults{},
@@ -1809,6 +1817,14 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
                     {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
                     {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                        {
+                            {"createextkeys", RPCArg::Type::NUM, /* default */ "", "Run getnewextaddress \"createextkeys\" times before rescanning the wallet."},
+                            {"lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the defaultlookaheadsize parameter."},
+                            {"stealthv1lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv1lookaheadsize parameter."},
+                            {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
+                        },
+                        "options"},
                     {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 derivation."},
                 },
             RPCResults{},
@@ -1824,64 +1840,6 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
     if (!wallet) return NullUniValue;
 
     return extkeyimportinternal(request, true);
-}
-
-static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
-{
-            RPCHelpMan{"extkeyimportmasterlegacy",
-                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
-                "Derives an extra chain from path 444444 to receive imported coin." +
-                HELP_REQUIRING_PASSPHRASE,
-                {
-                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
-        "       Use '-stdin' to be prompted to enter a passphrase.\n"
-        "       if mnemonic is blank, defaults to '-stdin'."},
-                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
-        "       Use '-stdin' to be prompted to enter a passphrase."},
-                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
-                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
-                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
-                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
-                },
-            RPCResults{},
-            RPCExamples{
-        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
-        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
-        "\nAs a JSON-RPC call\n"
-        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
-            },
-        }.Check(request);
-
-    return extkeyimportinternal(request, false, true);
-}
-
-static UniValue extkeygenesisimportlegacy(const JSONRPCRequest &request)
-{
-            RPCHelpMan{"extkeyimportmasterlegacy",
-                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
-                "Derives an extra chain from path 444444 to receive imported coin." +
-                HELP_REQUIRING_PASSPHRASE,
-                {
-                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
-        "       Use '-stdin' to be prompted to enter a passphrase.\n"
-        "       if mnemonic is blank, defaults to '-stdin'."},
-                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
-        "       Use '-stdin' to be prompted to enter a passphrase."},
-                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
-                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
-                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
-                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
-                },
-            RPCResults{},
-            RPCExamples{
-        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
-        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
-        "\nAs a JSON-RPC call\n"
-        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
-            },
-        }.Check(request);
-
-    return extkeyimportinternal(request, true, true);
 }
 
 static UniValue extkeyaltversion(const JSONRPCRequest &request)
@@ -9436,6 +9394,64 @@ static UniValue pruneorphanedblocks(const JSONRPCRequest &request)
     return response;
 };
 
+static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
+{
+            RPCHelpMan{"extkeyimportmasterlegacy",
+                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
+                "Derives an extra chain from path 444444 to receive imported coin." +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase.\n"
+        "       if mnemonic is blank, defaults to '-stdin'."},
+                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
+                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
+                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
+                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                },
+            RPCResults{},
+            RPCExamples{
+        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
+        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
+            },
+        }.Check(request);
+
+    return extkeyimportinternal(request, false, true);
+}
+
+static UniValue extkeygenesisimportlegacy(const JSONRPCRequest &request)
+{
+            RPCHelpMan{"extkeyimportmasterlegacy",
+                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
+                "Derives an extra chain from path 444444 to receive imported coin." +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase.\n"
+        "       if mnemonic is blank, defaults to '-stdin'."},
+                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
+                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
+                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
+                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                },
+            RPCResults{},
+            RPCExamples{
+        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
+        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
+            },
+        }.Check(request);
+
+    return extkeyimportinternal(request, true, true);
+}
+
 static UniValue rehashblock(const JSONRPCRequest &request)
 {
             RPCHelpMan{"rehashblock",
@@ -9546,8 +9562,8 @@ static const CRPCCommand commands[] =
 { //  category              name                                actor (function)                argNames
   //  --------------------- ------------------------            -----------------------         ----------
     { "wallet",             "extkey",                           &extkey,                        {} },
-    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","use_legacy"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
-    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","use_legacy"} },
+    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options", "use_legacy"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
+    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options", "use_legacy"} },
     { "wallet",             "extkeyimportmasterlegacy",         &extkeyimportmasterlegacy,      {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
     { "wallet",             "extkeygenesisimportlegacy",        &extkeygenesisimportlegacy,     {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
 

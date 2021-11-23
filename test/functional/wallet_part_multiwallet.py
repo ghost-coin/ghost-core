@@ -5,6 +5,9 @@
 
 from test_framework.test_particl import GhostTestFramework
 import time
+from test_framework.util import (
+    assert_equal,
+)
 
 class MultiWalletTest(GhostTestFramework):
     def set_test_params(self):
@@ -118,10 +121,9 @@ class MultiWalletTest(GhostTestFramework):
 
         nodes[2].createwallet('w8')
         w8 = nodes[2].get_wallet_rpc('w8')
-        w8.extkeyimportmaster(w7_mnemonic, '', 'false', '', '', 0)
-        print(w7.getbalances())
-        print(w8.getbalances())
-        assert(float(w8.getbalances()['mine']['trusted']) == 1.0)
+        w8.extkeyimportmaster(w7_mnemonic, '', 'false', '', '', 0, True)
+
+        assert_equal(float(w8.getbalances()['mine']['trusted']), 1.0)
 
         nodes[2].createwallet('w9')
         w9 = nodes[2].get_wallet_rpc('w9')
