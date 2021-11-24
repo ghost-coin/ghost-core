@@ -65,6 +65,11 @@ Next Major Version
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.18
+==============
+- qt: Include immature anon balance in overview total
+
+
 0.19.2.17
 ==============
 - smsg: Prefer selecting confirmed inputs for funding txns.
