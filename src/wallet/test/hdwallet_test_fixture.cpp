@@ -12,7 +12,7 @@
 #include <validation.h>
 #include <util/system.h>
 #include <blind.h>
-#include <miner.h>
+#include <node/miner.h>
 #include <pos/miner.h>
 #include <timedata.h>
 
@@ -101,7 +101,7 @@ uint256 AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes input_type,
     vecSend.emplace_back(output_type, amount, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;

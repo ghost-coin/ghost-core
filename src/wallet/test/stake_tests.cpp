@@ -38,7 +38,7 @@ static void AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes output_
     vecSend.emplace_back(output_type, amount, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
@@ -64,7 +64,7 @@ static void TryAddBadTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes o
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee, nFeeCheck = 0;
     CCoinControl coinControl;

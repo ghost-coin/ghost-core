@@ -4273,7 +4273,7 @@ int CSMSG::FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bo
 
         CHDWallet *const pw = GetParticlWallet(pactive_wallet.get());
         CTransactionRef tx_new;
-        CWalletTx wtx(tx_new);
+        CWalletTx wtx(tx_new, TxStateInactive{});
 
         if (fund_from == OUTPUT_STANDARD) {
             // Try confirmed inputs first

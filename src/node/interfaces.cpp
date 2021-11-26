@@ -44,7 +44,7 @@
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
-#include <miner.h>
+#include <node/miner.h>
 #include <warnings.h>
 
 #if defined(HAVE_CONFIG_H)

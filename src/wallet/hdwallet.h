@@ -388,7 +388,7 @@ public:
     using CWallet::AddToSpends;
     bool HaveSpend(const COutPoint &outpoint, const uint256 &txid) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void AddToSpends(const uint256& wtxid, WalletBatch* batch = nullptr) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::Confirmation confirm, bool fUpdate, bool rescanning_old_block) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const SyncTxState& state, bool fUpdate, bool rescanning_old_block) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     CWalletTx *GetTempWalletTx(const uint256& hash);
 
@@ -406,7 +406,7 @@ public:
         COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool ProcessPlaceholder(const CTransaction &tx, CTransactionRecord &rtx);
-    bool AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, CWalletTx::Confirmation confirm, bool fFlushOnClose=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, const TxState& state, bool fFlushOnClose=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     ScanResult ScanForWalletTransactions(const uint256& start_block, int start_height, std::optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate) override;
     std::vector<uint256> ResendRecordTransactionsBefore(int64_t nTime);

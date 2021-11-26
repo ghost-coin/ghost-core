@@ -37,16 +37,12 @@ export LC_ALL=C
 # See https://doc.qt.io/qt-5/qcoreapplication.html#locale-settings and
 # https://stackoverflow.com/a/34878283 for more details.
 
-# TODO: Reduce KNOWN_VIOLATIONS by replacing uses of locale dependent stoul/strtol with locale
-#       independent ToIntegral<T>(...) or the ParseInt*() functions.
 # TODO: Reduce KNOWN_VIOLATIONS by replacing uses of locale dependent snprintf with strprintf.
 KNOWN_VIOLATIONS=(
     "src/dbwrapper.cpp:.*vsnprintf"
     "src/test/dbwrapper_tests.cpp:.*snprintf"
     "src/test/fuzz/locale.cpp"
     "src/test/fuzz/string.cpp"
-    "src/torcontrol.cpp:.*strtol"
-    "src/uint256.cpp:.*tolower"
     "src/util/string.cpp:.*tolower"
     "src/util/string.cpp:.*isspace"
     "src/util/time.cpp:.*sscanf"

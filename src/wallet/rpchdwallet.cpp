@@ -5416,7 +5416,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
 
     // Wallet comments
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
 
     size_t nv = nCommentOfs;
@@ -6708,7 +6708,7 @@ static RPCHelpMan debugwallet()
             vec_send.push_back(r);
 
             CTransactionRef tx_new;
-            CWalletTx wtx(tx_new);
+            CWalletTx wtx(tx_new, TxStateInactive{});
             CTransactionRecord rtx;
             CAmount nFee;
 
@@ -8745,7 +8745,7 @@ static RPCHelpMan fundrawtransactionfrom()
     }
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     std::string sError;

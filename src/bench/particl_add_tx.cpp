@@ -14,7 +14,7 @@
 #include <rpc/rpcutil.h>
 #include <rpc/blockchain.h>
 #include <timedata.h>
-#include <miner.h>
+#include <node/miner.h>
 #include <pos/miner.h>
 #include <util/string.h>
 #include <util/translation.h>
@@ -34,7 +34,7 @@ CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount 
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
@@ -66,7 +66,7 @@ static void AddAnonTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amo
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;

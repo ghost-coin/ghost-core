@@ -5,7 +5,7 @@
 #include <pos/miner.h>
 
 #include <pos/kernel.h>
-#include <miner.h>
+#include <node/miner.h>
 #include <chainparams.h>
 #include <util/thread.h>
 #include <util/moneystr.h>

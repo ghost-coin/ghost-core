@@ -9,7 +9,7 @@
 
 #include <wallet/test/hdwallet_test_fixture.h>
 #include <chainparams.h>
-#include <miner.h>
+#include <node/miner.h>
 #include <pos/miner.h>
 #include <timedata.h>
 #include <coins.h>
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.emplace_back(OUTPUT_STANDARD, 1 * COIN, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl cctl;
@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));

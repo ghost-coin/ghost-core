@@ -8,8 +8,8 @@ print-%: FORCE
 
 DIST_SUBDIRS = secp256k1
 
-AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
-AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
+AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS) $(LTO_LDFLAGS)
+AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS) $(LTO_CXXFLAGS)
 AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS)
 AM_CFLAGS = $(AM_CXXFLAGS)
 AM_LIBTOOLFLAGS = --preserve-dup-deps
@@ -186,7 +186,6 @@ BITCOIN_CORE_H = \
   mapport.h \
   memusage.h \
   merkleblock.h \
-  miner.h \
   net.h \
   net_permissions.h \
   net_processing.h \
@@ -198,6 +197,7 @@ BITCOIN_CORE_H = \
   node/coin.h \
   node/coinstats.h \
   node/context.h \
+  node/miner.h \
   node/minisketchwrapper.h \
   node/psbt.h \
   node/transaction.h \
@@ -275,6 +275,7 @@ BITCOIN_CORE_H = \
   util/macros.h \
   util/message.h \
   util/moneystr.h \
+  util/overloaded.h \
   util/rbf.h \
   util/readwritefile.h \
   util/serfloat.h \
@@ -376,7 +377,6 @@ libparticl_server_a_SOURCES = \
   index/txindex.cpp \
   init.cpp \
   mapport.cpp \
-  miner.cpp \
   net.cpp \
   net_processing.cpp \
   node/blockstorage.cpp \
@@ -384,6 +384,7 @@ libparticl_server_a_SOURCES = \
   node/coinstats.cpp \
   node/context.cpp \
   node/interfaces.cpp \
+  node/miner.cpp \
   node/minisketchwrapper.cpp \
   node/psbt.cpp \
   node/transaction.cpp \
