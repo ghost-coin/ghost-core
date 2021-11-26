@@ -221,7 +221,8 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                 assert(expected_code_path);
             },
             [&] {
-                (void)AreInputsStandard(CTransaction{random_mutable_transaction}, coins_view_cache);
+                (void)AreInputsStandard(CTransaction{random_mutable_transaction}, coins_view_cache, false);
+                (void)AreInputsStandard(CTransaction{random_mutable_transaction}, coins_view_cache, true);
             },
             [&] {
                 TxValidationState state;
