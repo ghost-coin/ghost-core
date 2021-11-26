@@ -245,7 +245,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
                         it->second.nLockCount--;
 
                         if (it->second.nLockCount == 0) { // lock timed out
-                            vTimedOutLocks.push_back(std::make_pair(it->first, it->second.nLockPeerId)); // g_connman->cs_vNodes
+                            vTimedOutLocks.push_back(std::make_pair(it->first, it->second.nLockPeerId)); // g_connman->m_nodes_mutex
                             it->second.nLockPeerId = -1;
                         }
                     }
@@ -271,8 +271,8 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
         } // cs_smsg
 
         if (nLoop % 20 == 0) {
-            LOCK(smsg_module->m_node->connman->cs_vNodes);
-            for (auto *pnode : smsg_module->m_node->connman->vNodes) {
+            LOCK(smsg_module->m_node->connman->m_nodes_mutex);
+            for (auto *pnode : smsg_module->m_node->connman->m_nodes) {
                 LOCK(pnode->smsgData.cs_smsg_net);
                 int64_t cutoffTime = now - SMSG_SECONDS_IN_DAY;
                 for (auto it = pnode->smsgData.m_buckets_last_shown.begin(); it != pnode->smsgData.m_buckets_last_shown.end(); ) {
@@ -292,8 +292,8 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
             // Look through the nodes for the peer that locked this bucket
 
             {
-                LOCK(smsg_module->m_node->connman->cs_vNodes);
-                for (auto *pnode : smsg_module->m_node->connman->vNodes) {
+                LOCK(smsg_module->m_node->connman->m_nodes_mutex);
+                for (auto *pnode : smsg_module->m_node->connman->m_nodes) {
                     if (pnode->GetId() != nPeerId) {
                         continue;
                     }
@@ -312,7 +312,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
                     LogPrint(BCLog::SMSG, "This node will ignore peer %d until %d.\n", nPeerId, ignoreUntil);
                     break;
                 }
-            } // g_connman->cs_vNodes
+            } // g_connman->m_nodes_mutex
         }
 
         if (now > nLastPrunedFundingTxns + PRUNE_FUNDING_TX_DATA) {
@@ -1030,8 +1030,8 @@ bool CSMSG::Enable(std::shared_ptr<CWallet> pactive_wallet, std::vector<std::sha
 
     // Ping each peer advertising smsg
     {
-        LOCK(m_node->connman->cs_vNodes);
-        for (auto *pnode : m_node->connman->vNodes) {
+        LOCK(m_node->connman->m_nodes_mutex);
+        for (auto *pnode : m_node->connman->m_nodes) {
             if (!(pnode->GetLocalServices() & NODE_SMSG)) {
                 continue;
             }
@@ -1072,8 +1072,8 @@ bool CSMSG::Disable()
 
     // Tell each smsg enabled peer that this node is disabling
     {
-        LOCK(m_node->connman->cs_vNodes);
-        for (auto *pnode : m_node->connman->vNodes) {
+        LOCK(m_node->connman->m_nodes_mutex);
+        for (auto *pnode : m_node->connman->m_nodes) {
             LOCK(pnode->smsgData.cs_smsg_net);
             if (!pnode->smsgData.fEnabled) {
                 continue;
@@ -1179,8 +1179,8 @@ std::string CSMSG::LookupLabel(PKHash &hash)
 
 void CSMSG::GetNodesStats(int node_id, UniValue &result)
 {
-    LOCK(m_node->connman->cs_vNodes);
-    for (auto *pnode : m_node->connman->vNodes) {
+    LOCK(m_node->connman->m_nodes_mutex);
+    for (auto *pnode : m_node->connman->m_nodes) {
         if (node_id > -1 && node_id != pnode->GetId()) {
             continue;
         }
@@ -1224,8 +1224,8 @@ void CSMSG::GetNodesStats(int node_id, UniValue &result)
 
 void CSMSG::ClearBanned()
 {
-    LOCK(m_node->connman->cs_vNodes);
-    for (auto *pnode : m_node->connman->vNodes) {
+    LOCK(m_node->connman->m_nodes_mutex);
+    for (auto *pnode : m_node->connman->m_nodes) {
         LOCK(pnode->smsgData.cs_smsg_net);
         if (!pnode->smsgData.fEnabled) {
             continue;
