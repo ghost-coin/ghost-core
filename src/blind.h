@@ -35,4 +35,4 @@ bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::
 void ECC_Start_Blinding();
 void ECC_Stop_Blinding();
 
-#endif  // PARTICL_BLIND_H
+#endif // PARTICL_BLIND_H

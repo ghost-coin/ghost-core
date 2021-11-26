@@ -149,4 +149,4 @@ void AddImportHashesTest(std::vector<CImportedCoinbaseTxn> &vImportedCoinbaseTxn
     vImportedCoinbaseTxns.push_back(CImportedCoinbaseTxn(68, uint256S("c59f05a818bc9bef2a7ba12594a960cf7dd303f541cfffdc4c4d524b4e4091f1")));
 };
 
-#endif // PARTICL_PARTICL_CHAINPARAMSIMPORT_H
+#endif // PARTICL_CHAIN_CHAINPARAMSIMPORT_H

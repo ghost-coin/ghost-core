@@ -60,7 +60,7 @@ if [ -z "$1" ]; then
 fi
 
 if [ ! -d "$TARGET" ]; then
-  mkdir -p $TARGET
+  mkdir -p "$TARGET"
 fi
 
 if [ "$DOWNLOAD_BINARY" -eq "1" ]; then
@@ -93,7 +93,7 @@ pushd "$TARGET" || exit 1
     if [ "$DOWNLOAD_BINARY" -eq "0" ]; then
 
       if [ ! -d "$tag" ]; then
-        if [ -z $(git tag -l "$tag") ]; then
+        if [ -z "$(git tag -l "$tag")" ]; then
           echo "Tag $tag not found"
           exit 1
         fi
@@ -116,7 +116,7 @@ pushd "$TARGET" || exit 1
             CONFIG_FLAGS="--prefix=$PWD/depends/$HOST $CONFIG_FLAGS"
           fi
           ./autogen.sh
-          ./configure $CONFIG_FLAGS
+          ./configure "$CONFIG_FLAGS"
           make
           # Move binaries, so they're in the same place as in the release download:
           mkdir bin
@@ -139,7 +139,7 @@ pushd "$TARGET" || exit 1
         #fi
         URL="https://github.com/particl/particl-core/releases/download/${tag}/particl-${tag:1}-$PLATFORM.tar.gz"
         echo "Fetching: $URL"
-        if ! curl -O -f $URL; then
+        if ! curl -O -f "$URL"; then
             echo "Download failed."
             exit 1
         fi

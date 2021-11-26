@@ -155,5 +155,5 @@ void ECC_Start_Stealth();
 void ECC_Stop_Stealth();
 
 
-#endif  // PARTICL_KEY_STEALTH_H
+#endif // PARTICL_KEY_STEALTH_H
 
