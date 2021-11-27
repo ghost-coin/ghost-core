@@ -1568,7 +1568,8 @@ DBErrors CHDWallet::LoadWallet(bool& fFirstRunRet)
             tfm::format(std::cout, "%s\n", sMsg.c_str());
 #endif
             LogPrintf("%s\n", sMsg);
-            if (MakeDefaultAccount() != 0) {
+            bool fLegacy = false;
+            if (MakeDefaultAccount(fLegacy) != 0) {
                 tfm::format(std::cout, "Error: MakeDefaultAccount failed!\n");
             }
         } else {

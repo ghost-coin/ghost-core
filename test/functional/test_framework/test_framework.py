@@ -404,7 +404,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         if wallet_name is not False:
             n = self.nodes[i]
             if wallet_name is not None:
-                n.createwallet(wallet_name=wallet_name, use_legacy=True)
+                n.createwallet(wallet_name=wallet_name, descriptors=self.options.descriptors, load_on_startup=True, use_legacy=False)
             n.importprivkey(privkey=n.get_deterministic_priv_key().key, label='coinbase')
 
     def run_test(self):

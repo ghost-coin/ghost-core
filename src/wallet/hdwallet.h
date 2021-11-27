@@ -229,13 +229,13 @@ public:
 
     int GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&sea, CStoredExtKey *&pc);
 
-    int MakeDefaultAccount(bool fLegacy = false);
+    int MakeDefaultAccount(bool fLegacy);
 
     int ExtKeyNew32(CExtKey &out);
     int ExtKeyNew32(CExtKey &out, const char *sPassPhrase, int32_t nHash, const char *sSeed);
     int ExtKeyNew32(CExtKey &out, uint8_t *data, uint32_t lenData);
 
-    int ExtKeyImportLoose(CHDWalletDB *pwdb, CStoredExtKey &sekIn, CKeyID &idDerived, bool fBip44, bool fSaveBip44, bool fLegacy = false) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int ExtKeyImportLoose(CHDWalletDB *pwdb, CStoredExtKey &sekIn, CKeyID &idDerived, bool fBip44, bool fSaveBip44, bool fLegacy) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyImportAccount(CHDWalletDB *pwdb, CStoredExtKey &sekIn, int64_t nCreatedAt, const std::string &sLabel) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     //! Set master to existing key, remove master key tag from old key if exists
