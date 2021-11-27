@@ -1665,8 +1665,8 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             pwallet->m_rescan_stealth_v2_lookahead = override_stealthv2lookaheadsize;
         }
     }
-    if (request.params.size() > 7) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[7].get_str()));
+    if (request.params.size() > 8) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[8].get_str()));
     }
 
     LogPrintf("%s Importing master key and account with labels '%s', '%s'.\n", pwallet->GetDisplayName(), sLblMaster.c_str(), sLblAccount.c_str());
