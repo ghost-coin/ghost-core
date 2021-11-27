@@ -1665,7 +1665,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             pwallet->m_rescan_stealth_v2_lookahead = override_stealthv2lookaheadsize;
         }
     }
-    if (request.params.size() > 8) {
+    if (request.params.size() > 7) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[7].get_str()));
     }
 
@@ -1861,7 +1861,7 @@ static UniValue extkeyimportmaster(const JSONRPCRequest &request)
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
     bool fLegacy = false;
-    if (request.params.size() == 8) {
+    if (request.params.size() >= 8) {
         fLegacy = request.params[7].get_bool();
     }
     return extkeyimportinternal(request, false, fLegacy);
@@ -1906,7 +1906,7 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
     if (!wallet) return NullUniValue;
 
     bool fLegacy = false;
-    if (request.params.size() == 8) {
+    if (request.params.size() > 7) {
         fLegacy = request.params[7].get_bool();
     }
 
