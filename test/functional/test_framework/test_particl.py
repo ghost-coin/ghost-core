@@ -157,7 +157,5 @@ class GhostTestFramework(BitcoinTestFramework):
         assert_equal(node.getwalletinfo()['total_balance'], 100000)
 
     def import_genesis_coins_b(self, node):
-        node.extkeyimportmaster('pact mammal barrel matrix local final lecture chunk wasp survey bid various book strong spread fall ozone daring like topple door fatigue limb olympic', '', 'true')
-        node.getnewextaddress('lblExtTest')
-        node.rescanblockchain()
+        node.extkeyimportmaster('pact mammal barrel matrix local final lecture chunk wasp survey bid various book strong spread fall ozone daring like topple door fatigue limb olympic', '', 'true', '', '', 0, {'createextkeys': 1})
         assert_equal(node.getwalletinfo()['total_balance'], 25000)
