@@ -1775,6 +1775,7 @@ void RelayTransaction(const uint256& txid, const uint256& wtxid, const CConnman&
     });
 }
 
+
 static void RelayAddress(const CAddress& addr, bool fReachable, const CConnman& connman)
 {
     if (!fReachable && !addr.IsRelayable()) return;

@@ -96,7 +96,7 @@ public:
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
     int GetDefaultPort() const { return nDefaultPort; }
 
-    int BIP44ID(bool fLegacy = false) const { return fLegacy ? nBIP44IDLegacy : nBIP44IDCurrent; }
+    int BIP44ID(bool fLegacy) const { return fLegacy ? nBIP44IDLegacy : nBIP44IDCurrent; }
 
     uint32_t GetModifierInterval() const { return nModifierInterval; }
     uint32_t GetStakeMinConfirmations() const { return nStakeMinConfirmations; }

@@ -51,7 +51,7 @@ class FilterTransactionsTest(GhostTestFramework):
 
 
         # PART to BLIND
-        txids.append(nodes[0].sendparttoblind(
+        txids.append(nodes[0].sendghosttoblind(
             selfStealth,          # address
             20,                   # amount
             '',                   # ?
@@ -61,7 +61,7 @@ class FilterTransactionsTest(GhostTestFramework):
         ))
 
         # PART to ANON
-        txids.append(nodes[0].sendparttoanon(
+        txids.append(nodes[0].sendghosttoanon(
             targetStealth,        # address
             20,                   # amount
             '',                   # ?
@@ -354,7 +354,7 @@ class FilterTransactionsTest(GhostTestFramework):
             assert('Invalid sort' in e.error['message'])
 
         # Sent blind should show when filtered for blinded txns
-        nodes[0].sendblindtopart(targetStealth, 1.0)
+        nodes[0].sendblindtoghost(targetStealth, 1.0)
         ro = nodes[0].filtertransactions({ 'type': 'blind', 'count': 20 })
         assert(len(ro) == 2)
 

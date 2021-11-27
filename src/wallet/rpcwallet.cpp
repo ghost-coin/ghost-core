@@ -654,8 +654,8 @@ static RPCHelpMan sendtoaddress()
         newRequest.fSkipBlock = true; // already blocked in this function
         newRequest.URI = request.URI;
         UniValue params(UniValue::VARR);
-        params.push_back("part");
-        params.push_back("part");
+        params.push_back("ghost");
+        params.push_back("ghost");
         UniValue arr(UniValue::VARR);
         UniValue out(UniValue::VOBJ);
 
@@ -1158,8 +1158,8 @@ static RPCHelpMan sendmany()
         newRequest.fSkipBlock = true; // already blocked in this function
         newRequest.URI = request.URI;
         UniValue params(UniValue::VARR);
-        params.push_back("part");
-        params.push_back("part");
+        params.push_back("ghost");
+        params.push_back("ghost");
         UniValue arr(UniValue::VARR);
 
         std::vector<std::string> keys = sendTo.getKeys();
@@ -3536,6 +3536,7 @@ static RPCHelpMan createwallet()
             {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "false", "Keep track of coin reuse, and treat dirty and clean coins differently with privacy considerations in mind."},
             {"descriptors", RPCArg::Type::BOOL, /* default */ "false", "Create a native descriptor wallet. The wallet will use descriptors internally to handle address creation"},
             {"load_on_startup", RPCArg::Type::BOOL, /* default */ "null", "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
+            {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 prefix when creating wallet."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -3559,6 +3560,7 @@ static RPCHelpMan createwallet()
     if (!request.params[2].isNull() && request.params[2].get_bool()) {
         flags |= WALLET_FLAG_BLANK_WALLET;
     }
+    bool fUseLegacy = !request.params[7].isNull() && request.params[7].get_bool();
     SecureString passphrase;
     passphrase.reserve(100);
     std::vector<bilingual_str> warnings;
@@ -3581,6 +3583,7 @@ static RPCHelpMan createwallet()
         warnings.emplace_back(Untranslated("Wallet is an experimental descriptor wallet"));
     }
 
+
     DatabaseOptions options;
     DatabaseStatus status;
     options.require_create = true;
@@ -3588,7 +3591,7 @@ static RPCHelpMan createwallet()
     options.create_passphrase = passphrase;
     bilingual_str error;
     Optional<bool> load_on_start = request.params[6].isNull() ? nullopt : Optional<bool>(request.params[6].get_bool());
-    std::shared_ptr<CWallet> wallet = CreateWallet(*context.chain, request.params[0].get_str(), load_on_start, options, status, error, warnings);
+    std::shared_ptr<CWallet> wallet = CreateWallet(*context.chain, request.params[0].get_str(), load_on_start, options, status, error, warnings, fUseLegacy);
     if (!wallet) {
         RPCErrorCode code = status == DatabaseStatus::FAILED_ENCRYPT ? RPC_WALLET_ENCRYPTION_FAILED : RPC_WALLET_ERROR;
         throw JSONRPCError(code, error.original);
@@ -5624,7 +5627,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "backupwallet",                     &backupwallet,                  {"destination"} },
     { "wallet",             "bumpfee",                          &bumpfee,                       {"txid", "options"} },
     { "wallet",             "psbtbumpfee",                      &psbtbumpfee,                   {"txid", "options"} },
-    { "wallet",             "createwallet",                     &createwallet,                  {"wallet_name", "disable_private_keys", "blank", "passphrase", "avoid_reuse", "descriptors", "load_on_startup"} },
+    { "wallet",             "createwallet",                     &createwallet,                  {"wallet_name", "disable_private_keys", "blank", "passphrase", "avoid_reuse", "descriptors", "load_on_startup", "use_legacy"} },
     { "wallet",             "dumpprivkey",                      &dumpprivkey,                   {"address"}  },
     { "wallet",             "dumpwallet",                       &dumpwallet,                    {"filename"} },
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },

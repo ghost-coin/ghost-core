@@ -478,7 +478,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
             question_string.append(tr("removed for transaction fee"));
         else
             question_string.append(tr("added as transaction fee"));
-
+        
         // append RBF message according to transaction's signalling
         question_string.append("<span style='font-size:10pt; font-weight:normal;'>");
         if (ui->optInRBF->isChecked()) {

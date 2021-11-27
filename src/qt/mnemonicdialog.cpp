@@ -40,7 +40,8 @@ MnemonicDialog::MnemonicDialog(QWidget *parent, WalletModel *wm) :
     QObject::connect(this, &MnemonicDialog::startRescan, walletModel, &WalletModel::startRescan, Qt::QueuedConnection);
 
     setWindowTitle(QString("HD Wallet Setup - %1").arg(QString::fromStdString(wm->wallet().getWalletName())));
-    ui->edtPath->setPlaceholderText(tr("Path to derive account from, if not using default. (optional, default=%1)").arg(QString::fromStdString(GetDefaultAccountPath())));
+    bool fLegacy = false;
+    ui->edtPath->setPlaceholderText(tr("Path to derive account from, if not using default. (optional, default=%1)").arg(QString::fromStdString(GetDefaultAccountPath(fLegacy))));
     ui->edtPassword->setPlaceholderText(tr("Enter a passphrase to protect your Recovery Phrase. (optional)"));
 #if QT_VERSION >= 0x050200
     ui->tbxMnemonic->setPlaceholderText(tr("Enter your BIP39 compliant Recovery Phrase/Mnemonic."));
@@ -93,6 +94,9 @@ void MnemonicDialog::on_btnImport_clicked()
 {
     QString sCommand = (ui->chkImportChain->checkState() == Qt::Unchecked)
         ? "extkeyimportmaster" : "extkeygenesisimport";
+    bool fLegacy = ui->useLegacyDerivationCheckBox->checkState() == Qt::Checked;
+    if(fLegacy)
+        sCommand += "legacy";
     sCommand += " \"" + ui->tbxMnemonic->toPlainText() + "\"";
 
     QString sPassword = GUIUtil::particl::escapeQString(ui->edtPassword->text());

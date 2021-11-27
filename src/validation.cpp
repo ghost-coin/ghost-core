@@ -1949,11 +1949,11 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState &state, const C
         }
     }
 
-    // figure out 'when' we are
-    uint32_t nTime = std::numeric_limits<int>::max();
-    CBlockIndex *pindexPrev = ::ChainActive().Tip()->pprev;
-    if (pindexPrev)
-        nTime = pindexPrev->GetBlockHeader().nTime;
+    //    // figure out 'when' we are
+    //    uint32_t nTime = std::numeric_limits<int>::max();
+    //    CBlockIndex *pindexPrev = ::ChainActive().Tip()->pprev;
+    //    if (pindexPrev)
+    //        nTime = pindexPrev->GetBlockHeader().nTime;
     
     if ( /*exploit_fixtime_passed(nTime) &&*/
         m_has_anon_input && fAnonChecks
@@ -4431,7 +4431,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
     if (!fParticlMode
         && fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
-
+        
     return true;
 }
 

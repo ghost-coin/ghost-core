@@ -930,7 +930,7 @@ static UniValue extkey(const JSONRPCRequest &request)
         "    Show default account when called without parameters or \"key/id\" = \"default\".\n"
         "extkey key \"key/id\" ( show_secrets )\n"
         "    Display details of loose extkey in wallet.\n"
-        "extkey import \"key\" ( \"label\" bip44 save_bip44_key )\n"
+        "extkey import \"key\" ( \"label\" bip44 save_bip44_key fLegacy)\n"
         "    Add loose key to wallet.\n"
         "    If bip44 is set import will add the key derived from <key> on the bip44 path.\n"
         "    If save_bip44_key is set import will save the bip44 key to the wallet.\n"
@@ -1178,6 +1178,11 @@ static UniValue extkey(const JSONRPCRequest &request)
         }
 
         sek.kp = eKey58.GetKey();
+        bool fLegacy = false;
+        if (request.params.size() > nParamOffset) {
+            fLegacy = GetBool(request.params[nParamOffset]);
+            nParamOffset++;
+        }
 
         {
             LOCK(pwallet->cs_wallet);
@@ -1188,7 +1193,7 @@ static UniValue extkey(const JSONRPCRequest &request)
 
             int rv;
             CKeyID idDerived;
-            if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44))) {
+            if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44, fLegacy))) {
                 wdb.TxnAbort();
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
             }
@@ -1395,8 +1400,10 @@ static UniValue extkey(const JSONRPCRequest &request)
             nParamOffset++;
         }
 
-        if (nParamOffset < request.params.size()) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[nParamOffset].get_str().c_str()));
+        for (; nParamOffset < request.params.size(); nParamOffset++) {
+            std::string strParam = request.params[nParamOffset].get_str();
+            std::transform(strParam.begin(), strParam.end(), strParam.begin(), ::tolower);
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", strParam.c_str()));
         }
 
         CExtKeyAccount *sea = new CExtKeyAccount();
@@ -1569,7 +1576,7 @@ static UniValue extkey(const JSONRPCRequest &request)
     return result;
 };
 
-static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesisChain)
+static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesisChain, bool fLegacy)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
@@ -1593,6 +1600,8 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     std::string sError;
     int64_t nScanFrom = 1;
     int create_extkeys = 0;
+    fLegacy = request.params.size() > 7 ? GetBool(request.params[7]) : fLegacy;
+
 
     if (request.params.size() > 1) {
         sPassphrase = request.params[1].get_str();
@@ -1656,8 +1665,8 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             pwallet->m_rescan_stealth_v2_lookahead = override_stealthv2lookaheadsize;
         }
     }
-    if (request.params.size() > 7) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[6].get_str()));
+    if (request.params.size() > 8) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Unknown parameter '%s'", request.params[8].get_str()));
     }
 
     LogPrintf("%s Importing master key and account with labels '%s', '%s'.\n", pwallet->GetDisplayName(), sLblMaster.c_str(), sLblAccount.c_str());
@@ -1713,7 +1722,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
         }
 
-        if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44Root))) {
+        if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44Root, fLegacy))) {
             wdb.TxnAbort();
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
         }
@@ -1838,6 +1847,7 @@ static UniValue extkeyimportmaster(const JSONRPCRequest &request)
                             {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
                         },
                         "options"},
+                    {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 derivation."},
                 },
             RPCResults{},
             RPCExamples{
@@ -1850,8 +1860,11 @@ static UniValue extkeyimportmaster(const JSONRPCRequest &request)
 
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
-
-    return extkeyimportinternal(request, false);
+    bool fLegacy = false;
+    if (request.params.size() >= 8) {
+        fLegacy = request.params[7].get_bool();
+    }
+    return extkeyimportinternal(request, false, fLegacy);
 };
 
 static UniValue extkeygenesisimport(const JSONRPCRequest &request)
@@ -1878,6 +1891,7 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
                             {"stealthv2lookaheadsize", RPCArg::Type::NUM, /* default */ "", "Override the stealthv2lookaheadsize parameter."},
                         },
                         "options"},
+                    {"use_legacy", RPCArg::Type::BOOL, /* default */ "false", "Use legacy bip44 derivation."}
                 },
             RPCResults{},
             RPCExamples{
@@ -1891,7 +1905,41 @@ static UniValue extkeygenesisimport(const JSONRPCRequest &request)
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return NullUniValue;
 
-    return extkeyimportinternal(request, true);
+    bool fLegacy = false;
+    if (request.params.size() > 7) {
+        fLegacy = request.params[7].get_bool();
+    }
+
+    return extkeyimportinternal(request, true, fLegacy);
+}
+
+static UniValue extkeygenesisimportlegacy(const JSONRPCRequest &request)
+{
+            RPCHelpMan{"extkeyimportmasterlegacy",
+                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
+                "Derives an extra chain from path 444444 to receive imported coin." +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase.\n"
+        "       if mnemonic is blank, defaults to '-stdin'."},
+                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
+                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
+                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
+                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                },
+            RPCResults{},
+            RPCExamples{
+        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
+        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
+            },
+        }.Check(request);
+
+    return extkeyimportinternal(request, true, true);
 }
 
 static UniValue extkeyaltversion(const JSONRPCRequest &request)
@@ -5499,7 +5547,7 @@ static std::string SendHelp(OutputTypes typeIn, OutputTypes typeOut)
     return rv;
 };
 
-static UniValue sendparttoblind(const JSONRPCRequest &request)
+static UniValue sendghosttoblind(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
         throw std::runtime_error(SendHelp(OUTPUT_STANDARD, OUTPUT_CT));
@@ -5510,7 +5558,7 @@ static UniValue sendparttoblind(const JSONRPCRequest &request)
     return SendToInner(request, OUTPUT_STANDARD, OUTPUT_CT);
 };
 
-static UniValue sendparttoanon(const JSONRPCRequest &request)
+static UniValue sendghosttoanon(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
         throw std::runtime_error(SendHelp(OUTPUT_STANDARD, OUTPUT_RINGCT));
@@ -5522,7 +5570,7 @@ static UniValue sendparttoanon(const JSONRPCRequest &request)
 };
 
 
-static UniValue sendblindtopart(const JSONRPCRequest &request)
+static UniValue sendblindtoghost(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
         throw std::runtime_error(SendHelp(OUTPUT_CT, OUTPUT_STANDARD));
@@ -5556,7 +5604,7 @@ static UniValue sendblindtoanon(const JSONRPCRequest &request)
 };
 
 
-static UniValue sendanontopart(const JSONRPCRequest &request)
+static UniValue sendanontoghost(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 8)
         throw std::runtime_error(SendHelp(OUTPUT_RINGCT, OUTPUT_STANDARD));
@@ -9446,6 +9494,35 @@ static UniValue pruneorphanedblocks(const JSONRPCRequest &request)
     return response;
 };
 
+static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
+{
+            RPCHelpMan{"extkeyimportmasterlegacy",
+                "\nImport master key from bip44 mnemonic root key and derive default account.Uses legacy bip44 coin id\n"
+                "Derives an extra chain from path 444444 to receive imported coin." +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"mnemonic/key", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic or root extended key.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase.\n"
+        "       if mnemonic is blank, defaults to '-stdin'."},
+                    {"passphrase", RPCArg::Type::STR, /* default */ "", "Passphrase when importing mnemonic.\n"
+        "       Use '-stdin' to be prompted to enter a passphrase."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, /* default */ "false", "Save bip44 root key to wallet."},
+                    {"master_label", RPCArg::Type::STR, /* default */ "Master Key", "Label for master key."},
+                    {"account_label", RPCArg::Type::STR, /* default */ "Default Account", "Label for account."},
+                    {"scan_chain_from", RPCArg::Type::NUM, /* default */ "0", "Scan for transactions in blocks after timestamp, negative number to skip."},
+                },
+            RPCResults{},
+            RPCExamples{
+        HelpExampleCli("extkeyimportmasterlegacy", "-stdin -stdin false \"label_master\" \"label_account\"")
+        + HelpExampleCli("extkeyimportmasterlegacy", "\"word1 ... word24\" \"passphrase\" false \"label_master\" \"label_account\"") +
+        "\nAs a JSON-RPC call\n"
+        + HelpExampleRpc("extkeyimportmasterlegacy", "\"word1 ... word24\", \"passphrase\", false, \"label_master\", \"label_account\"")
+            },
+        }.Check(request);
+
+    return extkeyimportinternal(request, false, true);
+}
+
 static UniValue rehashblock(const JSONRPCRequest &request)
 {
             RPCHelpMan{"rehashblock",
@@ -9556,8 +9633,10 @@ static const CRPCCommand commands[] =
 { //  category              name                                actor (function)                argNames
   //  --------------------- ------------------------            -----------------------         ----------
     { "wallet",             "extkey",                           &extkey,                        {} },
-    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
-    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options"} },
+    { "wallet",             "extkeyimportmaster",               &extkeyimportmaster,            {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options", "use_legacy"} }, // import, set as master, derive account, set default account, force users to run mnemonic new first make them copy the key
+    { "wallet",             "extkeygenesisimport",              &extkeygenesisimport,           {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from","options", "use_legacy"} },
+    { "wallet",             "extkeyimportmasterlegacy",         &extkeyimportmasterlegacy,      {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
+    { "wallet",             "extkeygenesisimportlegacy",        &extkeygenesisimportlegacy,     {"source","passphrase","save_bip44_root","master_label","account_label","scan_chain_from"} },
     { "wallet",             "extkeyaltversion",                 &extkeyaltversion,              {"ext_key"} },
     { "wallet",             "getnewextaddress",                 &getnewextaddress,              {"label","childnum","bech32","hardened"} },
     { "wallet",             "getnewstealthaddress",             &getnewstealthaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
@@ -9579,15 +9658,15 @@ static const CRPCCommand commands[] =
     { "wallet",             "listunspentblind",                 &listunspentblind,              {"minconf","maxconf","addresses","include_unsafe","query_options"} },
 
 
-    //sendparttopart // normal txn
-    { "wallet",             "sendparttoblind",                  &sendparttoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
-    { "wallet",             "sendparttoanon",                   &sendparttoanon,                {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+    //sendghosttoghost // normal txn
+    { "wallet",             "sendghosttoblind",                  &sendghosttoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+    { "wallet",             "sendghosttoanon",                   &sendghosttoanon,                {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
-    { "wallet",             "sendblindtopart",                  &sendblindtopart,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+    { "wallet",             "sendblindtoghost",                  &sendblindtoghost,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
     { "wallet",             "sendblindtoblind",                 &sendblindtoblind,              {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
     { "wallet",             "sendblindtoanon",                  &sendblindtoanon,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
-    { "wallet",             "sendanontopart",                   &sendanontopart,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
+    { "wallet",             "sendanontoghost",                   &sendanontoghost,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
     { "wallet",             "sendanontoblind",                  &sendanontoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
     { "wallet",             "sendanontoanon",                   &sendanontoanon,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
 

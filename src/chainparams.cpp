@@ -492,7 +492,6 @@ public:
         // This is fine at runtime as we'll fall back to using them as an addrfetch if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("ghostseeder.coldstake.io");
         vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
         vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66.67, 5040)); //As above but to a GVR held addr
@@ -544,17 +543,43 @@ public:
         checkpointData = {
             {
                 { 0, genesis.GetHash()},
-                {1000,uint256S("0x99ccb3aa356f8bfad4a6f3052c272c21e8d087f7c625a8de3869741dcd1cbab0")},
-                {2000,uint256S("0xad2d20d55432a00ba0740da7d9376875e30558bb0a4af53049c9d33cea5cc66c")},
-                {2900,uint256S("0x2618955a4b082357450a6dae51c4900df004928e99613d55499144f34e813c74")},
+                {10000,  uint256S("930135028fc99b99548621d76b6bb90604a45041aec1d1bd02117275cfdb4c53")},
+                {20000,  uint256S("ae42938922053252fda2397f2a2fa13b8db7a710bfd1273c57677b72b6c52dc1")},
+                {30000,  uint256S("28505249e831f1bc3c70b8c178b6049b089dfa139564ec23345093448d51d023")},
+                {40000,  uint256S("5f137e0861dc1b0453ce8e0aa7b88f5f9fa5e2d2dd7715fc244e10341ff223e3")},
+                {50000,  uint256S("2b1a546f606070c743bba1eb41f3e3d02e90e882943f8aa0344bdbe9e766a83d")},
+                {60000,  uint256S("aca8d354e52e1fef6e9a2e616c79dd9ba5ca8e8e707dc6ffdd740c10bad6da80")},
+                {70000,  uint256S("611e5450478e8d450df3232d079a284375141fc9367b2cd30f793281e3725e12")},
+                {80000,  uint256S("ba8554481f68ec364aadd66436742890111fdb92f5760136b3224673000b2bc1")},
+                {90000,  uint256S("b32fa9d575224bf6a96f3fc073c066a6eceea0391372dc2fbd752605823198d2")},
+                {100000, uint256S("ccf886de73b02cf0ff48a0665c4d56ecc0e577c3f617708f0a7b9a366e13cd13")},
+                {110000, uint256S("4f587d45e17588472cae4b53bd8a6f8ee043c1ab5ef373234179cd86eee71014")},
+                {120000, uint256S("7bea9e48552a00765b5f29e2a490c92941d2047b14cbc93ba5550718cecc0b85")},
+                {130000, uint256S("0fbf16425f05b19639194bd33830b8a263f005bc949a27ec8e08233ba059a768")},
+                {140000, uint256S("087ff906072b35f2a198c16701bd60f4826ea0caee4eb212f635c3169e898c59")},
+                {150000, uint256S("5ff55586701c4d426e3d7fb4a444036ced7e458d180d9fffa08cf84ff22766a0")},
+                {160000, uint256S("d5212cf8d922a219246fe8d4ec4420ddf268ed0e5065c2c5804b35d203e25d75")},
+                {170000, uint256S("5205a42512ae9f9ee6548a7ee1ee424a6d52fee262d89f7cb10319da21724b65")},
+                {180000, uint256S("4d0dc61cb3b66ad6b3a67fb794328f47befe5d0b2f175535396c184b31e6edf1")},
+                {190000, uint256S("98ceccbf4cf61aa3f0a8d9bcf93d47f92f7ac07fcaf8f94daa85340e9df04567")},
+                {200000, uint256S("3bcb537e5df3784fca64c557a7f7166d37e5cd224c92d4beba6c9d12470c4e86")},
+                {210000, uint256S("eb6014b6d22b807f484ce6afb056a11b1c21d68975faf24f9ecc28f0e80a0993")},
+                {220000, uint256S("635a7cace1e72e1f7b85ddfa567811750c47da48e75a796c392e9d07ac37ce7e")},
+                {230000, uint256S("84a3066c2cd035cb222a35d7a3a5cc46ec63016a6fc449eab67cbd298c05a7f0")},
+                {240000, uint256S("33b9cabb5d8bfdc502c59384d907b4deb64dfd3bc54f8c8809ef0a911a2909d0")},
+                {250000, uint256S("4cb92f5ae1d986230c5ab4ba4e3e62640e47ed20c89a76458afb65617ceda742")},
+                {260000, uint256S("c43be53b56ee576dafd112bc733a6f56a4a2e4a9222e4305cc6b893c7d968dae")},
+                {270000, uint256S("27609adb02319a8c3583ef5c564499ffc7ed4796091a0b58da0a82e862b4cfa2")},
+                {280000, uint256S("8be64d38cf598a5d0dc57c84fbf377d5e3178f4abedd6b9ee00f5db4600ab8fa")},
+                {290000, uint256S("19b24cc079a3869f8803ae8c7602f39ff473b17488f705520a4cfdddd4495e98")},
+                {300000, uint256S("9251bf689bc354084370385cca94fca0939b6cce42d49430fa01cb8f9f3cc07c")}
             }
         };
 
         chainTxData = ChainTxData {
-            // Data from rpc: getchaintxstats 4096 43c3d5568f3b3467e5142f86445d5b12b923e3e5c4a1e6566d90a7fad807799c
-            /* nTime    */ 1593280240,
-            /* nTxCount */ 3317,
-            /* dTxRate  */ 0.008253214698037342
+            1628232496,
+            343652,
+            0.0081
         };
 
        anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
