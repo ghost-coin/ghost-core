@@ -330,6 +330,7 @@ PARTICL_SCRIPTS = [
     'feature_part_stealth.py',
     'feature_part_blind.py',
     'feature_part_anon.py',
+    'feature_part_taproot.py',
     'wallet_part_particl.py',
     'rpc_part_mnemonic.py',
     'feature_part_smsg.py',

@@ -13,11 +13,18 @@
 #include <pos/kernel.h>
 #include <chainparams.h>
 #include <blind.h>
+#include <validation.h>
 
 #include <script/sign.h>
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>
+
+bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
+                       const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
+                       bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
+                       std::vector<CScriptCheck> *pvChecks, bool fAnonChecks = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
 
 BOOST_FIXTURE_TEST_SUITE(particlchain_tests, ParticlBasicTestingSetup)
 
@@ -465,6 +472,204 @@ BOOST_AUTO_TEST_CASE(coin_year_reward)
     BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 4 - 1) == 7 * CENT);
     BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 4) == 6 * CENT);          // 2025-07-11 17:00:00 UTC
     BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 6) == 6 * CENT);
+}
+
+BOOST_AUTO_TEST_CASE(taproot)
+{
+    CKey k1, k2;
+    InsecureNewKey(k1, true);
+    InsecureNewKey(k2, true);
+
+    unsigned int flags = SCRIPT_VERIFY_P2SH;
+    flags |= SCRIPT_VERIFY_DERSIG;
+    flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
+    flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
+    flags |= SCRIPT_VERIFY_WITNESS;
+    flags |= SCRIPT_VERIFY_NULLDUMMY;
+
+    unsigned int flags_with_taproot = flags | SCRIPT_VERIFY_TAPROOT;
+
+    CAmount txfee_out, txfee = 2000;
+    int nSpendHeight = 1;
+
+    // Test signing with the internal pubkey
+    {
+    CCoinsView viewDummy;
+    CCoinsViewCache inputs(&viewDummy);
+
+    TaprootBuilder builder;
+    XOnlyPubKey xpk1{k1.GetPubKey()};
+    builder.Finalize(xpk1);
+
+    CScript tr_scriptPubKey = GetScriptForDestination(builder.GetOutput());
+    CMutableTransaction txnPrev;
+    txnPrev.nVersion = PARTICL_TXN_VERSION;
+    BOOST_CHECK(txnPrev.IsParticlVersion());
+
+    txnPrev.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, tr_scriptPubKey));
+    uint256 prevHash = txnPrev.GetHash();
+
+    CTransaction txnPrev_c(txnPrev);
+    AddCoins(inputs, txnPrev_c, 1);
+
+    CScript tr_scriptPubKey_out = GetScriptForDestination(builder.GetOutput());
+    CMutableTransaction txn;
+    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.vin.push_back(CTxIn(prevHash, 0));
+    txn.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN - txfee, tr_scriptPubKey_out));
+
+    CTransaction tx_c(txn);
+    TxValidationState state;
+    bool rv = Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee_out);
+    BOOST_CHECK(rv);
+
+    {
+    // Without SCRIPT_VERIFY_TAPROOT prevout defaults to spendable
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx_c, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret);
+    }
+
+    {
+    // With SCRIPT_VERIFY_TAPROOT prevout must pass verification
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(!ret);
+    }
+
+    PrecomputedTransactionData txdata;
+    std::vector<CTxOutSign> spent_outputs;
+    std::vector<uint8_t> vchAmount(8);
+    part::SetAmount(vchAmount, 1 * COIN);
+    spent_outputs.emplace_back(vchAmount, tr_scriptPubKey_out);
+    txdata.Init_vec(txn, std::move(spent_outputs), true);
+
+    MutableTransactionSignatureCreator sig_creator(&txn, 0, vchAmount, &txdata, SIGHASH_ALL);
+
+    FlatSigningProvider keystore;
+    keystore.keys[k1.GetPubKey().GetID()] = k1;
+    TaprootSpendData tr_spenddata = builder.GetSpendData();
+
+    WitnessV1Taproot output = builder.GetOutput();
+    keystore.tr_spenddata[output].Merge(builder.GetSpendData());
+
+    SignatureData sigdata;
+    std::vector<unsigned char> sig;
+    bool sig_created = sig_creator.CreateSchnorrSig(keystore, sig, tr_spenddata.internal_key, nullptr, &tr_spenddata.merkle_root, SigVersion::TAPROOT);
+    BOOST_CHECK(sig_created);
+
+    txn.vin[0].scriptWitness.stack = std::move(Vector(sig));
+    {
+    TxValidationState state;
+    CTransaction tx_c(txn);
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret);
+    }
+    }
+
+    // Test signing a script path
+    {
+    CCoinsView viewDummy;
+    CCoinsViewCache inputs(&viewDummy);
+
+    TaprootBuilder builder;
+    XOnlyPubKey xpk1{k1.GetPubKey()};
+    XOnlyPubKey xpk2{k2.GetPubKey()};
+
+    CScript scriptStake = CScript() << OP_ISCOINSTAKE << OP_VERIFY << ToByteVector(xpk2) << OP_CHECKSIG;
+    builder.Add(0, scriptStake, TAPROOT_LEAF_TAPSCRIPT);
+    builder.Finalize(xpk1);
+
+    // Add the txn/output being spent
+    CScript tr_scriptPubKey = GetScriptForDestination(builder.GetOutput());
+    CMutableTransaction txnPrev;
+    txnPrev.nVersion = PARTICL_TXN_VERSION;
+    BOOST_CHECK(txnPrev.IsParticlVersion());
+    txnPrev.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, tr_scriptPubKey));
+    CTransaction txnPrev_c(txnPrev);
+    AddCoins(inputs, txnPrev_c, 1);
+
+    CMutableTransaction txn;
+    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.SetType(TXN_COINSTAKE);
+    txn.nLockTime = 0;
+    txn.vin.push_back(CTxIn(txnPrev.GetHash(), 0));
+
+    int nBlockHeight = 1;
+    OUTPUT_PTR<CTxOutData> outData = MAKE_OUTPUT<CTxOutData>();
+    outData->vData.resize(4);
+    uint32_t tmp32 = htole32(nBlockHeight);
+    memcpy(&outData->vData[0], &tmp32, 4);
+    txn.vpout.push_back(outData);
+
+    txn.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN + txfee, tr_scriptPubKey));
+
+    PrecomputedTransactionData txdata;
+    std::vector<CTxOutSign> spent_outputs;
+    std::vector<uint8_t> vchAmount(8);
+    part::SetAmount(vchAmount, 1 * COIN);
+    spent_outputs.emplace_back(vchAmount, tr_scriptPubKey);
+    txdata.Init_vec(txn, std::move(spent_outputs), true);
+    MutableTransactionSignatureCreator sig_creator(&txn, 0, vchAmount, &txdata, SIGHASH_ALL);
+
+    FlatSigningProvider keystore;
+    keystore.keys[k2.GetPubKey().GetID()] = k2;
+    TaprootSpendData tr_spenddata = builder.GetSpendData();
+
+    uint256 leaf_hash = ComputeTapleafHash(TAPROOT_LEAF_TAPSCRIPT, scriptStake);
+
+    std::vector<unsigned char> sig;
+    bool sig_created = sig_creator.CreateSchnorrSig(keystore, sig, xpk2, &leaf_hash, nullptr, SigVersion::TAPSCRIPT);
+    BOOST_CHECK(sig_created);
+
+    CScriptWitness witness;
+    witness.stack.push_back(sig);
+    witness.stack.push_back(std::vector<unsigned char>(scriptStake.begin(), scriptStake.end()));
+    std::vector<std::vector<unsigned char> > vec_controlblocks;
+    for (const auto &s : tr_spenddata.scripts[{scriptStake, TAPROOT_LEAF_TAPSCRIPT}]) {
+        vec_controlblocks.push_back(s);
+    }
+    BOOST_CHECK(vec_controlblocks.size() == 1);
+    BOOST_CHECK(vec_controlblocks[0].size() == 33);
+    witness.stack.push_back(vec_controlblocks[0]);
+    txn.vin[0].scriptWitness = std::move(witness);
+
+    // Verify script can fail
+    txn.SetType(TXN_COINBASE);
+    BOOST_CHECK(!txn.IsCoinStake());
+
+    {
+    // Should fail as !IsCoinStake()
+    TxValidationState state;
+    CTransaction tx_c(txn);
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(!ret);
+    BOOST_CHECK(state.GetRejectReason() == "non-mandatory-script-verify-flag (Script failed an OP_VERIFY operation)");
+
+    // Should pass without SCRIPT_VERIFY_TAPROOT
+    bool ret_without_taproot = CheckInputScripts(tx_c, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret_without_taproot);
+    }
+
+    txn.nVersion = PARTICL_TXN_VERSION;
+    txn.SetType(TXN_COINSTAKE);
+    BOOST_CHECK(txn.IsCoinStake());
+    {
+    // Should pass
+    TxValidationState state;
+    CTransaction tx_c(txn);
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret);
+    }
+    }
 }
 
 

@@ -120,6 +120,8 @@ struct Params {
     int64_t m_max_tainted_value_out = 200LL * 100000000LL /* COIN */;
     /** Fix GetMaxSmsgFeeRateDelta */
     uint32_t smsg_fee_rate_fix_time = 0xffffffff; /* TODO: Remove after fork */
+    /** Time taproot activates on Particl chain */
+    uint32_t m_taproot_time = 0xffffffff;
 
     /** Avoid circular dependency */
     size_t m_min_ringsize_post_hf2 = 3;

@@ -1623,9 +1623,13 @@ bool SignatureHashSchnorr(uint256& hash_out, const ScriptExecutionData& execdata
 
     // Data about the output (if only one).
     if (output_type == SIGHASH_SINGLE) {
-        if (in_pos >= tx_to.vout.size()) return false;
+        if (in_pos >= tx_to.GetNumVOuts()) return false;
         CHashWriter sha_single_output(SER_GETHASH, 0);
-        sha_single_output << tx_to.vout[in_pos];
+        if (tx_to.IsParticlVersion()) {
+            sha_single_output << *(tx_to.vpout[in_pos].get());
+        } else {
+            sha_single_output << tx_to.vout[in_pos];
+        }
         ss << sha_single_output.GetSHA256();
     }
 
