@@ -778,7 +778,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // Check for non-standard pay-to-script-hash in inputs
     const auto& params = args.m_chainparams.GetConsensus();
     auto taproot_state = VersionBitsState(::ChainActive().Tip(), params, Consensus::DEPLOYMENT_TAPROOT, versionbitscache);
-    if (fRequireStandard && !AreInputsStandard(tx, m_view, taproot_state == ThresholdState::ACTIVE, nAcceptTime)) {
+    if (fRequireStandard && !AreInputsStandard(tx, m_view, fParticlMode ? ::ChainActive().Tip()->nTime >= consensus.m_taproot_time : taproot_state == ThresholdState::ACTIVE, nAcceptTime)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
 
@@ -2442,6 +2442,11 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         flags |= SCRIPT_VERIFY_WITNESS;
         flags |= SCRIPT_VERIFY_NULLDUMMY;
+
+        if (pindex->nTime >= consensusparams.m_taproot_time) {
+            flags |= SCRIPT_VERIFY_TAPROOT;
+        }
+
         return flags;
     }
 
