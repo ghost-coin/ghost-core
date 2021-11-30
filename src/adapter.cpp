@@ -30,6 +30,12 @@ CAmount GetAllowedValueFraction(const CAmount value)
     return (value / 1000) * 995;
 }
 
+bool CheckRestrictionStartHeight() {
+
+    return (::ChainActive().Tip()->nTime > ::Params().GetConsensus().anonRestrictionStartTime)
+            && (::ChainActive().Height() > ::Params().GetConsensus().anonRestrictionStartHeight);
+}
+
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing)
 {
     static_assert(std::is_unsigned<decltype(totalRing)>::value, "totalRing is only treated for unsigned cases");

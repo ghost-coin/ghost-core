@@ -422,6 +422,8 @@ public:
         consensus.smsg_fee_max_delta_percent = 43;
         consensus.smsg_min_difficulty = 0x1effffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
+        consensus.anonRestrictionStartHeight = 300000;
+        consensus.anonRestrictionStartTime = 4070908800ULL;
 
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
@@ -668,6 +670,8 @@ public:
 
         consensus.nMinRCTOutputDepth = 12;
         consensus.m_frozen_anon_index = 0;
+        consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
+        consensus.anonRestrictionStartTime = gArgs.GetArg("-anonrestrictionstarttime", DEFAULT_ANON_RESTRICTION_START_TIME);
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -850,6 +854,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
+        consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
+        consensus.anonRestrictionStartTime = gArgs.GetArg("-anonrestrictionstarttime", DEFAULT_ANON_RESTRICTION_START_TIME);
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         CHashWriter h(SER_DISK, 0);
@@ -946,6 +952,9 @@ public:
         consensus.defaultAssumeValid = uint256{};
 
         consensus.nMinRCTOutputDepth = 2;
+
+        consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
+        consensus.anonRestrictionStartTime = gArgs.GetArg("-anonrestrictionstarttime", DEFAULT_ANON_RESTRICTION_START_TIME);
 
         pchMessageStart[0] = 0x09;
         pchMessageStart[1] = 0x12;

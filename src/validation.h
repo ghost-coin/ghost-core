@@ -118,6 +118,8 @@ static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
 static const bool DEFAULT_ACCEPT_ANON_TX = false;
 static const bool DEFAULT_ACCEPT_BLIND_TX = false;
 static const bool DEFAULT_ANON_RESTRICTED = true;
+static const bool DEFAULT_ANON_RESTRICTION_START_HEIGHT = 0;
+static const bool DEFAULT_ANON_RESTRICTION_START_TIME = 0;
 static const unsigned int DEFAULT_LAST_ANON_INDEX = 0;
 
 
