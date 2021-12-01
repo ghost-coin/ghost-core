@@ -56,7 +56,6 @@ void EnsureWalletIsUnlocked(const CHDWallet *pwallet)
 };
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
-static const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
 
 static inline uint32_t reversePlace(const uint8_t *p)
 {

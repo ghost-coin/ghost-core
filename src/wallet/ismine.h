@@ -9,11 +9,14 @@
 #include <script/standard.h>
 #include <script/ismine.h>
 
-#include <stdint.h>
 #include <bitset>
+#include <cstdint>
+#include <type_traits>
 
 class CWallet;
 class CScript;
+
+typedef std::vector<unsigned char> valtype;
 
 /**
  * IsMine() return codes, which depend on ScriptPubKeyMan implementation.
@@ -36,6 +39,7 @@ class CScript;
  * ISMINE_USED: the scriptPubKey corresponds to a used address owned by the wallet user.
  *
  *
+// enum isminetype is defined in /src/script/ismine.h
 enum isminetype : unsigned int
 {
     ISMINE_NO               = 0,
@@ -51,8 +55,7 @@ enum isminetype : unsigned int
 };
 */
 /** used for bitflags of isminetype */
-typedef uint8_t isminefilter;
-typedef std::vector<unsigned char> valtype;
+using isminefilter = std::underlying_type<isminetype>::type;
 
 /**
  * Cachable amount subdivided into watchonly and spendable parts.

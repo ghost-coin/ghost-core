@@ -28,7 +28,6 @@
 #include <wallet/hdwallet.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/rpchdwallet.h>
-static const std::string HELP_REQUIRING_PASSPHRASE{"\nRequires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"};
 #endif
 
 #include <univalue.h>

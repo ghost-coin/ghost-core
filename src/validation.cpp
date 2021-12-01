@@ -1047,8 +1047,8 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
     unsigned int currentBlockScriptVerifyFlags = GetBlockScriptFlags(m_active_chainstate.m_chain.Tip(), chainparams.GetConsensus());
     if (!CheckInputsFromMempoolAndCache(tx, state, m_view, m_pool, currentBlockScriptVerifyFlags,
                                         ws.m_precomputed_txdata, m_active_chainstate.CoinsTip())) {
-        return error("%s: BUG! PLEASE REPORT THIS! CheckInputScripts failed against latest-block but not STANDARD flags %s, %s",
-                __func__, hash.ToString(), state.ToString());
+        LogPrintf("BUG! PLEASE REPORT THIS! CheckInputScripts failed against latest-block but not STANDARD flags %s, %s\n", hash.ToString(), state.ToString());
+        return Assume(false);
     }
 
     return true;
@@ -1343,7 +1343,7 @@ bool CChainState::IsInitialBlockDownload() const
         return true;
     if (m_chain.Tip()->nChainWork < nMinimumChainWork)
         return true;
-    if (m_chain.Tip()->nHeight > COINBASE_MATURITY
+    if ((!fParticlMode || m_chain.Tip()->nHeight > COINBASE_MATURITY)
         && m_chain.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
         return true;
     if (fParticlMode && check_peer_height
@@ -2802,7 +2802,7 @@ bool CChainState::FlushStateToDisk(
         fDoFullFlush = (mode == FlushStateMode::ALWAYS) || fCacheLarge || fCacheCritical || fPeriodicFlush || fFlushForPrune;
         // Write blocks and block index to disk.
         if (fDoFullFlush || fPeriodicWrite) {
-            // Depend on nMinDiskSpace to ensure we can write block index
+            // Ensure we can write block index
             if (!CheckDiskSpace(gArgs.GetBlocksDirPath())) {
                 return AbortNode(state, "Disk space is too low!", _("Disk space is too low!"));
             }
@@ -2862,6 +2862,13 @@ bool CChainState::FlushStateToDisk(
             nLastFlush = nNow;
             full_flush_completed = true;
         }
+        TRACE6(utxocache, flush,
+               (int64_t)(GetTimeMicros() - nNow.count()), // in microseconds (µs)
+               (u_int32_t)mode,
+               (u_int64_t)coins_count,
+               (u_int64_t)coins_mem_usage,
+               (bool)fFlushForPrune,
+               (bool)fDoFullFlush);
     }
     if (full_flush_completed) {
         // Update best block in wallet (so we can detect restored wallets).
