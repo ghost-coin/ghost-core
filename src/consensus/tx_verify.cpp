@@ -465,21 +465,21 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
-        bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
-        bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
-        if (state.m_exploit_fix_1 &&
-            nRingCTOutputs > 0 &&
-            !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");
-        }
-        if (state.m_exploit_fix_1 &&
-            nCt > 0 &&
-            !gArgs.GetBoolArg("-acceptblindtxn", default_accept_blind)) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-blind-disabled");
-        }
-        if (!state.m_exploit_fix_1 && nCt == 0) {
-            return true;  // Match bugged path to sync early blocks
-        }
+        // bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
+        // bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
+        // if (state.m_exploit_fix_1 &&
+        //     nRingCTOutputs > 0 &&
+        //     !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
+        //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");
+        // }
+        // if (state.m_exploit_fix_1 &&
+        //     nCt > 0 &&
+        //     !gArgs.GetBoolArg("-acceptblindtxn", default_accept_blind)) {
+        //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-blind-disabled");
+        // }
+        // if (!state.m_exploit_fix_1 && nCt == 0) {
+        //     return true;  // Match bugged path to sync early blocks
+        // }
 
         nPlainValueOut += txfee;
         if (!MoneyRange(nPlainValueOut)) {
@@ -526,7 +526,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         int rv = secp256k1_pedersen_verify_tally(secp256k1_ctx_blind,
             vpCommitsIn.data(), vpCommitsIn.size(), vpCommitsOut.data(), vpCommitsOut.size());
 
-        if (rv != 1) {
+        if (CheckRestrictionStartHeight() && rv != 1) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-commitment-sum");
         }
     }
