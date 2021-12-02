@@ -145,7 +145,6 @@ struct Params {
     int64_t nZawyLwmaAveragingWindow;
     int nLWMADiffUpgradeHeight;
     int anonRestrictionStartHeight;
-    int anonRestrictionStartTime;
 
     /**
      * If true, witness commitments contain a payload equal to a Bitcoin Script solution

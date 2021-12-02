@@ -735,6 +735,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-checkpeerheight", "Consider peer height for initial-block-download status (default: true)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-anonrestricted", strprintf("Restrict \"anon\" spending. (default: %u)", DEFAULT_ANON_RESTRICTED), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-lastanonindex", strprintf("Last valid \"anon\" index set. (default: %u)", DEFAULT_LAST_ANON_INDEX), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-anonrestrictionstartheight", strprintf("Height at which to start anon restriction (default: %u)", DEFAULT_ANON_RESTRICTION_START_HEIGHT), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);

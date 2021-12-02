@@ -31,9 +31,7 @@ CAmount GetAllowedValueFraction(const CAmount value)
 }
 
 bool CheckRestrictionStartHeight() {
-
-    return (::ChainActive().Tip()->nTime > ::Params().GetConsensus().anonRestrictionStartTime)
-            && (::ChainActive().Height() > ::Params().GetConsensus().anonRestrictionStartHeight);
+    return ::ChainActive().Tip()->nHeight >= ::Params().GetConsensus().anonRestrictionStartHeight;
 }
 
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing)

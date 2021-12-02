@@ -385,7 +385,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
             RegtestParams().SetAnonRestricted(true);
             RegtestParams().SetAnonMaxOutputSize(4);
             RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = ::ChainActive().Tip()->nHeight;
-            RegtestParams().GetConsensus_nc().anonRestrictionStartTime = ::ChainActive().Tip()->nTime;
+            
 
             str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 2 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"mixin_selection_mode\":99,\"use_mixins\":[1,2,3,4]}",
                                 EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
@@ -598,7 +598,6 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         RegtestParams().SetAnonMaxOutputSize(4);
         RegtestParams().GetConsensus_nc().m_min_ringsize = 1;
         RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = ::ChainActive().Tip()->nHeight;
-        RegtestParams().GetConsensus_nc().anonRestrictionStartTime = ::ChainActive().Tip()->nTime;
 
         CAmount send_value = 1 * COIN;
         str_cmd = strprintf("sendtypeto anon anon [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"test_mempool_accept\":true,\"show_fee\":true}",
