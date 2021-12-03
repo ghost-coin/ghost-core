@@ -61,6 +61,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     // Enabling anon for testing
     RegtestParams().SetAnonRestricted(false);
     RegtestParams().SetAnonMaxOutputSize(4);
+    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = 3000000;
     SeedInsecureRand();
     CHDWallet *pwallet = pwalletMain.get();
     util::Ref context{m_node};
@@ -151,6 +152,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     }
 
     RegtestParams().SetAnonRestricted(false);
+    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = 0;
     BOOST_REQUIRE(gArgs.GetBoolArg("-acceptanontxn", false)); // Was set in AppInitParameterInteraction
 
     // Exploit should fail
@@ -162,8 +164,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_REQUIRE(!gArgs.GetBoolArg("-acceptblindtxn", false));
 
     // CT and RCT should fail
-    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 10 * COIN, 9000000 * COIN, "bad-txns-anon-disabled");
-    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_CT, 10 * COIN, 0, "bad-txns-blind-disabled");
+    // AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 10 * COIN, 9000000 * COIN, "bad-txns-anon-disabled");
+    // AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_CT, 10 * COIN, 0, "bad-txns-blind-disabled");
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("listunspentanon", context));
     BOOST_REQUIRE(rv.size() > 0);

@@ -30,7 +30,7 @@ CAmount GetAllowedValueFraction(const CAmount value)
     return (value / 1000) * 995;
 }
 
-bool CheckRestrictionStartHeight() {
+bool HasRestrictionHeightStarted() {
     return ::ChainActive().Tip()->nHeight >= ::Params().GetConsensus().anonRestrictionStartHeight;
 }
 
