@@ -14,6 +14,7 @@
 
 #include <sync.h>
 #include <net.h>
+#include <timedata.h>
 #include <validation.h>
 #include <consensus/validation.h>
 #include <node/blockstorage.h>

@@ -15,12 +15,10 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "index/base -> validation -> index/blockfilterindex -> index/base"
     "index/coinstatsindex -> node/coinstats -> index/coinstatsindex"
     "policy/fees -> txmempool -> policy/fees"
-    "policy/rbf -> txmempool -> validation -> policy/rbf"
     "qt/addresstablemodel -> qt/walletmodel -> qt/addresstablemodel"
     "qt/recentrequeststablemodel -> qt/walletmodel -> qt/recentrequeststablemodel"
     "qt/sendcoinsdialog -> qt/walletmodel -> qt/sendcoinsdialog"
     "qt/transactiontablemodel -> qt/walletmodel -> qt/transactiontablemodel"
-    "txmempool -> validation -> txmempool"
     "wallet/fees -> wallet/wallet -> wallet/fees"
     "wallet/wallet -> wallet/walletdb -> wallet/wallet"
     "node/coinstats -> validation -> node/coinstats"
@@ -54,6 +52,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "net_processing -> smsg/smessage -> node/context -> net_processing"
     "net_processing -> smsg/smessage -> net_processing"
     "net_processing -> validation -> net_processing"
+    "consensus/tx_verify -> validation -> txmempool -> consensus/tx_verify"
 )
 
 EXIT_CODE=0

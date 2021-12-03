@@ -28,6 +28,7 @@
 #include <wallet/hdwallet.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/rpchdwallet.h>
+#include <wallet/rpc/util.h>
 #endif
 
 #include <univalue.h>
@@ -1466,7 +1467,7 @@ static const CRPCCommand commands[] =
 #endif
 };
 // clang-format on
-    return MakeSpan(commands);
+    return commands;
 }
 
 

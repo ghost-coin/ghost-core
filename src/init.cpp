@@ -1811,7 +1811,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                         RPCNotifyBlockChange(tip);
                         if (tip
                             && tip != chainstate->m_chain.Genesis() // Genesis block can be set in the future
-                            && tip->nTime > GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME) {
+                            && tip->nTime > GetTime() + MAX_FUTURE_BLOCK_TIME) {
                             strLoadError = _("The block database contains a block which appears to be from the future. "
                                     "This may be due to your computer's date and time being set incorrectly. "
                                     "Only rebuild the block database if you are sure that your computer's date and time are correct");

@@ -48,6 +48,7 @@ Notes:
 #include <node/blockstorage.h>
 #include <util/string.h>
 #include <util/system.h>
+#include <timedata.h>
 
 #ifdef ENABLE_WALLET
 #include <wallet/coincontrol.h>

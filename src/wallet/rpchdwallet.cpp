@@ -32,7 +32,7 @@
 #include <wallet/hdwallet.h>
 #include <wallet/hdwalletdb.h>
 #include <wallet/coincontrol.h>
-#include <wallet/rpcwallet.h>
+#include <wallet/rpc/util.h>
 #include <wallet/spend.h>
 #include <chainparams.h>
 #include <key/mnemonic.h>
@@ -9724,7 +9724,7 @@ static const CRPCCommand commands[] =
     { "wallet",             &rehashblock                    },
 };
 // clang-format on
-    return MakeSpan(commands);
+    return commands;
 }
 
 void RegisterNonWalletRPCCommands(CRPCTable &t)
