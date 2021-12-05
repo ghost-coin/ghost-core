@@ -16,8 +16,8 @@
 
 #include <script/sign.h>
 #include <policy/policy.h>
-
 #include <boost/test/unit_test.hpp>
+#include <wallet/test/hdwallet_test_fixture.h>
 
 BOOST_FIXTURE_TEST_SUITE(ghostchain_tests, ParticlBasicTestingSetup)
 
@@ -244,10 +244,13 @@ BOOST_AUTO_TEST_CASE(mixed_input_types)
     }
 }
 
-BOOST_AUTO_TEST_CASE(mixed_output_types)
+BOOST_FIXTURE_TEST_CASE(mixed_output_types, StakeTestingSetup)
 {
-    ECC_Start_Blinding();
+    //ECC_Start_Blinding();
     // When sending from plain only CT or RCT outputs are valid
+    // In this test we want the restriction to be on since the genesis
+
+    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = 0;
     CAmount txfee = 2000;
     int nSpendHeight = 1;
     CCoinsView viewDummy;
@@ -292,7 +295,7 @@ BOOST_AUTO_TEST_CASE(mixed_output_types)
     BOOST_CHECK(!Consensus::CheckTxInputs(tx_c2, state, inputs, nSpendHeight, txfee));
     BOOST_CHECK(state.GetRejectReason() != "bad-txns-plain-in-mixed-out");
 
-    ECC_Stop_Blinding();
+    // ECC_Stop_Blinding();
 }
 
 BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)

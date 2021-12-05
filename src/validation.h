@@ -120,6 +120,7 @@ static const bool DEFAULT_ACCEPT_BLIND_TX = false;
 static const bool DEFAULT_ANON_RESTRICTED = true;
 static const bool DEFAULT_ANON_RESTRICTION_START_HEIGHT = 0;
 static const unsigned int DEFAULT_LAST_ANON_INDEX = 0;
+static const unsigned int DEFAULT_FULL_RESTRICTION_HEIGHT = 0;
 
 
 

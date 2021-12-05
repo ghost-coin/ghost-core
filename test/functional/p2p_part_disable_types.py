@@ -113,8 +113,7 @@ class DisableTest(GhostTestFramework):
                 nodes[1].sendrawtransaction(rtx)
                 assert(False)
             except Exception as e:
-                pass
-                #assert('bad-txns-anon-disabled' in str(e) or 'bad-txns-blind-disabled' in str(e))
+                assert('bad-txns-anon-disabled' in str(e) or 'bad-txns-blind-disabled' in str(e))
 
 
 if __name__ == '__main__':

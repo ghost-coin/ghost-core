@@ -2860,7 +2860,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             }
             for (const auto &ki : tx_state.m_setHaveKI) {
                 // Test for duplicate keyimage used in block
-                if ( HasRestrictionHeightStarted() && !view.keyImages.insert(std::make_pair(ki, txhash)).second) {
+                if (HasRestrictionHeightStarted() && !view.keyImages.insert(std::make_pair(ki, txhash)).second) {
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-anonin-dup-ki");
                 }
             }

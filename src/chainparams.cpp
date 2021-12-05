@@ -953,7 +953,6 @@ public:
         consensus.nMinRCTOutputDepth = 2;
 
         consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
-        
 
         pchMessageStart[0] = 0x09;
         pchMessageStart[1] = 0x12;
