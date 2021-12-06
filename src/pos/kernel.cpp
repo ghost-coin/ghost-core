@@ -230,6 +230,7 @@ bool CheckProofOfStake(CChainState &chain_state, BlockValidationState &state, co
             return state.Invalid(BlockValidationResult::DOS_20, "prevout-not-found");
         }
         if (!fVerifyingDB &&
+            (unsigned int)pindexPrev->nHeight > spent_coin.spent_height &&
             pindexPrev->nHeight - spent_coin.spent_height > MAX_REORG_DEPTH) {
             LogPrintf("ERROR: %s: Tried to stake kernel spent at height %d\n", __func__, spent_coin.spent_height);
             return state.Invalid(BlockValidationResult::DOS_100, "invalid-prevout");

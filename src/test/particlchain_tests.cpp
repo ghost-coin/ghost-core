@@ -560,7 +560,7 @@ BOOST_AUTO_TEST_CASE(taproot)
     bool sig_created = sig_creator.CreateSchnorrSig(keystore, sig, tr_spenddata.internal_key, nullptr, &tr_spenddata.merkle_root, SigVersion::TAPROOT);
     BOOST_CHECK(sig_created);
 
-    txn.vin[0].scriptWitness.stack = std::move(Vector(sig));
+    txn.vin[0].scriptWitness.stack = Vector(sig);
     {
     TxValidationState state;
     CTransaction tx_c(txn);

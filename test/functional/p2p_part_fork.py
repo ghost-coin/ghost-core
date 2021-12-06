@@ -69,6 +69,9 @@ class ForkTest(ParticlTestFramework):
 
         self.stakeBlocks(1, fSync=False)
 
+        for node in nodes:
+            node.debugwallet({'exit_ibd': True})
+
         # Stop group1 from staking
         nodes[0].reservebalance(True, 10000000)
 

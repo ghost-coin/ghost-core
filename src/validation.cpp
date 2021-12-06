@@ -4267,7 +4267,6 @@ static bool ContextualCheckBlock(CChainState &chain_state, const CBlock& block, 
             // Blocks are connected at end of import / reindex
             // CheckProofOfStake is run again during connectblock
             if (!chain_state.IsInitialBlockDownload() // checks (!fImporting && !fReindex)
-                && (!accept_block || chain_state.m_chain.Height() > (int)Params().GetStakeMinConfirmations())
                 && !CheckProofOfStake(chain_state, state, pindexPrev, *block.vtx[0], block.nTime, block.nBits, hashProof, targetProofOfStake)) {
                 return error("ContextualCheckBlock(): check proof-of-stake failed for block %s\n", block.GetHash().ToString());
             }
@@ -4454,7 +4453,7 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
                         setDirtyBlockIndex.insert(invalid_walk);
                         invalid_walk = invalid_walk->pprev;
                     }
-                    LogPrint(BCLog::VALIDATION, "%s: %s prev block invalid\n", __func__, hash.ToString());
+                    LogPrint(BCLog::VALIDATION, "%s: %s prev block invalid ancestor %s\n", __func__, hash.ToString(), failedit->GetBlockHash().ToString());
                     return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
                 }
             }
