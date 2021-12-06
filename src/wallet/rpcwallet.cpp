@@ -3166,7 +3166,9 @@ static RPCHelpMan createwallet()
     if (!request.params[4].isNull() && request.params[4].get_bool()) {
         flags |= WALLET_FLAG_AVOID_REUSE;
     }
-    if (request.params[5].isNull() || request.params[5].get_bool()) {
+    bool descriptor_mode = request.params[5].isNull() ? fParticlMode ? false : true : request.params[5].get_bool();
+    //if (request.params[5].isNull() || request.params[5].get_bool()) {
+    if (descriptor_mode) {
 #ifndef USE_SQLITE
         throw JSONRPCError(RPC_WALLET_ERROR, "Compiled without sqlite support (required for descriptor wallets)");
 #endif
