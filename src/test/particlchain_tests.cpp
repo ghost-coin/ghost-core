@@ -445,5 +445,4 @@ BOOST_AUTO_TEST_CASE(coin_year_reward)
     BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 6) == 6 * CENT);
 }
 
-
 BOOST_AUTO_TEST_SUITE_END()

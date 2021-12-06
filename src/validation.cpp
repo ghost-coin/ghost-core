@@ -4849,11 +4849,12 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
 
             uint256 hashProof, targetProofOfStake;
 
+            // IsInitialBlockDownload tests (!fImporting && !fReindex)
             // Blocks are connected at end of import / reindex
-            // CheckProofOfStake is run again during connectblock
-            if (!::ChainstateActive().IsInitialBlockDownload() // checks (!fImporting && !fReindex)
-                && (!accept_block || ::ChainActive().Height() > (int)Params().GetStakeMinConfirmations())
-                && !CheckProofOfStake(state, pindexPrev, *block.vtx[0], block.nTime, block.nBits, hashProof, targetProofOfStake)) {
+            if (accept_block && ::ChainstateActive().IsInitialBlockDownload()) {
+                // CheckProofOfStake is run again during connectblock
+            } else
+            if (!CheckProofOfStake(state, pindexPrev, *block.vtx[0], block.nTime, block.nBits, hashProof, targetProofOfStake)) {
                 return error("ContextualCheckBlock(): check proof-of-stake failed for block %s\n", block.GetHash().ToString());
             }
         } else {
@@ -5272,7 +5273,7 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
         }
         pindexPrev = (*mi).second;
         if (pindexPrev->nStatus & BLOCK_FAILED_MASK) {
-            LogPrintf("ERROR: %s: prev block invalid\n", __func__);
+            LogPrintf("ERROR: %s: %s prev block invalid\n", __func__, hash.ToString());
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
         }
         if (!ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
@@ -5312,7 +5313,7 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
                         setDirtyBlockIndex.insert(invalid_walk);
                         invalid_walk = invalid_walk->pprev;
                     }
-                    LogPrintf("ERROR: %s: prev block invalid\n", __func__);
+                    LogPrintf("ERROR: %s: %s prev block invalid, ancestor %s\n", __func__, hash.ToString(), failedit->GetBlockHash().ToString());
                     return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
                 }
             }

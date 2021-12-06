@@ -6597,6 +6597,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                             {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
                             {"downgrade_wallets", RPCArg::Type::BOOL, /* default */ "false", "Downgrade all loaded wallets for older releases then shutdown.\n"
                                                                                              "All loaded wallets must be unlocked."},
+                            {"exit_ibd", RPCArg::Type::BOOL, /* default */ "false", "Exit initial block download state."},
                         },
                         "options"},
                 },
@@ -6619,6 +6620,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
     bool attempt_repair = false;
     bool clear_stakes_seen = false;
     bool downgrade_wallets = false;
+    bool exit_ibd = false;
     CAmount max_frozen_output_spendable = Params().GetConsensus().m_max_tainted_value_out;
     int64_t time_now = GetAdjustedTime();
 
@@ -6635,6 +6637,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                 {"clear_stakes_seen",                   UniValueType(UniValue::VBOOL)},
                 {"downgrade_wallets",                   UniValueType(UniValue::VBOOL)},
                 {"max_frozen_output_spendable",         UniValueType()},
+                {"exit_ibd",                            UniValueType(UniValue::VBOOL)},
             }, true, true);
         if (options.exists("list_frozen_outputs")) {
             list_frozen_outputs = options["list_frozen_outputs"].get_bool();
@@ -6660,6 +6663,9 @@ static UniValue debugwallet(const JSONRPCRequest &request)
         if (options.exists("max_frozen_output_spendable")) {
             max_frozen_output_spendable = AmountFromValue(options["max_frozen_output_spendable"]);
         }
+        if (options.exists("exit_ibd")) {
+            exit_ibd = options["exit_ibd"].get_bool();
+        }
     }
     if (list_frozen_outputs + spend_frozen_output + trace_frozen_outputs > 1) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Multiple frozen blinded methods selected.");
@@ -6679,6 +6685,11 @@ static UniValue debugwallet(const JSONRPCRequest &request)
         const UniValue &extra_outputs = options.exists("trace_frozen_extra") ? options["trace_frozen_extra"] : empty_array;
         traceFrozenOutputs(result, min_frozen_blinded_value, max_frozen_output_spendable, extra_outputs, trace_frozen_dump_privkeys);
         return result;
+    }
+
+    if (exit_ibd) {
+        ::ChainstateActive().m_cached_finished_ibd = true;
+        return "Exited IBD.";
     }
 
     if (downgrade_wallets) {
@@ -8798,8 +8809,6 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
         vecSend[n].SetAmount(mOutputAmounts[n]);
     };
 
-    CAmount nTotalOutput = 0;
-
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];
         CTempRecipient &r = vecSend[i];
@@ -8826,14 +8835,12 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             if (memcmp(txout->GetPCommitment()->data, commitment.data, 33) != 0) {
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("Bad blinding factor, output %d.", i));
             }
-            nTotalOutput += mOutputAmounts[i];
 
             r.vBlind.resize(32);
             memcpy(r.vBlind.data(), itb->second.begin(), 32);
         } else
         if (txout->IsType(OUTPUT_STANDARD)) {
             mOutputAmounts[i] = txout->GetValue();
-            nTotalOutput += mOutputAmounts[i];
         }
 
         r.nType = txout->GetType();
