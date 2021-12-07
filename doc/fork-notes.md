@@ -1,4 +1,15 @@
 
+# RCT bug fix fork 3
+
+**2022-02-01 17:00:00 UTC**
+
+- Protocol version 90014 (90035 if >= 0.21)
+- Whitelist more frozen outputs.
+- The value of plain outputs sent to unspendable scripts is removed from the money supply.
+- Activate taproot.
+- Increase the maximum size of data outputs to 512bytes.
+- Fix adjusting the smsgfeerate.
+
 
 # RCT bug fix fork 2
 

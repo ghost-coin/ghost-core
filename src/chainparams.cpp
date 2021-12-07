@@ -465,9 +465,13 @@ public:
         consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
         consensus.exploit_fix_2_height = 976263;
 
+        consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01 17:00:00 UTC
+        consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
+        consensus.smsg_fee_rate_fix_time = 1643734800;  // 2022-02-01 17:00:00 UTC
+        consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
+
         consensus.m_frozen_anon_index = 27340;
         consensus.m_frozen_blinded_height = 884433;
-
 
         consensus.smsg_fee_period = 5040;
         consensus.smsg_fee_funding_tx_per_k = 200000;
@@ -669,6 +673,10 @@ public:
         consensus.rct_time = 0;
         consensus.smsg_difficulty_time = 0x5D19F5C0;    // 2019-07-01 12:00:00
         consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00
+
+        consensus.clamp_tx_version_time = 1641056400;   // 2022-01-01 17:00:00 UTC
+        consensus.smsg_fee_rate_fix_time = 1641056400;  // 2022-01-01 17:00:00 UTC
+        consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
 
         consensus.smsg_fee_period = 5040;
         consensus.smsg_fee_funding_tx_per_k = 200000;
