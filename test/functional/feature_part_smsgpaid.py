@@ -404,7 +404,7 @@ class SmsgPaidTest(ParticlTestFramework):
         w_rpc = nodes[0].get_wallet_rpc('default_wallet')
 
         msgids = []
-        for i in range(3):
+        for i in range(13):
             msg = f'Test msg {i}'
             sendoptions = {'fundmsg': False}
             sent_msg = nodes[0].smsgsend(address0, address1, msg, True, 4, False, sendoptions)
@@ -412,7 +412,7 @@ class SmsgPaidTest(ParticlTestFramework):
             msgids.append(sent_msg['msgid'])
 
         ro = nodes[0].smsgoutbox('all', '', {'stashed': True})
-        assert(len(ro['messages']) == 3)
+        assert(len(ro['messages']) == 13)
 
         fundoptions = {'fundtype': 'anon', 'testfee': True}
         sent_msgs = nodes[0].smsgfund(msgids, fundoptions)
@@ -430,9 +430,9 @@ class SmsgPaidTest(ParticlTestFramework):
         self.sync_mempools([nodes[0], nodes[1]])
         self.stakeBlocks(1, nStakeNode=1)
 
-        self.waitForSmsgExchange(10, 1, 0)
+        self.waitForSmsgExchange(20, 1, 0)
         inb = nodes[1].smsginbox()
-        assert(len(inb['messages']) == 3)
+        assert(len(inb['messages']) == 13)
 
         txns = w_rpc.filtertransactions({'show_smsg_fees': True})
         num_funded = 0
@@ -443,7 +443,7 @@ class SmsgPaidTest(ParticlTestFramework):
                 funding_txids.append(tx['txid'])
             except Exception:
                 continue
-        assert(num_funded == 4)
+        assert(num_funded == 14)
 
         for txid in funding_txids:
             txn = w_rpc.gettransaction(txid)
