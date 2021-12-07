@@ -761,6 +761,14 @@ static RPCHelpMan decodescript()
         case TxoutType::SCRIPTHASH:
         case TxoutType::WITNESS_UNKNOWN:
         case TxoutType::WITNESS_V1_TAPROOT:
+        // Particl extra types
+        case TxoutType::SCRIPTHASH256:
+        case TxoutType::PUBKEYHASH256:
+        case TxoutType::TIMELOCKED_SCRIPTHASH:
+        case TxoutType::TIMELOCKED_SCRIPTHASH256:
+        case TxoutType::TIMELOCKED_PUBKEYHASH:
+        case TxoutType::TIMELOCKED_PUBKEYHASH256:
+        case TxoutType::TIMELOCKED_MULTISIG:
             // Should not be wrapped
             return false;
         } // no default case, so the compiler can warn about missing cases
@@ -803,6 +811,14 @@ static RPCHelpMan decodescript()
             case TxoutType::WITNESS_V0_KEYHASH:
             case TxoutType::WITNESS_V0_SCRIPTHASH:
             case TxoutType::WITNESS_V1_TAPROOT:
+            // Particl extra types
+            case TxoutType::SCRIPTHASH256:
+            case TxoutType::PUBKEYHASH256:
+            case TxoutType::TIMELOCKED_SCRIPTHASH:
+            case TxoutType::TIMELOCKED_SCRIPTHASH256:
+            case TxoutType::TIMELOCKED_PUBKEYHASH:
+            case TxoutType::TIMELOCKED_PUBKEYHASH256:
+            case TxoutType::TIMELOCKED_MULTISIG:
                 // Should not be wrapped
                 return false;
             } // no default case, so the compiler can warn about missing cases

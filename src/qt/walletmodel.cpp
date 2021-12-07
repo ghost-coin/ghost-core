@@ -27,6 +27,7 @@
 #include <util/translation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/wallet.h> // for CRecipient
+#include <consensus/amount.h> // for MoneyRange
 
 #include <wallet/hdwallet.h>
 #include <rpc/rpcutil.h>
@@ -230,6 +231,8 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         return DuplicateAddress;
     }
 
+    // Particl: Avoid unused-but-set-variable error, balance will be checked in rpc function
+    assert(MoneyRange(total));
     /*
     CAmount nBalance = m_wallet->getAvailableBalance(coinControl);
 
