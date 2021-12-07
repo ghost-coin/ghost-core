@@ -1665,10 +1665,11 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
  *  When FAILED is returned, view is left in an indeterminate state. */
 DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view)
 {
-    if (LogAcceptCategory(BCLog::HDWALLET))
-        LogPrintf("%s: hash %s, height %d\n", __func__, block.GetHash().ToString(), pindex->nHeight);
+    AssertLockHeld(::cs_main);
 
-    assert(pindex->GetBlockHash() == view.GetBestBlock());
+    if (LogAcceptCategory(BCLog::HDWALLET)) {
+        LogPrintf("%s: hash %s, height %d\n", __func__, block.GetHash().ToString(), pindex->nHeight);
+    }
 
     bool fClean = true;
 
@@ -4264,10 +4265,12 @@ static bool ContextualCheckBlock(CChainState &chain_state, const CBlock& block, 
 
             uint256 hashProof, targetProofOfStake;
 
+            // IsInitialBlockDownload tests (!fImporting && !fReindex)
             // Blocks are connected at end of import / reindex
-            // CheckProofOfStake is run again during connectblock
-            if (!chain_state.IsInitialBlockDownload() // checks (!fImporting && !fReindex)
-                && !CheckProofOfStake(chain_state, state, pindexPrev, *block.vtx[0], block.nTime, block.nBits, hashProof, targetProofOfStake)) {
+            if (accept_block && chain_state.IsInitialBlockDownload()) {
+                // CheckProofOfStake is run again during connectblock
+            } else
+            if (!CheckProofOfStake(chain_state, state, pindexPrev, *block.vtx[0], block.nTime, block.nBits, hashProof, targetProofOfStake)) {
                 return error("ContextualCheckBlock(): check proof-of-stake failed for block %s\n", block.GetHash().ToString());
             }
         } else {

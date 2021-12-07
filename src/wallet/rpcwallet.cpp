@@ -83,8 +83,7 @@ void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry
     UniValue conflicts(UniValue::VARR);
     for (const uint256& conflict : wallet.GetTxConflicts(wtx))
         conflicts.push_back(conflict.GetHex());
-    if (conflicts.size() > 0 || !fFilterMode)
-        entry.pushKV("walletconflicts", conflicts);
+    entry.pushKV("walletconflicts", conflicts);
     PushTime(entry, "time", wtx.GetTxTime());
     PushTime(entry, "timereceived", wtx.nTimeReceived);
 
@@ -234,11 +233,11 @@ static RPCHelpMan getnewaddress()
                 "If 'label' is specified, it is added to the address book \n"
                 "so payments received with the address will be associated with 'label'.\n",
                 {
-                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. If not provided, the default label \"\" is used. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
+                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
                     {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
                     {"hardened", RPCArg::Type::BOOL, RPCArg::Default{false}, "Derive a hardened key."},
                     {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type."},
-                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\", and \"bech32m\"."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The new particl address"
@@ -346,7 +345,7 @@ static RPCHelpMan getrawchangeaddress()
                 "\nReturns a new Particl address, for receiving change.\n"
                 "This is for use with raw transactions, NOT normal use.\n",
                 {
-                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", \"bech32\", and \"bech32m\"."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "address", "The address"
@@ -4255,6 +4254,11 @@ static RPCHelpMan rescanblockchain()
 {
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return NullUniValue;
+    CWallet& wallet{*pwallet};
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    wallet.BlockUntilSyncedToCurrentChain();
 
     WalletRescanReserver reserver(*pwallet);
     if (!reserver.reserve()) {

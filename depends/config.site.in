@@ -70,7 +70,7 @@ if test -z "$with_protoc_bindir" && test -z "@no_qt@"; then
   with_protoc_bindir="$depends_prefix/native/bin"
 fi
 
-if test -n "@debug@" && test -z "@no_qt@" && test "x$with_gui" != xno; then
+if test -n "@debug@" && test -z "@no_qt@" && test "$with_gui" != "no"; then
   with_gui=qt5_debug
 fi
 
