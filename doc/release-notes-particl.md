@@ -1,4 +1,14 @@
 
+0.21.2.5
+==============
+
+- Scheduled fork for 2022-02-01 17:00:00 UTC.
+  - Raised protocol version to 90035
+- Fixed chain syncing issue.
+- qt: Include immature anon balance in overview total.
+- New checkpoints.
+
+
 0.21.2.4
 ==============
 
