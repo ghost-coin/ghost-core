@@ -12,6 +12,7 @@
 #include <smsg/db.h>
 #include <wallet/ismine.h>
 #include <util/strencodings.h>
+#include <consensus/consensus.h>
 #include <core_io.h>
 #include <base58.h>
 #include <rpc/util.h>
@@ -1087,9 +1088,10 @@ static UniValue smsgfund(const JSONRPCRequest &request)
     if (v_psmsgs.size() < 1) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Must specify one or more message ids");
     }
-    if (v_psmsgs.size() > 3) {
-        // TODO: Raise MAX_DATA_OUTPUT_SIZE in CheckDataOutput
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Limited to funding three messages until next HF");
+    size_t max_output_size = GetAdjustedTime() >= Params().GetConsensus().smsg_fee_rate_fix_time ? MAX_DATA_OUTPUT_SIZE : MAX_DATA_OUTPUT_SIZE_OLD;
+    size_t max_messages = (max_output_size - 1) / 24;
+    if (v_psmsgs.size() > max_messages) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Too many messages, max %d", max_messages));
     }
 
     OutputTypes fund_from = OUTPUT_STANDARD;
