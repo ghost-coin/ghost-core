@@ -392,7 +392,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
             str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 2 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"mixin_selection_mode\":99,\"use_mixins\":[1,2,3,4]}",
                                 EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
             BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-            BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-anonin-extract-i");
+            BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-frozen-ringsize");
         }
 
         RegtestParams().SetAnonRestricted(false);
@@ -433,8 +433,10 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
         str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
-        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-anonin-extract-i");
+        // Thi was normally expected to fail but since we changed the way re restrict speding
+        // it won't fail anymore and will cause "bad-anonin-dup-ki" to be thrown in subsequent tests
+        // BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
+       // BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-anonin-extract-i");
 
         // Get prevout anon index
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("gettransaction %s true true", spend_txid.ToString()), context));
@@ -454,10 +456,17 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         };
         LoadRCTBlacklist(aoi_blacklist, 1);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        /* @TODO(Sonkeng): Put this code back. Since we commented the code inside tx_verify.cpp#L271-L278
-                           The rejection reason is now changed
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-txns-frozen-blinded-blacklisted"); */
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-anonin-extract-i");
+        // The anon index is blacklisted but it's not spending to the recovery addr 
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "anon-blind-tx-invalid");
+
+        CTxDestination recoveryAddr = DecodeDestination("pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it");
+        std::string str_cmd2 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
+                            EncodeDestination(recoveryAddr), FormatMoney(extract_value), spend_txid.ToString(), output_n);
+        
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd2, context));
+        BOOST_REQUIRE(rv["txid"].isStr());
+        balance_before += extract_value - rv["fee"].get_int64();
+
         int64_t aoi_reset[] = {
             0,
         };
@@ -468,7 +477,24 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         RegtestParams().SetAnonMaxOutputSize(4);
         RegtestParams().GetConsensus_nc().m_min_ringsize = 1;
 
-        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
+        // Extract new value for spending
+        {
+            std::vector<COutputR> vAvailableCoins = GetAvailable(pwallet, OUTPUT_RINGCT, true, true);
+            for (const auto &c : vAvailableCoins) {
+                const COutputRecord *oR = c.rtx->second.GetOutput(c.i);
+                if (oR && oR->nFlags & ORF_OWNED && oR->nFlags & ORF_OWNED && oR->nValue < 500 * COIN) {
+                    spend_txid = c.txhash;
+                    output_n = c.i;
+                    extract_value = oR->nValue;
+                    break;
+                }
+            }
+        }
+        // end extraction 
+        std::string str_cmd3 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
+                            EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
+
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd3, context));
         BOOST_REQUIRE(rv["txid"].isStr());
         CAmount txFee = rv["fee"].get_int64();
         pwallet->GetBalances(balances);

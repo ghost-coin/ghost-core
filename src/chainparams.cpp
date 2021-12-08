@@ -412,7 +412,7 @@ public:
         consensus.exploit_fix_1_time = 1614992554;      // 2021-03-06 01:00:00 GMT+8
         consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
-        consensus.m_frozen_anon_index = 2379; // Called LAST_ANONINDEX = 2379 by Barry 
+        consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry 
         consensus.m_frozen_blinded_height = 884433;
 
 
