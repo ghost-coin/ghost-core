@@ -14,6 +14,7 @@
 #include <policy/policy.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
+#include <rpc/server_util.h>
 #include <rpc/blockchain.h>
 #include <node/context.h>
 #include <node/blockstorage.h>
@@ -9678,6 +9679,50 @@ static RPCHelpMan rehashblock()
     };
 };
 
+static RPCHelpMan resendwallettransactions()
+{
+    return RPCHelpMan{"resendwallettransactions",
+                "Immediately re-broadcast unconfirmed wallet transactions to all peers.\n"
+                "Intended only for testing; the wallet code periodically re-broadcasts\n"
+                "automatically.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::ARR, "rebroadcast_transactions", "", {
+                        {RPCResult::Type::STR_HEX, "txid", "id of rebroadcast transaction"},
+                    }
+                },
+                 RPCExamples{""},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!pwallet) return NullUniValue;
+
+    LOCK(pwallet->cs_wallet);
+
+    if (!pwallet->GetBroadcastTransactions()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Wallet transaction broadcasting is disabled with -walletbroadcast");
+    }
+
+    std::vector<uint256> txids = pwallet->ResendWalletTransactionsBefore(GetTime());
+    UniValue result(UniValue::VARR);
+    if (pwallet->IsParticlWallet()) {
+        CHDWallet *phdw = GetParticlWallet(pwallet.get());
+        std::vector<uint256> txidsRec;
+        txidsRec = phdw->ResendRecordTransactionsBefore(GetTime());
+
+        for (auto &txid : txidsRec) {
+            result.push_back(txid.ToString());
+        }
+    }
+
+    for (const uint256& txid : txids) {
+        result.push_back(txid.ToString());
+    }
+    return result;
+},
+    };
+}
+
 Span<const CRPCCommand> GetHDWalletRPCCommands()
 {
 // clang-format off
@@ -9729,6 +9774,8 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    &fundrawtransactionfrom         },
 
     { "wallet",             &rehashblock                    },
+
+    { "hidden",             &resendwallettransactions,       },
 };
 // clang-format on
     return commands;

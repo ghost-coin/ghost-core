@@ -8896,12 +8896,7 @@ bool CHDWallet::TestMempoolAccept(const CTransactionRef &tx, std::string &sError
         sError = "Chainstate manager not found";
         return false;
     }
-    CTxMemPool *mempool = chain().getMempool();
-    if (!mempool) {
-        sError = "Unable to get mempool";
-        return false;
-    }
-    const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(*mempool, pchainman->ActiveChainstate(), tx, GetTime(),
+    const MempoolAcceptResult accept_result = WITH_LOCK(cs_main, return AcceptToMemoryPool(pchainman->ActiveChainstate(), tx, GetTime(),
                                                         false /* bypass_limits */, /* test_accept */ true, /* ignore_locks */ false));
     if (accept_result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
         const TxValidationState state = accept_result.m_state;

@@ -5,6 +5,7 @@
 #include <usbdevice/usbdevice.h>
 #include <rpc/util.h>
 #include <rpc/server.h>
+#include <rpc/server_util.h>
 #include <rpc/blockchain.h>
 #include <rpc/rawtransaction_util.h>
 #include <util/strencodings.h>
@@ -26,7 +27,7 @@
 
 #ifdef ENABLE_WALLET
 #include <wallet/hdwallet.h>
-#include <wallet/rpcwallet.h>
+#include <wallet/rpc/wallet.h>
 #include <wallet/rpchdwallet.h>
 #include <wallet/rpc/util.h>
 #endif

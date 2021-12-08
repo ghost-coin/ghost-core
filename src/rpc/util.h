@@ -372,4 +372,6 @@ private:
     const RPCExamples m_examples;
 };
 
+void PushTime(UniValue &o, const char *name, int64_t nTime);
+
 #endif // BITCOIN_RPC_UTIL_H

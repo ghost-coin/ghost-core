@@ -17,6 +17,7 @@
 #include <core_io.h>
 #include <base58.h>
 #include <rpc/util.h>
+#include <rpc/server_util.h>
 #include <rpc/blockchain.h>
 #include <validation.h>
 #include <timedata.h>

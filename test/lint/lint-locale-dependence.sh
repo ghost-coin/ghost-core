@@ -62,7 +62,7 @@ KNOWN_VIOLATIONS=(
     "src/util.cpp:.*sscanf"
     "src/wallet/rpchdwallet.cpp:.*sscanf"
     "src/util.cpp:.*strftime"
-    "src/rpc/server.cpp:.*strftime"
+    "src/rpc/util.cpp:.*strftime"
     "src/key/stealth.cpp:.*strtol"
     "src/test/sighash_tests.cpp:.*strtoul"
     "src/rpc/rpcutil.cpp:.*trim"

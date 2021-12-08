@@ -7,7 +7,7 @@
 #include <rpc/server.h>
 #include <wallet/db.h>
 #include <wallet/hdwallet.h>
-#include <wallet/rpcwallet.h>
+#include <wallet/rpc/wallet.h>
 #include <wallet/coincontrol.h>
 #include <validation.h>
 #include <util/system.h>

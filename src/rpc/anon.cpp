@@ -4,6 +4,7 @@
 
 #include <rpc/server.h>
 #include <rpc/util.h>
+#include <rpc/server_util.h>
 #include <rpc/blockchain.h>
 
 #include <validation.h>
