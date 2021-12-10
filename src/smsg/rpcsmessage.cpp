@@ -2627,13 +2627,13 @@ static RPCHelpMan smsgdebug()
         smsgModule.ClearBanned();
     } else
     if (mode == "dumpids") {
-        fs::path filepath = "smsg_ids.txt";
-        if (request.params[1].isStr()) {
-            filepath = fs::PathFromString(request.params[1].get_str());
-        }
+        fs::path filepath = gArgs.GetDataDirNet() / "smsg_ids.txt";
         if (fs::exists(filepath)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, fs::PathToString(filepath) + " already exists. If you are sure this is what you want, move it out of the way first");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "smsg_ids.txt already exists in the datadir. Please move it out of the way first");
         }
+
+        bool active_only = request.params.size() > 1 ? GetBool(request.params[1]) : true;
+        int64_t now = GetAdjustedTime();
 
         fsbridge::ofstream file;
         file.open(filepath);
@@ -2648,6 +2648,9 @@ static RPCHelpMan smsgdebug()
         for (it = smsgModule.buckets.begin(); it != smsgModule.buckets.end(); ++it) {
             const std::set<smsg::SecMsgToken> &token_set = it->second.setTokens;
             for (auto token : token_set) {
+                if (active_only && token.timestamp + token.ttl < now) {
+                    continue; // Skip expired
+                }
                 if (smsgModule.Retrieve(token, vch_msg) != smsg::SMSG_NO_ERROR) {
                     LogPrintf("SecureMsgRetrieve failed %d.\n", token.timestamp);
                     continue;
@@ -2663,6 +2666,7 @@ static RPCHelpMan smsgdebug()
         }
 
         file.close();
+        result.pushKV("active_only", active_only);
         result.pushKV("messages", num_messages);
     } else
     if (mode == "dumpfundingtxids") {

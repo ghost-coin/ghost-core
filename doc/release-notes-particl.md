@@ -77,8 +77,13 @@ Next Major Version
 
 0.19.2.18
 ==============
-- qt: Include immature anon balance in overview total
-- rpc: Use WordToType in fundrawtransactionfrom
+- qt: Include immature anon balance in overview total.
+- rpc: Use WordToType in fundrawtransactionfrom.
+- rpc: smsgdebug dumpids path is hardcoded and will skip expired smsges by default.
+- New checkpoints.
+- Scheduled hardfork:
+  - Mainnet: 2022-02-01 17 UTC
+  - Testnet: 2022-01-01 17 UTC
 
 
 0.19.2.17
