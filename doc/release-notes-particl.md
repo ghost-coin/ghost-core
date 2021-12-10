@@ -67,6 +67,7 @@
 0.19.2.18
 ==============
 - qt: Include immature anon balance in overview total
+- rpc: Use WordToType in fundrawtransactionfrom
 
 
 0.19.2.17

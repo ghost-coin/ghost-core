@@ -24,6 +24,7 @@
 #include <txdb.h>
 #include <blind.h>
 #include <anon.h>
+#include <util/strencodings.h>
 #include <util/moneystr.h>
 #include <util/translation.h>
 #include <util/fees.h>
@@ -753,18 +754,19 @@ static int ExtractExtKeyId(const std::string &sInKey, CKeyID &keyId, CChainParam
     return 0;
 };
 
-static OutputTypes WordToType(std::string &s, bool allow_data=false)
+static OutputTypes WordToType(const std::string &s, bool allow_data=false)
 {
-    if (s == "part" || s == "standard") {
+    const std::string ls = ToLower(s);
+    if (ls == "part" || ls == "plain" || ls == "standard") {
         return OUTPUT_STANDARD;
     }
-    if (s == "blind") {
+    if (ls == "blind") {
         return OUTPUT_CT;
     }
-    if (s == "anon") {
+    if (ls == "anon") {
         return OUTPUT_RINGCT;
     }
-    if (allow_data && s == "data") {
+    if (allow_data && ls == "data") {
         return OUTPUT_DATA;
     }
     return OUTPUT_NULL;
@@ -3838,10 +3840,7 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
         tit++;
     }
 
-    int type_i = type == "standard" ? OUTPUT_STANDARD :
-                 type == "blind" ? OUTPUT_CT :
-                 type == "anon" ? OUTPUT_RINGCT :
-                 0;
+    int type_i = WordToType(type);
     // records processing
     const RtxOrdered_t &rtxOrdered = pwallet->rtxOrdered;
     RtxOrdered_t::const_reverse_iterator rit = rtxOrdered.rbegin();
@@ -8559,9 +8558,9 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    std::string sInputType = request.params[0].get_str();
-
-    if (sInputType != "standard" && sInputType != "anon" && sInputType != "blind") {
+    const std::string sInputType = request.params[0].get_str();
+    OutputTypes input_type = WordToType(sInputType);
+    if (input_type == OUTPUT_NULL) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown input type.");
     }
 
@@ -8891,17 +8890,17 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             ret.first->second.InsertOutput(r);
         }
 
-        if (sInputType == "standard") {
+        if (input_type == OUTPUT_STANDARD) {
             if (0 != pwallet->AddStandardInputs(wtx, rtx, vecSend, sign_tx, nFee, &coinControl, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddStandardInputs failed: %s.", sError));
             }
         } else
-        if (sInputType == "anon") {
+        if (input_type == OUTPUT_RINGCT) {
             if (0 != pwallet->AddAnonInputs(wtx, rtx, vecSend, sign_tx, rct_ring_size, rct_inputs_per_sig, nFee, &coinControl, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddAnonInputs failed: %s.", sError));
             }
         } else
-        if (sInputType == "blind") {
+        if (input_type == OUTPUT_CT) {
             if (0 != pwallet->AddBlindedInputs(wtx, rtx, vecSend, sign_tx, nFee, &coinControl, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddBlindedInputs failed: %s.", sError));
             }
