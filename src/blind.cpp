@@ -166,8 +166,8 @@ void LoadCTWhitelist(const unsigned char *data, size_t data_length)
 
 void LoadCTTaintedFilter(const unsigned char *data, size_t data_length)
 {
-    // CDataStream stream((const char*)data, (const char*)(data + data_length), SER_NETWORK, PROTOCOL_VERSION);
-    // stream >> ct_tainted_filter;
+    CDataStream stream((const char*)data, (const char*)(data + data_length), SER_NETWORK, PROTOCOL_VERSION);
+    stream >> ct_tainted_filter;
 }
 
 void LoadBlindedOutputFilters()
