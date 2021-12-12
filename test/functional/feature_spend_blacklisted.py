@@ -9,6 +9,7 @@ from test_framework.test_particl import GhostTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
+    assert_raises_rpc_error
 )
 
 
@@ -17,7 +18,7 @@ class ControlAnonTest2(GhostTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 2
 
-        self.extra_args = [['-debug', '-anonrestricted=0', '-lastanonindex=0', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
+        self.extra_args = [['-debug', '-anonrestricted=0', '-lastanonindex=100', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -46,16 +47,16 @@ class ControlAnonTest2(GhostTestFramework):
     def restart_nodes_with_anonoutputs(self):
         nodes = self.nodes
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
+        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=100', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
+        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=100', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
         self.connect_nodes_bi(0, 1)
         node1_receiving_addr = nodes[1].getnewstealthaddress()
         node0_receiving_addr = nodes[0].getnewstealthaddress()
         self.init_nodes_with_anonoutputs(nodes, node1_receiving_addr, node0_receiving_addr, 3)
         self.stop_nodes()
 
-        self.start_node(0, ['-wallet=default_wallet', '-debug'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug'])
+        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=100', '-debug'])
+        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=100', '-debug'])
         self.connect_nodes_bi(0, 1)
         self.sync_all()
 
@@ -71,29 +72,38 @@ class ControlAnonTest2(GhostTestFramework):
         anon_index2 = last_anon_index - 1
 
         assert_greater_than(last_anon_index, 1)
-        # 1 - Create a transaction inside node 0 which has no blacklists and submit it to node 1 which has blacklists
-        # 2 - Try to spend from blacklisted txs inside node 1 and it will be rejected
 
+        # 1 - Try to spend from blacklisted txs inside node 0 and it will be rejected
         # Restart node 0 with last_anon_index and anon_index2 blacklisted
         self.stop_node(0)
         tx_to_blacklist = str(last_anon_index) + ',' + str(anon_index2)
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-blacklistedanon='+ tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=100', '-blacklistedanon='+ tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
         self.sync_all()
-        try:
-            lastanoni_details = nodes[0].anonoutput(output=str(last_anon_index))
-            coincontrol = {'test_mempool_accept': True, 'inputs': [{'tx': lastanoni_details["txnhash"], 'n': lastanoni_details["n"]}]}
-            outputs = [{'address': sxAddrTo0_1, 'amount': 5, 'subfee': True}]
-            tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
-            assert_equal(self.wait_for_mempool(nodes[0], tx), False)
 
-            # raw_blinded_tx_node1 = nodes[1].getrawtransaction(tx)
-            # res = nodes[1].sendrawtransaction(raw_blinded_tx_node1)
-        except Exception as e:
-            print(e)
+        lastanoni_details = nodes[0].anonoutput(output=str(last_anon_index))
+        coincontrol = {'test_mempool_accept': True, 'inputs': [{'tx': lastanoni_details["txnhash"], 'n': lastanoni_details["n"]}]}
+        outputs = [{'address': sxAddrTo0_1, 'amount': 5, 'subfee': True}]
+        tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
+        assert_equal( tx["mempool-reject-reason"], "anon-blind-tx-blacklisted")
 
+        # 2 - Create a transaction inside node 0 which has no blacklists and submit it to node 1 which has blacklists
+        self.stop_nodes()
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-txindex', '-lastanonindex=100'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=100', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
 
+        self.connect_nodes_bi(0, 1)
+        self.sync_all()
+        
+        coincontrol = {'inputs': [{'tx': lastanoni_details["txnhash"], 'n': lastanoni_details["n"]}]}
+        outputs = [{'address': sxAddrTo0_1, 'amount': 5, 'subfee': True}]
+        tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
+        assert_equal(self.wait_for_mempool(nodes[0], tx), True)
+        self.stakeBlocks(1, 0, False)
 
+        raw_blacklisted_tx_node0 = nodes[0].getrawtransaction(tx)
+
+        assert_raises_rpc_error(None, "anon-blind-tx-blacklisted", nodes[1].sendrawtransaction, raw_blacklisted_tx_node0)
 
 if __name__ == '__main__':
     ControlAnonTest2().main()
