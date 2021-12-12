@@ -330,6 +330,7 @@ PARTICL_SCRIPTS_EXT = [
     'feature_part_treasury_fund.py',
     'rpc_part_tracefrozenoutputs.py',
     'feature_part_vote_extra.py',
+    'feature_spend_blacklisted.py',
 ]
 
 INSIGHT_SCRIPTS = [

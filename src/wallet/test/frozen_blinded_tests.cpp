@@ -451,14 +451,15 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         LoadRCTWhitelist(aoi_whitelist, 1);
 
         // Test blacklist, should override whitelist
-        int64_t aoi_blacklist[] = {
-            ao_index,
-        };
-        LoadRCTBlacklist(aoi_blacklist, 1);
+        std::set<std::uint64_t> aoi_blacklist{ao_index};
+
+        RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         // The anon index is blacklisted but it's not spending to the recovery addr 
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "anon-blind-tx-invalid");
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "anon-blind-tx-blacklisted");
 
+        aoi_blacklist.clear();
+        RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
         CTxDestination recoveryAddr = DecodeDestination("pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it");
         std::string str_cmd2 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(recoveryAddr), FormatMoney(extract_value), spend_txid.ToString(), output_n);

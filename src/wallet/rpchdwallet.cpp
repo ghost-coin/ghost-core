@@ -6302,7 +6302,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
                         warnings.push_back(strprintf("Failed to get anon index for %s.%d", txid.ToString(), r.n));
                         continue;
                     }
-                    if (IsBlacklistedAnonOutput(anon_index)) {
+                    if (::Params().IsBlacklistedAnonOutput(anon_index)) {
                         is_spendable = false;
                     }
                 }
@@ -6605,7 +6605,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                     if (!wdb.ReadStoredTx(txid, stx) ||
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                         !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
-                        IsBlacklistedAnonOutput(anon_index) ||
+                        ::Params().IsBlacklistedAnonOutput(anon_index) ||
                         (!IsWhitelistedAnonOutput(anon_index) && r.nValue > max_frozen_output_spendable)) {
                         is_spendable = false;
                     }
@@ -6630,7 +6630,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                 output.pushKV("amount", ValueFromAmount(r.nValue));
                 if (r.nType == OUTPUT_RINGCT) {
                     output.pushKV("anon_index", (int)anon_index);
-                    if (IsBlacklistedAnonOutput(anon_index)) {
+                    if (::Params().IsBlacklistedAnonOutput(anon_index)) {
                         output.pushKV("blacklisted", true);
                     }
                 }

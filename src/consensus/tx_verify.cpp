@@ -267,8 +267,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                         // TODO(Sonkeng): Watch this out when re enable RINGCT
                         if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
                             state.m_spends_frozen_blinded = true;
-                            
-                            if (IsBlacklistedAnonOutput(nIndex)) {
+
+                            if (::Params().IsBlacklistedAnonOutput(nIndex) ) {
                                 spend_blacklisted_anon = true;
                             }
                         }else {
@@ -532,8 +532,12 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     const CTransactionRef& in_tx = MakeTransactionRef(tx);
 
     if (::Params().IsAnonRestricted() && HasRestrictionHeightStarted()) {
-        if (spend_blacklisted_anon && (totalBlindInOut > 0)
-             && !is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
+
+        if (spend_blacklisted_anon) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-blacklisted");
+        } 
+
+        if ( (totalBlindInOut > 0) && !is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-invalid");
         }
     }

@@ -21,6 +21,7 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include "chain/tx_blacklist.h"
 
 int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
 {
@@ -583,8 +584,9 @@ public:
             0.0081
         };
 
-       anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
+       anonRestricted = DEFAULT_ANON_RESTRICTED;
 
+       blacklistedAnonTxs.insert(anon_index_blacklist, anon_index_blacklist + anon_index_blacklist_size);
     }
 
     void SetOld()
@@ -747,11 +749,6 @@ public:
         m_is_test_chain = true;
         m_is_mockable_chain = false;
 
-        // Private key:  6qnvC4cuz6Fb5cBXBVcTfJZfiYBrsC3UNPU6wr61cuE9yz6ubrA
-        // Address:      pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn
-        vSporkAddresses = {"pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn"};
-        nMinSporkKeys = 1;
-
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         checkpointData = {
             {
@@ -886,10 +883,8 @@ public:
         m_is_mockable_chain = false;
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
 
-        // Private key:  DKXHWgYF9pbikLji2CWBh9JGB2f1DmfJhEj1YPZgSeEMHjSBSTN
-        // Address:      mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h
-        vSporkAddresses = {"mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h"};
-        nMinSporkKeys = 1;
+        std::string blacklisted = gArgs.GetArg("-blacklistedanon", "");
+        blacklistedAnonTxs = GetAnonIndexFromString(blacklisted);
     }
 };
 
@@ -998,10 +993,8 @@ public:
         m_is_test_chain = true;
         m_is_mockable_chain = true;
 
-        // Private key:  6qnvC4cuz6Fb5cBXBVcTfJZfiYBrsC3UNPU6wr61cuE9yz6ubrA
-        // Address:      pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn
-        vSporkAddresses = {"pdEmcAFUy6TLWjg2kuvVrP5ambhW3KzEJn"};
-        nMinSporkKeys = 1;
+        std::string blacklisted = gArgs.GetArg("-blacklistedanon", "");
+        blacklistedAnonTxs = GetAnonIndexFromString(blacklisted);
 
         checkpointData = {
             {
@@ -1071,12 +1064,6 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "bcrt";
-
-
-        // Private key:  DKXHWgYF9pbikLji2CWBh9JGB2f1DmfJhEj1YPZgSeEMHjSBSTN
-        // Address:      mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h
-        vSporkAddresses = {"mo8UNHBhbXjpRiWmyABeZigaVVXzC38N4h"};
-        nMinSporkKeys = 1;
     }
 
     /**
@@ -1198,3 +1185,13 @@ CChainParams &RegtestParams()
 {
     return *globalChainParams.get();
 };
+
+std::set<std::uint64_t> GetAnonIndexFromString(const std::string& str) {
+    std::set<std::uint64_t> internal;
+    std::stringstream ss(str);
+    std::string tok;
+    while (getline(ss, tok, ',')) {
+        internal.insert( std::stoll(tok) );
+    }
+    return internal;
+}

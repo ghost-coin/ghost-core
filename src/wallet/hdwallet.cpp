@@ -12087,7 +12087,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
                 if (!wdb.ReadStoredTx(txid, stx) ||
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                     !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
-                    IsBlacklistedAnonOutput(index) ||
+                    ::Params().IsBlacklistedAnonOutput(index) ||
                     (!IsWhitelistedAnonOutput(index) && r.nValue > consensusParams.m_max_tainted_value_out)) {
                     continue;
                 }

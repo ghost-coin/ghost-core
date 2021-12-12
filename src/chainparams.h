@@ -153,8 +153,6 @@ public:
 
     std::string NetworkID() const { return strNetworkID; }
 
-    const std::vector<std::string>& SporkAddresses() const { return vSporkAddresses; }
-
     void SetCoinYearReward(int64_t nCoinYearReward_)
     {
         assert(strNetworkID == "regtest");
@@ -190,6 +188,18 @@ public:
 
     uint32_t GetAnonMaxOutputSize() const {
         return anonMaxOutputSize;
+    }
+
+    std::set<std::uint64_t> GetBlacklistedAnonOutputs() {
+        return blacklistedAnonTxs;
+    }
+
+    bool IsBlacklistedAnonOutput(std::uint64_t index) const {
+        return blacklistedAnonTxs.count(index);
+    }
+
+    void SetBlacklistedAnonOutput(const std::set<std::uint64_t>& anonIndexes){
+        blacklistedAnonTxs = anonIndexes;
     }
 
 protected:
@@ -235,8 +245,7 @@ protected:
     bool m_is_mockable_chain;
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
-    std::vector<std::string> vSporkAddresses;
-    int nMinSporkKeys;
+    std::set<std::uint64_t> blacklistedAnonTxs;
 };
 
 /**
@@ -269,5 +278,7 @@ void ResetParams(std::string sNetworkId, bool fParticlModeIn);
  * mutable handle to regtest params
  */
 CChainParams &RegtestParams();
+
+std::set<std::uint64_t> GetAnonIndexFromString(const std::string& str);
 
 #endif // BITCOIN_CHAINPARAMS_H
