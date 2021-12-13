@@ -533,7 +533,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
     if (::Params().IsAnonRestricted() && HasRestrictionHeightStarted()) {
 
-        if (spend_blacklisted_anon) {
+        if (spend_blacklisted_anon && !is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-blacklisted");
         } 
 

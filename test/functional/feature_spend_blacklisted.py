@@ -82,6 +82,7 @@ class ControlAnonTest2(GhostTestFramework):
         self.sync_all()
 
         lastanoni_details = nodes[0].anonoutput(output=str(last_anon_index))
+        anon_index2_details = nodes[0].anonoutput(output=str(anon_index2))
         coincontrol = {'test_mempool_accept': True, 'inputs': [{'tx': lastanoni_details["txnhash"], 'n': lastanoni_details["n"]}]}
         outputs = [{'address': sxAddrTo0_1, 'amount': 5, 'subfee': True}]
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
@@ -94,7 +95,7 @@ class ControlAnonTest2(GhostTestFramework):
 
         self.connect_nodes_bi(0, 1)
         self.sync_all()
-        
+
         coincontrol = {'inputs': [{'tx': lastanoni_details["txnhash"], 'n': lastanoni_details["n"]}]}
         outputs = [{'address': sxAddrTo0_1, 'amount': 5, 'subfee': True}]
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
@@ -104,6 +105,22 @@ class ControlAnonTest2(GhostTestFramework):
         raw_blacklisted_tx_node0 = nodes[0].getrawtransaction(tx)
 
         assert_raises_rpc_error(None, "anon-blind-tx-blacklisted", nodes[1].sendrawtransaction, raw_blacklisted_tx_node0)
+
+        # Attempt now to spend blacklisted tx to recovery address and should succeed
+        # node 0 holds the recovery address priv/pub key
+        recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
+
+        coincontrol = {'inputs': [{'tx': anon_index2_details["txnhash"], 'n': anon_index2_details["n"]}]}
+        outputs = [{'address': recovery_addr, 'amount': 50, 'subfee': True}]
+        
+        tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
+        assert_equal(self.wait_for_mempool(nodes[0], tx), True)
+        self.stakeBlocks(1, 0, False)
+
+        raw_blacklisted_tx_succeed = nodes[0].getrawtransaction(tx)
+        accepted_tx = nodes[1].sendrawtransaction(raw_blacklisted_tx_succeed)
+        assert accepted_tx != ""
+    
 
 if __name__ == '__main__':
     ControlAnonTest2().main()
