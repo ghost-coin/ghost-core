@@ -8,14 +8,13 @@
 
 #include <key.h>
 #include <pubkey.h>
+#include <script/keyorigin.h>
 #include <script/script.h>
 #include <script/standard.h>
 #include <sync.h>
 
 #include <key/extkey.h>
 #include <key/stealth.h>
-
-struct KeyOriginInfo;
 
 enum isminetype : uint8_t;
 

@@ -146,6 +146,10 @@ static RPCHelpMan createmultisig()
                         {RPCResult::Type::STR, "address", "The value of the new multisig address."},
                         {RPCResult::Type::STR_HEX, "redeemScript", "The string value of the hex-encoded redemption script."},
                         {RPCResult::Type::STR, "descriptor", "The descriptor for this multisig"},
+                        {RPCResult::Type::ARR, "warnings", /* optional */ true, "Any warnings resulting from the creation of this multisig",
+                        {
+                            {RPCResult::Type::STR, "", ""},
+                        }},
                     }
                 },
                 RPCExamples{
@@ -193,6 +197,13 @@ static RPCHelpMan createmultisig()
     result.pushKV("address", EncodeDestination(dest));
     result.pushKV("redeemScript", HexStr(inner));
     result.pushKV("descriptor", descriptor->ToString());
+
+    UniValue warnings(UniValue::VARR);
+    if (!request.params[2].isNull() && OutputTypeFromDestination(dest) != output_type) {
+        // Only warns if the user has explicitly chosen an address type we cannot generate
+        warnings.push_back("Unable to make chosen address type, please ensure no uncompressed public keys are present.");
+    }
+    if (warnings.size()) result.pushKV("warnings", warnings);
 
     return result;
 },
@@ -333,7 +344,7 @@ static RPCHelpMan deriveaddresses()
 static RPCHelpMan verifymessage()
 {
     return RPCHelpMan{"verifymessage",
-                "\nVerify a signed message\n",
+                "Verify a signed message.",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address to use for the signature."},
                     {"signature", RPCArg::Type::STR, RPCArg::Optional::NO, "The signature provided by the signer in base 64 encoding (see signmessage)."},

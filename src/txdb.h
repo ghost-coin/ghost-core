@@ -119,6 +119,7 @@ public:
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
+    size_t CountBlockIndex();
 
 
     bool ReadRCTOutput(int64_t i, CAnonOutput &ao);

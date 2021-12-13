@@ -54,6 +54,8 @@ using interfaces::FoundBlock;
 
 extern const std::string MESSAGE_MAGIC;
 
+static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
+
 static uint8_t GetOutputType(ChainstateManager *pchainman, const COutPoint &prevout)
 {
     LOCK(cs_main);
@@ -3796,7 +3798,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     {
         LOCK(cs_wallet);
 
-        std::set<CInputCoin> setCoins;
+        std::vector<CInputCoin> selected_coins;
         std::vector<COutput> vAvailableCoins;
         AvailableCoins(vAvailableCoins, coinControl);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
@@ -3855,10 +3857,14 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // Choose coins to us
             if (pick_new_inputs) {
                 nValueIn = 0;
-                setCoins.clear();
-                if (!SelectCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, *coinControl, coin_selection_params)) {
+                std::optional<SelectionResult> result = SelectCoins(vAvailableCoins, nValueToSelect, *coinControl, coin_selection_params);
+
+                if (!result) {
                     return wserrorN(1, sError, __func__, _("Insufficient funds.").translated);
                 }
+                nValueIn = result->GetSelectedValue();
+                // Shuffle selected coins and fill in final vin
+                selected_coins = result->GetShuffledInputVector();
             }
 
             const CAmount nChange = nValueIn - nValueToSelect;
@@ -3914,7 +3920,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // and in the spirit of "smallest possible change from prior
             // behavior."
             const uint32_t nSequence = coinControl->m_signal_bip125_rbf.value_or(m_signal_rbf) ? MAX_BIP125_RBF_SEQUENCE : (CTxIn::SEQUENCE_FINAL - 1);
-            for (const auto& coin : setCoins) {
+            for (const auto& coin : selected_coins) {
                 txNew.vin.push_back(CTxIn(coin.outpoint,CScript(),
                                           nSequence));
             }
@@ -4005,7 +4011,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
             // Fill in dummy signatures for fee calculation.
             int nIn = 0;
-            for (const auto &coin : setCoins) {
+            for (const auto &coin : selected_coins) {
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
@@ -4133,7 +4139,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         if (sign) {
             int nIn = 0;
-            for (const auto &coin : setCoins) {
+            for (const auto &coin : selected_coins) {
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
 
                 // TODO: ismine field on CInputCoin
@@ -4162,7 +4168,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             if (coinControl->fNeedHardwareKey) {
                 CCoinsView viewDummy;
                 CCoinsViewCache view(&viewDummy);
-                for (const auto &coin : setCoins) {
+                for (const auto &coin : selected_coins) {
                     Coin newcoin;
                     newcoin.out.scriptPubKey = coin.txout.scriptPubKey;
                     newcoin.out.nValue = coin.GetValue();
@@ -4194,7 +4200,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
 
                 if (pDevice->RequirePrevTxns()) {
-                    for (const auto &coin : setCoins) {
+                    for (const auto &coin : selected_coins) {
                         const auto &prevout = coin.outpoint;
                         if (pDevice->HavePrevTxn(prevout.hash)) {
                             continue;
@@ -4216,7 +4222,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
 
                 int nIn = 0;
-                for (const auto &coin : setCoins) {
+                for (const auto &coin : selected_coins) {
                     const CScript& scriptPubKey = coin.txout.scriptPubKey;
 
                     if (!(IsMine(scriptPubKey) & ISMINE_HARDWARE_DEVICE)) {
@@ -11561,13 +11567,17 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
     return;
 };
 
-bool CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
-    std::set<CInputCoin>& setCoinsRet, CAmount& nValueRet, const CCoinControl& coin_control, CoinSelectionParams& coin_selection_params) const
+std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
+                                                      const CCoinControl& coin_control, const CoinSelectionParams& coin_selection_params) const
 {
     std::vector<COutput> vCoins(vAvailableCoins);
 
+    CAmount value_to_select = nTargetValue;
+    OutputGroup preset_inputs(coin_selection_params);
+
     // coin control -> return all selected outputs (we want all selected to go into the transaction for sure)
     if (coin_control.HasSelected() && !coin_control.fAllowOtherInputs) {
+        SelectionResult result(nTargetValue);
         for (const auto &out : vCoins) {
             COutPoint op(out.tx->GetHash(), out.i);
             if (!coin_control.IsSelected(op)) {
@@ -11576,46 +11586,62 @@ bool CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const C
             if (!out.fSpendable) {
                 continue;
             }
+            /* Set depth, from_me, ancestors, and descendants to 0 or false as these don't matter for preset inputs as no actual selection is being done.
+             * positive_only is set to false because we want to include all preset inputs, even if they are dust.
+             */
             CInputCoin ic(out.tx->tx, out.i);
-            nValueRet += ic.GetValue();
-            setCoinsRet.insert(ic);
+            preset_inputs.Insert(ic, 0, false, 0, 0, false);
         }
-        return (nValueRet >= nTargetValue);
+        result.AddInput(preset_inputs);
+        if (result.GetSelectedValue() < nTargetValue) return std::nullopt;
+        return result;
     }
 
     // calculate value from preset inputs and store them
     std::set<CInputCoin> setPresetCoins;
-    CAmount nValueFromPresetInputs = 0;
-
     std::vector<COutPoint> vPresetInputs;
     coin_control.ListSelected(vPresetInputs);
 
     for (const auto &outpoint : vPresetInputs) {
         MapWallet_t::const_iterator it = mapTempWallet.find(outpoint.hash);
+        CTxOut txout_null, txout;
+        CInputCoin ic = CInputCoin(outpoint, txout_null, -1);
         if (it != mapTempWallet.end()) {
             const CWalletTx *pcoin = &it->second;
             // Clearly invalid input, fail
             if (pcoin->tx->vpout.size() <= outpoint.n) {
-                return false;
+                return std::nullopt;
             }
-            CInputCoin ic(pcoin->tx, outpoint.n);
-            nValueFromPresetInputs += ic.GetValue();
-            setPresetCoins.insert(ic);
+            ic = CInputCoin(pcoin->tx, outpoint.n);
         } else {
             it = mapWallet.find(outpoint.hash);
             if (it != mapWallet.end()) {
                 const CWalletTx *pcoin = &it->second;
                 // Clearly invalid input, fail
                 if (pcoin->tx->vpout.size() <= outpoint.n) {
-                    return false;
+                    return std::nullopt;
                 }
-                CInputCoin ic(pcoin->tx, outpoint.n);
-                nValueFromPresetInputs += ic.GetValue();
-                setPresetCoins.insert(ic);
+                ic = CInputCoin(pcoin->tx, outpoint.n);
             } else {
-                return false; // TODO: Allow non-wallet inputs
+                // The input is external. We either did not find the tx in mapWallet, or we did but couldn't compute the input size with wallet data
+                if (!coin_control.GetExternalOutput(outpoint, txout)) {
+                    // Not ours, and we don't have solving data.
+                    return std::nullopt;
+                }
+                ic = CInputCoin(outpoint, txout, -1);
             }
         }
+        ic.effective_value = ic.txout.nValue - coin_selection_params.m_effective_feerate.GetFee(ic.m_input_bytes);
+        if (coin_selection_params.m_subtract_fee_outputs) {
+            value_to_select -= ic.txout.nValue;
+        } else {
+            value_to_select -= ic.effective_value;
+        }
+        /* Set depth, from_me, ancestors, and descendants to 0 or false as don't matter for preset inputs as no actual selection is being done.
+         * positive_only is set to false because we want to include all preset inputs, even if they are dust.
+         */
+        preset_inputs.Insert(ic, 0, false, 0, 0, false);
+        setPresetCoins.insert(ic);
     }
 
     // remove preset inputs from vCoins
@@ -11634,65 +11660,74 @@ bool CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const C
     size_t max_descendants = (size_t)std::max<int64_t>(1, limit_descendant_count);
     bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
 
-    CAmount value_to_select = nTargetValue - nValueFromPresetInputs;
+    // form groups from remaining coins; note that preset coins will not
+    // automatically have their associated (same address) coins included
+    if (coin_control.m_avoid_partial_spends && vCoins.size() > OUTPUT_GROUP_MAX_ENTRIES) {
+        // Cases where we have 101+ outputs all pointing to the same destination may result in
+        // privacy leaks as they will potentially be deterministically sorted. We solve that by
+        // explicitly shuffling the outputs before processing
+        Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
+    }
 
     // Coin Selection attempts to select inputs from a pool of eligible UTXOs to fund the
     // transaction at a target feerate. If an attempt fails, more attempts may be made using a more
     // permissive CoinEligibilityFilter.
-    const bool res = [&] {
+    std::optional<SelectionResult> res = [&] {
         // Pre-selected inputs already cover the target amount.
-        if (value_to_select <= 0) return true;
+        if (value_to_select <= 0) return std::make_optional(SelectionResult(nTargetValue));
 
         // If possible, fund the transaction with confirmed UTXOs only. Prefer at least six
         // confirmations on outputs received from other wallets and only spend confirmed change.
-        if (::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 6, 0), vCoins, setCoinsRet, nValueRet, coin_selection_params)) return true;
-        if (::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 1, 0), vCoins, setCoinsRet, nValueRet, coin_selection_params)) return true;
+        if (auto r1{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 6, 0), vCoins, coin_selection_params)}) return r1;
+        if (auto r2{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 1, 0), vCoins, coin_selection_params)}) return r2;
 
         // Fall back to using zero confirmation change (but with as few ancestors in the mempool as
         // possible) if we cannot fund the transaction otherwise.
         if (m_spend_zero_conf_change) {
-            if (::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, 2), vCoins, setCoinsRet, nValueRet, coin_selection_params)) return true;
-            if (::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, std::min((size_t)4, max_ancestors/3), std::min((size_t)4, max_descendants/3)),
-                                   vCoins, setCoinsRet, nValueRet, coin_selection_params)) {
-                return true;
+            if (auto r3{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, 2), vCoins, coin_selection_params)}) return r3;
+            if (auto r4{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, std::min((size_t)4, max_ancestors/3), std::min((size_t)4, max_descendants/3)),
+                                   vCoins, coin_selection_params)}) {
+                return r4;
             }
-            if (::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors/2, max_descendants/2),
-                                   vCoins, setCoinsRet, nValueRet, coin_selection_params)) {
-                return true;
+            if (auto r5{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors/2, max_descendants/2),
+                                   vCoins, coin_selection_params)}) {
+                return r5;
             }
             // If partial groups are allowed, relax the requirement of spending OutputGroups (groups
             // of UTXOs sent to the same address, which are obviously controlled by a single wallet)
             // in their entirety.
-            if (::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
-                                   vCoins, setCoinsRet, nValueRet, coin_selection_params)) {
-                return true;
+            if (auto r6{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
+                                   vCoins, coin_selection_params)}) {
+                return r6;
             }
             // Try with unsafe inputs if they are allowed. This may spend unconfirmed outputs
             // received from other wallets.
-            if (coin_control.m_include_unsafe_inputs
-                && ::AttemptSelection(*this, value_to_select,
+            if (coin_control.m_include_unsafe_inputs) {
+                if (auto r7{::AttemptSelection(*this, value_to_select,
                     CoinEligibilityFilter(0 /* conf_mine */, 0 /* conf_theirs */, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
-                    vCoins, setCoinsRet, nValueRet, coin_selection_params)) {
-                return true;
+                    vCoins, coin_selection_params)}) {
+                    return r7;
+                }
             }
             // Try with unlimited ancestors/descendants. The transaction will still need to meet
             // mempool ancestor/descendant policy to be accepted to mempool and broadcasted, but
             // OutputGroups use heuristics that may overestimate ancestor/descendant counts.
-            if (!fRejectLongChains && ::AttemptSelection(*this, value_to_select,
+            if (!fRejectLongChains) {
+                if (auto r8{::AttemptSelection(*this, value_to_select,
                                       CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), true /* include_partial_groups */),
-                                      vCoins, setCoinsRet, nValueRet, coin_selection_params)) {
-                return true;
+                                      vCoins, coin_selection_params)}) {
+                    return r8;
+                }
             }
         }
         // Coin Selection failed.
-        return false;
+        return std::optional<SelectionResult>();
     }();
 
-    // AttemptSelection clears setCoinsRet, so add the preset inputs from coin_control to the coinset
-    setCoinsRet.insert(setPresetCoins.begin(), setPresetCoins.end());
+    if (!res) return std::nullopt;
 
-    // add preset inputs to the total value selected
-    nValueRet += nValueFromPresetInputs;
+    // Add preset inputs to result
+    res->AddInput(preset_inputs);
 
     return res;
 };

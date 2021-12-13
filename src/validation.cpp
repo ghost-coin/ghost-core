@@ -5104,7 +5104,7 @@ CVerifyDB::~CVerifyDB()
 
 bool CVerifyDB::VerifyDB(
     CChainState& chainstate,
-    const CChainParams& chainparams,
+    const Consensus::Params& consensus_params,
     CCoinsView& coinsview,
     int nCheckLevel, int nCheckDepth)
 {
@@ -5148,10 +5148,10 @@ bool CVerifyDB::VerifyDB(
         }
         CBlock block;
         // check level 0: read from disk
-        if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
+        if (!ReadBlockFromDisk(block, pindex, consensus_params))
             return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         // check level 1: verify block validity
-        if (nCheckLevel >= 1 && !CheckBlock(block, state, chainparams.GetConsensus()))
+        if (nCheckLevel >= 1 && !CheckBlock(block, state, consensus_params))
             return error("%s: *** found bad block at %d, hash=%s (%s)\n", __func__,
                          pindex->nHeight, pindex->GetBlockHash().ToString(), state.ToString());
         // check level 2: verify undo validity
@@ -5199,7 +5199,7 @@ bool CVerifyDB::VerifyDB(
             uiInterface.ShowProgress(_("Verifying blocks…").translated, percentageDone, false);
             pindex = chainstate.m_chain.Next(pindex);
             CBlock block;
-            if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
+            if (!ReadBlockFromDisk(block, pindex, consensus_params))
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
             // Particl: Clear state, data from VerifyDB is not written to disk.
             BlockValidationState state;
@@ -6795,6 +6795,11 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate)
 bool ShouldAutoReindex(ChainstateManager &chainman)
 {
     auto& pblocktree{chainman.m_blockman.m_block_tree_db};
+
+    if (pblocktree->CountBlockIndex() < 1) {
+        return false; // db will be initialised later in LoadBlockIndex
+    }
+
     // Force reindex to update version
     bool nV1 = false;
     if (!pblocktree->ReadFlag("v1", nV1) || !nV1) {
@@ -6843,7 +6848,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
             LogPrintf("%s: RewindToHeight failed %s.\n", __func__, str_error);
             return false;
         }
-        rewound_tip_height = chainman.ActiveChain().Tip()->nHeight;
+        rewound_tip_height = pindex_tip ? pindex_tip->nHeight : 0;
     }
 
     BlockValidationState state;

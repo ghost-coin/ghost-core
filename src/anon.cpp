@@ -398,7 +398,8 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
     BlockValidationState state;
     state.m_chainman = &chainman;
 
-    for (CBlockIndex *pindex = chainman.ActiveChain().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
+    CBlockIndex *pindex_tip = chainman.ActiveChain().Tip();
+    for (CBlockIndex *pindex = pindex_tip; pindex && pindex->pprev; pindex = pindex->pprev) {
         if (pindex->nHeight <= nToHeight) {
             break;
         }
@@ -424,7 +425,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
         chainman.ActiveChainstate().UpdateTip(pindex->pprev);
         GetMainSignals().BlockDisconnected(pblock, pindex);
     }
-    nLastRCTOutput = chainman.ActiveChain().Tip()->nAnonOutputs;
+    nLastRCTOutput = pindex_tip ? pindex_tip->nAnonOutputs : 0;
 
     int nRemoveOutput = nLastRCTOutput + 1;
     CAnonOutput ao;

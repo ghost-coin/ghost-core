@@ -73,6 +73,7 @@ enum HaveKeyResult {HK_NO = 0, HK_YES, HK_LOOKAHEAD, HK_LOOKAHEAD_DO_UPDATE};
 enum KeySourceTypes {KS_NONE = 0, KS_ACCOUNT_CHAIN, KS_STEALTH, KS_LEGACY, KS_LOOSE_CHAIN};
 
 struct CExtPubKey {
+    unsigned char version[4];
     unsigned char nDepth;
     unsigned char vchFingerprint[4];
     unsigned int nChild;
@@ -101,7 +102,10 @@ struct CExtPubKey {
 
     void Encode(unsigned char code[74]) const;
     void Decode(const unsigned char code[74]);
+    void EncodeWithVersion(unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]) const;
+    void DecodeWithVersion(const unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]);
     bool Derive(CExtPubKey &out, unsigned int nChild) const;
+
 
     template<typename Stream>
     void Serialize(Stream &s) const

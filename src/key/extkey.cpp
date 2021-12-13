@@ -388,6 +388,17 @@ void CExtKey::Decode(const unsigned char code[74])
     if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || code[41] != 0) key = CKey();
 };
 
+void CExtPubKey::EncodeWithVersion(unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]) const
+{
+    memcpy(code, version, 4);
+    Encode(&code[4]);
+}
+
+void CExtPubKey::DecodeWithVersion(const unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE])
+{
+    memcpy(version, code, 4);
+    Decode(&code[4]);
+}
 
 void CExtKeyPair::EncodeV(unsigned char code[74]) const
 {

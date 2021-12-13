@@ -533,6 +533,28 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
     return true;
 }
 
+size_t CBlockTreeDB::CountBlockIndex()
+{
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(std::make_pair(DB_BLOCK_INDEX, uint256()));
+
+    size_t num_blocks = 0;
+    // Load m_block_index
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) return false;
+        std::pair<uint8_t, uint256> key;
+        if (pcursor->GetKey(key) && key.first == DB_BLOCK_INDEX) {
+            num_blocks += 1;
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+
+    return num_blocks;
+}
+
 bool CBlockTreeDB::ReadRCTOutput(int64_t i, CAnonOutput &ao)
 {
     return Read(std::make_pair(DB_RCTOUTPUT, i), ao);
