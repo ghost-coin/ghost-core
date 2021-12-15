@@ -3764,7 +3764,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     assert(coinControl);
     const CCoinControl &coin_control = *coinControl;
     nFeeRet = 0;
-    CAmount nValue;
+    CAmount nValue{0};
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs;
     InspectOutputs(vecSend, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs);
@@ -3800,7 +3800,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         std::vector<CInputCoin> selected_coins;
         std::vector<COutput> vAvailableCoins;
-        AvailableCoins(vAvailableCoins, coinControl);
+        AvailableCoins(vAvailableCoins, coinControl, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
 
         // Set discard feerate
@@ -11603,9 +11603,9 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     coin_control.ListSelected(vPresetInputs);
 
     for (const auto &outpoint : vPresetInputs) {
-        MapWallet_t::const_iterator it = mapTempWallet.find(outpoint.hash);
         CTxOut txout_null, txout;
         CInputCoin ic = CInputCoin(outpoint, txout_null, -1);
+        MapWallet_t::const_iterator it = mapTempWallet.find(outpoint.hash);
         if (it != mapTempWallet.end()) {
             const CWalletTx *pcoin = &it->second;
             // Clearly invalid input, fail
@@ -11613,6 +11613,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
                 return std::nullopt;
             }
             ic = CInputCoin(pcoin->tx, outpoint.n);
+            ic.m_input_bytes = CalculateMaximumSignedInputSize(ic.txout, this, true);
         } else {
             it = mapWallet.find(outpoint.hash);
             if (it != mapWallet.end()) {
@@ -11622,6 +11623,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
                     return std::nullopt;
                 }
                 ic = CInputCoin(pcoin->tx, outpoint.n);
+                ic.m_input_bytes = CalculateMaximumSignedInputSize(ic.txout, this, true);
             } else {
                 // The input is external. We either did not find the tx in mapWallet, or we did but couldn't compute the input size with wallet data
                 if (!coin_control.GetExternalOutput(outpoint, txout)) {

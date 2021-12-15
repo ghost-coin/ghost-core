@@ -11,6 +11,14 @@ Next Major Version
 - script: Remove timelocked script signing.
 
 
+0.21.2.6
+==============
+
+- wallet:
+  - Add minimum and maximumAmount to fundrawtransactionfrom and sendtypeto
+  - Add includeWatching option to sendtypeto
+
+
 0.21.2.5
 ==============
 

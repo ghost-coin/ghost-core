@@ -117,6 +117,10 @@ public:
     CScript scriptChange;
     //! Pubkey to use for the change output if changeaddress and scriptChange isn't set
     CPubKey m_changepubkey;
+    //! Minimum value of outputs to select
+    CAmount m_minimum_output_amount = 0;
+    //! Maximum value of outputs to select
+    CAmount m_maximum_output_amount = MAX_MONEY;
 
     CCoinControl();
 
