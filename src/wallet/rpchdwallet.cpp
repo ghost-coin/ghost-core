@@ -933,6 +933,16 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
         coin_control.fOverrideFeeRate = true;
     }
 
+    if (obj.exists("includeWatching")) {
+        coin_control.fAllowWatchOnly = obj["includeWatching"].get_bool();
+    }
+    if (obj.exists("minimumAmount")) {
+        coin_control.m_minimum_output_amount = AmountFromValue(obj["minimumAmount"]);
+    }
+    if (obj.exists("maximumAmount")) {
+        coin_control.m_maximum_output_amount = AmountFromValue(obj["maximumAmount"]);
+    }
+
     coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(pwallet, obj["avoid_reuse"]);
 };
 
@@ -5375,26 +5385,6 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
     }
 
-    switch (typeIn) {
-        case OUTPUT_STANDARD:
-            if (nTotal > pwallet->GetBalance().m_mine_trusted) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
-            }
-            break;
-        case OUTPUT_CT:
-            if (nTotal > pwallet->GetBlindBalance()) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient blinded funds");
-            }
-            break;
-        case OUTPUT_RINGCT:
-            if (nTotal > pwallet->GetAnonBalance()) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient anon funds");
-            }
-            break;
-        default:
-            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Unknown input type: %d.", typeIn));
-    }
-
     // Wallet comments
     CTransactionRef tx_new;
     CWalletTx wtx(pwallet, tx_new);
@@ -5497,6 +5487,31 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
     }
     coincontrol.m_avoid_partial_spends |= coincontrol.m_avoid_address_reuse;
+
+    CHDWalletBalances balances;
+    if (!pwallet->GetBalances(balances)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "GetBalances failed.");
+    }
+    CAmount with_watchonly = coincontrol.fAllowWatchOnly ? 1.0 : 0.0;
+    switch (typeIn) {
+        case OUTPUT_STANDARD:
+            if (nTotal > balances.nPart + with_watchonly * balances.nPartWatchOnly) {
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
+            }
+            break;
+        case OUTPUT_CT:
+            if (nTotal > balances.nBlind + with_watchonly * balances.nBlindWatchOnly) {
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient blinded funds");
+            }
+            break;
+        case OUTPUT_RINGCT:
+            if (nTotal > balances.nAnon + with_watchonly * balances.nAnonWatchOnly) {
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient anon funds");
+            }
+            break;
+        default:
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Unknown input type: %d.", typeIn));
+    }
 
     CAmount nFeeRet = 0;
     switch (typeIn) {
@@ -5826,6 +5841,9 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                             {"show_hex", RPCArg::Type::BOOL, /* default */ "false", "Display the hex encoded tx"},
                             {"show_fee", RPCArg::Type::BOOL, /* default */ "false", "Return the fee"},
                             {"submit_tx", RPCArg::Type::BOOL, /* default */ "true", "Send the tx"},
+                            {"includeWatching", RPCArg::Type::BOOL, /* default */ "false", "Also select inputs which are watch only."},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, /* default */ "0", "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Maximum value of each to select UTXO in " + CURRENCY_UNIT + ""},
                         },
                     },
                 },
@@ -8521,6 +8539,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                             {"anon_ring_size", RPCArg::Type::NUM, /* default */ strprintf("%d", DEFAULT_RING_SIZE), "Ring size for anon transactions."},
                             {"anon_inputs_per_sig", RPCArg::Type::NUM, /* default */ strprintf("%d", DEFAULT_INPUTS_PER_SIG), "Real inputs per ring signature."},
                             {"blind_watchonly_visible", RPCArg::Type::BOOL, /* default */ "false", "Reveal amounts of blinded outputs sent to stealth addresses to the scan_secret"},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, /* default */ "0", "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Maximum value of each to select UTXO in " + CURRENCY_UNIT + ""},
                         },
                     "options"},
                 },
@@ -8601,6 +8621,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                 {"anon_ring_size", UniValueType(UniValue::VBOOL)},
                 {"anon_inputs_per_sig", UniValueType(UniValue::VBOOL)},
                 {"blind_watchonly_visible", UniValueType(UniValue::VBOOL)},
+                {"minimumAmount", UniValueType()},
+                {"maximumAmount", UniValueType()},
             },
             true, true);
 
@@ -8608,9 +8630,6 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 
         if (options.exists("changePosition")) {
             changePosition = options["changePosition"].get_int();
-        }
-        if (options.exists("includeWatching")) {
-            coinControl.fAllowWatchOnly = options["includeWatching"].get_bool();
         }
         if (options.exists("lockUnspents")) {
             lockUnspents = options["lockUnspents"].get_bool();
@@ -8865,8 +8884,10 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
         }
     }
 
+    std::set<COutPoint> set_existing_inputs;
     for (const CTxIn& txin : tx.vin) {
         coinControl.Select(txin.prevout);
+        set_existing_inputs.insert(txin.prevout);
     }
 
 
@@ -8913,7 +8934,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
     tx.vpout = wtx.tx->vpout;
     // keep existing sequences
     for (const auto &txin : wtx.tx->vin) {
-        if (!coinControl.IsSelected(txin.prevout)) {
+        if (!set_existing_inputs.count(txin.prevout)) {
             tx.vin.push_back(txin);
         }
         if (lockUnspents) {
