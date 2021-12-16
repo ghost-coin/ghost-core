@@ -790,10 +790,7 @@ case $host in
         *armv7a*)
           ANDROID_ARCH=armeabi-v7a
           ;;
-        *i686*)
-          ANDROID_ARCH=i686
-          ;;
-        *) AC_MSG_ERROR([Could not determine Android arch]) ;;
+        *) AC_MSG_ERROR([Could not determine Android arch, or it is unsupported]) ;;
       esac
      ;;
    *linux*)
@@ -850,9 +847,6 @@ fi
 if test "$use_lcov_branch" != "no"; then
   AC_SUBST(LCOV_OPTS, "$LCOV_OPTS --rc lcov_branch_coverage=1")
 fi
-
-dnl Check for __int128
-AC_CHECK_TYPES([__int128])
 
 dnl Check for endianness
 AC_C_BIGENDIAN

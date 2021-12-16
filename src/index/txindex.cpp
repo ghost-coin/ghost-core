@@ -79,7 +79,7 @@ bool TxIndex::Init()
         if (!GetDB().Read(DB_TXINDEX_CSBESTBLOCK, locator)) {
             locator.SetNull();
         }
-        CBlockIndex *best_cs_block_index = m_chainstate->m_blockman.FindForkInGlobalIndex(active_chain, locator);
+        CBlockIndex *best_cs_block_index = m_chainstate->FindForkInGlobalIndex(locator);
 
         if (best_cs_block_index != active_chain.Tip()) {
             m_synced = false;
