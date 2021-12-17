@@ -279,8 +279,8 @@ case "$HOST" in
 esac
 
 case "$HOST" in
-    *i686*) WIN_NAME=win32 ;;
-    *)      WIN_NAME=win64 ;;
+    *i686*) WIN_NAME=win32 && ARCH=i686 ;;
+    *)      WIN_NAME=win64 && ARCH=x86_64 ;;
 esac
 
 # Make $HOST-specific native binaries from depends available in $PATH
@@ -407,14 +407,14 @@ mkdir -p "$DISTSRC"
                     | xargs -0r touch --no-dereference --date="@${SOURCE_DATE_EPOCH}"
                 find "${DISTNAME}" -not -name "*.dbg" \
                     | sort \
-                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}.zip" \
-                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}.zip" && exit 1 )
+                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//${ARCH}-w64-mingw32/${WIN_NAME}}.zip" \
+                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//${ARCH}-w64-mingw32/${WIN_NAME}}.zip" && exit 1 )
                 find "${DISTNAME}" -name "*.dbg" -print0 \
                     | xargs -0r touch --no-dereference --date="@${SOURCE_DATE_EPOCH}"
                 find "${DISTNAME}" -name "*.dbg" \
                     | sort \
-                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}-debug.zip" \
-                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//x86_64-w64-mingw32/${WIN_NAME}}-debug.zip" && exit 1 )
+                    | zip -X@ "${OUTDIR}/${DISTNAME}-${HOST//${ARCH}-w64-mingw32/${WIN_NAME}}-debug.zip" \
+                    || ( rm -f "${OUTDIR}/${DISTNAME}-${HOST//${ARCH}-w64-mingw32/${WIN_NAME}}-debug.zip" && exit 1 )
                 ;;
             *linux*)
                 find "${DISTNAME}" -not -name "*.dbg" -print0 \
