@@ -461,6 +461,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
 BOOST_AUTO_TEST_CASE(rct_disabled) {
 
     // Anon disabled in the following tests
+    // In this test anon is disabled but no tx is blacklisted so it should be accepted to mempool
     RegtestParams().SetAnonRestricted(true);
     RegtestParams().SetAnonMaxOutputSize(4);
     SeedInsecureRand();
@@ -487,8 +488,7 @@ BOOST_AUTO_TEST_CASE(rct_disabled) {
     }
     BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply);
 
-    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 20 * COIN, 0, "anon-blind-tx-invalid");
-    
+    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 20 * COIN, 0);   
 }
 
 

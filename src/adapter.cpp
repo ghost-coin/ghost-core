@@ -66,22 +66,40 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         //! split among no more than three outputs
         const unsigned int outSize = tx->vpout.size();
         if (outSize > Params().GetAnonMaxOutputSize()) {
-            LogPrintf("%s - transaction %s has more than 3 outputs total\n", __func__, txHash.ToString());
+            LogPrintf("%s - transaction %s has more than 3 outputs total %d\n", __func__, txHash.ToString(), outSize);
             return false;
         }
 
-        //! recovery address must receive 99.95% of the output amount
+        // Make the check of fees here
+        CAmount fee;
+        for (unsigned int i=0; i < outSize; ++i) {
+            if (tx->vpout[i]->GetCTFee(fee)){
+                if (fee >= 10 * COIN ) {
+                    LogPrintf("%s - Fee greater than 10*COIN value %s %d\n", __func__, txHash.ToString(), fee);
+                    return false;
+                }
+            }
+        }
+        int standardOutputIndex = 0;
+
+        //! recovery address must receive 100% of the output amount
         for (unsigned int i=0; i < outSize; ++i) {
             if (tx->vpout[i]->IsStandardOutput()) {
+                standardOutputIndex = i;
                 const std::string destTest = HexStr(tx->vpout[i]->GetStandardOutput()->scriptPubKey);
                 if (is_output_recovery_address(destTest)) {
                     if (tx->vpout[i]->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
                         LogPrintf("Found recovery amount at vout.n #%d\n", i);
                         return true;
+                    }else{
+                        LogPrintf("%s Sending only #%d\n this will fail out of %d", __func__, tx->vpout[i]->GetStandardOutput()->nValue, totalValue);
                     }
                 }
             }
         }
+        auto total = totalValue - tx->vpout[standardOutputIndex]->GetStandardOutput()->nValue - fee;
+        LogPrintf("%s The difference equals", __func__, totalValue);
+
     }
     return false;
 }

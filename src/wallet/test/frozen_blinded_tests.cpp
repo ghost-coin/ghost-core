@@ -456,7 +456,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         // The anon index is blacklisted but it's not spending to the recovery addr 
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "anon-blind-tx-blacklisted");
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "anon-blind-tx-invalid");
 
         aoi_blacklist.clear();
         RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);

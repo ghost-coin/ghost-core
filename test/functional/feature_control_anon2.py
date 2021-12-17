@@ -83,16 +83,17 @@ class ControlAnonTest2(GhostTestFramework):
             'subfee': True
         }]
 
+        # Anon is restricted but there are non blacklisted tx so this should pass
         tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False)
-        assert_equal(self.wait_for_mempool(nodes[1], tx), False)
+        assert_equal(self.wait_for_mempool(nodes[1], tx), True)
 
         # Now trying to spend to the recovery address, node 0 owns the recovery address
         # Send to recovery address
 
         self.restart_nodes_with_anonoutputs()
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=0', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=0', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500', '-rescan'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500', '-rescan'])
         self.connect_nodes_bi(0, 1)
 
         nodes[0].importprivkey("7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU")
@@ -109,19 +110,28 @@ class ControlAnonTest2(GhostTestFramework):
             'subfee': True
         }]
 
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False)
-        assert_equal(self.wait_for_mempool(nodes[1], tx), True)
+        coincontrol = {'test_mempool_accept': True}
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
+        assert_equal( tx["mempool-allowed"], True)
 
-        # Sending less than 99.5% to recovery address and random amount to other address
-        # This will fail
+        # Sending less than 99.5% of blacklisted tx to recovery address and random amount to other address
+        # This will fail due to the output size being greater than anonMaxOutputSize
+
+        tx_to_blacklist = []
+        lastanonindex = nodes[0].anonoutput()['lastindex']
+        while lastanonindex > 0:
+            tx_to_blacklist.append(lastanonindex)
+            lastanonindex -= 1
 
         self.restart_nodes_with_anonoutputs()
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=0', '-debug', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=0', '-debug', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
+
+        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
+        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
-
+        self.sync_all()
         nodes[0].importprivkey("7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU")
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
 
@@ -129,60 +139,49 @@ class ControlAnonTest2(GhostTestFramework):
 
         assert_greater_than(anon_balance, 0)
 
-        amount_to_send_recovery_addr = int(anon_balance * decimal.Decimal(0.90))
-        remaining = int(anon_balance - amount_to_send_recovery_addr)
+        amount_to_send_other = int(anon_balance * decimal.Decimal(0.90))
+        amount_to_send_recovery = int(anon_balance - amount_to_send_other)
 
         outputs = [{
             'address': recovery_addr,
             'type': 'standard',
-            'amount': amount_to_send_recovery_addr,
+            'amount': amount_to_send_recovery,
             'subfee': True
         },{
         'address': receiving_addr,
         'type': 'standard',
-        'amount': remaining,
+        'amount': amount_to_send_other,
         'subfee': True
         }]
+        coincontrol = {'test_mempool_accept': True}
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
+        assert_equal(tx["mempool-reject-reason"], "anon-blind-tx-invalid")
 
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False)
-        assert_equal(self.wait_for_mempool(nodes[1], tx), False)
-
-        # Sending 99.5% to recovery address and 0.5% to any other address
+        # Sending 99.95% to recovery address
         self.restart_nodes_with_anonoutputs()
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=0', '-debug', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=0', '-debug', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
+        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
+        # Node 0 holds the recovery addr private key
+        self.sync_all()
         nodes[0].importprivkey("7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU")
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
 
         anon_balance = nodes[1].getwalletinfo()["anon_balance"]
-
         assert_greater_than(anon_balance, 0)
-
-        amount_to_send_recovery_addr = int(anon_balance * decimal.Decimal(0.95))
-        # Add another 5% from remaining amount in order to cover fees
-        amount_to_send_recovery_addr += int(remaining * decimal.Decimal(0.5))
-
-        remaining = int(anon_balance - amount_to_send_recovery_addr)
 
         outputs = [{
             'address': recovery_addr,
             'type': 'standard',
-            'amount': amount_to_send_recovery_addr,
-            'subfee': True
-        }, {
-            'address': receiving_addr,
-            'type': 'standard',
-            'amount': remaining, # 0.5% of 600
+            'amount': anon_balance,
             'subfee': True
         }]
-
-        self.stakeBlocks(4)
-
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False)
-        assert_equal(self.wait_for_mempool(nodes[1], tx), True)
         
+        coincontrol = {'test_mempool_accept': True}
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
+        assert_equal(tx["mempool-allowed"], True)
+
 if __name__ == '__main__':
     ControlAnonTest2().main()

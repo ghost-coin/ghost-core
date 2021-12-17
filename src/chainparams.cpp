@@ -1042,7 +1042,7 @@ public:
         anonRecoveryAddress = "69cf1d39c526aa3530c778d88ac";
         // Pubkey:  pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it
         // PrivKey: 7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU
-        anonMaxOutputSize = 5;
+        anonMaxOutputSize = 3;
 
     }
 

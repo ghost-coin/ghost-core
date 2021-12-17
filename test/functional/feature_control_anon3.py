@@ -69,20 +69,29 @@ class ControlAnonTest3(GhostTestFramework):
      
         # Restart the nodes with some anon index
         self.restart_nodes_with_anonoutputs()
+
+        tx_to_blacklist = []
+        lastanonindex = nodes[0].anonoutput()['lastindex']
+        while lastanonindex > 0:
+            tx_to_blacklist.append(lastanonindex)
+            lastanonindex -= 1
+
         self.stop_nodes()
 
+        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
+
+        self.setup_clean_chain = True
         # Node 0 has its lastanonindex defaulted to 0
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1'])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=1000', '-stakethreadconddelayms=500', '-txindex=1', '-blacklistedanon=' + tx_to_blacklist])
         # Node 1 has its anon index set to 100
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1'])
 
         self.connect_nodes_bi(0, 1)
+        self.sync_all()
         receiving_addr = nodes[1].getnewaddress()
 
         # Sending a transaction from anon to ghost being inside node 1 will succeed
         bad_anon_tx_txid = nodes[1].sendtypeto('anon', 'ghost', [{'address': receiving_addr, 'amount': 15, 'subfee': True}])
-        assert_equal(self.wait_for_mempool(nodes[1], bad_anon_tx_txid), True)
-
         self.stakeBlocks(1, 1, False)
         # The transaction succeeded inside node 1, but it won't inside node 0 because of the disabled anon-tx
         rawtx_bad_anon_txid = nodes[1].getrawtransaction(bad_anon_tx_txid)
