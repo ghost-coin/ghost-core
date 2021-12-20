@@ -219,7 +219,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             LogPrintf("ERROR: %s: prepare-mlsag-failed %d\n", __func__, rv);
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "prepare-mlsag-failed");
         }
-        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind,
+        if (0 != (rv = secp256k1_verify_mlsag(
             txhash.begin(), nCols, nRows,
             &vM[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
             LogPrintf("ERROR: %s: verify-mlsag-failed %d\n", __func__, rv);
@@ -252,7 +252,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
 
 int GetKeyImage(CCmpPubKey &ki, const CCmpPubKey &pubkey, const CKey &key)
 {
-    return secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), pubkey.begin(), key.begin());
+    return secp256k1_get_keyimage(ki.ncbegin(), pubkey.begin(), key.begin());
 };
 
 bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool)

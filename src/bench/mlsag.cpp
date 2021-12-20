@@ -106,7 +106,7 @@ static void Mlsag(benchmark::Bench& bench)
 
 
     bench.run([&] {
-        assert(0 == secp256k1_verify_mlsag(secp256k1_ctx_blind,
+        assert(0 == secp256k1_verify_mlsag(
             preimage, nCols, nRows,
             m, ki, pc, ss));
     });

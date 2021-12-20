@@ -42,33 +42,41 @@ void test_generator_api(void) {
     CHECK(secp256k1_generator_generate(none, &gen, NULL) == 0);
     CHECK(ecount == 2);
 
+    CHECK(secp256k1_ecmult_gen_context_is_built(&none->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&sign->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&vrfy->ecmult_gen_ctx));
+    ecount = 2;
     CHECK(secp256k1_generator_generate_blinded(sign, &gen, key, blind) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, key, blind) == 0);
+    /*CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, key, blind) == 0);
+    CHECK(ecount == 3);*/
+    CHECK(ecount == 2);
+
+    /*CHECK(secp256k1_generator_generate_blinded(none, &gen, key, blind) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_generator_generate_blinded(none, &gen, key, blind) == 0);
-    CHECK(ecount == 4);
+    * */
     CHECK(secp256k1_generator_generate_blinded(vrfy, NULL, key, blind) == 0);
-    CHECK(ecount == 5);
+    CHECK(ecount == 3);
+
     CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, NULL, blind) == 0);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
     CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, key, NULL) == 0);
-    CHECK(ecount == 7);
+    CHECK(ecount == 5);
 
     CHECK(secp256k1_generator_serialize(none, sergen, &gen) == 1);
-    CHECK(ecount == 7);
+    CHECK(ecount == 5);
     CHECK(secp256k1_generator_serialize(none, NULL, &gen) == 0);
-    CHECK(ecount == 8);
+    CHECK(ecount == 6);
     CHECK(secp256k1_generator_serialize(none, sergen, NULL) == 0);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
 
     CHECK(secp256k1_generator_serialize(none, sergen, &gen) == 1);
     CHECK(secp256k1_generator_parse(none, &gen, sergen) == 1);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
     CHECK(secp256k1_generator_parse(none, NULL, sergen) == 0);
-    CHECK(ecount == 10);
+    CHECK(ecount == 8);
     CHECK(secp256k1_generator_parse(none, &gen, NULL) == 0);
-    CHECK(ecount == 11);
+    CHECK(ecount == 9);
 
     secp256k1_context_destroy(none);
     secp256k1_context_destroy(sign);

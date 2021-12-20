@@ -5574,7 +5574,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     }
 
                     // Keyimage is required for the tx hash
-                    if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], ao.pubkey.begin(), key.begin()))) {
+                    if (0 != (rv = secp256k1_get_keyimage(&vKeyImages[k * 33], ao.pubkey.begin(), key.begin()))) {
                         return wserrorN(1, sError, __func__, "secp256k1_get_keyimage failed %d", rv);
                     }
                 }
@@ -10847,7 +10847,7 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
     COutPoint op(txhash, rout.n);
     CCmpPubKey ki;
 
-    if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), pout->pk.begin(), key.begin())) {
+    if (0 != secp256k1_get_keyimage(ki.ncbegin(), pout->pk.begin(), key.begin())) {
         WalletLogPrintf("Error: %s - secp256k1_get_keyimage failed.\n", __func__);
     } else
     if (!pwdb->WriteAnonKeyImage(ki, op)) {

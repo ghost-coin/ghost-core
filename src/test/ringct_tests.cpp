@@ -401,7 +401,7 @@ BOOST_AUTO_TEST_CASE(ringct_test)
     BOOST_CHECK(0 == secp256k1_generate_mlsag(ctx, &ki[0], pc, &ss[0],
         randSeed, preimage, nCols, nRows, index,
         &sk[0], m));
-    BOOST_CHECK(0 == secp256k1_verify_mlsag(ctx,
+    BOOST_CHECK(0 == secp256k1_verify_mlsag(
         preimage, nCols, nRows,
         m, &ki[0], pc, &ss[0]));
 
@@ -639,7 +639,7 @@ int doTest(secp256k1_context *ctx, size_t nInputs, size_t nOutputs, CAmount nFee
         randSeed, preimage, nCols, nRows, index,
         &sk[0], m));
 
-    BOOST_CHECK(0 == secp256k1_verify_mlsag(ctx,
+    BOOST_CHECK(0 == secp256k1_verify_mlsag(
         preimage, nCols, nRows,
         m, &ki[0], pc, &ss[0]));
 
