@@ -451,6 +451,8 @@ public:
         consensus.defaultAssumeValid = uint256S("0xeccad59c62c2b669a746297d1f3ffb49c4de8620d6ad69c240079386130b2343k"); //Blockhash of Block 2913
 
         consensus.nMinRCTOutputDepth = 12;
+        // "76a914c4c944117a4aff0d5bfd1fc07be490d6bd978a3588ac"
+        anonRecoveryAddress = "d1fc07be490d6bd978a3588ac";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -750,6 +752,8 @@ public:
         m_is_mockable_chain = false;
 
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
+        // Full Script pubkey of the recovery addr: 76a91418cf988c85fdff42269cf1d39c526aa3530c778d88ac
+        anonRecoveryAddress = "69cf1d39c526aa3530c778d88ac";
         checkpointData = {
             {
                 {127620, uint256S("0xe5ab909fc029b253bad300ccf859eb509e03897e7853e8bfdde2710dbf248dd1")},
@@ -861,6 +865,8 @@ public:
 
         nDefaultPort = 38333;
         nPruneAfterHeight = 1000;
+        // Full Script pubkey of the recovery addr: 76a91418cf988c85fdff42269cf1d39c526aa3530c778d88ac
+        anonRecoveryAddress = "69cf1d39c526aa3530c778d88ac";
 
         genesis = CreateGenesisBlock(1598918400, 52613770, 0x1e0377ae, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();

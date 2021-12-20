@@ -223,8 +223,7 @@ protected:
     std::array<int, 47> nBlockPerc; //reward percentage each year
     uint32_t nLastImportHeight = 0;       // always 0 on ghost
     bool anonRestricted = false;
-    // "76a914c4c944117a4aff0d5bfd1fc07be490d6bd978a3588ac"
-    std::string anonRecoveryAddress = "d1fc07be490d6bd978a3588ac";
+    std::string anonRecoveryAddress;
     std::uint32_t anonMaxOutputSize = 3;
 
     std::vector<std::pair<int64_t, TreasuryFundSettings> > vTreasuryFundSettings;

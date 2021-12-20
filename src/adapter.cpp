@@ -63,10 +63,30 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
             return false;
         }
 
-        //! split among no more than three outputs
+        //! 1 - Check of the output size
         const unsigned int outSize = tx->vpout.size();
         if (outSize > Params().GetAnonMaxOutputSize()) {
             LogPrintf("%s - transaction %s has more than 3 outputs total %d\n", __func__, txHash.ToString(), outSize);
+            return false;
+        }
+
+        //! 2 - Check the number of standard outputs
+        auto numOfStandardTx = std::count_if(tx->vpout.begin(), tx->vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
+            return tx->IsStandardOutput();
+        });
+
+        if (numOfStandardTx == 0 || numOfStandardTx > 1) {
+            LogPrintf("%s - transaction %s has more than 1 standard numOfStandardTx=%d\n", __func__, txHash.ToString(), numOfStandardTx);
+            return false;
+        }
+
+        //! 3 - Double check and get the standard output
+       auto stdOutputIt = std::find_if(tx->vpout.begin(), tx->vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
+            return tx->IsStandardOutput();
+        });
+
+        if (stdOutputIt == tx->vpout.end()){
+            LogPrintf("%s - transaction %s has no standard output\n", __func__, txHash.ToString());
             return false;
         }
 
@@ -80,25 +100,20 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
                 }
             }
         }
-        int standardOutputIndex = 0;
 
+    
         //! recovery address must receive 100% of the output amount
-        for (unsigned int i=0; i < outSize; ++i) {
-            if (tx->vpout[i]->IsStandardOutput()) {
-                standardOutputIndex = i;
-                const std::string destTest = HexStr(tx->vpout[i]->GetStandardOutput()->scriptPubKey);
-                if (is_output_recovery_address(destTest)) {
-                    if (tx->vpout[i]->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
-                        LogPrintf("Found recovery amount at vout.n #%d\n", i);
-                        return true;
-                    }else{
-                        LogPrintf("%s Sending only #%d\n this will fail out of %d", __func__, tx->vpout[i]->GetStandardOutput()->nValue, totalValue);
-                    }
-                }
+        const std::string destTest = HexStr( (*stdOutputIt)->GetStandardOutput()->scriptPubKey);
+        if (is_output_recovery_address(destTest)) {
+            if ( (*stdOutputIt)->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
+                LogPrintf("Found recovery amount at vout.n #%d\n");
+                return true;
+            }else{
+                LogPrintf("%s Sending only #%d\n this will fail out of %d", __func__,  (*stdOutputIt)->GetStandardOutput()->nValue, totalValue);
             }
         }
-        auto total = totalValue - tx->vpout[standardOutputIndex]->GetStandardOutput()->nValue - fee;
-        LogPrintf("%s The difference equals", __func__, totalValue);
+        // auto total = totalValue - stdOutput->GetStandardOutput()->nValue - fee;
+        // LogPrintf("%s The difference equals %d", __func__, totalValue);
 
     }
     return false;
