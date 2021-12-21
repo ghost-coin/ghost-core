@@ -56,7 +56,10 @@ bool ExtractIndexInfo(const CScript *pScript, int &scriptType, std::vector<uint8
     } else
     if (pScript->IsWitnessProgram(witnessversion, witnessprogram)) {
         hashBytes.assign(witnessprogram.begin(), witnessprogram.begin() + witnessprogram.size());
-        scriptType = ADDR_INDT_WITNESS_V0_KEYHASH;
+        switch (witnessversion) {
+            case 0: scriptType = ADDR_INDT_WITNESS_V0_KEYHASH; break;
+            case 1: scriptType = ADDR_INDT_WITNESS_V1_TAPROOT; break;
+        }
     } else
     if (pScript->IsPayToTimeLockedScriptHash()) {
         hashBytes.assign(pScript->begin()+2+7, pScript->begin()+22+7);
@@ -184,6 +187,8 @@ bool getAddressFromIndex(const int &type, const uint256 &hash, std::string &addr
         address = EncodeDestination(WitnessV0KeyHash(uint160(hash.begin(), 20)));
     } else if (type == ADDR_INDT_WITNESS_V0_SCRIPTHASH) {
         address = EncodeDestination(WitnessV0ScriptHash(hash));
+    } else if (type == ADDR_INDT_WITNESS_V1_TAPROOT) {
+        address = EncodeDestination(WitnessV1Taproot{XOnlyPubKey{hash}});
     } else {
         return false;
     }

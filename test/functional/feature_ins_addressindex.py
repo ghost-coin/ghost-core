@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2015 The Bitcoin Core developers
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2021 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +12,9 @@ import time
 
 from test_framework.test_particl import ParticlTestFramework
 from test_framework.util import assert_equal
+from test_framework.script import taproot_construct
+from test_framework.key import generate_privkey, compute_xonly_pubkey
+from test_framework.segwit_addr import encode_segwit_address
 
 
 class AddressIndexTest(ParticlTestFramework):
@@ -341,18 +344,25 @@ class AddressIndexTest(ParticlTestFramework):
 
         addr_sw_bech32 = nodes[2].getnewaddress('segwit script', False, False, False, 'bech32')
         addr_sw_p2sh = nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
-        nodes[0].sendtoaddress(addr_sw_bech32, 1.0)
-        nodes[0].sendtoaddress(addr_sw_p2sh, 1.0)
 
+        secret_key = generate_privkey()
+        internal_key = compute_xonly_pubkey(secret_key)[0]
+        scriptPubKey = taproot_construct(internal_key).scriptPubKey
+        addr_sw_tr = encode_segwit_address("rtpw", 1, scriptPubKey[2:])
+        addrs = (addr_sw_bech32, addr_sw_p2sh, addr_sw_tr)
+
+        for a in addrs:
+            nodes[0].sendtoaddress(a, 1.0)
         self.sync_all()
-        mempool_sw_b = nodes[1].getaddressmempool({'addresses': [addr_sw_bech32]})
-        assert(len(mempool_sw_b) == 1)
-        assert(mempool_sw_b[0]['address'] == addr_sw_bech32)
-        mempool_sw_p = nodes[1].getaddressmempool({'addresses': [addr_sw_p2sh]})
-        assert(len(mempool_sw_p) == 1)
-        assert(mempool_sw_p[0]['address'] == addr_sw_p2sh)
+        mempool_txns = {}
+        for a in addrs:
+            mempool = nodes[1].getaddressmempool({'addresses': [a]})
+            assert(len(mempool) == 1)
+            assert(mempool[0]['address'] == a)
+            mempool_txns[a] = mempool
 
-        inputs = [{'txid': mempool_sw_b[0]['txid'], 'vout': mempool_sw_b[0]['index']}]
+        utxo = mempool_txns[addr_sw_bech32]
+        inputs = [{'txid': utxo[0]['txid'], 'vout': utxo[0]['index']}]
         outputs = {nodes[0].getnewaddress(): 0.99}
         tx = nodes[2].createrawtransaction(inputs, outputs)
         tx = nodes[2].signrawtransactionwithwallet(tx)['hex']
@@ -380,7 +390,6 @@ class AddressIndexTest(ParticlTestFramework):
 
         mempool_deltas = nodes[2].getaddressmempool({'addresses': [addr_sw_bech32]})
         assert_equal(len(mempool_deltas), 2)
-
 
 
 if __name__ == '__main__':

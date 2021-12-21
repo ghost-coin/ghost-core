@@ -62,6 +62,12 @@ static bool GetIndexKey(const CTxDestination &dest, uint256 &hashBytes, int &typ
         type = ADDR_INDT_WITNESS_V0_SCRIPTHASH;
         return true;
     }
+    if (dest.index() == DI::_WitnessV1Taproot) {
+        const WitnessV1Taproot& id = std::get<WitnessV1Taproot>(dest);
+        memcpy(hashBytes.begin(), id.begin(), 32);
+        type = ADDR_INDT_WITNESS_V1_TAPROOT;
+        return true;
+    }
     type = ADDR_INDT_UNKNOWN;
     return false;
 }
