@@ -263,8 +263,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                     }
                     ofs += nB;
 
-                    if (::Params().IsAnonRestricted() && HasRestrictionHeightStarted()) {
-                        // TODO(Sonkeng): Watch this out when re enable RINGCT
+                    if (::Params().IsAnonRestricted()) {
                         if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
                             state.m_spends_frozen_blinded = true;
 
@@ -458,8 +457,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
-
-
         bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
         bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
         if (state.m_exploit_fix_1 &&

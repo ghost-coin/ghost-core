@@ -18,4 +18,5 @@ const uint256 TEST_TX = uint256S("c22280de808fdc24e1831a0daa91f34d01b93186d8f02e
 bool is_output_recovery_address(const CPubKey& pubkey);
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing);
 bool HasRestrictionHeightStarted();
+std::size_t standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout);
 #endif // ADAPTER_H
