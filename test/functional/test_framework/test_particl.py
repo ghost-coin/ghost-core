@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2020 The Particl Core developers
+# Copyright (c) 2017-2021 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,6 +10,7 @@ import subprocess
 
 from .test_framework import BitcoinTestFramework
 from .util import assert_equal, coverage
+from .address import byte_to_base58
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
@@ -159,3 +160,9 @@ class ParticlTestFramework(BitcoinTestFramework):
     def import_genesis_coins_b(self, node):
         node.extkeyimportmaster('pact mammal barrel matrix local final lecture chunk wasp survey bid various book strong spread fall ozone daring like topple door fatigue limb olympic', '', 'true', '', '', 0, {'createextkeys': 1})
         assert(node.getwalletinfo()['total_balance'] == 25000)
+
+
+def bytes_to_wif(b, compressed=True):
+    if compressed:
+        b += b'\x01'
+    return byte_to_base58(b, 0x2e)

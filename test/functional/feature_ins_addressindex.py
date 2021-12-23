@@ -10,10 +10,10 @@
 
 import time
 
-from test_framework.test_particl import ParticlTestFramework
+from test_framework.test_particl import ParticlTestFramework, bytes_to_wif
 from test_framework.util import assert_equal
 from test_framework.script import taproot_construct
-from test_framework.key import generate_privkey, compute_xonly_pubkey
+from test_framework.key import generate_privkey, compute_xonly_pubkey, tweak_add_privkey
 from test_framework.segwit_addr import encode_segwit_address
 
 
@@ -347,7 +347,11 @@ class AddressIndexTest(ParticlTestFramework):
 
         secret_key = generate_privkey()
         internal_key = compute_xonly_pubkey(secret_key)[0]
-        scriptPubKey = taproot_construct(internal_key).scriptPubKey
+
+        tri = taproot_construct(internal_key)
+        scriptPubKey = tri.scriptPubKey
+        secret_key_tweaked = tweak_add_privkey(secret_key, tri.tweak)
+
         addr_sw_tr = encode_segwit_address("rtpw", 1, scriptPubKey[2:])
         addrs = (addr_sw_bech32, addr_sw_p2sh, addr_sw_tr)
 
@@ -369,6 +373,17 @@ class AddressIndexTest(ParticlTestFramework):
         nodes[2].sendrawtransaction(tx)
 
         mempool_deltas = nodes[2].getaddressmempool({'addresses': [addr_sw_bech32]})
+        assert_equal(len(mempool_deltas), 2)
+
+        utxo = mempool_txns[addr_sw_tr]
+        inputs = [{'txid': utxo[0]['txid'], 'vout': utxo[0]['index']}]
+        outputs = {nodes[0].getnewaddress(): 0.99}
+        tx = nodes[2].createrawtransaction(inputs, outputs)
+        options = {'taproot': {'0': {'output_pubkey': tri.output_pubkey.hex()}}}
+        tx = nodes[2].signrawtransactionwithkey(tx, [bytes_to_wif(secret_key)], [], 'DEFAULT', options)
+        nodes[2].sendrawtransaction(tx['hex'])
+
+        mempool_deltas = nodes[2].getaddressmempool({'addresses': [addr_sw_tr]})
         assert_equal(len(mempool_deltas), 2)
 
         pk0 = nodes[2].getaddressinfo(nodes[2].getnewaddress())['pubkey']

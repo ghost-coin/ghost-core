@@ -196,6 +196,11 @@ isminetype FillableSigningProvider::IsMine(const CKeyID &address) const
     return ISMINE_NO;
 }
 
+bool FillableSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const
+{
+    return LookupHelper(tr_spenddata, output_key, spenddata);
+}
+
 CKeyID GetKeyForDestination(const SigningProvider& store, const CTxDestination& dest)
 {
     // Only supports destinations which map to single public keys:

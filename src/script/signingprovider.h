@@ -166,6 +166,9 @@ public:
     virtual size_t CountKeys() const { LOCK(cs_KeyStore); return mapKeys.size(); };
 
     virtual isminetype IsMine(const CKeyID &address) const;
+
+    std::map<XOnlyPubKey, TaprootSpendData> tr_spenddata; /** Map from output key to spend data. */
+    bool GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const override;
 };
 
 /** Return the CKeyID of the key involved in a script (if there is a unique one). */

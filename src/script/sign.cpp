@@ -789,7 +789,7 @@ bool SignTransaction(CMutableTransaction& mtx, const SigningProvider* keystore, 
 
         SignatureData sigdata = DataFromTransaction(mtx, i, vchAmount, prevPubKey);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
-        if (!fHashSingle || (i < mtx.vout.size())) {
+        if (!fHashSingle || (i < mtx.GetNumVOuts())) {
             ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, vchAmount, &txdata, nHashType), prevPubKey, sigdata);
         }
 

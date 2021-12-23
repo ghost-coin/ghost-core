@@ -976,6 +976,19 @@ static RPCHelpMan signrawtransactionwithkey()
             "       \"NONE|ANYONECANPAY\"\n"
             "       \"SINGLE|ANYONECANPAY\"\n"
                     },
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "JSON object with options",
+                        {
+                            {"taproot", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "A JSON object of json objects, key is offset in privkeys of privkey info applies to",
+                                {
+                                    {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
+                                        {
+                                            {"output_pubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Output pubkey"},
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        "options"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
@@ -1033,6 +1046,43 @@ static RPCHelpMan signrawtransactionwithkey()
 
     // Parse the prevtxs array
     ParsePrevouts(request.params[2], &keystore, coins, mtx.IsCoinStake());
+
+    if (!request.params[4].isNull()) {
+        const UniValue &options = request.params[4].get_obj();
+
+        RPCTypeCheckObj(options,
+            {
+                {"taproot", UniValueType(UniValue::VOBJ)},
+            },
+            true, true);
+
+        if (options.exists("taproot")) {
+            const UniValue &taproot = options["taproot"].get_obj();
+
+            for (unsigned int idx = 0; idx < keys.size(); ++idx) {
+                const std::string str_idx = strprintf("%d",  idx);
+                if (!taproot.exists(str_idx)) {
+                    continue;
+                }
+                const UniValue &taproot_key_info = taproot[str_idx].get_obj();
+                UniValue k = keys[idx];
+                CKey internal_key = DecodeSecret(k.get_str());
+                XOnlyPubKey internal_pubkey{internal_key.GetPubKey()};
+                TaprootSpendData trs;
+                trs.internal_key = internal_pubkey;
+
+                if (taproot_key_info.exists("output_pubkey")) {
+                    std::string s = taproot_key_info["output_pubkey"].get_str();
+                    if (!IsHex(s) || !(s.size() == 64)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 32 bytes and hex encoded.");
+                    }
+                    std::vector<uint8_t> v = ParseHex(s);
+                    XOnlyPubKey output_pubkey{v};
+                    keystore.tr_spenddata[output_pubkey].Merge(trs);
+                }
+            }
+        }
+    }
 
     UniValue result(UniValue::VOBJ);
     SignTransaction(mtx, &keystore, coins, request.params[3], result);
