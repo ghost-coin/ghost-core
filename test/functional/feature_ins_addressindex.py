@@ -350,7 +350,6 @@ class AddressIndexTest(ParticlTestFramework):
 
         tri = taproot_construct(internal_key)
         scriptPubKey = tri.scriptPubKey
-        secret_key_tweaked = tweak_add_privkey(secret_key, tri.tweak)
 
         addr_sw_tr = encode_segwit_address("rtpw", 1, scriptPubKey[2:])
         addrs = (addr_sw_bech32, addr_sw_p2sh, addr_sw_tr)

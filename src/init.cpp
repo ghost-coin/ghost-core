@@ -1866,8 +1866,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     bool start_smsg_without_wallet = true;
     if (fParticlMode && gArgs.GetBoolArg("-smsg", true)) { // SMSG breaks functional tests with services flag, see version msg
 #ifdef ENABLE_WALLET
-        if (node.wallet_client && node.wallet_client->context()) {
-            auto vpwallets = GetWallets(*node.wallet_client->context());
+        if (node.wallet_loader && node.wallet_loader->context()) {
+            auto vpwallets = GetWallets(*node.wallet_loader->context());
             smsgModule.Start(vpwallets.size() > 0 ? vpwallets[0] : nullptr, vpwallets, gArgs.GetBoolArg("-smsgscanchain", false));
             start_smsg_without_wallet = false;
         }
@@ -2015,12 +2015,12 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     if (fParticlMode) {
         // Must recheck num_wallets as smsg may be disabled.
         size_t num_wallets = 0;
-        if (node.wallet_client && node.wallet_client->context()) {
-            auto vpwallets = GetWallets(*node.wallet_client->context());
+        if (node.wallet_loader && node.wallet_loader->context()) {
+            auto vpwallets = GetWallets(*node.wallet_loader->context());
             num_wallets = vpwallets.size();
         }
         if (num_wallets > 0) {
-            StartThreadStakeMiner(*node.wallet_client->context(), chainman);
+            StartThreadStakeMiner(*node.wallet_loader->context(), chainman);
         }
     }
 #endif

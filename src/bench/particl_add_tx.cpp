@@ -138,15 +138,15 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
     const auto context = util::AnyPtr<NodeContext>(&test_setup.m_node);
 
     std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain(test_setup.m_node);
-    std::unique_ptr<interfaces::WalletClient> wallet_client = interfaces::MakeWalletClient(*chain, *Assert(test_setup.m_node.args));
-    wallet_client->registerRpcs();
-    WalletContext& wallet_context = *wallet_client->context();
+    std::unique_ptr<interfaces::WalletLoader> wallet_loader = interfaces::MakeWalletLoader(*chain, *Assert(test_setup.m_node.args));
+    wallet_loader->registerRpcs();
+    WalletContext& wallet_context = *wallet_loader->context();
 
     ECC_Start_Stealth();
     ECC_Start_Blinding();
 
     std::unique_ptr<interfaces::Chain> m_chain = interfaces::MakeChain(test_setup.m_node);
-    std::unique_ptr<interfaces::ChainClient> m_chain_client = interfaces::MakeWalletClient(*m_chain, *Assert(test_setup.m_node.args));
+    std::unique_ptr<interfaces::ChainClient> m_chain_client = interfaces::MakeWalletLoader(*m_chain, *Assert(test_setup.m_node.args));
     m_chain_client->registerRpcs();
 
     std::shared_ptr<CHDWallet> pwallet_a = CreateTestWallet(wallet_context, "a");

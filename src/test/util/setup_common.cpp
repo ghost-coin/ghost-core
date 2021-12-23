@@ -217,6 +217,16 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
                              true);
     assert(!rv.has_value());
 
+    auto maybe_verify_failure = VerifyLoadedChainstate(
+        *Assert(m_node.chainman),
+        fReindex.load(),
+        m_args.GetBoolArg("-reindex-chainstate", false),
+        chainparams.GetConsensus(),
+        m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS),
+        m_args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL),
+        static_cast<int64_t(*)()>(GetTime));
+    assert(!maybe_verify_failure.has_value());
+
     BlockValidationState state;
     state.m_chainman = m_node.chainman.get();
     if (!m_node.chainman->ActiveChainstate().ActivateBestChain(state)) {
