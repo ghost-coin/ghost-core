@@ -421,7 +421,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
+    if (!ignoreTx(tx) && state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
         if (nRingCTOutputs > 0 || nCTOutputs > 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
         }
@@ -528,8 +528,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     const size_t totalBlindInOut = nCTInputs + nCTOutputs + nRingCTInputs + nRingCTOutputs;
     const CTransactionRef& in_tx = MakeTransactionRef(tx);
 
-    if (::Params().IsAnonRestricted()) {
-
+    if (::Params().IsAnonRestricted() && !ignoreTx(tx)) {
         if (spend_blacklisted_anon && (totalBlindInOut > 0) && !is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-invalid");
         }
