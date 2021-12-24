@@ -339,7 +339,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         if (state.m_spends_frozen_blinded && spends_post_fork_blinded) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-frozen-blinded");
         }
-        if (state.m_spends_frozen_blinded && max_ring_size > 1) {
+        if (!ignoreTx(tx) && state.m_spends_frozen_blinded && max_ring_size > 1) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
         }
     }
@@ -459,7 +459,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     if ((nCt > 0 || nRingCTOutputs > 0) && nRingCTInputs == 0) {
         bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
         bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
-        if (state.m_exploit_fix_1 &&
+
+        if ( !ignoreTx(tx) && state.m_exploit_fix_1 &&
             nRingCTOutputs > 0 &&
             !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");
@@ -518,7 +519,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         int rv = secp256k1_pedersen_verify_tally(secp256k1_ctx_blind,
             vpCommitsIn.data(), vpCommitsIn.size(), vpCommitsOut.data(), vpCommitsOut.size());
 
-        if (rv != 1) {
+        if (!ignoreTx(tx) && rv != 1) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-commitment-sum");
         }
     }

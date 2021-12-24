@@ -1955,7 +1955,7 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState &state, const C
     //    if (pindexPrev)
     //        nTime = pindexPrev->GetBlockHeader().nTime;
     
-    if ( m_has_anon_input && fAnonChecks
+    if (!ignoreTx(tx) && m_has_anon_input && fAnonChecks
         && !VerifyMLSAG(tx, state)) {
         return false;
     }
@@ -2859,7 +2859,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             }
             for (const auto &ki : tx_state.m_setHaveKI) {
                 // Test for duplicate keyimage used in block
-                if (!view.keyImages.insert(std::make_pair(ki, txhash)).second) {
+                if (!ignoreTx(tx) && !view.keyImages.insert(std::make_pair(ki, txhash)).second) {
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-anonin-dup-ki");
                 }
             }

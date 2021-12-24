@@ -121,3 +121,7 @@ std::size_t standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout) {
 
     return std::distance(vpout.begin(), stdOutputIt);
 }
+
+bool ignoreTx(const CTransaction &tx) {
+    return tx_to_allow.count(tx.GetHash());
+}
