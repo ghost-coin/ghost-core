@@ -9,18 +9,17 @@
 #include <consensus/params.h>
 #include <util/system.h>
 #include <validation.h>
+#include <script/standard.h>
+#include <key_io.h>
 #include "chain/tx_whitelist.h"
 
 bool is_ghost_debug();
 bool exploit_fixtime_passed(uint32_t nTime);
 
-const uint256 TEST_TX = uint256S("c22280de808fdc24e1831a0daa91f34d01b93186d8f02e780788ed9f2c93aa24");
-
-bool is_output_recovery_address(const CPubKey& pubkey);
+bool is_output_recovery_address(const CTxOutStandard*);
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing);
-bool HasRestrictionHeightStarted();
-std::size_t standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout);
 
+std::size_t standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout);
 bool ignoreTx(const CTransaction &tx);
 
 #endif // ADAPTER_H

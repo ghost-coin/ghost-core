@@ -20,9 +20,26 @@ bool exploit_fixtime_passed(uint32_t nTime)
     return false;
 }
 
-bool is_output_recovery_address(const std::string& dest) {
-    const std::string recoveryAddress = Params().GetRecoveryAddress();
-    return dest.find(recoveryAddress) != std::string::npos;
+bool is_output_recovery_address(const CTxOutStandard* standardOutput) {
+    const std::string& recoveryAddress = Params().GetRecoveryAddress();
+    std::vector<std::vector<unsigned char> > solutions;
+    const auto& recoveryAddr = CBitcoinAddress{recoveryAddress};
+
+    TxoutType txoutType = Solver(standardOutput->GetStandardOutput()->scriptPubKey, solutions);
+
+    if (txoutType != TxoutType::PUBKEYHASH || solutions.size() != 1U) {
+        return false;
+    }
+
+    CKeyID keyId;
+    if (recoveryAddr.GetKeyID(keyId)) {
+        if (solutions[0] != ToByteVector(keyId)) {
+            return false;
+        }
+    }else {
+        return false;
+    }
+    return true;
 }
 
 CAmount GetAllowedValueFraction(const CAmount value)
@@ -30,9 +47,6 @@ CAmount GetAllowedValueFraction(const CAmount value)
     return (value / 1000) * 995;
 }
 
-bool HasRestrictionHeightStarted() {
-    return ::ChainActive().Tip()->nHeight >= ::Params().GetConsensus().anonRestrictionStartHeight;
-}
 
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing)
 {
@@ -43,11 +57,7 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
     }
 
     if (totalRing > 0) {
-
         const uint256& txHash = tx->GetHash();
-        if (txHash == TEST_TX) {
-            return true;
-        }
 
         //! for restricted anon/blind spends
         //! no mixed component stakes allowed
@@ -97,11 +107,11 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
                 }
             }
         }
-    
+
         //! recovery address must receive 100% of the output amount
-        const auto standardOutput = tx->vpout[stdOutputIndex]->GetStandardOutput();
-        const std::string destTest = HexStr(standardOutput->GetStandardOutput()->scriptPubKey);
-        if (is_output_recovery_address(destTest)) {
+        const auto& standardOutput = tx->vpout[stdOutputIndex]->GetStandardOutput();
+
+        if (is_output_recovery_address(standardOutput)) {
             if (standardOutput->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
                 LogPrintf("Found recovery amount at vout.n #%d\n");
                 return true;
