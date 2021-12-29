@@ -117,12 +117,12 @@ int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const
 {
     int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
     return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
-};
+}
 
 int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const
 {
     return (smsg_fee_prev * consensus.smsg_fee_max_delta_percent) / 1000000;
-};
+}
 
 const TreasuryFundSettings *CChainParams::GetTreasuryFundSettings(int nHeight) const
 {
@@ -134,7 +134,7 @@ const TreasuryFundSettings *CChainParams::GetTreasuryFundSettings(int nHeight) c
     }
 
     return nullptr;
-};
+}
 
 bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn) const
 {
@@ -145,7 +145,7 @@ bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn)
     }
 
     return false;
-};
+}
 
 bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn, CChainParams::Base58Type &rtype) const
 {
@@ -158,7 +158,7 @@ bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn,
     }
 
     return false;
-};
+}
 
 bool CChainParams::IsBech32Prefix(const char *ps, size_t slen, CChainParams::Base58Type &rtype) const
 {
@@ -174,7 +174,7 @@ bool CChainParams::IsBech32Prefix(const char *ps, size_t slen, CChainParams::Bas
     }
 
     return false;
-};
+}
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {

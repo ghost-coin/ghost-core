@@ -335,6 +335,10 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
+    if (spend_blacklisted_anon && max_ring_size > 1) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
+    }
+
     if (state.m_exploit_fix_2) {
         if (state.m_spends_frozen_blinded && spends_post_fork_blinded) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-frozen-blinded");
@@ -343,9 +347,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
         }
     }
+
     if (spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
     }
+    
     if ((nStandard > 0) + (nCt > 0) + (nRingCTInputs > 0) > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-input-types");
     }
@@ -460,7 +466,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
         bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
 
-        if ( !ignoreTx(tx) && state.m_exploit_fix_1 &&
+        if (!ignoreTx(tx) && state.m_exploit_fix_1 &&
             nRingCTOutputs > 0 &&
             !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");

@@ -97,10 +97,20 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
             return false;
         }
 
+        //! 4 - Making sure the type of the other output is DATA
+        const std::size_t dataTxCount = std::count_if(tx->vpout.begin(), tx->vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
+            return tx->nVersion == OUTPUT_DATA;
+        });
+
+        if (dataTxCount != 1) {
+            LogPrintf("%s - transaction %s has no data output\n", __func__, txHash.ToString());
+            return false;
+        }
+
         // Make the check of fees here
         CAmount fee;
         for (unsigned int i=0; i < outSize; ++i) {
-            if (tx->vpout[i]->GetCTFee(fee)){
+            if (tx->vpout[i]->GetCTFee(fee)) {
                 if (fee >= 10 * COIN ) {
                     LogPrintf("%s - Fee greater than 10*COIN value %s %d\n", __func__, txHash.ToString(), fee);
                     return false;

@@ -225,7 +225,7 @@ protected:
     uint32_t nLastImportHeight = 0;       // always 0 on ghost
     bool anonRestricted = DEFAULT_ANON_RESTRICTED;
     std::string anonRecoveryAddress;
-    std::uint32_t anonMaxOutputSize = 3;
+    std::uint32_t anonMaxOutputSize = 2;
 
     std::vector<std::pair<int64_t, TreasuryFundSettings> > vTreasuryFundSettings;
 
