@@ -109,7 +109,7 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         }
 
         //! recovery address must receive 100% of the output amount
-        const auto& standardOutput = tx->vpout[stdOutputIndex]->GetStandardOutput();
+        const auto& standardOutput = tx->vpout[*stdOutputIndex]->GetStandardOutput();
 
         if (is_output_recovery_address(standardOutput)) {
             if (standardOutput->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
