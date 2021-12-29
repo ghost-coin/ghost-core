@@ -11,6 +11,7 @@
 #include <validation.h>
 #include <script/standard.h>
 #include <key_io.h>
+#include <optional>
 #include "chain/tx_whitelist.h"
 
 bool is_ghost_debug();
@@ -19,7 +20,7 @@ bool exploit_fixtime_passed(uint32_t nTime);
 bool is_output_recovery_address(const CTxOutStandard*);
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing);
 
-std::size_t standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout);
+std::optional<std::size_t> standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout);
 bool ignoreTx(const CTransaction &tx);
 
 #endif // ADAPTER_H

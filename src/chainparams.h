@@ -11,6 +11,7 @@
 #include <primitives/block.h>
 #include <chain.h>
 #include <protocol.h>
+#include <validation.h>
 
 #include <memory>
 #include <vector>
@@ -222,7 +223,7 @@ protected:
 
     std::array<int, 47> nBlockPerc; //reward percentage each year
     uint32_t nLastImportHeight = 0;       // always 0 on ghost
-    bool anonRestricted = false;
+    bool anonRestricted = DEFAULT_ANON_RESTRICTED;
     std::string anonRecoveryAddress;
     std::uint32_t anonMaxOutputSize = 3;
 

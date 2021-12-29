@@ -14,7 +14,6 @@
 #include <util/moneystr.h>
 #include <key/keyutil.h>
 #include <versionbitsinfo.h>
-#include <validation.h>
 #include <chain/chainparamsimport.h>
 
 #include <assert.h>
@@ -1048,8 +1047,6 @@ public:
         anonRecoveryAddress = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it";
         // Pubkey:  pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it
         // PrivKey: 7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU
-        anonMaxOutputSize = 3;
-
     }
 
     void SetOld()

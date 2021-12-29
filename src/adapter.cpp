@@ -25,33 +25,32 @@ bool is_output_recovery_address(const CTxOutStandard* standardOutput) {
     std::vector<std::vector<unsigned char> > solutions;
     const auto& recoveryAddr = CBitcoinAddress{recoveryAddress};
 
-    TxoutType txoutType = Solver(standardOutput->GetStandardOutput()->scriptPubKey, solutions);
+    const TxoutType txoutType = Solver(standardOutput->GetStandardOutput()->scriptPubKey, solutions);
 
     if (txoutType != TxoutType::PUBKEYHASH || solutions.size() != 1U) {
         return false;
     }
 
     CKeyID keyId;
-    if (recoveryAddr.GetKeyID(keyId)) {
-        if (solutions[0] != ToByteVector(keyId)) {
-            return false;
-        }
-    }else {
+
+    if (!recoveryAddr.GetKeyID(keyId)) {
+        LogPrintf("%s - Failed to get the keyId of the recovery address\n", __func__);
         return false;
     }
-    return true;
+
+    return solutions[0] == ToByteVector(keyId);
 }
 
 CAmount GetAllowedValueFraction(const CAmount value)
 {
-    return (value / 1000) * 995;
+    return value;
 }
 
 
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing)
 {
     static_assert(std::is_unsigned<decltype(totalRing)>::value, "totalRing is only treated for unsigned cases");
-    if(totalRing == 0)
+    if (totalRing == 0)
     {
         return true;
     }
@@ -91,8 +90,9 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         }
 
         //! 3 - Double check and get the standard output
-       auto stdOutputIndex = standardOutputIndex(tx->vpout);
-        if (!tx->vpout[stdOutputIndex]->IsStandardOutput() ){
+        std::optional<std::size_t> stdOutputIndex = standardOutputIndex(tx->vpout);
+
+        if (!stdOutputIndex || !tx->vpout[*stdOutputIndex]->IsStandardOutput()) {
             LogPrintf("%s - transaction %s has no standard output\n", __func__, txHash.ToString());
             return false;
         }
@@ -115,7 +115,7 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
             if (standardOutput->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
                 LogPrintf("Found recovery amount at vout.n #%d\n");
                 return true;
-            }else{
+            } else {
                 LogPrintf("%s Sending only #%d\n this will fail out of %d", __func__,  standardOutput->GetStandardOutput()->nValue, totalValue);
             }
         }
@@ -124,10 +124,14 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
 }
 
 
-std::size_t standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout) {
+std::optional<std::size_t> standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout) {
     auto stdOutputIt = std::find_if(vpout.begin(), vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
         return tx->IsStandardOutput();
     });
+
+    if (stdOutputIt == vpout.end()) {
+        return std::nullopt;
+    }
 
     return std::distance(vpout.begin(), stdOutputIt);
 }
