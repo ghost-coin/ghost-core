@@ -127,6 +127,9 @@ void EditAddressDialog::accept()
     {
         switch(model->getEditStatus())
         {
+        case AddressTableModel::RPC_ERROR:
+            // Failed with unknown reason. Just reject.
+            break;
         case AddressTableModel::OK:
             // Failed with unknown reason. Just reject.
             break;
