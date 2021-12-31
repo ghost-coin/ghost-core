@@ -13,7 +13,7 @@ import time
 from test_framework.test_particl import ParticlTestFramework, bytes_to_wif
 from test_framework.util import assert_equal
 from test_framework.script import taproot_construct
-from test_framework.key import generate_privkey, compute_xonly_pubkey, tweak_add_privkey
+from test_framework.key import generate_privkey, compute_xonly_pubkey
 from test_framework.segwit_addr import encode_segwit_address
 
 

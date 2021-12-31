@@ -4,29 +4,27 @@
 
 #include <consensus/tx_verify.h>
 
-#include <consensus/amount.h>
-#include <consensus/consensus.h>
-#include <primitives/transaction.h>
-#include <script/interpreter.h>
-#include <consensus/validation.h>
-#include <validation.h>
-#include <consensus/params.h>
-#include <chainparams.h>
-
-#include <timedata.h>
-#include <util/system.h>
-
-// TODO remove the following dependencies
 #include <chain.h>
 #include <coins.h>
+#include <consensus/amount.h>
+#include <consensus/consensus.h>
+#include <consensus/validation.h>
+#include <primitives/transaction.h>
+#include <script/interpreter.h>
 #include <util/moneystr.h>
 
 
 #include <policy/policy.h>
 
+
 // Particl dependencies
 #include <blind.h>
 #include <insight/balanceindex.h>
+#include <validation.h>
+#include <consensus/params.h>
+#include <chainparams.h>
+#include <timedata.h>
+#include <util/system.h>
 
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
