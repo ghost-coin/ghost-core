@@ -415,6 +415,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
 
         UniValue rv;
         if (!walletModel->tryCallRpc(sCommand, rv)) {
+            editStatus = RPC_ERROR;
             return QString();
         }
         return QString::fromStdString(rv.get_str());

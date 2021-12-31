@@ -17,6 +17,7 @@ Next Major Version
 - wallet:
   - Add minimum and maximumAmount to fundrawtransactionfrom and sendtypeto
   - Add includeWatching option to sendtypeto
+- qt: Fixed empty qr popup when trying to create stealth address from locked wallet.
 
 
 0.21.2.5
