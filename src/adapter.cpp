@@ -98,13 +98,16 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         }
 
         //! 4 - Making sure the type of the other output is DATA
-        const std::size_t dataTxCount = std::count_if(tx->vpout.begin(), tx->vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
-            return tx->nVersion == OUTPUT_DATA;
-        });
+        //! If the size is not one then it means there is another output to check
+        if (tx->vpout.size() != 1) {
+            const std::size_t dataTxCount = std::count_if(tx->vpout.begin(), tx->vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
+                return tx->nVersion == OUTPUT_DATA;
+            });
 
-        if (dataTxCount != 1) {
-            LogPrintf("%s - transaction %s has no data output\n", __func__, txHash.ToString());
-            return false;
+            if (dataTxCount != 1) {
+                LogPrintf("%s - transaction %s has no data output\n", __func__, txHash.ToString());
+                return false;
+            }
         }
 
         // Make the check of fees here

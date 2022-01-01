@@ -90,8 +90,12 @@ class ControlAnonTest3(GhostTestFramework):
         self.sync_all()
         receiving_addr = nodes[1].getnewaddress()
 
+        unspent = nodes[1].listunspentanon(0, 9999)
+        firstUnspent = unspent[0]
+        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
         # Sending a transaction from anon to ghost being inside node 1 will succeed
-        bad_anon_tx_txid = nodes[1].sendtypeto('anon', 'ghost', [{'address': receiving_addr, 'amount': 15, 'subfee': True}])
+        coincontrol = {'spend_frozen_blinded': True, 'inputs': inputs}
+        bad_anon_tx_txid = nodes[1].sendtypeto('anon', 'ghost', [{'address': receiving_addr, 'amount': firstUnspent['amount'], 'subfee': True}], '', '', 1, 1, False, coincontrol)
         self.stakeBlocks(1, 1, False)
         # The transaction succeeded inside node 1, but it won't inside node 0 because of the disabled anon-tx
         rawtx_bad_anon_txid = nodes[1].getrawtransaction(bad_anon_tx_txid)

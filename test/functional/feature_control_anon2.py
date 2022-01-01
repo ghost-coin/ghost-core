@@ -74,17 +74,20 @@ class ControlAnonTest2(GhostTestFramework):
         self.connect_nodes_bi(0, 1)
         receiving_addr = nodes[1].getnewaddress()
 
-        anon_balance = nodes[1].getwalletinfo()["anon_balance"]
+        unspent = nodes[1].listunspentanon(0, 9999)
+        firstUnspent = unspent[0]
+        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
+        coincontrol = {'spend_frozen_blinded': True, 'inputs': inputs}
 
         outputs = [{
             'address': receiving_addr,
             'type': 'standard',
-            'amount': anon_balance,
+            'amount': firstUnspent["amount"],
             'subfee': True
         }]
 
         # Anon is restricted but there are non blacklisted tx so this should pass
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False)
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
         assert_equal(self.wait_for_mempool(nodes[1], tx), True)
 
         # Now trying to spend to the recovery address, node 0 owns the recovery address
@@ -96,25 +99,22 @@ class ControlAnonTest2(GhostTestFramework):
         self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500', '-rescan'])
         self.connect_nodes_bi(0, 1)
 
-        nodes[0].importprivkey("7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU")
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
-
-        anon_balance = nodes[1].getwalletinfo()["anon_balance"]
-
-        assert_greater_than(anon_balance, 0)
+        unspent = nodes[1].listunspentanon(0, 9999)
+        firstUnspent = unspent[0]
+        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
 
         outputs = [{
             'address': recovery_addr,
             'type': 'standard',
-            'amount': anon_balance,
+            'amount': firstUnspent["amount"],
             'subfee': True
         }]
 
-        coincontrol = {'test_mempool_accept': True}
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
+        coincontrol = {'spend_frozen_blinded': True, 'test_mempool_accept': True, 'inputs': inputs}
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal( tx["mempool-allowed"], True)
-
-        # Sending less than 99.5% of blacklisted tx to recovery address and random amount to other address
+ 
         # This will fail due to the output size being greater than anonMaxOutputSize
 
         tx_to_blacklist = []
@@ -132,15 +132,12 @@ class ControlAnonTest2(GhostTestFramework):
         self.connect_nodes_bi(0, 1)
 
         self.sync_all()
-        nodes[0].importprivkey("7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU")
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
 
-        anon_balance = nodes[1].getwalletinfo()["anon_balance"]
-
-        assert_greater_than(anon_balance, 0)
-
-        amount_to_send_other = int(anon_balance * decimal.Decimal(0.90))
-        amount_to_send_recovery = int(anon_balance - amount_to_send_other)
+        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
+        
+        amount_to_send_other = int(firstUnspent["amount"] * decimal.Decimal(0.90))
+        amount_to_send_recovery = int(firstUnspent["amount"] - amount_to_send_other)
 
         outputs = [{
             'address': recovery_addr,
@@ -153,34 +150,43 @@ class ControlAnonTest2(GhostTestFramework):
         'amount': amount_to_send_other,
         'subfee': True
         }]
-        coincontrol = {'test_mempool_accept': True}
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
+
+        coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'inputs': inputs}
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-reject-reason"], "anon-blind-tx-invalid")
 
         # Sending 99.95% to recovery address
-        self.restart_nodes_with_anonoutputs()
+        tx_to_blacklist = []
+        lastanonindex = nodes[0].anonoutput()['lastindex']
+        while lastanonindex > 0:
+            tx_to_blacklist.append(lastanonindex)
+            lastanonindex -= 1
+
         self.stop_nodes()
+        self.setup_clean_chain = True
+        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
         self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
         self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
         # Node 0 holds the recovery addr private key
         self.sync_all()
-        nodes[0].importprivkey("7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU")
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
 
-        anon_balance = nodes[1].getwalletinfo()["anon_balance"]
-        assert_greater_than(anon_balance, 0)
+        unspent = nodes[1].listunspentanon(0, 9999)
+        firstUnspent = unspent[0]
+        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
+
 
         outputs = [{
             'address': recovery_addr,
             'type': 'standard',
-            'amount': anon_balance,
+            'amount': firstUnspent["amount"],
             'subfee': True
         }]
         
-        coincontrol = {'test_mempool_accept': True}
-        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', ring_size, 1, False, coincontrol)
+        coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'inputs': inputs}
+        tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-allowed"], True)
 
 if __name__ == '__main__':
