@@ -78,8 +78,6 @@ class ControlAnonTest(GhostTestFramework):
         nodes = self.nodes
         self.import_genesis_coins_a(nodes[0])
         self.import_genesis_coins_b(nodes[1])
-        ring_size = 3
-
         self.restart_nodes_with_anonoutputs()
 
         # Spending a blacklisted tx with fees greater than 10 * COIN and it should fail
