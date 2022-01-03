@@ -410,7 +410,8 @@ public:
         consensus.rct_time = 0x5D2DBC40;                // 2019-07-16 12:00:00 UTC
         consensus.smsg_difficulty_time = 0x5D2DBC40;    // 2019-07-16 12:00:00 UTC
         consensus.exploit_fix_1_time = 1614992554;      // 2021-03-06 01:00:00 GMT+8
-        consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
+        // Removed to make used of the default 0xffffffff 
+        // consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
         consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry 
         consensus.m_frozen_blinded_height = 884433;

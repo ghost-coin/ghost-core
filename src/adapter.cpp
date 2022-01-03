@@ -3,21 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include "adapter.h"
 
-bool is_ghost_debug() {
-    return gArgs.GetBoolArg("-ghostdebug", DEFAULT_GHOSTDEBUG);
-}
-
-bool exploit_fixtime_passed(uint32_t nTime)
-{
-    uint32_t testTime = Params().GetConsensus().exploit_fix_2_time;
-    if (nTime > testTime) {
-        if (is_ghost_debug())
-            LogPrintf("%s - returning true\n", __func__);
-        return true;
-    }
-    if (is_ghost_debug())
-        LogPrintf("%s - returning false\n", __func__);
-    return false;
+bool ignoreTx(const CTransaction &tx) {
+    return tx_to_allow.count(tx.GetHash());
 }
 
 bool is_output_recovery_address(const CTxOutStandard* standardOutput) {
@@ -90,7 +77,7 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         }
 
         //! 3 - Double check and get the standard output
-        std::optional<std::size_t> stdOutputIndex = standardOutputIndex(tx->vpout);
+        boost::optional<std::size_t> stdOutputIndex = standardOutputIndex(tx->vpout);
 
         if (!stdOutputIndex || !tx->vpout[*stdOutputIndex]->IsStandardOutput()) {
             LogPrintf("%s - transaction %s has no standard output\n", __func__, txHash.ToString());
@@ -134,21 +121,4 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         }
     }
     return false;
-}
-
-
-std::optional<std::size_t> standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout) {
-    auto stdOutputIt = std::find_if(vpout.begin(), vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
-        return tx->IsStandardOutput();
-    });
-
-    if (stdOutputIt == vpout.end()) {
-        return std::nullopt;
-    }
-
-    return std::distance(vpout.begin(), stdOutputIt);
-}
-
-bool ignoreTx(const CTransaction &tx) {
-    return tx_to_allow.count(tx.GetHash());
 }

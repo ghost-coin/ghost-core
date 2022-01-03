@@ -92,20 +92,17 @@ class ControlAnonTest(GhostTestFramework):
 
         tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
-        while lastanonindex > 0:
-            tx_to_blacklist.append(lastanonindex)
-            lastanonindex -= 1
+
+        for i in range(1, lastanonindex - 1):
+            tx_to_blacklist.append(i)
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
 
         self.stop_node(1, "Warning: -maxtxfee is set very high! Fees this large could be paid on a single transaction.")
         self.stop_node(0, "Warning: -maxtxfee is set very high! Fees this large could be paid on a single transaction.")
 
         # Attempt to spend a blacklisted tx to non-standard this will fail
-        # Node 0 has anonrestriction enabled and also has anon_index4 blacklisted
-
         self.start_node(0, ['-wallet=default_wallet', '-txindex', '-lastanonindex=100', '-blacklistedanon=' + tx_to_blacklist])
         self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=100', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
-
         self.connect_nodes_bi(0, 1)
 
         unspents = nodes[0].listunspentanon(1, 9999)
@@ -116,12 +113,24 @@ class ControlAnonTest(GhostTestFramework):
         coincontrol = {'spend_frozen_blinded': True, 'test_mempool_accept': True, 'inputs': inputs}
         outputs = [{'address': stealth_addr, 'amount': unspent2["amount"], 'subfee': True }]
         tx = nodes[0].sendtypeto('anon', 'anon', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
-        assert_equal(tx["mempool-reject-reason"], "anon-blind-tx-invalid")
+        assert_equal(tx["mempool-reject-reason"], "bad-txns-frozen-blinded-out")
 
         # Attempt to spend blacklisted tx with ringsize > 1 this will fail
         outputs = [{'address': stealth_addr, 'amount': unspent2["amount"], 'subfee': True }]
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
         assert_equal(tx["mempool-reject-reason"], "bad-frozen-ringsize")
+
+        # Spend non blacklisted tx and it will succeed
+        allowed_tx = nodes[0].anonoutput(output=str(lastanonindex))
+        inputs = [{'tx': allowed_tx["txnhash"], 'n': allowed_tx["n"]}]
+        amount = self.get_whole_amount_from_unspent(nodes[0], allowed_tx["txnhash"])
+
+        coincontrol = {'test_mempool_accept': True, 'inputs': inputs}
+        outputs = [{'address': nodes[1].getnewaddress(), 'amount': amount, 'subfee': True }]
+
+        tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
+        assert_equal(tx["mempool-allowed"], True)
+
 
 if __name__ == '__main__':
     ControlAnonTest().main()

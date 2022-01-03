@@ -14,13 +14,22 @@
 #include <optional>
 #include "chain/tx_whitelist.h"
 
-bool is_ghost_debug();
-bool exploit_fixtime_passed(uint32_t nTime);
 
 bool is_output_recovery_address(const CTxOutStandard*);
 bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing);
 
-std::optional<std::size_t> standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout);
+inline boost::optional<std::size_t> standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout) {
+    auto stdOutputIt = std::find_if(vpout.begin(), vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
+        return tx->IsStandardOutput();
+    });
+
+    if (stdOutputIt == vpout.end()) {
+        return boost::none;
+    }
+
+    return std::distance(vpout.begin(), stdOutputIt);
+}
+
 bool ignoreTx(const CTransaction &tx);
 
 #endif // ADAPTER_H

@@ -264,14 +264,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                     ofs += nB;
 
                     if (::Params().IsAnonRestricted()) {
-                        if (nIndex <= state.m_consensus_params->m_frozen_anon_index) {
+                        if (::Params().IsBlacklistedAnonOutput(nIndex)) {
+                            // Spending blacklisted output
                             state.m_spends_frozen_blinded = true;
-
-                            if (::Params().IsBlacklistedAnonOutput(nIndex)) {
-                                spend_blacklisted_anon = true;
-                            }
-                        } else {
-                            spends_post_fork_blinded = true;
                         }
                     }
                 }
@@ -315,15 +310,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                 vpCommitsIn.push_back(&coin.commitment);
                 nCt++;
 
-                if (coin.nHeight <= state.m_consensus_params->m_frozen_blinded_height) {
-                    state.m_spends_frozen_blinded = true;
-                    if (IsFrozenBlindOutput(prevout.hash)) {
-                        spends_tainted_blinded = true;
-                    }
-                } else {
-                    spends_post_fork_blinded = true;
-                }
-
             } else {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-input-type");
             }
@@ -335,7 +321,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (spend_blacklisted_anon && max_ring_size > 1) {
+    if (state.m_spends_frozen_blinded && max_ring_size > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
     }
 
@@ -426,7 +412,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
         }
     }
-
+    
     if (!ignoreTx(tx) && state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
         if (nRingCTOutputs > 0 || nCTOutputs > 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
@@ -534,8 +520,13 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     const size_t totalBlindInOut = nCTInputs + nCTOutputs + nRingCTInputs + nRingCTOutputs;
     const CTransactionRef& in_tx = MakeTransactionRef(tx);
 
-    if (::Params().IsAnonRestricted() && !ignoreTx(tx)) {
-        if (spend_blacklisted_anon && (totalBlindInOut > 0) && !is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
+    if (::Params().IsAnonRestricted() && state.m_spends_frozen_blinded && !ignoreTx(tx)) {
+
+        if (nRingCTOutputs > 0 || nCTOutputs > 0) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
+        }
+
+        if (!is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-invalid");
         }
     }

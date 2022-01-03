@@ -172,6 +172,7 @@ class ControlAnonTest2(GhostTestFramework):
         # Node 0 holds the recovery addr private key
         self.sync_all()
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
+        non_recovery_addr = nodes[1].getnewaddress()
 
         unspent = nodes[1].listunspentanon(0, 9999)
         firstUnspent = unspent[0]
@@ -185,7 +186,20 @@ class ControlAnonTest2(GhostTestFramework):
             'subfee': True
         }]
         
+        non_recovery_outputs = [{
+            'address': non_recovery_addr,
+            'type': 'standard',
+            'amount': firstUnspent["amount"],
+            'subfee': True
+        }]
+
         coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'inputs': inputs}
+
+        # First attempt to spend it to non recovery address
+        tx_to_non_recov = nodes[1].sendtypeto('anon', 'part', non_recovery_outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
+        assert_equal(tx_to_non_recov["mempool-reject-reason"], "anon-blind-tx-invalid")
+
+        # Now spend to recovery address this should succeed
         tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-allowed"], True)
 
