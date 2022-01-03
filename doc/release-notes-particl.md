@@ -84,8 +84,15 @@ Next Major Version
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.19
+==============
+
+- qt: Fix abandon transaction button greyed out for record txns.
+
+
 0.19.2.18
 ==============
+
 - qt: Include immature anon balance in overview total.
 - rpc: Use WordToType in fundrawtransactionfrom.
 - rpc: smsgdebug dumpids path is hardcoded and will skip expired smsges by default.
@@ -97,6 +104,7 @@ Next Major Version
 
 0.19.2.17
 ==============
+
 - smsg: Prefer selecting confirmed inputs for funding txns.
 - net: Ignore smsg for peers with connection type one shot or feeler.
 - smsg: Fund multiple messages per txn.
@@ -116,7 +124,8 @@ Next Major Version
 
 0.19.2.16
 ==============
-- Limited automatic rollbackrctindex attempt to one try.
+
+- Limited automatic rollbackrctindex to one attempt.
 - wallet: listunspentanon default minimum output value set to 1sat.
   - Excludes 0 value change outputs.
 - Fixed VerifyDB at -checklevel=4

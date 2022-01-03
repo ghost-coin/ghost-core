@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12521,7 +12521,20 @@ std::set<uint256> CHDWallet::GetConflicts(const uint256 &txid) const
     return CWallet::GetConflicts(txid);
 }
 
-/* Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
+bool CHDWallet::TransactionCanBeAbandoned(const uint256& hashTx) const
+{
+    LOCK(cs_wallet);
+
+    MapRecords_t::const_iterator mri;
+    if ((mri = mapRecords.find(hashTx)) != mapRecords.end()) {
+        const CTransactionRecord &rtx = mri->second;
+        return !rtx.IsAbandoned() && GetDepthInMainChain(rtx) == 0 && !InMempool(hashTx);
+    }
+
+    const CWalletTx* wtx = GetWalletTx(hashTx);
+    return wtx && !wtx->isAbandoned() && GetTxDepthInMainChain(*wtx) == 0 && !wtx->InMempool();
+}
+
 bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
 {
     LOCK(cs_wallet);
