@@ -1230,7 +1230,7 @@ public:
     void SetBroadcastTransactions(bool broadcast) { fBroadcastTransactions = broadcast; }
 
     /** Return whether transaction can be abandoned */
-    bool TransactionCanBeAbandoned(const uint256& hashTx) const;
+    virtual bool TransactionCanBeAbandoned(const uint256& hashTx) const;
 
     /* Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
     virtual bool AbandonTransaction(const uint256& hashTx);
