@@ -198,7 +198,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     state.m_spends_frozen_blinded = false;
     state.m_setHaveKI.clear();  // Pass keyimages through state to add to db
     bool spends_tainted_blinded = false;  // If true limit max plain output
-    bool spends_post_fork_blinded = false;
     bool spend_blacklisted_anon = false;
 
     if (!state.m_consensus_params) {
@@ -268,8 +267,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                         if (::Params().IsBlacklistedAnonOutput(nIndex)) {
                             // Spending blacklisted output
                             state.m_spends_frozen_blinded = true;
-                        }else {
-                            spends_post_fork_blinded = true;
                         }
                     }
                 }
