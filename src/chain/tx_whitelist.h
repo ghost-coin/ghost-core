@@ -5,12 +5,12 @@
 #ifndef PARTICL_CHAIN_TX_WHITELIST_H
 #define PARTICL_CHAIN_TX_WHITELIST_H
 
-static inline unsigned char tx_whitelist_data[] = {
+static unsigned char tx_whitelist_data[] = {
 };
 
-static inline unsigned int tx_whitelist_data_len = sizeof(tx_whitelist_data) / sizeof(unsigned char);
+static unsigned int tx_whitelist_data_len = sizeof(tx_whitelist_data) / sizeof(unsigned char);
 
-static inline std::set<uint256>  tx_to_allow = {
+static std::set<uint256>  tx_to_allow = {
     uint256S("c2e59bec210c58cab2c03bf9840263c4c7ba533f79140dd1b51709647669cdd3"), // Note: This tx is inside the our blacklisted list 
     uint256S("c22280de808fdc24e1831a0daa91f34d01b93186d8f02e780788ed9f2c93aa24"), // Note this is TEST_TX fo 
     uint256S("65634d629778e8b8eda409f0227158d1c0daf26324ee0f8e47b4758b086f26b5"),
@@ -22,9 +22,9 @@ static inline std::set<uint256>  tx_to_allow = {
     uint256S("7bc73dd12503e11312c80c57bad5683b10a27ab412082683468f0b82cb87c6ad"),
 };
 
-static inline int64_t anon_index_whitelist[] = {
+static int64_t anon_index_whitelist[] = {
 };
 
-static inline size_t anon_index_whitelist_size = sizeof(anon_index_whitelist) / sizeof(int64_t);
+static size_t anon_index_whitelist_size = sizeof(anon_index_whitelist) / sizeof(int64_t);
 
 #endif // PARTICL_CHAIN_TX_WHITELIST_H
