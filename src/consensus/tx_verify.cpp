@@ -412,7 +412,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
     
-    if (!ignoreTx(tx) && state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
+    if (state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
         if (nRingCTOutputs > 0 || nCTOutputs > 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
         }
@@ -451,7 +451,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX;
         bool default_accept_blind = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_BLIND_TX;
 
-        if (!ignoreTx(tx) && state.m_exploit_fix_1 &&
+        if (state.m_exploit_fix_1 &&
             nRingCTOutputs > 0 &&
             !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");
