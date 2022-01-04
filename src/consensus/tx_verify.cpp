@@ -328,18 +328,14 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
     }
 
-    if (state.m_exploit_fix_2) {
-        if (state.m_spends_frozen_blinded && spends_post_fork_blinded) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-frozen-blinded");
-        }
-        if (!ignoreTx(tx) && state.m_spends_frozen_blinded && max_ring_size > 1) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
-        }
-    }
-
-    if (!::Params().IsMockableChain() && spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
+    // Ring size enforcement just like the one from particl below that we can enable later
+    if (!state.m_spends_frozen_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
     }
+
+    // if ( spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
+    //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
+    // }
     
     if ((nStandard > 0) + (nCt > 0) + (nRingCTInputs > 0) > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-input-types");
