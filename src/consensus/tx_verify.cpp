@@ -267,6 +267,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                         if (::Params().IsBlacklistedAnonOutput(nIndex)) {
                             // Spending blacklisted output
                             state.m_spends_frozen_blinded = true;
+                        }else {
+                            spends_post_fork_blinded = true;
                         }
                     }
                 }
@@ -334,7 +336,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
+    if (!::Params().IsMockableChain() && spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
     }
     

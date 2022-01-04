@@ -11,7 +11,6 @@
 #include <validation.h>
 #include <script/standard.h>
 #include <key_io.h>
-#include <optional>
 #include "chain/tx_whitelist.h"
 
 
