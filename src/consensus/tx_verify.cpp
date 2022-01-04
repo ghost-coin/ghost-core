@@ -336,7 +336,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     // if (spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
     //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
     // }
-    
+
     if ((nStandard > 0) + (nCt > 0) + (nRingCTInputs > 0) > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-input-types");
     }
@@ -411,7 +411,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
         }
     }
-    
+
     if (state.m_exploit_fix_2 && state.m_spends_frozen_blinded) {
         if (nRingCTOutputs > 0 || nCTOutputs > 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
@@ -464,7 +464,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         if (!state.m_exploit_fix_1 && nCt == 0) {
             return true;  // Match bugged path to sync early blocks
         }
-        
+
         nPlainValueOut += txfee;
         if (!MoneyRange(nPlainValueOut)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-out-outofrange");
@@ -525,8 +525,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-frozen-blinded-out");
         }
 
-        if (!is_anonblind_transaction_ok(in_tx, totalBlindInOut)) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "anon-blind-tx-invalid");
+        std::string error;
+        if (!is_anonblind_transaction_ok(in_tx, totalBlindInOut, error)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, error);
         }
     }
 

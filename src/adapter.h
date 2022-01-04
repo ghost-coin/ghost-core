@@ -15,7 +15,7 @@
 
 
 bool is_output_recovery_address(const CTxOutStandard*);
-bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing);
+bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRing, std::string& errorMsg);
 
 inline boost::optional<std::size_t> standardOutputIndex(const std::vector<CTxOutBaseRef>& vpout) {
     auto stdOutputIt = std::find_if(vpout.begin(), vpout.end(), [](const std::shared_ptr<CTxOutBase>& tx){
