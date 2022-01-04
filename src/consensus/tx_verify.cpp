@@ -136,9 +136,10 @@ unsigned int GetLegacySigOpCount(const CTransaction& tx)
     for (const auto &txout : tx.vpout)
     {
         const CScript *pScriptPubKey = txout->GetPScriptPubKey();
-        if (pScriptPubKey)
+        if (pScriptPubKey) {
             nSigOps += pScriptPubKey->GetSigOpCount(false);
-    };
+        }
+    }
     return nSigOps;
 }
 
