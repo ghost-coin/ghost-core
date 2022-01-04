@@ -210,8 +210,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     if (!state.m_consensus_params) {
         state.m_consensus_params = &::Params().GetConsensus();
     }
-    size_t min_ring_size = state.m_consensus_params->m_max_ringsize;
-    size_t max_ring_size = state.m_consensus_params->m_min_ringsize;
+    // Track the least and greatest ring sizes used in the transaction
+    size_t min_ring_size_count = state.m_consensus_params->m_max_ringsize;
+    size_t max_ring_size_count = state.m_consensus_params->m_min_ringsize;
 
     bool is_particl_tx = tx.IsParticlVersion();
     if (is_particl_tx && tx.vin.size() < 1) { // early out
@@ -245,11 +246,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if (nRingSize < state.m_consensus_params->m_min_ringsize || nRingSize > state.m_consensus_params->m_max_ringsize) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
             }
-            if (min_ring_size > nRingSize) {
-                min_ring_size = nRingSize;
+            if (min_ring_size_count > nRingSize) {
+                min_ring_size_count = nRingSize;
             }
-            if (max_ring_size < nRingSize) {
-                max_ring_size = nRingSize;
+            if (max_ring_size_count < nRingSize) {
+                max_ring_size_count = nRingSize;
             }
 
             size_t ofs = 0, nB = 0;
@@ -345,11 +346,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         if (state.m_spends_frozen_blinded && spends_post_fork_blinded) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "mixed-frozen-blinded");
         }
-        if (state.m_spends_frozen_blinded && max_ring_size > 1) {
+        if (state.m_spends_frozen_blinded && max_ring_size_count > 1) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
         }
     }
-    if (spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
+    if (spends_post_fork_blinded && min_ring_size_count < state.m_consensus_params->m_min_ringsize_post_hf2) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
     }
     if ((nStandard > 0) + (nCt > 0) + (nRingCTInputs > 0) > 1) {
