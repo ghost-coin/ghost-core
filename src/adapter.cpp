@@ -66,7 +66,7 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
         //! 1 - Check of the output size
         const unsigned int outSize = tx->vpout.size();
         if (outSize > Params().GetAnonMaxOutputSize()) {
-            LogPrintf("%s - transaction %s has more than 3 outputs total %d\n", __func__, txHash.ToString(), outSize);
+            LogPrintf("%s - transaction %s has more than %s outputs total %d\n", __func__, txHash.ToString(), std::to_string(Params().GetAnonMaxOutputSize()), outSize);
             errorMsg = "bad-frozen-spend-toomany-outputs";
             return false;
         }
