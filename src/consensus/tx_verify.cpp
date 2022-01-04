@@ -329,9 +329,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     }
 
     // Ring size enforcement just like the one from particl below that we can enable later
-    if (!state.m_spends_frozen_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
-    }
+    // if (!state.m_spends_frozen_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
+    //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
+    // }
 
     // if (spends_post_fork_blinded && min_ring_size < state.m_consensus_params->m_min_ringsize_post_hf2) {
     //     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
