@@ -153,7 +153,7 @@ class ControlAnonTest2(GhostTestFramework):
 
         coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'inputs': inputs}
         tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
-        assert_equal(tx["mempool-reject-reason"], "anon-blind-tx-invalid")
+        assert_equal(tx["mempool-reject-reason"], "bad-frozen-spend-toomany-outputs")
 
         # Sending 99.95% to recovery address
         tx_to_blacklist = []
@@ -197,9 +197,10 @@ class ControlAnonTest2(GhostTestFramework):
 
         # First attempt to spend it to non recovery address
         tx_to_non_recov = nodes[1].sendtypeto('anon', 'part', non_recovery_outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
-        assert_equal(tx_to_non_recov["mempool-reject-reason"], "anon-blind-tx-invalid")
+        assert_equal(tx_to_non_recov["mempool-reject-reason"], "bad-frozen-spend-to-non-recovery")
 
         # Now spend to recovery address this should succeed
+        outputs[0]["amount"] = firstUnspent["amount"]
         tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-allowed"], True)
 

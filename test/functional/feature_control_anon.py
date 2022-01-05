@@ -17,7 +17,7 @@ class ControlAnonTest(GhostTestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 2
 
-        self.extra_args = [['-debug', '-anonrestricted=0', '-lastanonindex=0', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
+        self.extra_args = [['-debug', '-anonrestricted=0', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -39,6 +39,7 @@ class ControlAnonTest(GhostTestFramework):
             unspent_fil_node0 = nodes[0].listunspentanon(0, 9999, [node0_receiving_addr])
             if len(unspent_fil_node0) < ring_size * len(unspent_filtered_node1):
                 nodes[0].sendghosttoanon(node0_receiving_addr, 1000, '', '', False, 'node0 -> node1 p->a')
+                nodes[0].sendghosttoanon(node0_receiving_addr, 6, '', '', False, 'node0 -> node1 p->a')
                 self.stakeBlocks(4)
             else:
                 break
@@ -69,10 +70,26 @@ class ControlAnonTest(GhostTestFramework):
 
         self.stop_nodes()
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
-        self.start_node(0, ['-wallet=default_wallet', '-maxtxfee=30', '-rescan', '-debug', '-anonrestricted=0',  '-txindex', '-lastanonindex=100'])
-        self.start_node(1, ['-wallet=default_wallet', '-maxtxfee=30', '-rescan', '-debug', '-lastanonindex=100',  '-txindex', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-maxtxfee=30', '-rescan', '-debug', '-anonrestricted=0',  '-txindex'])
+        self.start_node(1, ['-wallet=default_wallet', '-maxtxfee=30', '-rescan', '-debug', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
         self.sync_all()
+
+    def get_input_with_five(self, node, to_exclude_tx = None):
+        unspents = node.listunspentanon(0, 9999)
+        for unspent in unspents:
+            if to_exclude_tx:
+                if unspent["amount"] <= 6 and unspent["txid"] != to_exclude_tx:
+                    return unspent
+            else:
+                if unspent["amount"] <= 6:
+                    return unspent
+
+        return False
+
+    def is_unspent_eq_to_allow(self, unspent_txid, anon_details):
+        return unspent_txid == anon_details["txnhash"]
+
 
     def run_test(self):
         nodes = self.nodes
@@ -88,12 +105,12 @@ class ControlAnonTest(GhostTestFramework):
         coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'feeRate': 30, 'inputs': inputs}
         outputs = [{'address': recovery_addr, 'amount': unspent_tx["amount"], 'subfee': True}]
         tx = nodes[1].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
-        assert_equal(tx["mempool-reject-reason"], "anon-blind-tx-invalid")
+        assert_equal(tx["mempool-reject-reason"], "bad-frozen-spend-fee-toolarge")
 
         tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
 
-        for i in range(1, lastanonindex - 1):
+        for i in range(1, lastanonindex):
             tx_to_blacklist.append(i)
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
 
@@ -101,12 +118,18 @@ class ControlAnonTest(GhostTestFramework):
         self.stop_node(0, "Warning: -maxtxfee is set very high! Fees this large could be paid on a single transaction.")
 
         # Attempt to spend a blacklisted tx to non-standard this will fail
-        self.start_node(0, ['-wallet=default_wallet', '-txindex', '-lastanonindex=100', '-blacklistedanon=' + tx_to_blacklist])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=100', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(1, ['-wallet=default_wallet', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
         unspents = nodes[0].listunspentanon(1, 9999)
         unspent2 = unspents[0]
+
+        last_index_details = nodes[0].anonoutput(output=str(lastanonindex))
+
+        if self.is_unspent_eq_to_allow(unspent2["txid"], last_index_details):
+            unspent2 = unspents[1]
+
         inputs = [{'tx': unspent2["txid"], 'n': unspent2["vout"]}]
 
         stealth_addr = nodes[1].getnewstealthaddress()
@@ -120,17 +143,28 @@ class ControlAnonTest(GhostTestFramework):
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
         assert_equal(tx["mempool-reject-reason"], "bad-frozen-ringsize")
 
-        # Spend non blacklisted tx and it will succeed
+        # Spending less than 5 * COIN to recovery this will fail with bad-frozen-spend-toosmall
+        input_with_five_amount = self.get_input_with_five(nodes[0])
+        if self.is_unspent_eq_to_allow(input_with_five_amount["txid"], last_index_details):
+            input_with_five_amount = self.get_input_with_five(nodes[0], input_with_five_amount["txid"])
+
+        inputs = [{'tx': input_with_five_amount["txid"], 'n': input_with_five_amount["vout"]}]
+        coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'inputs': inputs}
+        outputs = [{'address': recovery_addr, 'amount': input_with_five_amount["amount"], 'subfee': True}]
+        tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
+        assert_equal(tx["mempool-reject-reason"], "bad-frozen-spend-toosmall")
+
+        # Make sure here that the selected unspent is not the one we're not blacklisting
+        # Spend non-blacklisted tx and it will succeed
         allowed_tx = nodes[0].anonoutput(output=str(lastanonindex))
         inputs = [{'tx': allowed_tx["txnhash"], 'n': allowed_tx["n"]}]
         amount = self.get_whole_amount_from_unspent(nodes[0], allowed_tx["txnhash"])
 
         coincontrol = {'test_mempool_accept': True, 'inputs': inputs}
-        outputs = [{'address': nodes[1].getnewaddress(), 'amount': amount, 'subfee': True }]
+        outputs = [{'address': nodes[1].getnewaddress(), 'amount': amount, 'subfee': True}]
 
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-allowed"], True)
-
 
 if __name__ == '__main__':
     ControlAnonTest().main()

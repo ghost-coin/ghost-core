@@ -17,7 +17,7 @@ class ControlAnonTest2(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [['-debug', '-anonrestricted=0', '-lastanonindex=100', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1' ] for i in range(self.num_nodes)]
+        self.extra_args = [['-debug', '-anonrestricted=0', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1' ] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -52,16 +52,16 @@ class ControlAnonTest2(GhostTestFramework):
     def restart_nodes_with_anonoutputs(self):
         nodes = self.nodes
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=100', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=100', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
+        self.start_node(0, ['-wallet=default_wallet',  '-debug', '-anonrestricted=0'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0'])
         self.connect_nodes_bi(0, 1)
         node1_receiving_addr = nodes[1].getnewstealthaddress()
         node0_receiving_addr = nodes[0].getnewstealthaddress()
         self.init_nodes_with_anonoutputs(nodes, node1_receiving_addr, node0_receiving_addr, 1)
         self.stop_nodes()
 
-        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=100', '-debug'])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=100', '-debug'])
+        self.start_node(0, ['-wallet=default_wallet', '-debug'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug'])
         self.connect_nodes_bi(0, 1)
         self.sync_all()
     
@@ -87,12 +87,18 @@ class ControlAnonTest2(GhostTestFramework):
         anon_index2 = last_anon_index - 1
         anon_index3 = anon_index2 - 1
         anon_index4 = anon_index3 - 1
+        tx_to_blacklist = []
+
+        for i in range(1, last_anon_index):
+            tx_to_blacklist.append(i)
+        tx_to_blacklist.append(last_anon_index)
+        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
 
         # 1 - Try to spend from blacklisted txs inside node 0 and it will be rejected
         # Restart node 0 with last_anon_index, anon_index2 blacklisted
         self.stop_node(0)
-        tx_to_blacklist = str(last_anon_index) + ',' + str(anon_index2) + ',' + str(anon_index3) + ',' + str(anon_index4)
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=100', '-blacklistedanon='+ tx_to_blacklist])
+
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-blacklistedanon='+ tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
         self.sync_all()
 
@@ -102,13 +108,13 @@ class ControlAnonTest2(GhostTestFramework):
         coincontrol = {'spend_frozen_blinded': True, 'test_mempool_accept': True, 'inputs': inputs}
         outputs = [{'address': sxAddrTo0_1, 'amount': firstUnspent["amount"], 'subfee': True}]
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
-        assert_equal(tx["mempool-reject-reason"], "anon-blind-tx-invalid")
+        assert_equal(tx["mempool-reject-reason"], "bad-frozen-spend-to-non-recovery")
 
         # 2 - Create a transaction inside node 0 which has no blacklists and submit it to node 1 which has blacklists
         # It will fail because we are not sending the 100% of the amount to the recovery addr
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-txindex', '-lastanonindex=100'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=100', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-txindex'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
 
         self.connect_nodes_bi(0, 1)
         self.sync_all() 
@@ -123,7 +129,7 @@ class ControlAnonTest2(GhostTestFramework):
         self.stakeBlocks(1, 0, False)
 
         hex_blacklisted_tx_node0 = nodes[0].getrawtransaction(tx2)
-        assert_raises_rpc_error(None, "anon-blind-tx-invalid", nodes[1].sendrawtransaction, hex_blacklisted_tx_node0)
+        assert_raises_rpc_error(None, "bad-frozen-spend-to-non-recovery", nodes[1].sendrawtransaction, hex_blacklisted_tx_node0)
 
         # Attempt now to spend blacklisted tx to recovery address and should succeed
         # node 0 holds the recovery address priv/pub key
