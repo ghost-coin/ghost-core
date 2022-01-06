@@ -14,8 +14,8 @@ from test_framework.util import (
 class ControlAnonTest3(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 2
-        self.extra_args = [['-debug', '-anonrestricted=0', '-lastanonindex=0', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
+        self.num_nodes = 4
+        self.extra_args = [['-debug', '-anonrestricted=0', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -24,6 +24,7 @@ class ControlAnonTest3(GhostTestFramework):
         self.add_nodes(self.num_nodes, extra_args=self.extra_args)
         self.start_nodes()
         self.connect_nodes_bi(0, 1)
+        self.connect_nodes_bi(2, 3)
         self.sync_all()
 
     def init_nodes_with_anonoutputs(self, nodes, node1_receiving_addr, node0_receiving_addr, ring_size):
@@ -44,9 +45,13 @@ class ControlAnonTest3(GhostTestFramework):
     def restart_nodes_with_anonoutputs(self):
         nodes = self.nodes
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0'])
+        self.start_node(2, ['-wallet=default_wallet', '-debug', '-anonrestricted=0'])
+        self.start_node(3, ['-wallet=default_wallet', '-debug', '-anonrestricted=0'])
+
         self.connect_nodes_bi(0, 1)
+        self.connect_nodes_bi(2, 3)
         node1_receiving_addr = nodes[1].getnewstealthaddress()
         node0_receiving_addr = nodes[0].getnewstealthaddress()
         self.init_nodes_with_anonoutputs(nodes, node1_receiving_addr, node0_receiving_addr, 3)
@@ -54,7 +59,11 @@ class ControlAnonTest3(GhostTestFramework):
 
         self.start_node(0, ['-wallet=default_wallet', '-debug'])
         self.start_node(1, ['-wallet=default_wallet', '-debug'])
+        self.start_node(2, ['-wallet=default_wallet', '-debug'])
+        self.start_node(3, ['-wallet=default_wallet', '-debug'])
+
         self.connect_nodes_bi(0, 1)
+        self.connect_nodes_bi(2, 3)
         self.sync_all()
 
     def run_test(self):
@@ -67,8 +76,43 @@ class ControlAnonTest3(GhostTestFramework):
         self.import_genesis_coins_a(nodes[0])
         self.import_genesis_coins_b(nodes[1])
      
-        # Restart the nodes with some anon index
-        self.restart_nodes_with_anonoutputs()
+        self.stop_nodes()
+
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1'])
+
+        self.start_node(2, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1'])
+        self.start_node(3, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1'])
+
+        self.connect_nodes_bi(0, 1)
+        self.connect_nodes_bi(2, 3)
+        self.sync_all()
+        receiving_addr = nodes[1].getnewaddress()
+
+        anon_tx_txid0 = nodes[0].sendtypeto('ghost', 'anon', nodes[1].getnewstealthaddress(), 600, '', '', False, 'node0 -> node1 p->a')
+        self.wait_for_mempool(nodes[0], anon_tx_txid0)
+        self.stakeBlocks(1, 1, False)
+        self.stakeBlocks(1, 0, False)
+        self.sync_all([nodes[1], nodes[0]])
+
+        unspent = nodes[1].listunspentanon(0, 9999)
+
+        while len(unspent) < 1:
+            unspent = nodes[1].listunspentanon(0, 9999)
+            anon_tx_txid0 = nodes[0].sendtypeto('ghost', 'anon', nodes[1].getnewstealthaddress(), 600, '', '', False,
+                                                'node0 -> node1 p->a')
+            self.wait_for_mempool(nodes[0], anon_tx_txid0)
+            self.stakeBlocks(1, 1, False)
+            self.stakeBlocks(1, 0, False)
+            self.sync_all([nodes[1], nodes[0]])
+
+        firstUnspent = unspent[0]
+        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
+        # Sending a transaction from anon to ghost being inside node 1 will succeed
+        coincontrol = {'spend_frozen_blinded': True, 'inputs': inputs}
+        bad_anon_tx_txid = nodes[1].sendtypeto('anon', 'ghost', [{'address': receiving_addr, 'amount': firstUnspent['amount'], 'subfee': True}], '', '', 1, 1, False, coincontrol)
+        self.stakeBlocks(1, 1, False)
+        self.sync_mempools()
 
         tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
@@ -76,37 +120,23 @@ class ControlAnonTest3(GhostTestFramework):
             tx_to_blacklist.append(lastanonindex)
             lastanonindex -= 1
 
-        self.stop_nodes()
-
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
+        self.stop_node(2)
+        self.start_node(2, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1',
+                            '-blacklistedanon=' + tx_to_blacklist])
 
-        self.setup_clean_chain = True
-        # Node 0 has its lastanonindex defaulted to 0
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=1000', '-stakethreadconddelayms=500', '-txindex=1', '-blacklistedanon=' + tx_to_blacklist])
-        # Node 1 has its anon index set to 100
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1'])
-
-        self.connect_nodes_bi(0, 1)
-        self.sync_all()
-        receiving_addr = nodes[1].getnewaddress()
-
-        unspent = nodes[1].listunspentanon(0, 9999)
-        firstUnspent = unspent[0]
-        inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
-        # Sending a transaction from anon to ghost being inside node 1 will succeed
-        coincontrol = {'spend_frozen_blinded': True, 'inputs': inputs}
-        bad_anon_tx_txid = nodes[1].sendtypeto('anon', 'ghost', [{'address': receiving_addr, 'amount': firstUnspent['amount'], 'subfee': True}], '', '', 1, 1, False, coincontrol)
-        self.stakeBlocks(1, 1, False)
-        # The transaction succeeded inside node 1, but it won't inside node 0 because of the disabled anon-tx
-        rawtx_bad_anon_txid = nodes[1].getrawtransaction(bad_anon_tx_txid)
-        assert_raises_rpc_error(None, "anon-blind-tx-invalid", nodes[0].sendrawtransaction, rawtx_bad_anon_txid)
-
-        # Retrieves the block which the bad_anon_tx_txid is inside and try to submit the block to node 0
         rawtx_block = nodes[1].getblock(nodes[1].getbestblockhash())
         assert bad_anon_tx_txid in rawtx_block['tx']
 
-        node0_block_hex = nodes[1].getblock(rawtx_block["hash"], 0)
-        assert_equal(nodes[0].submitblock(node0_block_hex), "duplicate-invalid")
+        height_node1 = nodes[1].getblockcount()
+
+        for i in range(1, height_node1 + 1):
+            block_to_submit_hash = nodes[1].getblockhash(i)
+            block_to_submit = nodes[1].getblock(block_to_submit_hash, 0)
+            res = nodes[2].submitblock(block_to_submit)
+
+            if i == height_node1:
+                assert_equal(res, "bad-frozen-spend-to-non-recovery")
 
 if __name__ == '__main__':
     ControlAnonTest3().main()
