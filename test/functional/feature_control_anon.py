@@ -43,7 +43,7 @@ class ControlAnonTest(GhostTestFramework):
                 self.stakeBlocks(4)
             else:
                 break
-    def get_whole_amount_from_unspent(self, node, tx_hash): 
+    def get_whole_amount_from_unspent(self, node, tx_hash):
         uns = node.listunspentanon(0, 9999)
         a = 0
         for s in uns:
@@ -70,8 +70,8 @@ class ControlAnonTest(GhostTestFramework):
 
         self.stop_nodes()
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
-        self.start_node(0, ['-wallet=default_wallet', '-maxtxfee=30', '-rescan', '-debug', '-anonrestricted=0',  '-txindex'])
-        self.start_node(1, ['-wallet=default_wallet', '-maxtxfee=30', '-rescan', '-debug', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-maxtxfee=30', '-debug', '-anonrestricted=0',  '-txindex'])
+        self.start_node(1, ['-wallet=default_wallet', '-maxtxfee=30', '-debug', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
         self.sync_all()
 
@@ -79,10 +79,10 @@ class ControlAnonTest(GhostTestFramework):
         unspents = node.listunspentanon(0, 9999)
         for unspent in unspents:
             if to_exclude_tx:
-                if unspent["amount"] <= 6 and unspent["txid"] != to_exclude_tx:
+                if unspent["amount"] >= 1 and unspent["amount"] <= 5 and unspent["txid"] != to_exclude_tx:
                     return unspent
             else:
-                if unspent["amount"] <= 6:
+                if unspent["amount"] >= 1 and unspent["amount"] <= 5:
                     return unspent
 
         return False
@@ -165,6 +165,7 @@ class ControlAnonTest(GhostTestFramework):
 
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-allowed"], True)
+
 
 if __name__ == '__main__':
     ControlAnonTest().main()

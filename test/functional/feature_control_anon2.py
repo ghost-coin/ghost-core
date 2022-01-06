@@ -68,8 +68,8 @@ class ControlAnonTest2(GhostTestFramework):
         self.restart_nodes_with_anonoutputs()
         self.stop_nodes()
 
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=0', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=0', '-stakethreadconddelayms=500', '-rescan', '-maxtxfee=1'])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=0', '-stakethreadconddelayms=500', '-maxtxfee=1'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=0', '-stakethreadconddelayms=500', '-maxtxfee=1'])
 
         self.connect_nodes_bi(0, 1)
         receiving_addr = nodes[1].getnewaddress()
@@ -95,8 +95,8 @@ class ControlAnonTest2(GhostTestFramework):
 
         self.restart_nodes_with_anonoutputs()
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500', '-rescan'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500', '-rescan'])
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-lastanonindex=10000', '-stakethreadconddelayms=500'])
         self.connect_nodes_bi(0, 1)
 
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
@@ -114,28 +114,26 @@ class ControlAnonTest2(GhostTestFramework):
         coincontrol = {'spend_frozen_blinded': True, 'test_mempool_accept': True, 'inputs': inputs}
         tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal( tx["mempool-allowed"], True)
- 
+
         # This will fail due to the output size being greater than anonMaxOutputSize
 
         tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
-        while lastanonindex > 0:
-            tx_to_blacklist.append(lastanonindex)
-            lastanonindex -= 1
+        tx_to_blacklist = (list)(range(1, lastanonindex + 1))
 
         self.restart_nodes_with_anonoutputs()
         self.stop_nodes()
 
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
-        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
         self.sync_all()
         recovery_addr = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it"
 
         inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
-        
+
         amount_to_send_other = int(firstUnspent["amount"] * decimal.Decimal(0.90))
         amount_to_send_recovery = int(firstUnspent["amount"] - amount_to_send_other)
 
@@ -155,18 +153,15 @@ class ControlAnonTest2(GhostTestFramework):
         tx = nodes[1].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
         assert_equal(tx["mempool-reject-reason"], "bad-frozen-spend-toomany-outputs")
 
-        # Sending 99.95% to recovery address
+        # Sending the amount to recovery address
         tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
-        while lastanonindex > 0:
-            tx_to_blacklist.append(lastanonindex)
-            lastanonindex -= 1
+        tx_to_blacklist = (list)(range(1, lastanonindex + 1))
+        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
 
         self.stop_nodes()
-        self.setup_clean_chain = True
-        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
-        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
-        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-rescan',  '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(0, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-blacklistedanon=' + tx_to_blacklist])
+        self.start_node(1, ['-wallet=default_wallet', '-lastanonindex=1000', '-debug', '-stakethreadconddelayms=500', '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
         # Node 0 holds the recovery addr private key
@@ -185,7 +180,7 @@ class ControlAnonTest2(GhostTestFramework):
             'amount': firstUnspent["amount"],
             'subfee': True
         }]
-        
+
         non_recovery_outputs = [{
             'address': non_recovery_addr,
             'type': 'standard',

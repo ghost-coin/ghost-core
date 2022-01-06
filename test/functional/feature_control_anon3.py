@@ -68,43 +68,37 @@ class ControlAnonTest3(GhostTestFramework):
 
     def run_test(self):
         # The test in this file basically spend an anon ouput inside node 1
-        # And then attempt to send that tx and the block it's included in 
+        # And then attempt to send that tx and the block it's included in
         # to node 0 which is has anon restriction enabled
-        # Previously we were expecting a "bad-anonin-extract-i" but since now all our 
+        # Previously we were expecting a "bad-anonin-extract-i" but since now all our
         # index set is valid a part from the one blacklisted, we don't expect that anymore to happen
         nodes = self.nodes
         self.import_genesis_coins_a(nodes[0])
         self.import_genesis_coins_b(nodes[1])
-     
+
         self.stop_nodes()
 
         self.start_node(0, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1'])
         self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1'])
 
         self.start_node(2, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1'])
-        self.start_node(3, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-stakethreadconddelayms=500', '-txindex=1'])
+        self.start_node(3, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1'])
 
         self.connect_nodes_bi(0, 1)
         self.connect_nodes_bi(2, 3)
         self.sync_all()
         receiving_addr = nodes[1].getnewaddress()
 
-        anon_tx_txid0 = nodes[0].sendtypeto('ghost', 'anon', nodes[1].getnewstealthaddress(), 600, '', '', False, 'node0 -> node1 p->a')
-        self.wait_for_mempool(nodes[0], anon_tx_txid0)
-        self.stakeBlocks(1, 1, False)
-        self.stakeBlocks(1, 0, False)
-        self.sync_all([nodes[1], nodes[0]])
-
-        unspent = nodes[1].listunspentanon(0, 9999)
+        unspent = []
 
         while len(unspent) < 1:
-            unspent = nodes[1].listunspentanon(0, 9999)
             anon_tx_txid0 = nodes[0].sendtypeto('ghost', 'anon', nodes[1].getnewstealthaddress(), 600, '', '', False,
                                                 'node0 -> node1 p->a')
             self.wait_for_mempool(nodes[0], anon_tx_txid0)
             self.stakeBlocks(1, 1, False)
             self.stakeBlocks(1, 0, False)
             self.sync_all([nodes[1], nodes[0]])
+            unspent = nodes[1].listunspentanon(0, 9999)
 
         firstUnspent = unspent[0]
         inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
@@ -116,10 +110,7 @@ class ControlAnonTest3(GhostTestFramework):
 
         tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
-        while lastanonindex > 0:
-            tx_to_blacklist.append(lastanonindex)
-            lastanonindex -= 1
-
+        tx_to_blacklist = (list)(range(1, lastanonindex + 1))
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
         self.stop_node(2)
         self.start_node(2, ['-wallet=default_wallet', '-debug', '-stakethreadconddelayms=500', '-txindex=1',
@@ -137,6 +128,8 @@ class ControlAnonTest3(GhostTestFramework):
 
             if i == height_node1:
                 assert_equal(res, "bad-frozen-spend-to-non-recovery")
+            else:
+                assert_equal(res, None)
 
 if __name__ == '__main__':
     ControlAnonTest3().main()
