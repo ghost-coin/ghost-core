@@ -5,10 +5,9 @@
 #ifndef PARTICL_CHAIN_TX_WHITELIST_H
 #define PARTICL_CHAIN_TX_WHITELIST_H
 
-static unsigned char tx_whitelist_data[] = {
-};
+// static unsigned char tx_whitelist_data[] = {};
 
-static unsigned int tx_whitelist_data_len = sizeof(tx_whitelist_data) / sizeof(unsigned char);
+// static unsigned int tx_whitelist_data_len = sizeof(tx_whitelist_data) / sizeof(unsigned char);
 
 static std::set<uint256>  tx_to_allow = {
     uint256S("c2e59bec210c58cab2c03bf9840263c4c7ba533f79140dd1b51709647669cdd3"), // Note: This tx is inside the our blacklisted list 
@@ -22,9 +21,8 @@ static std::set<uint256>  tx_to_allow = {
     uint256S("7bc73dd12503e11312c80c57bad5683b10a27ab412082683468f0b82cb87c6ad"),
 };
 
-static int64_t anon_index_whitelist[] = {
-};
+// static int64_t anon_index_whitelist[] = {};
 
-static size_t anon_index_whitelist_size = sizeof(anon_index_whitelist) / sizeof(int64_t);
+// static size_t anon_index_whitelist_size = sizeof(anon_index_whitelist) / sizeof(int64_t);
 
 #endif // PARTICL_CHAIN_TX_WHITELIST_H

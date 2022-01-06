@@ -198,7 +198,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     state.m_spends_frozen_blinded = false;
     state.m_setHaveKI.clear();  // Pass keyimages through state to add to db
     bool spends_tainted_blinded = false;  // If true limit max plain output
-    bool spend_blacklisted_anon = false;
 
     if (!state.m_consensus_params) {
         state.m_consensus_params = &::Params().GetConsensus();

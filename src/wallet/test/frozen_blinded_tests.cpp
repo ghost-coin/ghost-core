@@ -442,14 +442,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("gettransaction %s true true", spend_txid.ToString()), context));
         std::string str_ao_pubkey = rv["decoded"]["vout"][output_n]["pubkey"].get_str();
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("anonoutput %s", str_ao_pubkey), context));
-        int64_t ao_index = rv["index"].get_int64();
-
-        // Whitelist index
-        int64_t aoi_whitelist[] = {
-            ao_index,
-        };
-        LoadRCTWhitelist(aoi_whitelist, 1);
-
+        uint64_t ao_index = rv["index"].get_int64();
+        
         // Test blacklist, should override whitelist
         std::set<std::uint64_t> aoi_blacklist{ao_index};
 
