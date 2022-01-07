@@ -266,6 +266,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                         if (::Params().IsBlacklistedAnonOutput(nIndex)) {
                             // Spending blacklisted output
                             state.m_spends_frozen_blinded = true;
+                            LogPrintf("Spending frozen blinded %d \n", nIndex);
                         }
                     }
                 }
@@ -320,7 +321,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (state.m_spends_frozen_blinded && max_ring_size > 1) {
+    if (tx.GetHash() != txSpendingBlacklisted && state.m_spends_frozen_blinded && max_ring_size > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
     }
 

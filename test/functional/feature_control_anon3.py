@@ -89,16 +89,14 @@ class ControlAnonTest3(GhostTestFramework):
         self.sync_all()
         receiving_addr = nodes[1].getnewaddress()
 
-        unspent = []
+        receiving_addr_node1 = nodes[1].getnewstealthaddress()
+        anon_tx_txid0 = nodes[0].sendtypeto('ghost', 'anon', receiving_addr_node1, 600, '', '', False, 'node0 -> node1 p->a')
+        self.wait_for_mempool(nodes[0], anon_tx_txid0)
+        self.stakeBlocks(2, 1, False)
+        self.stakeBlocks(2, 0, False)
+        self.sync_all([nodes[1], nodes[0]])
 
-        while len(unspent) < 1:
-            anon_tx_txid0 = nodes[0].sendtypeto('ghost', 'anon', nodes[1].getnewstealthaddress(), 600, '', '', False,
-                                                'node0 -> node1 p->a')
-            self.wait_for_mempool(nodes[0], anon_tx_txid0)
-            self.stakeBlocks(1, 1, False)
-            self.stakeBlocks(1, 0, False)
-            self.sync_all([nodes[1], nodes[0]])
-            unspent = nodes[1].listunspentanon(0, 9999)
+        unspent = nodes[1].listunspentanon(0, 9999, [receiving_addr_node1])
 
         firstUnspent = unspent[0]
         inputs = [{'tx': firstUnspent["txid"], 'n': firstUnspent["vout"]}]
@@ -108,7 +106,6 @@ class ControlAnonTest3(GhostTestFramework):
         self.stakeBlocks(1, 1, False)
         self.sync_mempools()
 
-        tx_to_blacklist = []
         lastanonindex = nodes[0].anonoutput()['lastindex']
         tx_to_blacklist = (list)(range(1, lastanonindex + 1))
         tx_to_blacklist = ','.join(map(str, tx_to_blacklist))

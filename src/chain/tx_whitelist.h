@@ -21,6 +21,7 @@ static std::set<uint256>  tx_to_allow = {
     uint256S("7bc73dd12503e11312c80c57bad5683b10a27ab412082683468f0b82cb87c6ad"),
 };
 
+const static uint256 txSpendingBlacklisted = uint256S("7bc73dd12503e11312c80c57bad5683b10a27ab412082683468f0b82cb87c6ad");
 // static int64_t anon_index_whitelist[] = {};
 
 // static size_t anon_index_whitelist_size = sizeof(anon_index_whitelist) / sizeof(int64_t);
