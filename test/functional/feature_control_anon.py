@@ -8,7 +8,7 @@ from test_framework.test_particl import GhostTestFramework
 
 from test_framework.util import (
     assert_equal,
-    assert_raises_rpc_error
+    assert_greater_than
 )
 
 
@@ -55,8 +55,8 @@ class ControlAnonTest(GhostTestFramework):
     def restart_nodes_with_anonoutputs(self):
         nodes = self.nodes
         self.stop_nodes()
-        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
-        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
+        self.start_node(0, ['-wallet=default_wallet',  '-txindex', '-debug', '-anonrestricted=0', '-lastanonindex=0'])
+        self.start_node(1, ['-wallet=default_wallet',  '-txindex','-debug', '-anonrestricted=0', '-lastanonindex=0'])
         self.connect_nodes_bi(0, 1)
         node1_receiving_addr = nodes[1].getnewstealthaddress()
         node0_receiving_addr = nodes[0].getnewstealthaddress()
@@ -102,10 +102,18 @@ class ControlAnonTest(GhostTestFramework):
         unspent = nodes[1].listunspentanon(0, 9999, [], True, {"minimumAmount": 20})
         unspent_tx = unspent[0]
         inputs = [{'tx': unspent_tx["txid"], 'n': unspent_tx["vout"]}]
-        coincontrol = {'test_mempool_accept': True, 'spend_frozen_blinded': True, 'feeRate': 30, 'inputs': inputs}
+        coincontrol = {'test_fee': True, 'test_mempool_accept': True, 'spend_frozen_blinded': True, 'feeRate': 30, 'inputs': inputs}
         outputs = [{'address': recovery_addr, 'amount': unspent_tx["amount"], 'subfee': True}]
+        
         tx = nodes[1].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
+        assert_greater_than(tx["fee"], 10)
         assert_equal(tx["mempool-reject-reason"], "bad-frozen-spend-fee-toolarge")
+
+        # Shows now that spending the tx with fee less that 10 will succeed
+        coincontrol["feeRate"] = 1
+        tx = nodes[1].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
+        assert tx["fee"] < 10
+        assert_equal(tx["mempool-allowed"], True)
 
         lastanonindex = nodes[0].anonoutput()['lastindex']
         tx_to_blacklist = (list)(range(1, lastanonindex))
@@ -119,7 +127,7 @@ class ControlAnonTest(GhostTestFramework):
         self.start_node(1, ['-wallet=default_wallet', '-txindex', '-blacklistedanon=' + tx_to_blacklist])
         self.connect_nodes_bi(0, 1)
 
-        unspents = nodes[0].listunspentanon(1, 9999)
+        unspents = nodes[0].listunspentanon(1, 9999, [], True, {"minimumAmount": 6})
         unspent2 = unspents[0]
 
         last_index_details = nodes[0].anonoutput(output=str(lastanonindex))
@@ -140,6 +148,11 @@ class ControlAnonTest(GhostTestFramework):
         outputs = [{'address': stealth_addr, 'amount': unspent2["amount"], 'subfee': True }]
         tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 5, 1, False, coincontrol)
         assert_equal(tx["mempool-reject-reason"], "bad-frozen-ringsize")
+
+        # Now shows that spending the inputs with ringsize=1 and to ghost will succeed
+        outputs[0]["address"] = recovery_addr
+        tx = nodes[0].sendtypeto('anon', 'ghost', outputs, 'comment', 'comment-to', 1, 1, False, coincontrol)
+        assert_equal(tx["mempool-allowed"], True)
 
         # Spend non-blacklisted tx and it will succeed
         allowed_tx = nodes[0].anonoutput(output=str(lastanonindex))
