@@ -328,7 +328,6 @@ BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)
 
 BOOST_AUTO_TEST_CASE(coin_year_reward)
 {
-
     BOOST_CHECK(Params().GetCoinYearReward(1529700000) == 2 * CENT);
 
     BOOST_CHECK(Params().GetCoinYearReward(1531832399) == 2 * CENT);
@@ -342,14 +341,19 @@ BOOST_AUTO_TEST_CASE(coin_year_reward)
 
     size_t seconds_in_year = 60 * 60 * 24 * 365;
     BOOST_CHECK(Params().GetCoinYearReward(1626109199) == 4 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200) == 8 * CENT);                                // 2021-07-12 17:00:00 UTC
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year) == 8 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 2 - 1) == 8 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 2) == 7 * CENT);          // 2023-07-12 17:00:00 UTC
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 3) == 7 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 4 - 1) == 7 * CENT);
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 4) == 6 * CENT);          // 2025-07-11 17:00:00 UTC
-    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 6) == 6 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200) == 4 * CENT); // 2021-07-12 17:00:00 UTC
+
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year) == 3 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 2 - 1) == 2 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 2) == 2 * CENT);          // 2023-07-12 17:00:00 UTC
+
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 3) == 2 * CENT);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 4 - 1) == 2 * CENT);
+
+    const auto& rss1 = Params().GetCoinYearReward(1626109200 + seconds_in_year * 4);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 4) == 2 * CENT);          // 2025-07-11 17:00:00 UTC
+    const auto& rss3 = Params().GetCoinYearReward(1626109200 + seconds_in_year * 6);
+    BOOST_CHECK(Params().GetCoinYearReward(1626109200 + seconds_in_year * 6) == 2 * CENT);
 }
 
 
