@@ -3374,7 +3374,6 @@ int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string 
 
             txout->pk = CCmpPubKey(r.pkTo);
 
-            LogPrintf("r.fNonceSet %d\n", r.fNonceSet);
             if (r.fNonceSet) {
                 if (r.vData.size() < 33) {
                     return errorN(1, sError, __func__, "Missing ephemeral value, vData size %d", r.vData.size());

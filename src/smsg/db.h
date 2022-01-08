@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -56,6 +56,7 @@ public:
     bool TxnBegin();
     bool TxnCommit();
     bool TxnAbort();
+    bool CommitBatch(leveldb::WriteBatch *batch);
 
     bool ReadPK(const CKeyID &addr, CPubKey &pubkey);
     bool WritePK(const CKeyID &addr, const CPubKey &pubkey);
@@ -83,9 +84,16 @@ public:
     bool EraseFundingData(int height, const uint256 &key);
     bool NextFundingDataLink(leveldb::Iterator *it, int &height, uint256 &key);
 
+    bool WriteBestBlock(const uint256 &hash, int height);
+    bool ReadBestBlock(uint256 &hash, int &height);
+    bool EraseBestBlock();
+
     leveldb::DB *pdb; // points to the global instance
     leveldb::WriteBatch *activeBatch;
 };
+
+bool PutBestBlock(leveldb::WriteBatch *batch, const uint256 &block_hash, int height);
+bool PutFundingData(leveldb::WriteBatch *batch, const uint256 &key, int height, const std::vector<uint8_t> &data);
 
 } // namespace smsg
 

@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -472,6 +472,9 @@ const char *GetString(size_t errorCode)
         case SMSG_COMPRESS_FAILED:                      return "Compression failed";
         case SMSG_ENCRYPT_FAILED:                       return "Encryption failed";
         case SMSG_FUND_FAILED:                          return "Fund message failed";
+        case SMSG_PURGED_MSG:                           return "Purged message";
+        case SMSG_FUND_DATA_NOT_FOUND:                  return "Fund data not found";
+        case SMSG_BATCH_NOT_INITIALISED:                return "Batch not initialised";
         default:
             return "Unknown error";
     }
@@ -491,6 +494,11 @@ static void ListenWalletAdded(CSMSG *ps, const std::shared_ptr<CWallet>& wallet)
     ps->LoadWallet(wallet);
 };
 #endif
+
+void CSMSG::ParseArgs(const ArgsManager& args)
+{
+    m_track_funding_txns = args.GetBoolArg("-smsg", true);
+}
 
 /* Build the bucket set by scanning the files in the smsgstore dir.
  * buckets should be empty
@@ -973,6 +981,12 @@ bool CSMSG::Shutdown()
     }
 
     LogPrintf("Stopping secure messaging.\n");
+
+    if (m_connect_block_batch) {
+        LogPrintf("%s: Closing uncommitted batch.\n", __func__);
+        delete m_connect_block_batch;
+        m_connect_block_batch = nullptr;
+    }
 
     if (WriteIni() != 0) {
         LogPrintf("Failed to save smsg.ini\n");
@@ -3451,8 +3465,33 @@ int CSMSG::AdjustDifficulty(int64_t time)
     return rv;
 };
 
+int CSMSG::StartConnectingBlock()
+{
+    if (!m_track_funding_txns) {
+        return SMSG_NO_ERROR;
+    }
+
+    if (m_connect_block_batch) {
+        LogPrintf("%s: Closing uncommitted batch.\n", __func__);
+        delete m_connect_block_batch;
+        m_connect_block_batch = nullptr;
+    }
+
+    m_connect_block_batch = new leveldb::WriteBatch();
+
+    return SMSG_NO_ERROR;
+}
+
 int CSMSG::StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex)
 {
+    if (!m_track_funding_txns) {
+        return SMSG_NO_ERROR;
+    }
+
+    if (!m_connect_block_batch) {
+        return errorN(SMSG_GENERAL_ERROR, "%s: db batch not initialised.\n", __func__);
+    }
+
     const uint256 &block_hash = pindex->GetBlockHash();
     if (LogAcceptCategory(BCLog::SMSG)) {
         LogPrintf("%s Tx: %s, block: %s, height %d, time %d.\n", __func__, tx.GetHash().ToString(), block_hash.ToString(), pindex->nHeight, pindex->nTime);
@@ -3463,11 +3502,6 @@ int CSMSG::StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex)
     }
     if (tx.IsCoinStake()) {
         return errorN(SMSG_GENERAL_ERROR, "%s Tx: %s is a coinstake.\n", __func__, tx.GetHash().ToString());
-    }
-    LOCK(cs_smsgDB);
-    SecMsgDB db;
-    if (!db.Open("r")) {
-        return SMSG_GENERAL_ERROR;
     }
 
     std::vector<uint8_t> db_data;
@@ -3489,8 +3523,8 @@ int CSMSG::StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex)
 
     // TODO: Get current fee-rate, GetSmsgFeeRate
 
-    if (!db.WriteFundingData(tx.GetHash(), pindex->nHeight, db_data)) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - WriteFundingData failed.", __func__);
+    if (!PutFundingData(m_connect_block_batch, tx.GetHash(), pindex->nHeight, db_data)) {
+        return errorN(SMSG_GENERAL_ERROR, "%s - PutFundingData failed.", __func__);
     }
 
     return SMSG_NO_ERROR;
@@ -3595,7 +3629,7 @@ int CSMSG::PruneFundingTxData()
     {
         LOCK(cs_smsgDB);
         SecMsgDB db;
-        if (!db.Open("r")) {
+        if (!db.Open("cw")) {
             return SMSG_GENERAL_ERROR;
         }
 
@@ -3615,6 +3649,65 @@ int CSMSG::PruneFundingTxData()
 
     return 0;
 };
+
+int CSMSG::SetBestBlock(const uint256 &block_hash, int height, int64_t time)
+{
+    if (!m_track_funding_txns) {
+        return SMSG_NO_ERROR;
+    }
+    if (time < GetAdjustedTime() - KEEP_FUNDING_TX_DATA) {
+        // Skip old blocks
+        return SMSG_NO_ERROR;
+    }
+    if (!m_connect_block_batch) {
+        return SMSG_BATCH_NOT_INITIALISED;
+    }
+
+    LOCK(cs_smsgDB);
+    SecMsgDB db;
+    if (!db.Open("cw")) {
+        return SMSG_GENERAL_ERROR;
+    }
+
+    if (!PutBestBlock(m_connect_block_batch, block_hash, height)) {
+        return errorN(SMSG_GENERAL_ERROR, "%s - PutBestBlock failed.", __func__);
+    }
+
+    db.CommitBatch(m_connect_block_batch);
+    delete m_connect_block_batch;
+    m_connect_block_batch = nullptr;
+
+    return SMSG_NO_ERROR;
+}
+
+int CSMSG::ReadBestBlock(uint256 &block_hash, int &height)
+{
+    if (!m_track_funding_txns) {
+        return SMSG_DISABLED;
+    }
+
+    LOCK(cs_smsgDB);
+    SecMsgDB db;
+    if (!db.Open("r")) {
+        return SMSG_GENERAL_ERROR;
+    }
+
+    if (!db.ReadBestBlock(block_hash, height)) {
+        return SMSG_KEY_NOT_EXISTS;
+    }
+    return SMSG_NO_ERROR;
+}
+
+int CSMSG::ClearBestBlock()
+{
+    LOCK(cs_smsgDB);
+    SecMsgDB db;
+    if (!db.Open("cw")) {
+        return SMSG_GENERAL_ERROR;
+    }
+    db.EraseBestBlock();
+    return SMSG_NO_ERROR;
+}
 
 int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_t nPayload)
 {

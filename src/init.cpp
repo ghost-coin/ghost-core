@@ -1383,6 +1383,8 @@ bool AppInitParameterInteraction(const ArgsManager& args)
         gArgs.SoftSetBoolArg("-acceptblindtxn", true);
     }
 
+    smsgModule.ParseArgs(args);
+
     return true;
 }
 
@@ -2154,7 +2156,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         block_notify_genesis_wait_connection.disconnect();
     }
 
-    // ********************************************************* Step 10.1: start secure messaging
+    // ********************************************************* Step 11.1: start secure messaging
 
     smsgModule.m_node = &node;
     if (fParticlMode && gArgs.GetBoolArg("-smsg", true)) { // SMSG breaks functional tests with services flag, see version msg

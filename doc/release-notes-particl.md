@@ -5,6 +5,7 @@
   - Add minimum and maximumAmount to fundrawtransactionfrom and sendtypeto
   - Add includeWatching option to sendtypeto
 - qt: Fixed empty qr popup when trying to create stealth address from locked wallet.
+- smsg: Stores best block and runs rebuild rollingindices on startup if out of sync.
 
 
 0.21.2.5
