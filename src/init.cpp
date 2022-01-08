@@ -1206,6 +1206,8 @@ bool AppInitParameterInteraction(const ArgsManager& args)
         gArgs.SoftSetBoolArg("-acceptblindtxn", true);
     }
 
+    smsgModule.ParseArgs(args);
+
 #if defined(USE_SYSCALL_SANDBOX)
     if (args.IsArgSet("-sandbox") && !args.IsArgNegated("-sandbox")) {
         const std::string sandbox_arg{args.GetArg("-sandbox", "")};
@@ -1860,7 +1862,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         block_notify_genesis_wait_connection.disconnect();
     }
 
-    // ********************************************************* Step 10.1: start secure messaging
+    // ********************************************************* Step 11.1: start secure messaging
 
     smsgModule.m_node = &node;
     bool start_smsg_without_wallet = true;

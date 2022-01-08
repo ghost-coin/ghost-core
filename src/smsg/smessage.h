@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,6 +15,7 @@
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <util/ui_change_type.h>
+#include <leveldb/write_batch.h>
 
 #include <atomic>
 #include <boost/signals2/signal.hpp>
@@ -25,6 +26,7 @@ class CWallet;
 class CCoinControl;
 class CNode;
 class PeerManager;
+class ArgsManager;
 typedef int64_t NodeId;
 
 extern RecursiveMutex cs_main;
@@ -68,6 +70,7 @@ enum SecureMessageCodes {
     SMSG_FUND_FAILED,
     SMSG_PURGED_MSG,
     SMSG_FUND_DATA_NOT_FOUND,
+    SMSG_BATCH_NOT_INITIALISED
 };
 
 const uint32_t SMSG_HDR_LEN        = 108;               // length of unencrypted header, 4 + 4 + 2 + 1 + 8 + 4 + 16 + 33 + 32 + 4
@@ -426,6 +429,8 @@ extern std::atomic<bool> fSecMsgEnabled;
 class CSMSG
 {
 public:
+    void ParseArgs(const ArgsManager& args);
+
     int BuildBucketSet();
     int BuildPurgedSets();
     int AddWalletAddresses();
@@ -512,9 +517,13 @@ public:
     std::vector<uint8_t> GetMsgID(const SecureMessage *psmsg, const uint8_t *pPayload);
     std::vector<uint8_t> GetMsgID(const SecureMessage &smsg);
 
+    int StartConnectingBlock();
     int StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     int CheckFundingTx(const Consensus::Params &consensus_params, const SecureMessage *psmsg, const uint8_t *pPayload);
     int PruneFundingTxData();
+    int SetBestBlock(const uint256 &block_hash, int height, int64_t time);
+    int ReadBestBlock(uint256 &block_hash, int &height);
+    int ClearBestBlock();
 
     int Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_t nPayload);
     int SetHash (SecureMessage *psmsg, uint8_t *pPayload, uint32_t nPayload);
@@ -551,6 +560,9 @@ public:
     CThreadInterrupt m_thread_interrupt;
     std::thread thread_smsg;
     std::thread thread_smsg_pow;
+
+    bool m_track_funding_txns{false};
+    leveldb::WriteBatch *m_connect_block_batch{nullptr};
 
     NodeContext *m_node = nullptr;
 };

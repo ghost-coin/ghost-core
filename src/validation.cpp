@@ -2326,6 +2326,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         }
     }
 
+
+
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
     LogPrint(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
 
@@ -2428,6 +2430,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     int64_t nTime2 = GetTimeMicros(); nTimeForks += nTime2 - nTime1;
     LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
+
+    smsgModule.StartConnectingBlock();
 
     CBlockUndo blockundo;
 
@@ -2557,7 +2561,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
                 }
 
-                if (smsg::fSecMsgEnabled && tx_state.m_funds_smsg) {
+                if (tx_state.m_funds_smsg) {
                     smsgModule.StoreFundingTx(tx, pindex);
                 }
             }
@@ -2914,6 +2918,9 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     }
 
     assert(pindex->phashBlock);
+
+    smsgModule.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
+
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight);
 
@@ -7096,10 +7103,32 @@ bool ShouldAutoReindex(ChainstateManager &chainman)
 
 bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
 {
+    AssertLockNotHeld(cs_main);
+
+    CBlockIndex *pindex_tip{nullptr};
+    uint256 best_smsg_block_hash;
+    int best_smsg_block_height{0}, last_known_height{0};
+    smsgModule.ReadBestBlock(best_smsg_block_hash, best_smsg_block_height);
+
+    {
+        LOCK(cs_main);
+        pindex_tip = chainman.ActiveChain().Tip();
+    }
+
     auto &pblocktree{chainman.m_blockman.m_block_tree_db};
     bool nV2 = false;
     if (gArgs.GetBoolArg("-rebuildrollingindices", false)) {
         LogPrintf("%s: Manual override, attempting to rewind chain.\n", __func__);
+    } else
+    if (pindex_tip &&
+        smsgModule.m_track_funding_txns &&
+        !best_smsg_block_hash.IsNull() &&
+        best_smsg_block_hash != pindex_tip->GetBlockHash() &&
+        pindex_tip->nHeight > best_smsg_block_height) {
+        LogPrintf("%s: SMSG best block mismatch, attempting to rewind chain. SMSG %s, %s.\n", __func__, best_smsg_block_hash.ToString(), pindex_tip->GetBlockHash().ToString());
+        if (best_smsg_block_height < pindex_tip->nHeight) {
+            last_known_height = best_smsg_block_height;
+        }
     } else
     if (pblocktree->ReadFlag("v2", nV2) && nV2) {
         return true;
@@ -7114,13 +7143,16 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
     }
 
     int64_t now = GetAdjustedTime();
-    int rewound_tip_height, max_height_to_keep = 0;
+    int rewound_tip_height;
 
     {
         LOCK(cs_main);
-        CBlockIndex *pindex_tip = chainman.ActiveChain().Tip();
         CBlockIndex *pindex = pindex_tip;
+        int max_height_to_keep = pindex ? pindex->nHeight : 0;
         while (pindex && pindex->nTime >= now - smsg::KEEP_FUNDING_TX_DATA) {
+            if (pindex->nHeight < last_known_height) {
+                break;
+            }
             max_height_to_keep = pindex->nHeight;
             pindex = pindex->pprev;
         }
@@ -7145,6 +7177,9 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
 
     {
         LOCK(cs_main);
+        // Ensure chainstate has been fully written to disk
+        chainman.ActiveChainstate().ForceFlushStateToDisk();
+
         LogPrintf("%s: Reprocessed chain from block %d to %d.\n", __func__, rewound_tip_height, chainman.ActiveChain().Tip()->nHeight);
 
         if (!chainman.m_blockman.m_block_tree_db->WriteFlag("v2", true)) {

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,6 +23,7 @@ const std::string DBK_STASHED           = "TM";
 const std::string DBK_PURGED_TOKEN      = "pm";
 const std::string DBK_FUNDING_TX_DATA   = "fd";
 const std::string DBK_FUNDING_TX_LINK   = "fl";
+const std::string DBK_BEST_BLOCK        = "bb";
 
 RecursiveMutex cs_smsgDB;
 leveldb::DB *smsgDB = nullptr;
@@ -144,6 +145,23 @@ bool SecMsgDB::TxnAbort()
 {
     delete activeBatch;
     activeBatch = nullptr;
+    return true;
+};
+
+bool SecMsgDB::CommitBatch(leveldb::WriteBatch *batch)
+{
+    if (!batch) {
+        return false;
+    }
+
+    leveldb::WriteOptions writeOptions;
+    writeOptions.sync = true;
+    leveldb::Status status = pdb->Write(writeOptions, batch);
+
+    if (!status.ok()) {
+        return error("SecMsgDB batch commit failure: %s\n", status.ToString());
+    }
+
     return true;
 };
 
@@ -751,5 +769,120 @@ bool SecMsgDB::NextFundingDataLink(leveldb::Iterator *it, int &height, uint256 &
     return true;
 };
 
+bool SecMsgDB::WriteBestBlock(const uint256 &block_hash, int height)
+{
+    if (!pdb) {
+        return false;
+    }
+
+    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    ssKey.write((const char*)DBK_BEST_BLOCK.data(), DBK_BEST_BLOCK.size());
+    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    ssValue << block_hash;
+    ssValue << height;
+
+    if (activeBatch) {
+        activeBatch->Put(ssKey.str(), ssValue.str());
+        return true;
+    }
+
+    leveldb::WriteOptions writeOptions;
+    writeOptions.sync = true;
+    leveldb::Status s = pdb->Put(writeOptions, ssKey.str(), ssValue.str());
+    if (!s.ok()) {
+        return error("SecMsgDB write failed: %s\n", s.ToString());
+    }
+
+    return true;
+};
+
+bool SecMsgDB::ReadBestBlock(uint256 &block_hash, int &height)
+{
+    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    ssKey.write((const char*)DBK_BEST_BLOCK.data(), DBK_BEST_BLOCK.size());
+    std::string strValue;
+
+    bool readFromDb = true;
+    if (activeBatch) {
+        // Check activeBatch first
+        bool deleted = false;
+        readFromDb = ScanBatch(ssKey, &strValue, &deleted) == false;
+        if (deleted) {
+            return false;
+        }
+    }
+
+    if (readFromDb) {
+        leveldb::Status s = pdb->Get(leveldb::ReadOptions(), ssKey.str(), &strValue);
+        if (!s.ok()) {
+            if (s.IsNotFound()) {
+                return false;
+            }
+            return error("LevelDB read failure: %s\n", s.ToString());
+        }
+    }
+
+    try {
+        CDataStream ssValue(MakeUCharSpan(strValue), SER_DISK, CLIENT_VERSION);
+        ssValue >> block_hash;
+        ssValue >> height;
+    } catch (std::exception &e) {
+        LogPrintf("%s unserialize threw: %s.\n", __func__, e.what());
+        return false;
+    }
+
+    return true;
+};
+
+bool SecMsgDB::EraseBestBlock()
+{
+    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    ssKey.write((const char*)DBK_BEST_BLOCK.data(), DBK_BEST_BLOCK.size());
+
+    if (activeBatch) {
+        activeBatch->Delete(ssKey.str());
+        return true;
+    }
+
+    leveldb::WriteOptions writeOptions;
+    writeOptions.sync = true;
+    leveldb::Status s = pdb->Delete(writeOptions, ssKey.str());
+    if (s.ok() || s.IsNotFound()) {
+        return true;
+    }
+    return error("SecMsgDB erase failed: %s\n", s.ToString());
+};
+
+bool PutBestBlock(leveldb::WriteBatch *batch, const uint256 &block_hash, int height)
+{
+    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    ssKey.write((const char*)DBK_BEST_BLOCK.data(), DBK_BEST_BLOCK.size());
+    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    ssValue << block_hash;
+    ssValue << height;
+
+    batch->Put(ssKey.str(), ssValue.str());
+    return true;
+};
+
+bool PutFundingData(leveldb::WriteBatch *batch, const uint256 &key, int height, const std::vector<uint8_t> &data)
+{
+    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    ssKey.write((const char*)DBK_FUNDING_TX_DATA.data(), DBK_FUNDING_TX_DATA.size());
+    ssKey.write((const char*)key.begin(), 32);
+    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    ssValue << data;
+
+    uint32_t be_height = htobe32((uint32_t)height);
+    CDataStream ssKeyI(SER_DISK, CLIENT_VERSION);
+    ssKeyI.write((const char*)DBK_FUNDING_TX_LINK.data(), DBK_FUNDING_TX_LINK.size());
+    ssKeyI.write((const char*)&be_height, 4);
+    ssKeyI.write((const char*)key.begin(), 32);
+    CDataStream ssValueI(SER_DISK, CLIENT_VERSION);
+
+    batch->Put(ssKey.str(), ssValue.str());
+    batch->Put(ssKeyI.str(), ssValueI.str());
+    return true;
+};
 
 } // namespace smsg

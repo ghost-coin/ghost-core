@@ -23,10 +23,10 @@ std::optional<ChainstateLoadingError> LoadChainstate(bool fReset,
                                                      std::function<bool()> shutdown_requested,
                                                      std::function<void()> coins_error_cb)
 {
+    {
     auto is_coinsview_empty = [&](CChainState* chainstate) EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
         return fReset || fReindexChainState || chainstate->CoinsTip().GetBestBlock().IsNull();
     };
-
     LOCK(cs_main);
     chainman.InitializeChainstate(mempool);
     chainman.m_total_coinstip_cache = nCoinCacheUsage;
@@ -136,10 +136,12 @@ std::optional<ChainstateLoadingError> LoadChainstate(bool fReset,
         }
     }
 
+    }
     // Initialise temporary indices if required
     if (!particl::RebuildRollingIndices(chainman, mempool)) {
         return ChainstateLoadingError::ERROR_REBUILD_ROLLING_FAILED;
     }
+    LOCK(cs_main);
 
     if (!fReset) {
         auto chainstates{chainman.GetAll()};

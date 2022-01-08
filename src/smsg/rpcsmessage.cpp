@@ -41,8 +41,9 @@ extern void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwalle
 
 static void EnsureSMSGIsEnabled()
 {
-    if (!smsg::fSecMsgEnabled)
+    if (!smsg::fSecMsgEnabled) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Secure messaging is disabled.");
+    }
 };
 
 static RPCHelpMan smsgenable()
@@ -1105,7 +1106,7 @@ static RPCHelpMan smsgfund()
         LOCK(smsg::cs_smsgDB);
         smsg::SecMsgDB dbMsg;
         if (!dbMsg.Open("cr+")) {
-            throw std::runtime_error("Could not open DB.");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
         }
 
         for (unsigned int idx = 0; idx < uv_msgids.size(); idx++) {
@@ -1214,7 +1215,7 @@ static RPCHelpMan smsgfund()
                 LOCK(smsg::cs_smsgDB);
                 smsg::SecMsgDB dbMsg;
                 if (!dbMsg.Open("cr+")) {
-                    throw std::runtime_error("Could not open DB.");
+                    throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
                 }
                 auto vMsgId = smsgModule.GetMsgID(smsg);
 
@@ -1345,7 +1346,7 @@ static RPCHelpMan smsginbox()
 
         smsg::SecMsgDB dbInbox;
         if (!dbInbox.Open("cr+")) {
-            throw std::runtime_error("Could not open DB.");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
         }
 
         uint32_t nMessages = 0;
@@ -1529,7 +1530,7 @@ static RPCHelpMan smsgoutbox()
 
         smsg::SecMsgDB dbOutbox;
         if (!dbOutbox.Open("cr+")) {
-            throw std::runtime_error("Could not open DB.");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
         }
 
         uint32_t nMessages = 0;
@@ -1910,7 +1911,7 @@ static RPCHelpMan smsgview()
         LOCK(smsg::cs_smsgDB);
         smsg::SecMsgDB dbMsg;
         if (!dbMsg.Open("cr")) {
-            throw std::runtime_error("Could not open DB.");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
         }
 
         std::vector<std::string>::iterator itp;
@@ -2102,7 +2103,7 @@ static RPCHelpMan smsgone()
         LOCK(smsg::cs_smsgDB);
         smsg::SecMsgDB dbMsg;
         if (!dbMsg.Open("cr+")) {
-            throw std::runtime_error("Could not open DB.");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
         }
 
         if ((chKey[0] = 'I') && dbMsg.ReadSmesg(chKey, smsgStored)) {
@@ -2556,7 +2557,7 @@ static RPCHelpMan smsgzmqpush()
 
         smsg::SecMsgDB dbInbox;
         if (!dbInbox.Open("cr+")) {
-            throw std::runtime_error("Could not open DB.");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
         }
 
         uint8_t chKey[30];
@@ -2638,7 +2639,7 @@ static RPCHelpMan smsgdebug()
         fsbridge::ofstream file;
         file.open(filepath);
         if (!file.is_open()) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open dump file");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Cannot open dump file");
         }
 
         int num_messages = 0;
@@ -2671,6 +2672,47 @@ static RPCHelpMan smsgdebug()
     } else
     if (mode == "dumpfundingtxids") {
         smsgModule.ShowFundingTxns(result);
+    } else
+    if (mode == "clearbestblock") {
+        smsgModule.ClearBestBlock();
+        result.pushKV("result", "Cleared best block");
+    } else
+    if (mode == "setinvalidbestblock") {
+        uint256 block_hash;
+        *block_hash.begin() = 123;
+        const CBlockIndex *tip;
+        {
+        LOCK(cs_main);
+        ChainstateManager &chainman = EnsureAnyChainman(request.context);
+        tip = chainman.ActiveChain().Tip();
+        }
+        int height = 0;
+        if (request.params.size() > 1) {
+            std::string s = request.params[1].get_str();
+            if (!ParseInt32(s, &height)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid height integer");
+            }
+        } else
+        if (tip && tip->nHeight > 0) {
+            height = tip->nHeight -1;
+        }
+        {
+            LOCK(smsg::cs_smsgDB);
+            smsg::SecMsgDB db;
+            if (!db.Open("cw")) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
+            }
+
+            db.WriteBestBlock(block_hash, height);
+        }
+        result.pushKV("result", "Set invalid best block");
+    } else
+    if (mode == "none") {
+        uint256 best_block_hash;
+        int best_block_height{-1};
+        smsgModule.ReadBestBlock(best_block_hash, best_block_height);
+        result.pushKV("best_block_hash", best_block_hash.ToString());
+        result.pushKV("best_block_height", best_block_height);
     } else {
         result.pushKV("error", "Unknown command");
     }
