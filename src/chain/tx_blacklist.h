@@ -5,7 +5,9 @@
 #ifndef PARTICL_CHAIN_TX_BLACKLIST_H
 #define PARTICL_CHAIN_TX_BLACKLIST_H
 
-const static int64_t anon_index_blacklist[] = {
+#include <array>
+
+const static std::array<int64_t, 15> anon_index_blacklist = {
     2382,   // c22280de808fdc24e1831a0daa91f34d01b93186d8f02e780788ed9f2c93aa24 (n=3)
     2381,   // c22280de808fdc24e1831a0daa91f34d01b93186d8f02e780788ed9f2c93aa24 (n=1)
     2380,   // 7bc73dd12503e11312c80c57bad5683b10a27ab412082683468f0b82cb87c6ad
@@ -23,6 +25,5 @@ const static int64_t anon_index_blacklist[] = {
     2368    // 13211c275033673693332c0555f62ceea41c9767e17c9e2adfc8b3ea290c3e53
 };
 
-const static size_t anon_index_blacklist_size = sizeof(anon_index_blacklist) / sizeof(int64_t);
 
 #endif // PARTICL_CHAIN_TX_BLACKLIST_H

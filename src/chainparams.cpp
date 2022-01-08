@@ -410,10 +410,10 @@ public:
         consensus.rct_time = 0x5D2DBC40;                // 2019-07-16 12:00:00 UTC
         consensus.smsg_difficulty_time = 0x5D2DBC40;    // 2019-07-16 12:00:00 UTC
         // consensus.exploit_fix_1_time = 1614992554;      // 2021-03-06 01:00:00 GMT+8
-        // Removed to make used of the default 0xffffffff 
+        // Removed to make used of the default 0xffffffff
         // consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
-        consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry 
+        consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry
         consensus.m_frozen_blinded_height = 884433;
 
 
@@ -588,7 +588,7 @@ public:
 
        anonRestricted = DEFAULT_ANON_RESTRICTED;
 
-       blacklistedAnonTxs.insert(anon_index_blacklist, anon_index_blacklist + anon_index_blacklist_size);
+       blacklistedAnonTxs.insert(anon_index_blacklist.begin(), anon_index_blacklist.end());
     }
 
     void SetOld()
@@ -674,7 +674,7 @@ public:
         consensus.nMinRCTOutputDepth = 12;
         consensus.m_frozen_anon_index = 0;
         consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
-        
+
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -855,7 +855,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
         consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
-        
+
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         CHashWriter h(SER_DISK, 0);
@@ -1040,7 +1040,7 @@ public:
             0,
             0
         };
-        
+
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         consensus.m_frozen_anon_index = gArgs.GetArg("-lastanonindex", DEFAULT_LAST_ANON_INDEX);
 
