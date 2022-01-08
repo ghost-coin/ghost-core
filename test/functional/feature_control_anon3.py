@@ -118,6 +118,7 @@ class ControlAnonTest3(GhostTestFramework):
 
         height_node1 = nodes[1].getblockcount()
 
+        reached = False
         for i in range(1, height_node1 + 1):
             block_to_submit_hash = nodes[1].getblockhash(i)
             block_to_submit = nodes[1].getblock(block_to_submit_hash, 0)
@@ -125,8 +126,11 @@ class ControlAnonTest3(GhostTestFramework):
 
             if i == height_node1:
                 assert_equal(res, "bad-frozen-spend-to-non-recovery")
+                reached = True
             else:
                 assert_equal(res, None)
+
+        assert reached
 
 if __name__ == '__main__':
     ControlAnonTest3().main()
