@@ -18,7 +18,7 @@ EXTRA_LIBRARIES =
 
 BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
 
-LIBPARTICL_SERVER=libparticl_server.a
+LIBPARTICL_NODE=libparticl_node.a
 LIBPARTICL_COMMON=libparticl_common.a
 LIBPARTICL_CONSENSUS=libparticl_consensus.a
 LIBPARTICL_CLI=libparticl_cli.a
@@ -67,7 +67,7 @@ EXTRA_LIBRARIES += \
   $(LIBPARTICL_UTIL) \
   $(LIBPARTICL_COMMON) \
   $(LIBPARTICL_CONSENSUS) \
-  $(LIBPARTICL_SERVER) \
+  $(LIBPARTICL_NODE) \
   $(LIBPARTICL_CLI) \
   $(LIBPARTICL_IPC) \
   $(LIBPARTICL_WALLET) \
@@ -277,6 +277,7 @@ BITCOIN_CORE_H = \
   util/macros.h \
   util/message.h \
   util/moneystr.h \
+  util/overflow.h \
   util/overloaded.h \
   util/rbf.h \
   util/readwritefile.h \
@@ -358,9 +359,9 @@ ipc/capnp/libparticl_ipc_a-ipc.$(OBJEXT): $(libparticl_ipc_mpgen_input:=.h)
 # Contains code accessing mempool and chain state that is meant to be separated
 # from wallet and gui code (see node/README.md). Shared code should go in
 # libbitcoin_common or libbitcoin_util libraries, instead.
-libparticl_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
-libparticl_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libparticl_server_a_SOURCES = \
+libparticl_node_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
+libparticl_node_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libparticl_node_a_SOURCES = \
   addrdb.cpp \
   addrman.cpp \
   banman.cpp \
@@ -430,10 +431,10 @@ libparticl_server_a_SOURCES = \
   $(BITCOIN_CORE_H)
 
 if ENABLE_WALLET
-libparticl_server_a_SOURCES += wallet/init.cpp
+libparticl_node_a_SOURCES += wallet/init.cpp
 endif
 if !ENABLE_WALLET
-libparticl_server_a_SOURCES += dummywallet.cpp
+libparticl_node_a_SOURCES += dummywallet.cpp
 endif
 
 if ENABLE_ZMQ
@@ -814,13 +815,13 @@ particld_SOURCES = $(particl_daemon_sources) init/bitcoind.cpp
 particld_CPPFLAGS = $(particl_bin_cppflags)
 particld_CXXFLAGS = $(particl_bin_cxxflags)
 particld_LDFLAGS = $(particl_bin_ldflags)
-particld_LDADD = $(LIBPARTICL_SERVER) $(particl_bin_ldadd)
+particld_LDADD = $(LIBPARTICL_NODE) $(particl_bin_ldadd)
 
 particl_node_SOURCES = $(particl_daemon_sources) init/bitcoin-node.cpp
 particl_node_CPPFLAGS = $(particl_bin_cppflags)
 particl_node_CXXFLAGS = $(particl_bin_cxxflags)
 particl_node_LDFLAGS = $(particl_bin_ldflags)
-particl_node_LDADD = $(LIBPARTICL_SERVER) $(particl_bin_ldadd) $(LIBPARTICL_IPC) $(LIBMULTIPROCESS_LIBS)
+particl_node_LDADD = $(LIBPARTICL_NODE) $(particl_bin_ldadd) $(LIBPARTICL_IPC) $(LIBMULTIPROCESS_LIBS)
 
 # bitcoin-cli binary #
 particl_cli_SOURCES = bitcoin-cli.cpp
@@ -871,7 +872,7 @@ particl_wallet_LDFLAGS = $(particl_bin_ldflags)
 particl_wallet_LDADD = \
   $(LIBPARTICL_WALLET_TOOL) \
   $(LIBPARTICL_WALLET) \
-  $(LIBPARTICL_SERVER) \
+  $(LIBPARTICL_NODE) \
   $(LIBPARTICL_COMMON) \
   $(LIBPARTICL_CONSENSUS) \
   $(LIBPARTICL_UTIL) \

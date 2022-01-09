@@ -173,7 +173,7 @@ std::optional<ChainstateLoadVerifyError> VerifyLoadedChainstate(ChainstateManage
             const CBlockIndex* tip = chainstate->m_chain.Tip();
             if (tip &&
                 tip != chainstate->m_chain.Genesis() && // Particl: Genesis block can be set in the future
-                tip->nTime > get_unix_time_seconds() + 2 * 60 * 60) {
+                tip->nTime > get_unix_time_seconds() + MAX_FUTURE_BLOCK_TIME) {
                 return ChainstateLoadVerifyError::ERROR_BLOCK_FROM_FUTURE;
             }
 
