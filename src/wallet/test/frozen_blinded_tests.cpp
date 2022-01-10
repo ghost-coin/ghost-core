@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         str_cmd = strprintf("sendtypeto blind ghost [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        CAmount txFee = rv["fee"].get_int64();
+        // CAmount txFee = rv["fee"].get_int64();
         pwallet->GetBalances(balances);
         // BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;

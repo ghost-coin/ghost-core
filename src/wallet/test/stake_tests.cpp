@@ -334,8 +334,12 @@ BOOST_AUTO_TEST_CASE(stake_test)
 
         TryAddBadTxn(pwallet, address, OUTPUT_CT, 11 * COIN);
 
-        const uint32_t nTime = ::ChainActive().Tip()->nTime;
+        uint32_t nTime = ::ChainActive().Tip()->nTime;
         RegtestParams().GetConsensus_nc().exploit_fix_1_time = nTime + 1;
+        while (GetTime() < nTime + 1) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
+
         TryAddBadTxn(pwallet, address, OUTPUT_RINGCT, 12 * COIN);
 
         StakeNBlocks(pwallet, 2);
