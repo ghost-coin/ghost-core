@@ -10,7 +10,7 @@ class DisableTest(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [['-debug', '-anonrestricted=0', '-noacceptnonstdtxn', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
+        self.extra_args = [['-debug', '-noacceptnonstdtxn', '-reservebalance=10000000', '-stakethreadconddelayms=500', '-txindex=1', '-maxtxfee=1', ] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -109,12 +109,8 @@ class DisableTest(GhostTestFramework):
 
         for txid in txids:
             rtx = nodes[0].getrawtransaction(txid)
-            try:
-                nodes[1].sendrawtransaction(rtx)
-                assert(False)
-            except Exception as e:
-                assert('bad-txns-anon-disabled' in str(e) or 'bad-txns-blind-disabled' in str(e))
-
+            nodes[1].sendrawtransaction(rtx)
+     
 
 if __name__ == '__main__':
     DisableTest().main()
