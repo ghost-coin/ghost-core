@@ -264,6 +264,12 @@ public:
         nVersion = nVersionIn;
     }
 
+    void Init(const char* pbegin, const char* pend, int nTypeIn, int nVersionIn)
+    {
+        vch = vector_type(pbegin, pend);
+        Init(nTypeIn, nVersionIn);
+    }
+
     CDataStream& operator+=(const CDataStream& b)
     {
         vch.insert(vch.end(), b.begin(), b.end());

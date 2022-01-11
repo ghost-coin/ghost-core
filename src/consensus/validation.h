@@ -160,6 +160,7 @@ public:
     bool m_preserve_state = false; // Don't clear error during ActivateBestChain (debug)
 
     // TxValidationState
+    int64_t m_time = 0;
     bool m_funds_smsg = false;
     bool m_has_anon_output = false;
     bool m_has_anon_input = false;
@@ -167,11 +168,15 @@ public:
     bool m_clamp_tx_version = false;
     bool m_exploit_fix_1 = false;
     bool m_exploit_fix_2 = false;
+    bool m_in_block = false;
+    bool m_check_equal_rct_txid = true;
     CAmount tx_balances[6] = {0};
     std::set<CCmpPubKey> m_setHaveKI;
 
-    void SetStateInfo(int64_t time, int spend_height, const Consensus::Params& consensusParams, bool particl_mode, bool skip_rangeproof)
+    void SetStateInfo(int64_t time, int spend_height, const Consensus::Params& consensusParams, bool particl_mode, bool skip_rangeproof, bool in_block=false)
     {
+        m_time = time;
+        m_in_block = in_block;
         m_consensus_params = &consensusParams;
         fEnforceSmsgFees = time >= consensusParams.nPaidSmsgTime;
         fBulletproofsActive = time >= consensusParams.bulletproof_time;
@@ -185,6 +190,28 @@ public:
         m_clamp_tx_version = time >= consensusParams.clamp_tx_version_time;
         m_exploit_fix_1 = time >= consensusParams.exploit_fix_1_time;
         m_exploit_fix_2 = time >= consensusParams.exploit_fix_2_time;
+        if (m_in_block && m_time < 1632177542) {
+            m_check_equal_rct_txid = false;
+        }
+    }
+
+    void CopyStateInfo(const ValidationState &state_from)
+    {
+        m_time = state_from.m_time;
+        m_in_block = state_from.m_in_block;
+        m_consensus_params = state_from.m_consensus_params;
+        fEnforceSmsgFees = state_from.fEnforceSmsgFees;
+        fBulletproofsActive = state_from.fBulletproofsActive;
+        rct_active = state_from.rct_active;
+        m_spend_height = state_from.m_spend_height;
+
+        m_particl_mode = state_from.m_particl_mode;
+        m_skip_rangeproof = state_from.m_skip_rangeproof;
+
+        m_clamp_tx_version = state_from.m_clamp_tx_version;
+        m_exploit_fix_1 = state_from.m_exploit_fix_1;
+        m_exploit_fix_2 = state_from.m_exploit_fix_2;
+        m_check_equal_rct_txid = state_from.m_check_equal_rct_txid;
     }
 };
 

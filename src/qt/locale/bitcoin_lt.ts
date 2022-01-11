@@ -164,8 +164,8 @@
         <translation>Patvirtinkite piniginės užšifravimą</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR PARTICL&lt;/b&gt;!</source>
-        <translation>Dėmesio: jei užšifruosite savo piniginę ir pamesite slaptafrazę, jūs&lt;b&gt;PRARASITE VISUS SAVO PARTICLUS&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR GHOST&lt;/b&gt;!</source>
+        <translation>Dėmesio: jei užšifruosite savo piniginę ir pamesite slaptafrazę, jūs&lt;b&gt;PRARASITE VISUS SAVO GHOSTUS&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -482,6 +482,10 @@
         <translation>Uždaryti Piniginę</translation>
     </message>
     <message>
+        <source>Close all wallets</source>
+        <translation>Uždaryti visas pinigines</translation>
+    </message>
+    <message>
         <source>Show the %1 help message to get a list with possible Ghost command-line options</source>
         <translation>Rodyti %1 pagalbos žinutę su Ghost pasirinkimo komandomis</translation>
     </message>
@@ -592,6 +596,10 @@
     <message>
         <source>Wallet is &lt;b&gt;encrypted&lt;/b&gt; and currently &lt;b&gt;locked&lt;/b&gt;</source>
         <translation>Piniginė &lt;b&gt;užšifruota&lt;/b&gt; ir šiuo metu &lt;b&gt;užrakinta&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>Original message:</source>
+        <translation>Orginali žinutė:</translation>
     </message>
     </context>
 <context>
@@ -767,6 +775,10 @@
         <translation>Sukurti Piniginę</translation>
     </message>
     <message>
+        <source>Wallet</source>
+        <translation>Piniginė</translation>
+    </message>
+    <message>
         <source>Wallet Name</source>
         <translation>Piniginės Pavadinimas</translation>
     </message>
@@ -777,6 +789,10 @@
     <message>
         <source>Encrypt Wallet</source>
         <translation>Užkoduoti Piniginę</translation>
+    </message>
+    <message>
+        <source>Advanced Options</source>
+        <translation>Išplėstiniai nustatymai</translation>
     </message>
     <message>
         <source>Disable Private Keys</source>
@@ -971,7 +987,7 @@
     </message>
     <message>
         <source>Attempting to spend ghost that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Tinklas nepriims bandymų išleisti particlus, kurie yra vis dar nematomi.</translation>
+        <translation>Tinklas nepriims bandymų išleisti ghostus, kurie yra vis dar nematomi.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1385,6 +1401,10 @@
         <translation>Dialogas</translation>
     </message>
     <message>
+        <source>Close</source>
+        <translation>Uždaryti</translation>
+    </message>
+    <message>
         <source>Total Amount</source>
         <translation>Visas kiekis</translation>
     </message>
@@ -1722,6 +1742,10 @@
     <message>
         <source>Increase font size</source>
         <translation>Padidinti šrifto dydį</translation>
+    </message>
+    <message>
+        <source>Permissions</source>
+        <translation>Leidimai</translation>
     </message>
     <message>
         <source>Services</source>
@@ -2236,6 +2260,10 @@ Pastaba: Kadangi mokestis apskaičiuojamas pagal baitą, mokestis už „100 sat
         <translation>Ar tikrai norite siųsti?</translation>
     </message>
     <message>
+        <source>Create Unsigned</source>
+        <translation>Sukurti nepasirašytą</translation>
+    </message>
+    <message>
         <source>or</source>
         <translation>ar</translation>
     </message>
@@ -2356,7 +2384,7 @@ Pastaba: Kadangi mokestis apskaičiuojamas pagal baitą, mokestis už „100 sat
     </message>
     <message>
         <source>The fee will be deducted from the amount being sent. The recipient will receive less ghost than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Mokestis bus atimamas iš siunčiamos sumos. Gavėjas gaus mažiau particlų nei įvesite sumos lauke. Jei pasirenkami keli gavėjai, mokestis padalijamas lygiai.</translation>
+        <translation>Mokestis bus atimamas iš siunčiamos sumos. Gavėjas gaus mažiau ghostų nei įvesite sumos lauke. Jei pasirenkami keli gavėjai, mokestis padalijamas lygiai.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2980,6 +3008,10 @@ Pastaba: Kadangi mokestis apskaičiuojamas pagal baitą, mokestis už „100 sat
     <message>
         <source>Are you sure you wish to close the wallet &lt;i&gt;%1&lt;/i&gt;?</source>
         <translation>Ar tikrai norite uždaryti piniginę &lt;i&gt;%1&lt;/i&gt;?</translation>
+    </message>
+    <message>
+        <source>Close all wallets</source>
+        <translation>Uždaryti visas pinigines</translation>
     </message>
     </context>
 <context>

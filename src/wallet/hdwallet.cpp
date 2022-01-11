@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -711,7 +711,7 @@ bool CHDWallet::LoadVoteTokens(CHDWalletDB *pwdb)
         return false;
     }
 
-    int nBestHeight = GetLastBlockHeight();
+    int nBestHeight = m_last_block_processed_height > -1 ? GetLastBlockHeight() : 0;
 
     for (const auto &v : vVoteTokensRead) {
         if (v.nEnd > nBestHeight - 1000) { // 1000 block buffer in case of reorg etc
@@ -2122,7 +2122,7 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
     }
     case TxoutType::WITNESS_V0_KEYHASH:
     case TxoutType::WITNESS_V0_SCRIPTHASH:
-        LogPrintf("%s: Ignoring TX_WITNESS script type.\n", __func__); // shouldn't happen
+        LogPrintf("%s: Ignoring WITNESS_V0 script type.\n", __func__); // shouldn't happen
         return ISMINE_NO;
 
     case TxoutType::MULTISIG:
@@ -3377,7 +3377,6 @@ int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string 
 
             txout->pk = CCmpPubKey(r.pkTo);
 
-            LogPrintf("r.fNonceSet %d\n", r.fNonceSet);
             if (r.fNonceSet) {
                 if (r.vData.size() < 33) {
                     return errorN(1, sError, __func__, "Missing ephemeral value, vData size %d", r.vData.size());
@@ -3727,6 +3726,13 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
 
         return true;
     }
+    if (coinControl && coinControl->m_changepubkey.IsValid()) {
+        PKHash idChange = PKHash(coinControl->m_changepubkey);
+        r.pkTo = coinControl->m_changepubkey;
+        r.address = idChange;
+        r.scriptPubKey = GetScriptForDestination(idChange);
+        return true;
+    }
 
     UniValue jsonSettings;
     GetSetting("changeaddress", jsonSettings);
@@ -3876,7 +3882,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 {
     assert(coinControl);
     nFeeRet = 0;
-    CAmount nValue;
+    CAmount nValue{0};
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs;
     InspectOutputs(vecSend, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs);
@@ -3912,7 +3918,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         std::set<CInputCoin> setCoins;
         std::vector<COutput> vAvailableCoins;
-        AvailableCoins(vAvailableCoins, true, coinControl);
+        AvailableCoins(vAvailableCoins, true, coinControl, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
 
         CFeeRate discard_rate = GetDiscardRate(*this);
@@ -4779,7 +4785,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             nFeeRet = nFeeNeeded;
             continue;
         }
-        coinControl->nChangePos = nChangePosInOut;
+        coinControl->nChangePos = nChangePosInOut + 1; // Add one for the fee output
 
 
         nValueOutPlain += nFeeRet;
@@ -5570,7 +5576,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             nFeeRet = nFeeNeeded;
             continue;
         }
-        coinControl->nChangePos = nChangePosInOut;
+        coinControl->nChangePos = nChangePosInOut + 1; // Add one for the fee output
 
         LogPrint(BCLog::HDWALLET, "%s: Using %d inputs, ringsize %d.\n", __func__, setCoins.size(), nRingSize);
 
@@ -10126,11 +10132,18 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
             const CTxOutCT *ctout = (CTxOutCT*) txout.get();
 
             CTxDestination address;
-            if (!ExtractDestination(ctout->scriptPubKey, address)
-                || address.type() != typeid(PKHash)) {
+            if (!ExtractDestination(ctout->scriptPubKey, address)) {
                 //WalletLogPrintf("%s: ExtractDestination failed.\n", __func__);
                 continue;
             }
+            if (IsMine(address)) {
+                fIsMine = true;
+            }
+
+            if (address.type() != typeid(PKHash)) {
+                continue;
+            }
+
 
             // Uncover stealth
             uint32_t prefix = 0;
@@ -11022,15 +11035,17 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
     CTransactionRecord &rtx = ret.first->second;
 
     bool fUpdated = false;
-    if (!confirm.hashBlock.IsNull() && // unconfirmed
-        (rtx.blockHash != confirm.hashBlock ||
+    if (rtx.blockHash != confirm.hashBlock ||
         rtx.block_height != confirm.block_height ||
-        rtx.nIndex != confirm.nIndex)) {
+        rtx.nIndex != confirm.nIndex) {
         fUpdated = true;
 
-        rtx.blockHash = confirm.hashBlock;
+        // Don't set a null hashblock if it would unset an abandoned state
+        if (!rtx.IsAbandoned() || !confirm.hashBlock.IsNull()) {
+            rtx.blockHash = confirm.hashBlock;
+            rtx.nIndex = confirm.nIndex;
+        }
         rtx.block_height = confirm.block_height;
-        rtx.nIndex = confirm.nIndex;
 
         int64_t block_time;
         if (chain().findBlock(rtx.blockHash, FoundBlock().time(block_time))) {
@@ -11140,6 +11155,8 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
         stx.vBlinds.clear();
     }
 
+    CAmount smsg_fees = 0;
+    int smsgs_funded = 0;
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];
 
@@ -11186,6 +11203,20 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
                     rtx.InsertOutput(*pout);
                 }
                 break;
+            case OUTPUT_DATA:
+                CTxOutData *txd = (CTxOutData*)txout.get();
+                if (txd->vData.size() < 25 || txd->vData[0] != DO_FUND_MSG) {
+                    continue;
+                }
+                size_t n = (txd->vData.size()-1) / 24;
+                for (size_t k = 0; k < n; ++k) {
+                    uint32_t nAmount;
+                    memcpy(&nAmount, &txd->vData[1+k*24+20], 4);
+                    nAmount = le32toh(nAmount);
+                    smsg_fees += nAmount;
+                    smsgs_funded += 1;
+                }
+                break;
         }
 
         if (IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE)) {
@@ -11194,6 +11225,14 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
                 SetSpentKeyState(pscript, true);
             }
         }
+    }
+
+    if (smsgs_funded > 0) {
+        std::vector<uint8_t> v;
+        v.resize(12);
+        memcpy(v.data(), &smsgs_funded, 4);
+        memcpy(v.data() + 4, &smsg_fees, 8);
+        rtx.mapValue[RTXVT_SMSG_FEES] = v;
     }
 
     if (fInsertedNew || fUpdated) {
@@ -12023,6 +12062,8 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
     const bool spend_frozen = {coinControl ? coinControl->m_spend_frozen_blinded : false};
     const bool include_tainted_frozen = {coinControl ? coinControl->m_include_tainted_frozen : false};
 
+    int64_t time_now = GetAdjustedTime();
+
     CHDWalletDB wdb(GetDatabase());
 
     const Consensus::Params &consensusParams = Params().GetConsensus();
@@ -12088,7 +12129,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                     !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
                     ::Params().IsBlacklistedAnonOutput(index) ||
-                    (!IsWhitelistedAnonOutput(index) && r.nValue > consensusParams.m_max_tainted_value_out)) {
+                    (!IsWhitelistedAnonOutput(index, time_now, consensusParams) && r.nValue > consensusParams.m_max_tainted_value_out)) {
                     continue;
                 }
             }
@@ -12520,7 +12561,20 @@ std::set<uint256> CHDWallet::GetConflicts(const uint256 &txid) const
     return CWallet::GetConflicts(txid);
 }
 
-/* Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
+bool CHDWallet::TransactionCanBeAbandoned(const uint256& hashTx) const
+{
+    LOCK(cs_wallet);
+
+    MapRecords_t::const_iterator mri;
+    if ((mri = mapRecords.find(hashTx)) != mapRecords.end()) {
+        const CTransactionRecord &rtx = mri->second;
+        return !rtx.IsAbandoned() && GetDepthInMainChain(rtx) == 0 && !InMempool(hashTx);
+    }
+
+    const CWalletTx* wtx = GetWalletTx(hashTx);
+    return wtx && !wtx->isAbandoned() && wtx->GetDepthInMainChain() == 0 && !wtx->InMempool();
+}
+
 bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
 {
     LOCK(cs_wallet);
@@ -12590,6 +12644,9 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
             if (!wtx.isAbandoned()
                 && currentconfirm == 0)
             {
+                // AbandonTransaction can happen before CWallet::transactionRemovedFromMempool is called
+                wtx.fInMempool = InMempool(wtx.GetHash());
+
                 // If the orig tx was not in block/mempool, none of its spends can be in mempool
                 assert(!wtx.InMempool());
                 wtx.setAbandoned();
@@ -13480,14 +13537,17 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
         if (m_smsg_fee_rate_target > 0) {
             int64_t diff = m_smsg_fee_rate_target - smsg_fee_rate;
-            int64_t max_delta = Params().GetMaxSmsgFeeRateDelta(smsg_fee_rate);
+            int64_t max_delta = Params().GetMaxSmsgFeeRateDelta(smsg_fee_rate, nTime);
             if (diff > max_delta) {
                 diff = max_delta;
-            }
+            } else
             if (diff < -max_delta) {
                 diff = -max_delta;
             }
             smsg_fee_rate += diff;
+            if (smsg_fee_rate < 1) {
+                smsg_fee_rate = 1;
+            }
         }
         std::vector<uint8_t> vSmsgFeeRate(1), &vData = *txNew.vpout[0]->GetPData();
         vSmsgFeeRate[0] = DO_SMSG_FEE;

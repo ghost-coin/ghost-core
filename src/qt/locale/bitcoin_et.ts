@@ -164,8 +164,8 @@
         <translation>Kinnita rahakoti krüpteerimine.</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR PARTICL&lt;/b&gt;!</source>
-        <translation>Hoiatus:Kui sa krüpteerid oma rahakoti ja kaotad salafraasi, siis sa&lt;b&gt;KAOTAD OMA PARTICLID&lt;/b&gt;!</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR GHOST&lt;/b&gt;!</source>
+        <translation>Hoiatus:Kui sa krüpteerid oma rahakoti ja kaotad salafraasi, siis sa&lt;b&gt;KAOTAD OMA GHOSTID&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -185,7 +185,7 @@
     </message>
     <message>
         <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
-        <translation>Pea meeles, et rahakoti krüpteerimine ei välista particlide vargust, kui sinu arvuti on nakatunud pahavaraga.</translation>
+        <translation>Pea meeles, et rahakoti krüpteerimine ei välista ghostide vargust, kui sinu arvuti on nakatunud pahavaraga.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -339,7 +339,7 @@
     </message>
     <message>
         <source>Send coins to a Ghost address</source>
-        <translation>Saada münte Particli aadressile</translation>
+        <translation>Saada münte Ghosti aadressile</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -375,11 +375,11 @@
     </message>
     <message>
         <source>Sign messages with your Ghost addresses to prove you own them</source>
-        <translation>Omandi tõestamiseks allkirjasta sõnumid oma Particli aadressiga</translation>
+        <translation>Omandi tõestamiseks allkirjasta sõnumid oma Ghosti aadressiga</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Ghost addresses</source>
-        <translation>Kinnita sõnumid kindlustamaks et need allkirjastati määratud Particli aadressiga</translation>
+        <translation>Kinnita sõnumid kindlustamaks et need allkirjastati määratud Ghosti aadressiga</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -399,7 +399,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and ghost: URIs)</source>
-        <translation>Loo maksepäring (genereerib QR koodid ja particli: URId)</translation>
+        <translation>Loo maksepäring (genereerib QR koodid ja ghosti: URId)</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -407,7 +407,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Ghost network</source>
-        <translation><numerusform>%n aktiivne ühendus Particli võrku</numerusform><numerusform>%n aktiivset ühendust Particli võrku</numerusform></translation>
+        <translation><numerusform>%n aktiivne ühendus Ghosti võrku</numerusform><numerusform>%n aktiivset ühendust Ghosti võrku</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -460,6 +460,10 @@
     <message>
         <source>Catching up...</source>
         <translation>Jõuan järgi...</translation>
+    </message>
+    <message>
+        <source>Error: %1</source>
+        <translation>Tõrge %1</translation>
     </message>
     <message>
         <source>Date: %1
@@ -632,6 +636,10 @@
     </context>
 <context>
     <name>CreateWalletDialog</name>
+    <message>
+        <source>Wallet</source>
+        <translation>Rahakott</translation>
+    </message>
     </context>
 <context>
     <name>EditAddressDialog</name>
@@ -762,7 +770,7 @@
     </message>
     <message>
         <source>Automatically open the Ghost client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Particli kliendi pordi automaatne avamine ruuteris. Toimib, kui sinu ruuter aktsepteerib UPnP ühendust.</translation>
+        <translation>Ghosti kliendi pordi automaatne avamine ruuteris. Toimib, kui sinu ruuter aktsepteerib UPnP ühendust.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -861,7 +869,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Ghost network after a connection is established, but this process has not completed yet.</source>
-        <translation>Kuvatav info ei pruugi olla ajakohane. Ühenduse loomisel süngitakse sinu rahakott automaatselt Bitconi võrgustikuga, kuid see toiming on hetkel lõpetamata.</translation>
+        <translation>Kuvatav info ei pruugi olla ajakohane. Ühenduse loomisel süngitakse sinu rahakott automaatselt Ghost võrgustikuga, kuid see toiming on hetkel lõpetamata.</translation>
     </message>
     <message>
         <source>Pending:</source>
@@ -970,6 +978,10 @@
     <message>
         <source>%1 GB</source>
         <translation>%1 GB</translation>
+    </message>
+    <message>
+        <source>Error: %1</source>
+        <translation>Tõrge %1</translation>
     </message>
     <message>
         <source>unknown</source>
@@ -1480,7 +1492,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Ghost address</source>
-        <translation>Allkirjasta sõnum Particli aadressi sulle kuulumise tõestamiseks</translation>
+        <translation>Allkirjasta sõnum Ghosti aadressi sulle kuulumise tõestamiseks</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1504,7 +1516,7 @@
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Ghost address</source>
-        <translation>Kinnita sõnum tõestamaks selle allkirjastatust määratud Particli aadressiga.</translation>
+        <translation>Kinnita sõnum tõestamaks selle allkirjastatust määratud Ghosti aadressiga.</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>

@@ -45,7 +45,8 @@ public:
         INVALID_ADDRESS,        /**< Unparseable address */
         DUPLICATE_ADDRESS,      /**< Address already in address book */
         WALLET_UNLOCK_FAILURE,  /**< Wallet could not be unlocked to create new receiving address */
-        KEY_GENERATION_FAILURE  /**< Generating a new public key for a receiving address failed */
+        KEY_GENERATION_FAILURE, /**< Generating a new public key for a receiving address failed */
+        RPC_ERROR               /**< Particl: Error was raised from rpc function */
     };
 
     enum AddrType {

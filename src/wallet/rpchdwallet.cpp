@@ -24,6 +24,7 @@
 #include <txdb.h>
 #include <blind.h>
 #include <anon.h>
+#include <util/strencodings.h>
 #include <util/moneystr.h>
 #include <util/translation.h>
 #include <util/fees.h>
@@ -753,18 +754,19 @@ static int ExtractExtKeyId(const std::string &sInKey, CKeyID &keyId, CChainParam
     return 0;
 };
 
-static OutputTypes WordToType(std::string &s, bool allow_data=false)
+static OutputTypes WordToType(const std::string &s, bool allow_data=false)
 {
-    if (s == "ghost" || s == "standard" ||  s == "part") {
+    const std::string ls = ToLower(s);
+    if (ls == "part" || ls == "plain" || ls == "standard" || ls == "ghost") {
         return OUTPUT_STANDARD;
     }
-    if (s == "blind") {
+    if (ls == "blind") {
         return OUTPUT_CT;
     }
-    if (s == "anon") {
+    if (ls == "anon") {
         return OUTPUT_RINGCT;
     }
-    if (allow_data && s == "data") {
+    if (allow_data && ls == "data") {
         return OUTPUT_DATA;
     }
     return OUTPUT_NULL;
@@ -784,9 +786,21 @@ static void ParseSecretKey(const std::string &s, CKey &key)
 
 void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinControl &coin_control)
 {
+    std::string sChangeAddress;
     if (obj.exists("changeaddress")) {
-        std::string sChangeAddress = obj["changeaddress"].get_str();
+        sChangeAddress = obj["changeaddress"].get_str();
+    } else
+    if (obj.exists("changeAddress")) {
+        sChangeAddress = obj["changeAddress"].get_str();
+    } else
+    if (obj.exists("change_address")) {
+        sChangeAddress = obj["change_address"].get_str();
+    }
 
+    if (sChangeAddress.size() > 0) {
+        if (obj.exists("changepubkey")) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Can't set changepubkey and changeaddress");
+        }
         // Check for script
         bool fHaveScript = false;
         if (IsHex(sChangeAddress)) {
@@ -807,6 +821,14 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
             }
             coin_control.destChange = dest;
         }
+    } else
+    if (obj.exists("changepubkey")) {
+        std::string s = obj["changepubkey"].get_str();
+        if (!IsHex(s) || !(s.size() == 66)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 33 bytes and hex encoded.");
+        }
+        std::vector<uint8_t> v = ParseHex(s);
+        coin_control.m_changepubkey = CPubKey(v.begin(), v.end());
     }
 
     const UniValue &uvInputs = obj["inputs"];
@@ -909,6 +931,16 @@ void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinContr
     if (obj.exists("feeRate")) {
         coin_control.m_feerate = CFeeRate(AmountFromValue(obj["feeRate"]));
         coin_control.fOverrideFeeRate = true;
+    }
+
+    if (obj.exists("includeWatching")) {
+        coin_control.fAllowWatchOnly = obj["includeWatching"].get_bool();
+    }
+    if (obj.exists("minimumAmount")) {
+        coin_control.m_minimum_output_amount = AmountFromValue(obj["minimumAmount"]);
+    }
+    if (obj.exists("maximumAmount")) {
+        coin_control.m_maximum_output_amount = AmountFromValue(obj["maximumAmount"]);
     }
 
     coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(pwallet, obj["avoid_reuse"]);
@@ -1239,6 +1271,7 @@ static UniValue extkey(const JSONRPCRequest &request)
                 }
 
                 struct tm tmdate;
+                memset(&tmdate, 0, sizeof(tmdate));
                 tmdate.tm_year = year - 1900;
                 tmdate.tm_mon = month - 1;
                 tmdate.tm_mday = day;
@@ -2946,7 +2979,7 @@ static UniValue clearwallettransactions(const JSONRPCRequest &request)
 
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
 
-        std::map<uint256, CWalletTx>::iterator itw;
+        std::map<uint256, CWalletTx>::const_iterator itw;
         std::string strType;
         uint256 hash;
         uint32_t fFlags = DB_SET_RANGE;
@@ -2966,7 +2999,7 @@ static UniValue clearwallettransactions(const JSONRPCRequest &request)
                     continue; // err on the side of caution
                 }
 
-                CWalletTx *pcoin = &itw->second;
+                const CWalletTx *pcoin = &itw->second;
                 if (!pcoin->IsCoinStake() || !pcoin->isAbandoned()) {
                     continue;
                 }
@@ -3074,7 +3107,8 @@ static void ParseOutputs(
     bool                 fBech32,
     bool                 hide_zero_coinstakes,
     std::vector<CScript> &vTreasuryFundScripts,
-    bool                 show_change
+    bool                 show_change,
+    bool                 show_smsg_fees
 ) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     UniValue entry(UniValue::VOBJ);
@@ -3217,6 +3251,30 @@ static void ParseOutputs(
     entry.pushKV("outputs", outputs);
     entry.pushKV("amount", ValueFromAmount(amount));
 
+    if (category_filter != "all" && category_filter != entry["category"].get_str()) {
+        return;
+    }
+    if (search != "") {
+        bool drop = true;
+        // search in addresses
+        if (std::any_of(addresses.begin(), addresses.end(), [search](std::string addr) {
+            return addr.find(search) != std::string::npos;
+        })) {
+            drop = false;
+        }
+        // search in amounts
+        // character DOT '.' is not searched for: search "123" will find 1.23 and 12.3
+        if (drop &&
+            std::any_of(amounts.begin(), amounts.end(), [search](std::string amount) {
+            return amount.find(search) != std::string::npos;
+        })) {
+            drop = false;
+        }
+        if (drop) {
+            return;
+        }
+    }
+
     if (fWithReward && !listStaked.empty()) {
         CAmount nOutput = wtx.tx->GetValueOut();
         CAmount nInput = 0;
@@ -3240,28 +3298,33 @@ static void ParseOutputs(
         entry.pushKV("reward", ValueFromAmount(nOutput - nInput));
     }
 
-    if (category_filter != "all" && category_filter != entry["category"].get_str()) {
-        return;
-    }
-    if (search != "") {
-        // search in addresses
-        if (std::any_of(addresses.begin(), addresses.end(), [search](std::string addr) {
-            return addr.find(search) != std::string::npos;
-        })) {
-            entries.push_back(entry);
-            return ;
+    if (show_smsg_fees) {
+        CAmount smsg_fees = 0;
+        int num_funded = 0;
+        for (const auto &v : wtx.tx->vpout) {
+            if (!v->IsType(OUTPUT_DATA)) {
+                continue;
+            }
+            CTxOutData *txd = (CTxOutData*) v.get();
+            if (txd->vData.size() < 25 || txd->vData[0] != DO_FUND_MSG) {
+                continue;
+            }
+            size_t n = (txd->vData.size()-1) / 24;
+            for (size_t k = 0; k < n; ++k) {
+                uint32_t nAmount;
+                memcpy(&nAmount, &txd->vData[1+k*24+20], 4);
+                nAmount = le32toh(nAmount);
+                smsg_fees += nAmount;
+                num_funded += 1;
+            }
         }
-        // search in amounts
-        // character DOT '.' is not searched for: search "123" will find 1.23 and 12.3
-        if (std::any_of(amounts.begin(), amounts.end(), [search](std::string amount) {
-            return amount.find(search) != std::string::npos;
-        })) {
-            entries.push_back(entry);
-            return ;
+        if (num_funded > 0) {
+            entry.pushKV("smsg_fees", ValueFromAmount(smsg_fees));
+            entry.pushKV("smsges_funded", num_funded);
         }
-    } else {
-        entries.push_back(entry);
     }
+
+    entries.push_back(entry);
 }
 
 static void ParseRecords(
@@ -3275,7 +3338,8 @@ static void ParseRecords(
     int                         type,
     bool                        show_blinding_factors,
     bool                        show_anon_spends,
-    bool                        show_change
+    bool                        show_change,
+    bool                        show_smsg_fees
 ) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     std::vector<std::string> addresses, amounts;
@@ -3515,31 +3579,49 @@ static void ParseRecords(
                 nOutput += record.nValue;
             }
         }
-        entry.__pushKV("amount", ValueFromAmount(nOutput-nInput));
+        entry.__pushKV("amount", ValueFromAmount(nOutput - nInput));
     } else {
         entry.__pushKV("amount", ValueFromAmount(totalAmount));
     }
     amounts.push_back(ToString(totalAmount));
 
     if (search != "") {
+        bool drop = true;
         // search in addresses
         if (std::any_of(addresses.begin(), addresses.end(), [search](std::string addr) {
             return addr.find(search) != std::string::npos;
         })) {
-            entries.push_back(entry);
-            return;
+            drop = false;
         }
         // search in amounts
         // character DOT '.' is not searched for: search "123" will find 1.23 and 12.3
-        if (std::any_of(amounts.begin(), amounts.end(), [search](std::string amount) {
+        if (drop &&
+            std::any_of(amounts.begin(), amounts.end(), [search](std::string amount) {
             return amount.find(search) != std::string::npos;
         })) {
-            entries.push_back(entry);
+            drop = false;
+        }
+        if (drop) {
             return;
         }
-    } else {
-        entries.push_back(entry);
     }
+
+    if (show_smsg_fees) {
+        mapRTxValue_t::const_iterator mvi = rtx.mapValue.find(RTXVT_SMSG_FEES);
+        if (mvi != rtx.mapValue.end() &&
+            mvi->second.size() >= 12) {
+            CAmount smsg_fees = 0;
+            int num_funded = 0;
+
+            memcpy(&num_funded, mvi->second.data(), 4);
+            memcpy(&smsg_fees, mvi->second.data() + 4, 8);
+
+            entry.pushKV("smsg_fees", ValueFromAmount(smsg_fees));
+            entry.pushKV("smsges_funded", num_funded);
+        }
+    }
+
+    entries.push_back(entry);
 }
 
 static std::string getAddress(UniValue const & transaction)
@@ -3593,6 +3675,7 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
                             {"show_blinding_factors", RPCArg::Type::BOOL, /* default */ "false", "Display blinding factors for blinded outputs"},
                             {"show_anon_spends", RPCArg::Type::BOOL, /* default */ "false", "Display inputs for anon transactions"},
                             {"show_change", RPCArg::Type::BOOL, /* default */ "false", "Display change outputs (for anon and blind txns)"},
+                            {"show_smsg_fees", RPCArg::Type::BOOL, /* default */ "false", "List the smsgids funded by the transactions"},
                         },
                         "options"},
                 },
@@ -3634,6 +3717,7 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
     bool show_blinding_factors = false;
     bool show_anon_spends = false;
     bool show_change = false;
+    bool show_smsg_fees = false;
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -3653,6 +3737,7 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
                 {"show_blinding_factors",   UniValueType(UniValue::VBOOL)},
                 {"show_anon_spends",        UniValueType(UniValue::VBOOL)},
                 {"show_change",             UniValueType(UniValue::VBOOL)},
+                {"show_smsg_fees",       UniValueType(UniValue::VBOOL)},
             },
             true, // allow null
             false // strict
@@ -3763,6 +3848,9 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
         if (options["show_change"].isBool()) {
             show_change = options["show_change"].get_bool();
         }
+        if (options["show_smsg_fees"].isBool()) {
+            show_smsg_fees = options["show_smsg_fees"].get_bool();
+        }
     }
 
     if (show_blinding_factors || show_anon_spends) {
@@ -3805,14 +3893,12 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
                 fBech32,
                 hide_zero_coinstakes,
                 vTreasuryFundScripts,
-                show_change);
+                show_change,
+                show_smsg_fees);
         tit++;
     }
 
-    int type_i = type == "standard" ? OUTPUT_STANDARD :
-                 type == "blind" ? OUTPUT_CT :
-                 type == "anon" ? OUTPUT_RINGCT :
-                 0;
+    int type_i = WordToType(type);
     // records processing
     const RtxOrdered_t &rtxOrdered = pwallet->rtxOrdered;
     RtxOrdered_t::const_reverse_iterator rit = rtxOrdered.rbegin();
@@ -3833,7 +3919,8 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
                 type_i,
                 show_blinding_factors,
                 show_anon_spends,
-                show_change);
+                show_change,
+                show_smsg_fees);
         rit++;
     }
 
@@ -4624,10 +4711,12 @@ static UniValue listunspentanon(const JSONRPCRequest &request)
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
             CBitcoinAddress address(input.get_str());
-            if (!address.IsValidStealthAddress())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Ghost stealth address: ")+input.get_str());
-            if (setAddress.count(address))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ")+input.get_str());
+            if (!address.IsValidStealthAddress()) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Ghost stealth address: ") + input.get_str());
+            }
+            if (setAddress.count(address)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + input.get_str());
+            }
            setAddress.insert(address);
         }
     }
@@ -4642,7 +4731,7 @@ static UniValue listunspentanon(const JSONRPCRequest &request)
     bool fCCFormat = false;
     bool fIncludeImmature = false;
     bool show_pubkeys = false;
-    CAmount nMinimumAmount = 0;
+    CAmount nMinimumAmount = 1;
     CAmount nMaximumAmount = MAX_MONEY;
     CAmount nMinimumSumAmount = MAX_MONEY;
     uint64_t nMaximumCount = 0;
@@ -5030,6 +5119,100 @@ static UniValue listunspentblind(const JSONRPCRequest &request)
 };
 
 
+static UniValue getlockedbalances(const JSONRPCRequest &request)
+{
+    RPCHelpMan{"getlockedbalances",
+        "\nReturns an object with locked balances in " + CURRENCY_UNIT + ".\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "", {
+                {RPCResult::Type::STR_AMOUNT, "trusted_plain", "Total locked trusted plain balance"},
+                {RPCResult::Type::STR_AMOUNT, "trusted_blind", "Total locked trusted blind balance"},
+                {RPCResult::Type::STR_AMOUNT, "trusted_anon", "Total locked trusted anon balance"},
+                {RPCResult::Type::STR_AMOUNT, "untrusted_plain", "Total locked untrusted plain balance"},
+                {RPCResult::Type::STR_AMOUNT, "untrusted_blind", "Total locked untrusted blind balance"},
+                {RPCResult::Type::STR_AMOUNT, "untrusted_anon", "Total locked untrusted anon balance"},
+                {RPCResult::Type::NUM, "num_locked", "Count of locked outputs"},
+        }},
+        RPCExamples{
+    HelpExampleCli("getlockedbalances", "") +
+    "\nAs a JSON-RPC call\n"
+    + HelpExampleRpc("getlockedbalances", "")
+        },
+    }.Check(request);
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    UniValue balances{UniValue::VOBJ};
+
+    CAmount trusted_plain = 0, trusted_blind = 0, trusted_anon = 0;
+    CAmount untrusted_plain = 0, untrusted_blind = 0, untrusted_anon = 0;
+
+    LOCK(pwallet->cs_wallet);
+
+    MapRecords_t::const_iterator mri;
+    MapWallet_t::const_iterator mwi;
+
+    // All outputs in setLockedCoins are assumed to be unspent as spending would remove output from setLockedCoins
+
+    for (std::set<COutPoint>::const_iterator it = pwallet->setLockedCoins.begin();
+         it != pwallet->setLockedCoins.end(); it++) {
+        const auto &locked_outpoint = *it;
+
+        if ((mri = pwallet->mapRecords.find(locked_outpoint.hash)) != pwallet->mapRecords.end()) {
+            const auto &prevtx = mri->second;
+            const COutputRecord *oR = mri->second.GetOutput(locked_outpoint.n);
+            if (!oR || !(oR->nFlags & ORF_OWNED)) {
+                continue;
+            }
+            if (pwallet->IsTrusted(locked_outpoint.hash, prevtx)) {
+                switch (oR->nType) {
+                    case OUTPUT_RINGCT:     trusted_anon += oR->nValue;     break;
+                    case OUTPUT_CT:         trusted_blind += oR->nValue;    break;
+                    case OUTPUT_STANDARD:   trusted_plain += oR->nValue;    break;
+                    default:                break;
+                }
+            } else {
+                switch (oR->nType) {
+                    case OUTPUT_RINGCT:     untrusted_anon += oR->nValue;   break;
+                    case OUTPUT_CT:         untrusted_blind += oR->nValue;  break;
+                    case OUTPUT_STANDARD:   untrusted_plain += oR->nValue;  break;
+                    default:                break;
+                }
+            }
+        } else
+        if ((mwi = pwallet->mapWallet.find(locked_outpoint.hash)) != pwallet->mapWallet.end()) {
+            const auto &prevtx = mwi->second;
+            if (locked_outpoint.n >= prevtx.tx->vpout.size() ||
+                pwallet->IsMine(prevtx.tx->vpout[locked_outpoint.n].get()) != ISMINE_SPENDABLE) {
+                continue;
+            }
+            CAmount value = prevtx.tx->vpout[locked_outpoint.n]->GetValue();
+            if (prevtx.IsTrusted()) {
+                trusted_plain += value;
+            } else {
+                untrusted_plain += value;
+            }
+        }
+    }
+
+    balances.pushKV("trusted_plain", ValueFromAmount(trusted_plain));
+    balances.pushKV("trusted_blind", ValueFromAmount(trusted_blind));
+    balances.pushKV("trusted_anon", ValueFromAmount(trusted_anon));
+    balances.pushKV("untrusted_plain", ValueFromAmount(untrusted_plain));
+    balances.pushKV("untrusted_blind", ValueFromAmount(untrusted_blind));
+    balances.pushKV("untrusted_anon", ValueFromAmount(untrusted_anon));
+    balances.pushKV("num_locked", (int)pwallet->setLockedCoins.size());
+
+    return balances;
+}
+
 static int AddOutput(uint8_t nType, std::vector<CTempRecipient> &vecSend, const CTxDestination &address, CAmount nValue,
     bool fSubtractFeeFromAmount, std::string &sNarr, std::string &sBlind, std::string &sError)
 {
@@ -5252,26 +5435,6 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
     }
 
-    switch (typeIn) {
-        case OUTPUT_STANDARD:
-            if (nTotal > pwallet->GetBalance().m_mine_trusted) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
-            }
-            break;
-        case OUTPUT_CT:
-            if (nTotal > pwallet->GetBlindBalance()) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient blinded funds");
-            }
-            break;
-        case OUTPUT_RINGCT:
-            if (nTotal > pwallet->GetAnonBalance()) {
-                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient anon funds");
-            }
-            break;
-        default:
-            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Unknown input type: %d.", typeIn));
-    }
-
     // Wallet comments
     CTransactionRef tx_new;
     CWalletTx wtx(pwallet, tx_new);
@@ -5375,6 +5538,31 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     }
     coincontrol.m_avoid_partial_spends |= coincontrol.m_avoid_address_reuse;
 
+    CHDWalletBalances balances;
+    if (!pwallet->GetBalances(balances)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "GetBalances failed.");
+    }
+    CAmount with_watchonly = coincontrol.fAllowWatchOnly ? 1.0 : 0.0;
+    switch (typeIn) {
+        case OUTPUT_STANDARD:
+            if (nTotal > balances.nPart + with_watchonly * balances.nPartWatchOnly) {
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
+            }
+            break;
+        case OUTPUT_CT:
+            if (nTotal > balances.nBlind + with_watchonly * balances.nBlindWatchOnly) {
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient blinded funds");
+            }
+            break;
+        case OUTPUT_RINGCT:
+            if (nTotal > balances.nAnon + with_watchonly * balances.nAnonWatchOnly) {
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient anon funds");
+            }
+            break;
+        default:
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Unknown input type: %d.", typeIn));
+    }
+
     CAmount nFeeRet = 0;
     switch (typeIn) {
         case OUTPUT_STANDARD:
@@ -5406,7 +5594,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
         result.pushKV("mempool-allowed", mempool_allowed);
     }
-    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept || !fSubmitTx) {
+    if (fCheckFeeOnly || fShowFee || fTestMempoolAccept || !fSubmitTx || fShowHex) {
         if (fDebug) {
             result.pushKV("fee", nFeeRet);
         } else {
@@ -5703,6 +5891,9 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                             {"show_hex", RPCArg::Type::BOOL, /* default */ "false", "Display the hex encoded tx"},
                             {"show_fee", RPCArg::Type::BOOL, /* default */ "false", "Return the fee"},
                             {"submit_tx", RPCArg::Type::BOOL, /* default */ "true", "Send the tx"},
+                            {"includeWatching", RPCArg::Type::BOOL, /* default */ "false", "Also select inputs which are watch only."},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, /* default */ "0", "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Maximum value of each to select UTXO in " + CURRENCY_UNIT + ""},
                         },
                     },
                 },
@@ -6229,6 +6420,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
     std::vector<std::shared_ptr<CWallet> > wallets = GetWallets();
     std::set<COutPoint> extra_txouts;  // Trace these outputs even if spent
     std::set<COutPoint> top_level, set_forced;
+    int64_t time_now = GetAdjustedTime();
 
     if (uv_extra_outputs.isArray()) {
         for (size_t i = 0; i < uv_extra_outputs.size(); ++i) {
@@ -6309,7 +6501,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
                 if (r.nValue > max_frozen_output_spendable) {
                     // TODO: Store pubkey on COutputRecord - in scriptPubKey
                     if (r.nType == OUTPUT_RINGCT) {
-                        if (!IsWhitelistedAnonOutput(anon_index)) {
+                        if (!IsWhitelistedAnonOutput(anon_index, time_now, consensusParams)) {
                             is_spendable = false;
                         }
                     } else
@@ -6471,6 +6663,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                             {"clear_stakes_seen", RPCArg::Type::BOOL, /* default */ "false", "Clear seen stakes - for use in regtest networks."},
                             {"downgrade_wallets", RPCArg::Type::BOOL, /* default */ "false", "Downgrade all loaded wallets for older releases then shutdown.\n"
                                                                                              "All loaded wallets must be unlocked."},
+                            {"exit_ibd", RPCArg::Type::BOOL, /* default */ "false", "Exit initial block download state."},
                         },
                         "options"},
                 },
@@ -6493,7 +6686,9 @@ static UniValue debugwallet(const JSONRPCRequest &request)
     bool attempt_repair = false;
     bool clear_stakes_seen = false;
     bool downgrade_wallets = false;
+    bool exit_ibd = false;
     CAmount max_frozen_output_spendable = Params().GetConsensus().m_max_tainted_value_out;
+    int64_t time_now = GetAdjustedTime();
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -6508,6 +6703,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                 {"clear_stakes_seen",                   UniValueType(UniValue::VBOOL)},
                 {"downgrade_wallets",                   UniValueType(UniValue::VBOOL)},
                 {"max_frozen_output_spendable",         UniValueType()},
+                {"exit_ibd",                            UniValueType(UniValue::VBOOL)},
             }, true, true);
         if (options.exists("list_frozen_outputs")) {
             list_frozen_outputs = options["list_frozen_outputs"].get_bool();
@@ -6533,6 +6729,9 @@ static UniValue debugwallet(const JSONRPCRequest &request)
         if (options.exists("max_frozen_output_spendable")) {
             max_frozen_output_spendable = AmountFromValue(options["max_frozen_output_spendable"]);
         }
+        if (options.exists("exit_ibd")) {
+            exit_ibd = options["exit_ibd"].get_bool();
+        }
     }
     if (list_frozen_outputs + spend_frozen_output + trace_frozen_outputs > 1) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Multiple frozen blinded methods selected.");
@@ -6552,6 +6751,11 @@ static UniValue debugwallet(const JSONRPCRequest &request)
         const UniValue &extra_outputs = options.exists("trace_frozen_extra") ? options["trace_frozen_extra"] : empty_array;
         traceFrozenOutputs(result, min_frozen_blinded_value, max_frozen_output_spendable, extra_outputs, trace_frozen_dump_privkeys);
         return result;
+    }
+
+    if (exit_ibd) {
+        ::ChainstateActive().m_cached_finished_ibd = true;
+        return "Exited IBD.";
     }
 
     if (downgrade_wallets) {
@@ -6606,7 +6810,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                         !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
                         ::Params().IsBlacklistedAnonOutput(anon_index) ||
-                        (!IsWhitelistedAnonOutput(anon_index) && r.nValue > max_frozen_output_spendable)) {
+                        (!IsWhitelistedAnonOutput(anon_index, time_now, consensusParams) && r.nValue > max_frozen_output_spendable)) {
                         is_spendable = false;
                     }
                 } else
@@ -6955,8 +7159,8 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                             add_error("Could not get keyimage.", txhash, r.n);
                             continue;
                         }
-                        uint256 txhashKI;
-                        bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, txhashKI);
+                        CAnonKeyImageInfo ki_data;
+                        bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, ki_data);
                         bool spent_in_wallet = pwallet->IsSpent(txhash, r.n);
 
                         if (spent_in_chain && !spent_in_wallet) {
@@ -8319,7 +8523,11 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                         {
                             {"value", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, ""},
                             {"blind", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, ""},
-                            {"witnessstack", RPCArg::Type::STR_HEX, /* default */ "[]", ""},
+                            {"witnessstack", RPCArg::Type::ARR, /* default */ "", "A json array of witness elements, used for the fee.\n",
+                                {
+                                    {"witnesselement", RPCArg::Type::STR_HEX, /* default */ "", ""},
+                                },
+                            },
                             {"type", RPCArg::Type::STR, /* default */ "standard", "Type of input"},
                         },
                     },
@@ -8349,6 +8557,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                                 },
                             },
                             {"changeAddress", RPCArg::Type::STR, /* default */ "", "The ghost address to receive the change."},
+                            {"changepubkey", RPCArg::Type::STR, /* default */ "", "The public key to use for the change output if changeAddress isn't set."},
                             {"changePosition", RPCArg::Type::NUM, /* default */ "random", "The index of the change output."},
                             //{"change_type", RPCArg::Type::STR, /* default */ "", "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\". Default is set by -changetype."},
                             {"includeWatching", RPCArg::Type::BOOL, /* default */ "false", "Also select inputs which are watch only."},
@@ -8379,6 +8588,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                             {"anon_ring_size", RPCArg::Type::NUM, /* default */ strprintf("%d", DEFAULT_RING_SIZE), "Ring size for anon transactions."},
                             {"anon_inputs_per_sig", RPCArg::Type::NUM, /* default */ strprintf("%d", DEFAULT_INPUTS_PER_SIG), "Real inputs per ring signature."},
                             {"blind_watchonly_visible", RPCArg::Type::BOOL, /* default */ "false", "Reveal amounts of blinded outputs sent to stealth addresses to the scan_secret"},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, /* default */ "0", "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, /* default */ "unlimited", "Maximum value of each to select UTXO in " + CURRENCY_UNIT + ""},
                         },
                     "options"},
                 },
@@ -8416,9 +8627,9 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    std::string sInputType = request.params[0].get_str();
-
-    if (sInputType != "standard" && sInputType != "anon" && sInputType != "blind") {
+    const std::string sInputType = request.params[0].get_str();
+    OutputTypes input_type = WordToType(sInputType);
+    if (input_type == OUTPUT_NULL) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown input type.");
     }
 
@@ -8440,7 +8651,9 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 
         RPCTypeCheckObj(options,
             {
+                {"changeaddress", UniValueType(UniValue::VSTR)},
                 {"changeAddress", UniValueType(UniValue::VSTR)},
+                {"changepubkey", UniValueType(UniValue::VSTR)},
                 {"changePosition", UniValueType(UniValue::VNUM)},
                 {"inputs", UniValueType(UniValue::VARR)},
                 {"includeWatching", UniValueType(UniValue::VBOOL)},
@@ -8457,6 +8670,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                 {"anon_ring_size", UniValueType(UniValue::VBOOL)},
                 {"anon_inputs_per_sig", UniValueType(UniValue::VBOOL)},
                 {"blind_watchonly_visible", UniValueType(UniValue::VBOOL)},
+                {"minimumAmount", UniValueType()},
+                {"maximumAmount", UniValueType()},
             },
             true, true);
 
@@ -8464,9 +8679,6 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 
         if (options.exists("changePosition")) {
             changePosition = options["changePosition"].get_int();
-        }
-        if (options.exists("includeWatching")) {
-            coinControl.fAllowWatchOnly = options["includeWatching"].get_bool();
         }
         if (options.exists("lockUnspents")) {
             lockUnspents = options["lockUnspents"].get_bool();
@@ -8574,11 +8786,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             const UniValue &stack = inputAmounts[sKey]["witnessstack"].get_array();
 
             for (size_t k = 0; k < stack.size(); ++k) {
-                if (!stack[k].isStr()) {
-                    continue;
-                }
-                std::string s = stack.get_str();
-                if (!IsHex(s)) {
+                std::string s = stack[k].get_str();
+                if (!IsHex(s) && s.size() > 0) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Input witness must be hex encoded.");
                 }
                 std::vector<uint8_t> v = ParseHex(s);
@@ -8667,8 +8876,6 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
         vecSend[n].SetAmount(mOutputAmounts[n]);
     };
 
-    CAmount nTotalOutput = 0;
-
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];
         CTempRecipient &r = vecSend[i];
@@ -8695,14 +8902,12 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             if (memcmp(txout->GetPCommitment()->data, commitment.data, 33) != 0) {
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("Bad blinding factor, output %d.", i));
             }
-            nTotalOutput += mOutputAmounts[i];
 
             r.vBlind.resize(32);
             memcpy(r.vBlind.data(), itb->second.begin(), 32);
         } else
         if (txout->IsType(OUTPUT_STANDARD)) {
             mOutputAmounts[i] = txout->GetValue();
-            nTotalOutput += mOutputAmounts[i];
         }
 
         r.nType = txout->GetType();
@@ -8728,8 +8933,10 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
         }
     }
 
+    std::set<COutPoint> set_existing_inputs;
     for (const CTxIn& txin : tx.vin) {
         coinControl.Select(txin.prevout);
+        set_existing_inputs.insert(txin.prevout);
     }
 
 
@@ -8753,17 +8960,17 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             ret.first->second.InsertOutput(r);
         }
 
-        if (sInputType == "standard") {
+        if (input_type == OUTPUT_STANDARD) {
             if (0 != pwallet->AddStandardInputs(wtx, rtx, vecSend, sign_tx, nFee, &coinControl, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddStandardInputs failed: %s.", sError));
             }
         } else
-        if (sInputType == "anon") {
+        if (input_type == OUTPUT_RINGCT) {
             if (0 != pwallet->AddAnonInputs(wtx, rtx, vecSend, sign_tx, rct_ring_size, rct_inputs_per_sig, nFee, &coinControl, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddAnonInputs failed: %s.", sError));
             }
         } else
-        if (sInputType == "blind") {
+        if (input_type == OUTPUT_CT) {
             if (0 != pwallet->AddBlindedInputs(wtx, rtx, vecSend, sign_tx, nFee, &coinControl, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddBlindedInputs failed: %s.", sError));
             }
@@ -8776,7 +8983,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
     tx.vpout = wtx.tx->vpout;
     // keep existing sequences
     for (const auto &txin : wtx.tx->vin) {
-        if (!coinControl.IsSelected(txin.prevout)) {
+        if (!set_existing_inputs.count(txin.prevout)) {
             tx.vin.push_back(txin);
         }
         if (lockUnspents) {
@@ -9079,6 +9286,7 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
                                     //{"redeemScript", RPCArg::Type::STR_HEX, /* default */ "", "(required for P2SH or P2WSH)"},
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount spent"},
                                     {"amount_commitment", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The amount commitment spent"},
+                                    {"chainheight", RPCArg::Type::NUM, /* default */ "0x7FFFFFFF", "Height of prevout in chain, mempool height by default"},
                                 },
                             },
                         },
@@ -9087,12 +9295,16 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
                         {
                             {"returndecoded", RPCArg::Type::BOOL, /* default */ "false", "Return the decoded txn as a json object."},
                             {"checkvalues", RPCArg::Type::BOOL, /* default */ "true", "Check amounts and amount commitments match up."},
+                            {"checkoutputs", RPCArg::Type::BOOL, /* default */ "true", "Check tx attributes and outputs."},
+                            {"particlmode", RPCArg::Type::BOOL, /* default */ "true", "Enforce particl tx versions."},
+                            {"spendheight", RPCArg::Type::NUM, /* default */ "chainheight", "Height the tx is spent at, set to current chain height if not provided."},
                         },
                         "options"},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",
                     {
+                        {RPCResult::Type::BOOL, "outputs_valid", "If the transaction passed output verification"},
                         {RPCResult::Type::BOOL, "inputs_valid", "If the transaction passed input verification"},
                         {RPCResult::Type::BOOL, "complete", "If the transaction has a complete set of signatures"},
                         {RPCResult::Type::NUM, "validscripts", "The number of scripts which passed verification"},
@@ -9121,6 +9333,10 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
 
     bool return_decoded = false;
     bool check_values = true;
+    bool check_outputs = true;
+    bool particl_mode = true;
+    int nSpendHeight = -1;
+    int64_t nSpendTime = 0;
 
     if (!request.params[2].isNull()) {
         const UniValue& options = request.params[2].get_obj();
@@ -9129,6 +9345,9 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
             {
                 {"returndecoded",            UniValueType(UniValue::VBOOL)},
                 {"checkvalues",              UniValueType(UniValue::VBOOL)},
+                {"checkoutputs",             UniValueType(UniValue::VBOOL)},
+                {"particlmode",              UniValueType(UniValue::VBOOL)},
+                {"spendheight",              UniValueType(UniValue::VNUM)},
             }, true, false);
 
         if (options.exists("returndecoded")) {
@@ -9136,6 +9355,15 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
         }
         if (options.exists("checkvalues")) {
             check_values = options["checkvalues"].get_bool();
+        }
+        if (options.exists("checkoutputs")) {
+            check_outputs = options["checkoutputs"].get_bool();
+        }
+        if (options.exists("particlmode")) {
+            particl_mode = options["particlmode"].get_bool();
+        }
+        if (options.exists("spendheight")) {
+            nSpendHeight = options["spendheight"].get_int();
         }
     }
 
@@ -9228,7 +9456,19 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "\"amount\" or \"amount_commitment\" is required");
             }
 
-            newcoin.nHeight = 1;
+            if (!coin.IsSpent()) { // IsSpent is true if coin not found
+                newcoin.nHeight = coin.nHeight;
+            } else {
+                if (prevOut.exists("chainheight")) {
+                    newcoin.nHeight = prevOut["chainheight"].get_int();
+                    if (newcoin.nHeight < 1) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "\"chainheight\" Must be >= 1");
+                    }
+                } else {
+                    // Set to the same height as a tx in the mempool would be
+                    newcoin.nHeight = 0x7FFFFFFF;
+                }
+            }
             view.AddCoin(out, std::move(newcoin), true);
             }
         }
@@ -9242,17 +9482,37 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
     // Script verification errors
     UniValue vErrors(UniValue::VARR);
 
-
-    int nSpendHeight = 0; // TODO: make option
-    {
+    if (nSpendHeight < 0) {
         LOCK(cs_main);
         nSpendHeight = ::ChainActive().Tip()->nHeight;
+        nSpendTime = ::ChainActive().Tip()->nTime;
+    } else {
+        LOCK(cs_main);
+        if (nSpendHeight > ::ChainActive().Height()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend height out of range");
+        }
+        const CBlockIndex *pblockindex = ::ChainActive()[nSpendHeight];
+        nSpendHeight = pblockindex->nHeight;
+        nSpendTime = pblockindex->nTime;
     }
 
+    const Consensus::Params& consensusParams = Params().GetConsensus();
     UniValue result(UniValue::VOBJ);
+
+     if (check_outputs) {
+        TxValidationState state;
+        state.SetStateInfo(nSpendTime, nSpendHeight, consensusParams, particl_mode, false /* skip_rangeproof */);
+        if (!CheckTransaction(txConst, state)) {
+            result.pushKV("outputs_valid", false);
+            vErrors.push_back("CheckTransaction: \"" + state.GetRejectReason() + "\"");
+        } else {
+            result.pushKV("outputs_valid", true);
+        }
+    }
 
     if (check_values) {
         TxValidationState state;
+        state.SetStateInfo(nSpendTime, nSpendHeight, consensusParams, particl_mode, false /* skip_rangeproof */);
         CAmount nFee = 0;
         if (!Consensus::CheckTxInputs(txConst, state, view, nSpendHeight, nFee)) {
             result.pushKV("inputs_valid", false);
@@ -9657,6 +9917,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "listunspentanon",                  &listunspentanon,               {"minconf","maxconf","addresses","include_unsafe","query_options"} },
     { "wallet",             "listunspentblind",                 &listunspentblind,              {"minconf","maxconf","addresses","include_unsafe","query_options"} },
 
+    { "wallet",             "getlockedbalances",                &getlockedbalances,             {} },
 
     //sendghosttoghost // normal txn
     { "wallet",             "sendghosttoblind",                  &sendghosttoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },

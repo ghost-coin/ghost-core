@@ -231,7 +231,8 @@ bool TxIndex::Init()
 
         if (best_cs_block_index != ::ChainActive().Tip()) {
             m_synced = false;
-            if (m_best_block_index.load()->nHeight > best_cs_block_index->nHeight) {
+            if (m_best_block_index
+                && m_best_block_index.load()->nHeight > best_cs_block_index->nHeight) {
                 LogPrintf("Setting txindex best block back to %d to sync csindex.\n", best_cs_block_index->nHeight);
                 m_best_block_index = best_cs_block_index;
             }

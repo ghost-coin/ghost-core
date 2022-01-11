@@ -138,6 +138,9 @@ class AnonTest(GhostTestFramework):
         assert(nodes[1].lockunspent(False, [unspent[0]], True) == True)
         assert(nodes[1].lockunspent(False, [unspent[1]], True) == True)
         assert(len(nodes[1].listlockunspent()) == 2)
+        locked_balances = nodes[1].getlockedbalances()
+        assert(locked_balances['trusted_anon'] > 0.0)
+        assert(locked_balances['num_locked'] == 2)
         # Restart node
         self.sync_all()
         self.stop_node(1)
@@ -366,6 +369,9 @@ class AnonTest(GhostTestFramework):
         spent = nodes[0].checkkeyimage(used_keyimage)
         assert(spent['spent'] is True)
         assert(spent['txid'] == spending_txid)
+
+        self.log.info('Test rollbackrctindex')
+        nodes[0].rollbackrctindex()
 
 
 if __name__ == '__main__':

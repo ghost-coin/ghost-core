@@ -284,6 +284,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "smsgsend", 5, "testfee" },
     { "smsgsend", 6, "options" },
     { "smsgsend", 7, "coin_control" },
+    { "smsgfund", 0, "msgids" },
+    { "smsgfund", 1, "options" },
+    { "smsgfund", 2, "coin_control" },
+
     { "smsg", 1, "options" },
     { "smsgimport", 1, "options" },
     { "smsginbox", 2, "options" },

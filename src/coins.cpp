@@ -108,7 +108,6 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool 
     if (tx.IsParticlVersion()) {
         for (size_t i = 0; i < tx.vpout.size(); ++i) {
             const CTxOutBase *out = tx.vpout[i].get();
-            bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
             Coin coin;
             if (out->IsType(OUTPUT_STANDARD)) {
                 CTxOut txout(out->GetValue(), *out->GetPScriptPubKey());
@@ -124,6 +123,7 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool 
                 continue; // Data or anon
             }
 
+            bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
             cache.AddCoin(COutPoint(txid, i), std::move(coin), overwrite);
         }
         return;

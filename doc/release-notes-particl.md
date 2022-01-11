@@ -1,9 +1,35 @@
 
-0.21.1.3
+0.21.2.6
+==============
+- wallet:
+  - Add minimum and maximumAmount to fundrawtransactionfrom and sendtypeto
+  - Add includeWatching option to sendtypeto
+- qt: Fixed empty qr popup when trying to create stealth address from locked wallet.
+- smsg: Stores best block and runs rebuild rollingindices on startup if out of sync.
+
+
+0.21.2.5
+==============
+
+- Scheduled fork for 2022-02-01 17:00:00 UTC.
+  - Raised protocol version to 90035
+- Fixed chain syncing issue.
+- qt: Include immature anon balance in overview total.
+- New checkpoints.
+
+
+0.21.2.4
+==============
+
+- wallet will record txns with blinded outputs to known addresses.
+
+
+0.21.2.3
 ==============
 
 - rpc: New command getposdifficulty, returns the network weight at block heights.
 - qt: Disable balance type combo boxes on the send dialog when wallet is linked to a hardware wallet.
+- Merged Bitcoin 0.21.2.
 
 
 0.21.1.2
@@ -47,6 +73,63 @@
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.19
+==============
+
+- qt: Fix abandon transaction button greyed out for record txns.
+
+
+0.19.2.18
+==============
+
+- qt: Include immature anon balance in overview total.
+- rpc: Use WordToType in fundrawtransactionfrom.
+- rpc: smsgdebug dumpids path is hardcoded and will skip expired smsges by default.
+- New checkpoints.
+- Scheduled hardfork:
+  - Mainnet: 2022-02-01 17 UTC
+  - Testnet: 2022-01-01 17 UTC
+
+
+0.19.2.17
+==============
+
+- smsg: Prefer selecting confirmed inputs for funding txns.
+- net: Ignore smsg for peers with connection type one shot or feeler.
+- smsg: Fund multiple messages per txn.
+  - Sent messages can be stashed in db for later bulk funding.
+- rpc: gettransaction and filtertransactions can display smsg funding info.
+- rpc: Fixed sendtypeto with show_hex set.
+- insight: Spent index should update even if addressindex can't.
+- insight: Add PayToTimeLockedScriptHash to addressindex.
+- wallet: Fix changepos return value for anon and blind txns off by one.
+- rpc: New getlockedbalances command.
+- rpc: fundrawtransactionfrom can set the public key used for the change output.
+- rpc: verifyrawtransaction
+  - Checks transaction outputs.
+  - spendheight can be specified.
+- Fixed fundrawtransactionfrom witnessstack
+
+
+0.19.2.16
+==============
+
+- Limited automatic rollbackrctindex to one attempt.
+- wallet: listunspentanon default minimum output value set to 1sat.
+  - Excludes 0 value change outputs.
+- Fixed VerifyDB at -checklevel=4
+
+
+0.19.2.15
+==============
+
+- index: Fix issue when cs index best block is set and the index best block is not.
+- validation: Fix chain sync error after incomplete shutdown.
+  - Block height is stored for newly added RCT keyimages, rollback removes > chain height.
+  - New rollbackrctindex command to manually trigger rct index rollback to chain tip.
+- New checkpoints.
+
+
 0.19.2.14
 ==============
 
@@ -54,6 +137,10 @@
   - receive_on must be active for chain.
     - See feature_part_extkey test.
   - New track-only mode, won't save keys or transactions, only updates child key counter.
+- rpc: New getblockhashafter command.
+  - Returns first block at or after provided time.
+- Fix abandoning coinstakes with descendants.
+  - Avoid assert when disconnecting a spent coinstake tx
 
 
 0.19.2.13

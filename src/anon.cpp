@@ -185,7 +185,6 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             }
         }
 
-        uint256 txhashKI;
         for (size_t k = 0; k < nInputs; ++k) {
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
@@ -196,13 +195,20 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-dup-ki");
             }
 
-            if (pblocktree->ReadRCTKeyImage(ki, txhashKI)
-                && txhashKI != txhash) {
+            CAnonKeyImageInfo ki_data;
+            if (pblocktree->ReadRCTKeyImage(ki, ki_data)) {
                 if (LogAcceptCategory(BCLog::RINGCT)) {
                     LogPrintf("%s: Duplicate keyimage detected %s, used in %s.\n", __func__,
-                        HexStr(ki), txhashKI.ToString());
+                        HexStr(ki), ki_data.txid.ToString());
                 }
-                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-dup-ki");
+                if (ki_data.txid == txhash) {
+                    if (state.m_check_equal_rct_txid &&
+                        !(state.m_in_block && state.m_spend_height == ki_data.height)) {
+                        return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-in-chain");
+                    }
+                } else {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-dup-ki");
+                }
             }
         }
         if (0 != (rv = secp256k1_prepare_mlsag(&vM[0], nullptr,
@@ -332,8 +338,7 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
     return true;
 };
 
-
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi)
+bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi)
 {
     LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n", __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
     // This should hardly happen, if ever
@@ -352,7 +357,7 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     }
 
     LogPrintf("%s: Removed up to %d\n", __func__, nRemRCTOutput);
-    if (nExpectErase > nRemRCTOutput) {
+    if (nExpectErase > 0 && nExpectErase > nRemRCTOutput) {
         nRemRCTOutput = nExpectErase;
         while (nRemRCTOutput > nLastValidRCTOutput) {
             if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao)) {
@@ -368,6 +373,8 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     for (const auto &ki : setKi) {
         pblocktree->EraseRCTKeyImage(ki);
     }
+
+    pblocktree->EraseRCTKeyImagesAfterHeight(chain_height);
 
     return true;
 };

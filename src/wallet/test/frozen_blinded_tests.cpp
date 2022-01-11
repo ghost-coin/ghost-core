@@ -196,6 +196,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Enable HF2
     RegtestParams().GetConsensus_nc().exploit_fix_2_time = tip->nTime + 1;
+    RegtestParams().GetConsensus_nc().exploit_fix_2_height = tip->nHeight + 1;
     CAmount moneysupply_before_fork = tip->nMoneySupply;
 
     while (GetTime() < tip->nTime + 1) {
@@ -376,8 +377,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         // Check that ringsize > 1 fails, set mixin_selection_mode to avoid failure when setting ranges
         {
             RegtestParams().SetAnonRestricted(true);
-            RegtestParams().SetAnonMaxOutputSize(2); 
-            
+            RegtestParams().SetAnonMaxOutputSize(2);
+
             // Test blacklist, should override whitelist
             std::set<std::uint64_t> aoi_blacklist{1, 2, 3, 4};
             RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
@@ -434,20 +435,27 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("gettransaction %s true true", spend_txid.ToString()), context));
         std::string str_ao_pubkey = rv["decoded"]["vout"][output_n]["pubkey"].get_str();
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("anonoutput %s", str_ao_pubkey), context));
-        uint64_t ao_index = rv["index"].get_int64();
-        
+
+        int64_t ao_index = rv["index"].get_int64();
+
+        // // Whitelist index
+        // int64_t aoi_whitelist[] = {
+        //     ao_index,
+        // };
+        // LoadRCTWhitelist(aoi_whitelist, 1, 1);
+
         // Test blacklist, should override whitelist
-        std::set<std::uint64_t> aoi_blacklist{ao_index};
+        std::set<std::uint64_t> aoi_blacklist{static_cast<std::uint64_t>(ao_index)};
 
         RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        // The anon index is blacklisted but it's not spending to the recovery addr 
+        // The anon index is blacklisted but it's not spending to the recovery addr
         BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-frozen-spend-to-non-recovery");
 
         RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
         std::string str_cmd2 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(recovery_addr), FormatMoney(extract_value), spend_txid.ToString(), output_n);
-        
+
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd2, context));
         BOOST_REQUIRE(rv["txid"].isStr());
         balance_before += extract_value - rv["fee"].get_int64();
@@ -475,7 +483,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
                 }
             }
         }
-        // end extraction 
+        // end extraction
         std::string str_cmd3 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
 
@@ -524,7 +532,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     // CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
     // CAmount utxosum = GetUTXOSum();
     // @todo(Sonkeng) : Take this back when we're removing anon restrictions
-    
+
     // BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
     // BOOST_REQUIRE(balances.nPart + balances.nPartStaked + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
 

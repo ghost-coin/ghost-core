@@ -78,9 +78,17 @@ implicit-signed-integer-truncation:torcontrol.cpp
 implicit-unsigned-integer-truncation:crypto/*
 implicit-unsigned-integer-truncation:leveldb/*
 implicit-integer-sign-change:crc32c/*
+shift-base:*/include/c++/
+shift-base:arith_uint256.cpp
+shift-base:crypto/
+shift-base:hash.cpp
+shift-base:leveldb/
+shift-base:net_processing.cpp
+shift-base:streams.h
+shift-base:util/bip32.cpp
 
 # Particl specific
+shift-base:xxhash/
 unsigned-integer-overflow:xxhash/
-implicit-signed-integer-truncation:unilib/
-implicit-integer-sign-change:unilib/
+implicit-signed-integer-truncation,implicit-integer-sign-change:unilib/
 

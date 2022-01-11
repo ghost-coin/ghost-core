@@ -74,7 +74,16 @@ int CChainParams::GetCoinYearPercent(int year) const
     } else {
         return 10;
     }
-};
+}
+
+int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev, int64_t time) const
+{
+    int64_t max_delta = (smsg_fee_prev * consensus.smsg_fee_max_delta_percent) / 1000000;
+    if (time >= consensus.smsg_fee_rate_fix_time) {
+        return std::max((int64_t)1, max_delta);
+    }
+    return max_delta;
+}
 
 // bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
 // {
@@ -117,11 +126,6 @@ int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const
 {
     int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
     return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
-}
-
-int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const
-{
-    return (smsg_fee_prev * consensus.smsg_fee_max_delta_percent) / 1000000;
 }
 
 const TreasuryFundSettings *CChainParams::GetTreasuryFundSettings(int nHeight) const
@@ -413,9 +417,13 @@ public:
         // Removed to make used of the default 0xffffffff
         // consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
+        // consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01 17:00:00 UTC
+        // consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
+        // consensus.smsg_fee_rate_fix_time = 1643734800;  // 2022-02-01 17:00:00 UTC
+        // consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
+
         consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry
         consensus.m_frozen_blinded_height = 884433;
-
 
         consensus.smsg_fee_period = 5040;
         consensus.smsg_fee_funding_tx_per_k = 200000;
@@ -642,6 +650,10 @@ public:
         consensus.smsg_difficulty_time = 0x5D19F5C0;    // 2019-07-01 12:00:00
         // consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00
 
+        // consensus.clamp_tx_version_time = 1641056400;   // 2022-01-01 17:00:00 UTC
+        // consensus.smsg_fee_rate_fix_time = 1641056400;  // 2022-01-01 17:00:00 UTC
+        // consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
+
         consensus.smsg_fee_period = 5040;
         consensus.smsg_fee_funding_tx_per_k = 200000;
         consensus.smsg_fee_msg_per_day_per_k = 50000;
@@ -668,8 +680,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000012c75dd4368d68ff58");
-        consensus.defaultAssumeValid = uint256S("0xa7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31"); // 940090
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000001519f85a995c53963c");
+        consensus.defaultAssumeValid = uint256S("0x12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809"); // 1010348
 
         consensus.nMinRCTOutputDepth = 12;
         consensus.m_frozen_anon_index = 0;
@@ -764,14 +776,14 @@ public:
                 {728858, uint256S("0xd71157e5a929a2aba06b23566932ffaba05d1a063b2ab71d2807b8e2efcf765c")},
                 {808059, uint256S("0x89de981a2cca262ae52ff5e69a0915c9083fb7cd4aba44e39f83c12a6b6602a9")},
                 {909640, uint256S("0xe2e1880d525c93e24ca2d0d494fe78624ad28c4ce778f987504582b7404bcb71")},
-                {940090, uint256S("0xa7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31")},
+                {1010348, uint256S("0x12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809")},
             }
         };
 
         chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 a7670a4ec4a80183a41c37c0bb377deb25e64d0d9f0e1b9cd69f832c315f2f31
-            /* nTime    */ 1628236944,
-            /* nTxCount */ 1000837,
+            // Data from rpc: getchaintxstats 4096 12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809
+            /* nTime    */ 1638908912,
+            /* nTxCount */ 1073585,
             /* dTxRate  */ 0.007
         };
     }
@@ -929,6 +941,8 @@ public:
         consensus.smsg_fee_max_delta_percent = 4300;
         consensus.smsg_min_difficulty = 0x1f0fffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
+        consensus.smsg_fee_rate_fix_time = 0;
+        consensus.m_taproot_time = 0;
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks

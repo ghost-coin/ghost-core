@@ -164,14 +164,15 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
     /* Generate new receiving address */
     AddressTableModel::AddrType addrType = AddressTableModel::ADDR_STANDARD;
 
-    if (ui->cbxAddressType->currentText() == "Stealth")
+    if (ui->cbxAddressType->currentText() == "Stealth") {
         addrType = AddressTableModel::ADDR_STEALTH;
-    else
-    if (ui->cbxAddressType->currentText() == "Extended")
+    } else
+    if (ui->cbxAddressType->currentText() == "Extended") {
         addrType = AddressTableModel::ADDR_EXT;
-    else
-    if (ui->cbxAddressType->currentText() == "Standard 256bit")
+    } else
+    if (ui->cbxAddressType->currentText() == "Standard 256bit") {
         addrType = AddressTableModel::ADDR_STANDARD256;
+    }
 
     address = model->getAddressTableModel()->addRow(AddressTableModel::Receive, label, "", address_type, addrType);
 
@@ -200,6 +201,8 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
         QMessageBox::critical(this, windowTitle(),
             tr("Could not generate new %1 address").arg(QString::fromStdString(FormatOutputType(address_type))),
             QMessageBox::Ok, QMessageBox::Ok);
+        break;
+    case AddressTableModel::EditStatus::RPC_ERROR: // Particl: Error handled by RPC wrapper code
         break;
     // These aren't valid return values for our action
     case AddressTableModel::EditStatus::INVALID_ADDRESS:

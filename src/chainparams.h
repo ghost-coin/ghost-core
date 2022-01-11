@@ -112,11 +112,11 @@ public:
     const TreasuryFundSettings *GetTreasuryFundSettings(int nHeight) const;
     bool PushTreasuryFundSettings(int64_t time_from, TreasuryFundSettings &settings);
     const std::vector<std::pair<int64_t, TreasuryFundSettings> > &GetTreasuryFundSettings() const { return vTreasuryFundSettings; };
-  
+
     CAmount GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const;
     CAmount GetProofOfStakeRewardAtYear(int year) const;
     CAmount GetProofOfStakeRewardAtHeight(int nHeight) const;
-    int64_t GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev) const;
+    int64_t GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev, int64_t time) const;
 
     bool CheckImportCoinbase(int nHeight, uint256 &hash) const;
     uint32_t GetLastImportHeight() const { return nLastImportHeight; }
