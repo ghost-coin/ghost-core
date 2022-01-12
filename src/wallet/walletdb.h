@@ -15,6 +15,20 @@
 #include <string>
 #include <vector>
 
+class CScript;
+class uint160;
+class uint256;
+struct CBlockLocator;
+
+class CHDWalletDB;
+
+namespace wallet {
+class CKeyPool;
+class CMasterKey;
+class CWallet;
+class CWalletTx;
+struct WalletContext;
+
 /**
  * Overview of wallet database classes:
  *
@@ -28,16 +42,6 @@
  */
 
 static const bool DEFAULT_FLUSHWALLET = true;
-
-struct CBlockLocator;
-struct WalletContext;
-class CKeyPool;
-class CMasterKey;
-class CScript;
-class CWallet;
-class CWalletTx;
-class uint160;
-class uint256;
 
 /** Error statuses for the wallet database */
 enum class DBErrors
@@ -187,7 +191,7 @@ public:
  */
 class WalletBatch
 {
-friend class CHDWalletDB;
+friend class ::CHDWalletDB;
 private:
     template <typename K, typename T>
     bool WriteIC(const K& key, const T& value, bool fOverwrite = true)
@@ -318,5 +322,6 @@ std::unique_ptr<WalletDatabase> CreateMockWalletDatabase();
 
 /** Return object for accessing temporary in-memory BDB database. */
 std::unique_ptr<WalletDatabase> CreateMockWalletDatabaseBDB();
+} // namespace wallet
 
 #endif // BITCOIN_WALLET_WALLETDB_H

@@ -44,12 +44,14 @@ class CBlockTreeDB;
 class CChainParams;
 class CTxMemPool;
 class ChainstateManager;
-class SnapshotMetadata;
 struct ChainTxData;
 struct DisconnectedBlockTransactions;
 struct PrecomputedTransactionData;
 struct LockPoints;
 struct AssumeutxoData;
+namespace node {
+class SnapshotMetadata;
+} // namespace node
 
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000;
@@ -544,7 +546,7 @@ public:
 public:
     //! Reference to a BlockManager instance which itself is shared across all
     //! CChainState instances.
-    BlockManager& m_blockman;
+    node::BlockManager& m_blockman;
 
     /** Chain parameters for this chainstate */
     const CChainParams& m_params;
@@ -556,7 +558,7 @@ public:
 
     explicit CChainState(
         CTxMemPool* mempool,
-        BlockManager& blockman,
+        node::BlockManager& blockman,
         ChainstateManager& chainman,
         std::optional<uint256> from_snapshot_blockhash = std::nullopt);
 
@@ -603,7 +605,7 @@ public:
      * chainstates) and as good as our current tip or better. Entries may be failed,
      * though, and pruning nodes may be missing the data for the block.
      */
-    std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexCandidates;
+    std::set<CBlockIndex*, node::CBlockIndexWorkComparator> setBlockIndexCandidates;
 
     //! @returns A reference to the in-memory cache of the UTXO set.
     CCoinsViewCache& CoinsTip() EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -754,7 +756,7 @@ public:
 
     std::string ToString() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
-    BlockMap& BlockIndex() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+    node::BlockMap& BlockIndex() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
     {
         return m_blockman.m_block_index;
     }
@@ -877,13 +879,13 @@ public:
     bool m_snapshot_validated{false};
 
     CBlockIndex* m_best_invalid;
-    friend bool BlockManager::LoadBlockIndex(const Consensus::Params&, ChainstateManager&);
+    friend bool node::BlockManager::LoadBlockIndex(const Consensus::Params&, ChainstateManager&);
 
     //! Internal helper for ActivateSnapshot().
     [[nodiscard]] bool PopulateAndValidateSnapshot(
         CChainState& snapshot_chainstate,
         CAutoFile& coins_file,
-        const SnapshotMetadata& metadata);
+        const node::SnapshotMetadata& metadata);
 
     /**
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
@@ -901,7 +903,7 @@ public:
     std::thread m_load_block;
     //! A single BlockManager instance is shared across each constructed
     //! chainstate to avoid duplicating block metadata.
-    BlockManager m_blockman GUARDED_BY(::cs_main);
+    node::BlockManager m_blockman;
     PeerManager *m_peerman{nullptr};
 
     /**
@@ -962,7 +964,7 @@ public:
     //! - Move the new chainstate to `m_snapshot_chainstate` and make it our
     //!   ChainstateActive().
     [[nodiscard]] bool ActivateSnapshot(
-        CAutoFile& coins_file, const SnapshotMetadata& metadata, bool in_memory);
+        CAutoFile& coins_file, const node::SnapshotMetadata& metadata, bool in_memory);
 
     bool HaveActiveChainstate() const EXCLUSIVE_LOCKS_REQUIRED(::cs_main) { return m_active_chainstate; };
     //! The most-work chain.
@@ -971,7 +973,7 @@ public:
     int ActiveHeight() const { return ActiveChain().Height(); }
     CBlockIndex* ActiveTip() const { return ActiveChain().Tip(); }
 
-    BlockMap& BlockIndex() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+    node::BlockMap& BlockIndex() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
     {
         return m_blockman.m_block_index;
     }

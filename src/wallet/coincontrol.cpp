@@ -6,6 +6,7 @@
 
 #include <util/system.h>
 
+namespace wallet {
 CCoinControl::CCoinControl()
 {
     m_avoid_partial_spends = gArgs.GetBoolArg("-avoidpartialspends", DEFAULT_AVOIDPARTIALSPENDS);
@@ -23,3 +24,5 @@ bool CCoinControl::SetKeyFromInputData(const CKeyID &idk, CKey &key) const
     }
     return false;
 }
+} // namespace wallet
+

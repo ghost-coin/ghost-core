@@ -65,7 +65,7 @@ static uint8_t GetOutputType(ChainstateManager *pchainman, const COutPoint &prev
     }
 
     uint256 hash_block;
-    const CTransactionRef tx = ::GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hash_block);
+    const CTransactionRef tx = node::GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hash_block);
     if (tx) {
         if (tx->vpout.size() > prevout.n) {
             return tx->vpout[prevout.n]->GetType();
@@ -2345,7 +2345,7 @@ CAmount CHDWallet::GetOutputValue(const COutPoint &op, bool fAllowTXIndex) const
     }
 
     uint256 hash_block;
-    const CTransactionRef txOut = ::GetTransaction(nullptr, nullptr, op.hash, Params().GetConsensus(), hash_block);
+    const CTransactionRef txOut = node::GetTransaction(nullptr, nullptr, op.hash, Params().GetConsensus(), hash_block);
     if (txOut) {
         if (txOut->GetNumVOuts() > op.n) {
             return txOut->vpout[op.n]->GetValue();
@@ -13653,7 +13653,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     return true;
 };
 
-bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime)
+bool CHDWallet::SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime)
 {
     if (LogAcceptCategory(BCLog::POS)) {
         WalletLogPrintf("%s, Height %d\n", __func__, nHeight);
@@ -13712,7 +13712,7 @@ bool CHDWallet::SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t n
     return false;
 };
 
-std::unique_ptr<CBlockTemplate> CHDWallet::CreateNewBlock()
+std::unique_ptr<node::CBlockTemplate> CHDWallet::CreateNewBlock()
 {
     if (!HaveChain()) {
         return nullptr;
@@ -13864,7 +13864,7 @@ int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wa
     return GetVirtualTransactionSize(CTransaction(txNew));
 }
 
-void RestartStakingThreads(WalletContext &wallet_context, ChainstateManager &chainman)
+void RestartStakingThreads(wallet::WalletContext &wallet_context, ChainstateManager &chainman)
 {
     StopThreadStakeMiner();
     StartThreadStakeMiner(wallet_context, chainman);

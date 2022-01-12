@@ -25,7 +25,9 @@
 
 #include <wallet/hdwallet.h>
 
+using node::NodeContext;
 
+namespace wallet {
 class WalletInit : public WalletInitInterface
 {
 public:
@@ -41,8 +43,6 @@ public:
     //! Add wallets that should be opened to list of chain clients.
     void Construct(NodeContext& node) const override;
 };
-
-const WalletInitInterface& g_wallet_init_interface = WalletInit();
 
 void WalletInit::AddWalletOptions(ArgsManager& argsman) const
 {
@@ -140,3 +140,6 @@ void WalletInit::Construct(NodeContext& node) const
     node.wallet_loader = wallet_loader.get();
     node.chain_clients.emplace_back(std::move(wallet_loader));
 }
+} // namespace wallet
+
+const WalletInitInterface& g_wallet_init_interface = wallet::WalletInit();

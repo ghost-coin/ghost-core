@@ -188,12 +188,12 @@ bool FillableSigningProvider::GetCScript(const CScriptID &hash, CScript& redeemS
     return false;
 }
 
-isminetype FillableSigningProvider::IsMine(const CKeyID &address) const
+wallet::isminetype FillableSigningProvider::IsMine(const CKeyID &address) const
 {
     LOCK(cs_KeyStore);
     if (mapKeys.count(address) > 0)
-        return ISMINE_SPENDABLE;
-    return ISMINE_NO;
+        return wallet::ISMINE_SPENDABLE;
+    return wallet::ISMINE_NO;
 }
 
 bool FillableSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const

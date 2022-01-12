@@ -193,7 +193,7 @@ bool CHDWalletDB::WriteStealthAddressLink(const CKeyID &keyId, uint32_t id)
 };
 
 
-bool CHDWalletDB::WriteAddressBookEntry(const std::string &sKey, const CAddressBookData &data)
+bool CHDWalletDB::WriteAddressBookEntry(const std::string &sKey, const wallet::CAddressBookData &data)
 {
     return WriteIC(std::make_pair(std::string("abe"), sKey), data, true);
 };

@@ -381,18 +381,18 @@ public:
 
     int SetPath(const std::vector<uint32_t> &vPath_);
 
-    isminetype IsMine() const
+    wallet::isminetype IsMine() const
     {
         if (kp.key.IsValid() || IsEncrypted()) {
-            return ISMINE_SPENDABLE;
+            return wallet::ISMINE_SPENDABLE;
         }
         if ((nFlags & EAF_HARDWARE_DEVICE)) {
 #if !ENABLE_USBDEVICE
-            return (isminetype)((int)ISMINE_WATCH_ONLY_ | (int)ISMINE_HARDWARE_DEVICE);
+            return (wallet::isminetype)((int)wallet::ISMINE_WATCH_ONLY_ | (int)wallet::ISMINE_HARDWARE_DEVICE);
 #endif
-            return (isminetype)((int)ISMINE_SPENDABLE | (int)ISMINE_HARDWARE_DEVICE);
+            return (wallet::isminetype)((int)wallet::ISMINE_SPENDABLE | (int)wallet::ISMINE_HARDWARE_DEVICE);
         }
-        return ISMINE_WATCH_ONLY_;
+        return wallet::ISMINE_WATCH_ONLY_;
     };
 
     bool IsActive() const { return nFlags & EAF_ACTIVE; };
@@ -719,8 +719,8 @@ public:
     };
 
     int HaveSavedKey(const CKeyID &id);
-    int HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, isminetype &ismine);
-    int HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, isminetype &ismine);
+    int HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, wallet::isminetype &ismine);
+    int HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, wallet::isminetype &ismine);
     bool GetKey(const CKeyID &id, CKey &keyOut) const;
     bool GetKey(const CEKAKey &ak, CKey &keyOut) const;
     bool GetKey(const CEKASCKey &asck, CKey &keyOut) const;
@@ -796,10 +796,10 @@ public:
         return vExtKeys.size() - 1;
     };
 
-    isminetype IsMine(uint32_t nChain) const
+    wallet::isminetype IsMine(uint32_t nChain) const
     {
         CStoredExtKey *p = GetChain(nChain);
-        return p ? p->IsMine() : ISMINE_NO;
+        return p ? p->IsMine() : wallet::ISMINE_NO;
     };
 
     int AddLookBehind(uint32_t nChain, uint32_t nKeys);

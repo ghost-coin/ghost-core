@@ -16,7 +16,9 @@
 #include <key/extkey.h>
 #include <key/stealth.h>
 
+namespace wallet {
 enum isminetype : uint8_t;
+}
 
 /** An interface to be implemented by keystores that support signing. */
 class SigningProvider
@@ -165,7 +167,7 @@ public:
 
     virtual size_t CountKeys() const { LOCK(cs_KeyStore); return mapKeys.size(); };
 
-    virtual isminetype IsMine(const CKeyID &address) const;
+    virtual wallet::isminetype IsMine(const CKeyID &address) const;
 
     std::map<XOnlyPubKey, TaprootSpendData> tr_spenddata; /** Map from output key to spend data. */
     bool GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const override;

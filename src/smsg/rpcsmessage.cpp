@@ -103,7 +103,7 @@ static RPCHelpMan smsgenable()
     }
     result.pushKV("result", (smsgModule.Enable(pwallet, vpwallets) ? "Enabled secure messaging." : "Failed."));
 #else
-    std::vector<std::shared_ptr<CWallet>> empty;
+    std::vector<std::shared_ptr<wallet::CWallet>> empty;
     result.pushKV("result", (smsgModule.Enable(pwallet, empty) ? "Enabled secure messaging." : "Failed."));
 #endif
 
@@ -2365,7 +2365,7 @@ static RPCHelpMan smsggetfeerate()
 
             int64_t smsg_fee_rate_target;
             CBlock block;
-            if (!ReadBlockFromDisk(block, pTip, Params().GetConsensus())) {
+            if (!node::ReadBlockFromDisk(block, pTip, Params().GetConsensus())) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
             }
             block.vtx[0]->GetSmsgFeeRate(smsg_fee_rate_target);

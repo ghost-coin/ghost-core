@@ -15,6 +15,7 @@
 
 using interfaces::FoundBlock;
 
+namespace wallet {
 void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry, bool fFilterMode=false)
 {
     interfaces::Chain& chain = wallet.chain();
@@ -1368,3 +1369,4 @@ RPCHelpMan abortrescan()
 },
     };
 }
+} // namespace wallet

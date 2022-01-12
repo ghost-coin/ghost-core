@@ -70,6 +70,25 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+using node::BLOCKFILE_CHUNK_SIZE;
+using node::BlockManager;
+using node::BlockMap;
+using node::CBlockIndexWorkComparator;
+using node::CCoinsStats;
+using node::CoinStatsHashType;
+using node::GetUTXOStats;
+using node::OpenBlockFile;
+using node::ReadBlockFromDisk;
+using node::SnapshotMetadata;
+using node::UNDOFILE_CHUNK_SIZE;
+using node::UndoReadFromDisk;
+using node::UnlinkPrunedFiles;
+using node::fHavePruned;
+using node::fImporting;
+using node::fPruneMode;
+using node::fReindex;
+using node::nPruneTarget;
+
 #define MICRO 0.000001
 #define MILLI 0.001
 
@@ -196,7 +215,7 @@ std::list<DelayedBlock> list_delayed_blocks;
 } // namespace particl
 extern bool AddNodeHeader(NodeId node_id, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 extern void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern void RemoveNonReceivedHeaderFromNodes(BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+extern void RemoveNonReceivedHeaderFromNodes(node::BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 
 bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
@@ -6134,7 +6153,7 @@ bool ChainstateManager::PopulateAndValidateSnapshot(
     // about the snapshot_chainstate.
     CCoinsViewDB* snapshot_coinsdb = WITH_LOCK(::cs_main, return &snapshot_chainstate.CoinsDB());
 
-    if (!GetUTXOStats(snapshot_coinsdb, WITH_LOCK(::cs_main, return std::ref(m_blockman)), stats, breakpoint_fnc)) {
+    if (!GetUTXOStats(snapshot_coinsdb, m_blockman, stats, breakpoint_fnc)) {
         LogPrintf("[snapshot] failed to generate coins stats\n");
         return false;
     }
@@ -6405,7 +6424,7 @@ bool CoinStakeCache::GetCoinStake(CChainState &chainstate, const uint256 &blockH
     }
 
     CBlockIndex *pindex = mi->second;
-    if (ReadTransactionFromDiskBlock(pindex, 0, tx)) {
+    if (node::ReadTransactionFromDiskBlock(pindex, 0, tx)) {
         return InsertCoinStake(blockHash, tx);
     }
 
@@ -6502,7 +6521,7 @@ void CheckDelayedBlocks(BlockManager &blockman, BlockValidationState &state, con
 
 bool RemoveUnreceivedHeader(ChainstateManager &chainman, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
-    BlockMap::iterator mi = chainman.BlockIndex().find(hash);
+    node::BlockMap::iterator mi = chainman.BlockIndex().find(hash);
     if (mi != chainman.BlockIndex().end() && (mi->second->nFlags & BLOCK_ACCEPTED)) {
         return false;
     }

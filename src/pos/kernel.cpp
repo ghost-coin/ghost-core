@@ -174,7 +174,7 @@ bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint25
     const COutPoint &prevout = tx.vin[0].prevout;
     CTransactionRef txPrev;
     CBlock blockKernel; // block containing stake kernel, GetTransaction should only fill the header.
-    if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel)
+    if (!node::GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel)
         || prevout.n >= txPrev->vpout.size()) {
         return false;
     }

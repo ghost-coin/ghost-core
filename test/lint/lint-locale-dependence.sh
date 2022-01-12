@@ -43,6 +43,7 @@ KNOWN_VIOLATIONS=(
     "src/test/dbwrapper_tests.cpp:.*snprintf"
     "src/test/fuzz/locale.cpp"
     "src/test/fuzz/string.cpp"
+    "src/test/util_tests.cpp"
     "src/util/string.cpp:.*tolower"
     "src/util/string.cpp:.*isspace"
     "src/util/time.cpp:.*sscanf"

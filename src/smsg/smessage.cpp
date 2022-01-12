@@ -484,13 +484,13 @@ const char *GetString(size_t errorCode)
 };
 
 #ifdef ENABLE_WALLET
-static void NotifyUnload(CSMSG *ps, CWallet *pw)
+static void NotifyUnload(CSMSG *ps, wallet::CWallet *pw)
 {
     LogPrintf("SMSG NotifyUnload\n");
     ps->WalletUnloaded(pw);
 };
 
-static void ListenWalletAdded(CSMSG *ps, const std::shared_ptr<CWallet>& wallet)
+static void ListenWalletAdded(CSMSG *ps, const std::shared_ptr<wallet::CWallet>& wallet)
 {
     LogPrintf("SMSG NotifyWalletAdded: %s\n", wallet->GetName());
     ps->LoadWallet(wallet);
@@ -877,7 +877,7 @@ int CSMSG::WriteIni()
     return SMSG_NO_ERROR;
 };
 
-bool CSMSG::Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_ptr<CWallet>> &vpwallets, bool fScanChain)
+bool CSMSG::Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets, bool fScanChain)
 {
     LogPrintf("Secure messaging starting.\n");
 
@@ -970,7 +970,7 @@ bool CSMSG::Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_pt
     thread_smsg_pow = std::thread(&util::TraceThread, "smsg-pow", std::function<void()>(std::bind(&ThreadSecureMsgPow, this)));
 
 #ifdef ENABLE_WALLET
-    m_wallet_load_handler = interfaces::MakeHandler(NotifyWalletAdded.connect(std::bind(&ListenWalletAdded, this, std::placeholders::_1)));
+    m_wallet_load_handler = interfaces::MakeHandler(wallet::NotifyWalletAdded.connect(std::bind(&ListenWalletAdded, this, std::placeholders::_1)));
 #endif
 
     return true;
@@ -1025,7 +1025,7 @@ bool CSMSG::Shutdown()
 
 /** Start secure messaging at runtime
   */
-bool CSMSG::Enable(std::shared_ptr<CWallet> pactive_wallet, std::vector<std::shared_ptr<CWallet>> &vpwallets)
+bool CSMSG::Enable(std::shared_ptr<wallet::CWallet> pactive_wallet, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets)
 {
     if (fSecMsgEnabled) {
         LogPrintf("SecureMsgEnable: secure messaging is already enabled.\n");
@@ -1116,10 +1116,10 @@ bool CSMSG::UnloadAllWallets()
     return true;
 };
 
-bool CSMSG::LoadWallet(std::shared_ptr<CWallet> pwallet_in)
+bool CSMSG::LoadWallet(std::shared_ptr<wallet::CWallet> pwallet_in)
 {
 #ifdef ENABLE_WALLET
-    std::vector<std::shared_ptr<CWallet>>::iterator i = std::find(m_vpwallets.begin(), m_vpwallets.end(), pwallet_in);
+    std::vector<std::shared_ptr<wallet::CWallet>>::iterator i = std::find(m_vpwallets.begin(), m_vpwallets.end(), pwallet_in);
     if (i != m_vpwallets.end()) return true;
     m_wallet_unload_handlers[pwallet_in.get()] = interfaces::MakeHandler(pwallet_in->NotifyUnload.connect(std::bind(&NotifyUnload, this, pwallet_in.get())));
     m_vpwallets.push_back(pwallet_in);
@@ -1127,7 +1127,7 @@ bool CSMSG::LoadWallet(std::shared_ptr<CWallet> pwallet_in)
     return true;
 };
 
-bool CSMSG::WalletUnloaded(CWallet *pwallet_removed)
+bool CSMSG::WalletUnloaded(wallet::CWallet *pwallet_removed)
 {
     LOCK(cs_smsg);
     bool removed = false;
@@ -1152,7 +1152,7 @@ bool CSMSG::WalletUnloaded(CWallet *pwallet_removed)
     return removed;
 };
 
-bool CSMSG::SetActiveWallet(std::shared_ptr<CWallet> pwallet_in)
+bool CSMSG::SetActiveWallet(std::shared_ptr<wallet::CWallet> pwallet_in)
 {
 #ifdef ENABLE_WALLET
     LOCK(cs_smsg);
@@ -2092,7 +2092,7 @@ bool CSMSG::ScanChainForPublicKeys(CBlockIndex *pindexStart)
         while (pindex) {
             nBlocks++;
             CBlock block;
-            if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
+            if (!node::ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
                 LogPrintf("%s: ReadBlockFromDisk failed.\n", __func__);
             } else {
                 smsg::ScanBlock(*this, block, addrpkdb,
@@ -2314,7 +2314,7 @@ int CSMSG::ManageLocalKey(CKeyID &keyId, ChangeType mode)
 /** Wallet was unlocked
   * Scan messages received while wallet was locked.
   */
-int CSMSG::WalletUnlocked(CWallet *pwallet)
+int CSMSG::WalletUnlocked(wallet::CWallet *pwallet)
 {
 #ifdef ENABLE_WALLET
 
@@ -3563,7 +3563,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
     int64_t nMsgFeePerKPerDay = 0;
     {
         LOCK(cs_main);
-        BlockMap::iterator mi = m_node->chainman->BlockIndex().find(hashBlock);
+        node::BlockMap::iterator mi = m_node->chainman->BlockIndex().find(hashBlock);
         if (mi != m_node->chainman->BlockIndex().end()) {
             pindex = mi->second;
             if (pindex && m_node->chainman->ActiveChain().Contains(pindex)) {
@@ -4093,7 +4093,7 @@ int CSMSG::Import(SecureMessage *psmsg, std::string &sError, bool setread, bool 
 int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
     SecureMessage &smsg, std::string &sError, bool fPaid,
     size_t nRetention, bool fTestFee, CAmount *nFee, size_t *nTxBytes, bool fFromFile, bool submit_msg, bool add_to_outbox,
-    bool fund_from_rct, size_t nRingSize, CCoinControl *coin_control, bool fund_paid_msg)
+    bool fund_from_rct, size_t nRingSize, wallet::CCoinControl *coin_control, bool fund_paid_msg)
 {
     bool fSendAnonymous = (addressFrom.IsNull());
 
@@ -4305,7 +4305,7 @@ int CSMSG::HashMsg(const SecureMessage &smsg, const uint8_t *pPayload, uint32_t 
     return SMSG_NO_ERROR;
 };
 
-int CSMSG::FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bool fTestFee, CAmount *nFee, size_t *nTxBytes, bool fund_from_rct, size_t nRingSize, CCoinControl *coin_control)
+int CSMSG::FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bool fTestFee, CAmount *nFee, size_t *nTxBytes, bool fund_from_rct, size_t nRingSize, wallet::CCoinControl *coin_control)
 {
     // smsg.pPayload must have smsg.nPayload + 32 bytes allocated
     // Packs the fee into 4 bytes (per smsg), max 42.94967295 PART
@@ -4367,7 +4367,7 @@ int CSMSG::FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bo
 
         CHDWallet *const pw = GetParticlWallet(pactive_wallet.get());
         CTransactionRef tx_new;
-        CWalletTx wtx(tx_new, TxStateInactive{});
+        wallet::CWalletTx wtx(tx_new, TxStateInactive{});
 
         if (fund_from == OUTPUT_STANDARD) {
             // Try confirmed inputs first

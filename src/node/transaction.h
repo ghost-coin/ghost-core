@@ -13,10 +13,13 @@
 class CBlockIndex;
 class CTxMemPool;
 class CBlock;
-struct NodeContext;
+
 namespace Consensus {
 struct Params;
 }
+
+namespace node {
+struct NodeContext;
 
 /** Maximum fee rate for sendrawtransaction and testmempoolaccept RPC calls.
  * Also used by the GUI when broadcasting a completed PSBT.
@@ -62,6 +65,6 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
 
 /** Retrieve a transaction and block header from disk */
 bool GetTransaction(const uint256 &hash, CTransactionRef &tx, const Consensus::Params& params, CBlock &block, CBlockIndex* blockIndex = nullptr);
-
+} // namespace node
 
 #endif // BITCOIN_NODE_TRANSACTION_H

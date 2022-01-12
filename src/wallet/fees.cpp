@@ -10,6 +10,7 @@
 #include <anon.h>
 
 
+namespace wallet {
 CAmount GetRequiredFee(const CWallet& wallet, unsigned int nTxBytes)
 {
     return GetRequiredFeeRate(wallet).GetFee(nTxBytes);
@@ -98,3 +99,4 @@ CFeeRate GetDiscardRate(const CWallet& wallet)
     discard_rate = std::max(discard_rate, wallet.chain().relayDustFee());
     return discard_rate;
 }
+} // namespace wallet

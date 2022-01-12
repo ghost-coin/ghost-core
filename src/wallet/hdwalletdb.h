@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,7 +13,12 @@
 #include <string>
 #include <vector>
 
+namespace wallet {
 class CAddressBookData;
+} // namespace wallet
+
+using namespace wallet;
+
 class CEKAKeyPack;
 class CEKASCKeyPack;
 class CEKAStealthKeyPack;
@@ -382,7 +387,7 @@ public:
     bool ReadStealthAddressLink(const CKeyID &keyId, uint32_t &id, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteStealthAddressLink(const CKeyID &keyId, uint32_t id);
 
-    bool WriteAddressBookEntry(const std::string &sKey, const CAddressBookData &data);
+    bool WriteAddressBookEntry(const std::string &sKey, const wallet::CAddressBookData &data);
     bool EraseAddressBookEntry(const std::string &sKey);
 
     bool ReadVoteTokens(std::vector<CVoteToken> &vVoteTokens, uint32_t nFlags=DB_READ_UNCOMMITTED);

@@ -149,7 +149,7 @@ static RPCHelpMan getaddressmempool()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    NodeContext& node = EnsureAnyNodeContext(request.context);
+    node::NodeContext &node = EnsureAnyNodeContext(request.context);
     const CTxMemPool& mempool = EnsureMemPool(node);
 
     if (!fAddressIndex) {
@@ -604,7 +604,7 @@ static RPCHelpMan getspentinfo()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    NodeContext& node = EnsureAnyNodeContext(request.context);
+    node::NodeContext &node = EnsureAnyNodeContext(request.context);
     const CTxMemPool& mempool = EnsureMemPool(node);
     ChainstateManager &chainman = EnsureChainman(node);
 
@@ -798,7 +798,7 @@ return RPCHelpMan{"getblockdeltas",
 {
     LOCK(cs_main);
 
-    NodeContext &node = EnsureAnyNodeContext(request.context);
+    node::NodeContext &node = EnsureAnyNodeContext(request.context);
 
     const CTxMemPool &mempool = EnsureMemPool(node);
     ChainstateManager &chainman = EnsureChainman(node);
@@ -812,11 +812,11 @@ return RPCHelpMan{"getblockdeltas",
     CBlock block;
     CBlockIndex *pblockindex = chainman.BlockIndex()[hash];
 
-    if (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
+    if (node::fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Block not available (pruned data)");
     }
 
-    if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+    if (!node::ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
     }
 
@@ -1073,7 +1073,7 @@ static RPCHelpMan getblockreward()
 {
     RPCTypeCheck(request.params, {UniValue::VNUM});
 
-    NodeContext &node = EnsureAnyNodeContext(request.context);
+    node::NodeContext &node = EnsureAnyNodeContext(request.context);
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
     if (!g_txindex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requires -txindex enabled");
@@ -1094,7 +1094,7 @@ static RPCHelpMan getblockreward()
     }
 
     CBlock block;
-    if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+    if (!node::ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
         throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
     }
 
@@ -1137,7 +1137,7 @@ static RPCHelpMan getblockreward()
 
         CBlockIndex *blockindex = nullptr;
         uint256 hash_block;
-        const CTransactionRef tx_prev = GetTransaction(blockindex, node.mempool.get(), txin.prevout.hash, Params().GetConsensus(), hash_block);
+        const CTransactionRef tx_prev = node::GetTransaction(blockindex, node.mempool.get(), txin.prevout.hash, Params().GetConsensus(), hash_block);
         if (!tx_prev) {
             throw JSONRPCError(RPC_MISC_ERROR, "Transaction not found on disk");
         }

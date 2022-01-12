@@ -11,11 +11,14 @@
 #include <vector>
 #include <string>
 
+namespace wallet {
 struct WalletContext;
+class CWallet;
+} // namespace wallet
 class ChainstateManager;
 class CBlockIndex;
 class CBlock;
-class CWallet;
+
 class CHDWallet;
 
 class StakeThread
@@ -36,11 +39,11 @@ extern int nMinerSleep;
 
 bool CheckStake(ChainstateManager &chainman, const CBlock *pblock);
 
-void StartThreadStakeMiner(WalletContext &wallet_context, ChainstateManager &chainman);
+void StartThreadStakeMiner(wallet::WalletContext &wallet_context, ChainstateManager &chainman);
 void StopThreadStakeMiner();
 void WakeThreadStakeMiner(CHDWallet *pwallet);
 bool ThreadStakeMinerStopped();
 
-void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman);
+void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman);
 
 #endif // PARTICL_POS_MINER_H

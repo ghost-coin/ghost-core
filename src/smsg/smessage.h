@@ -22,8 +22,10 @@
 
 class UniValue;
 class CDataStream;
+namespace wallet {
 class CWallet;
 class CCoinControl;
+} // namespace wallet
 class CNode;
 class PeerManager;
 class ArgsManager;
@@ -439,16 +441,16 @@ public:
     int ReadIni();
     int WriteIni();
 
-    bool Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_ptr<CWallet>> &vpwallets, bool fScanChain);
+    bool Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets, bool fScanChain);
     bool Shutdown();
 
-    bool Enable(std::shared_ptr<CWallet> pwallet, std::vector<std::shared_ptr<CWallet>> &vpwallets);
+    bool Enable(std::shared_ptr<wallet::CWallet> pwallet, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets);
     bool Disable();
 
     bool UnloadAllWallets();
-    bool LoadWallet(std::shared_ptr<CWallet> pwallet_in);
-    bool WalletUnloaded(CWallet *pwallet_removed);
-    bool SetActiveWallet(std::shared_ptr<CWallet> pwallet_in);
+    bool LoadWallet(std::shared_ptr<wallet::CWallet> pwallet_in);
+    bool WalletUnloaded(wallet::CWallet *pwallet_removed);
+    bool SetActiveWallet(std::shared_ptr<wallet::CWallet> pwallet_in);
     std::string GetWalletName();
     std::string LookupLabel(PKHash &hash);
 
@@ -465,7 +467,7 @@ public:
     bool ScanBuckets(bool scan_all);
 
     int ManageLocalKey(CKeyID &keyId, ChangeType mode);
-    int WalletUnlocked(CWallet *pwallet);
+    int WalletUnlocked(wallet::CWallet *pwallet);
     int WalletKeyChanged(CKeyID &keyId, const std::string &sLabel, ChangeType mode);
 
     int ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayload, bool reportToGui, bool &received_msg, bool unlocking=false);
@@ -506,11 +508,11 @@ public:
     int Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
         SecureMessage &smsg, std::string &sError, bool fPaid, size_t nRetention,
         bool fTestFee=false, CAmount *nFee=nullptr, size_t *nTxBytes=nullptr, bool fFromFile=false, bool submit_msg=true, bool add_to_outbox=true,
-        bool fund_from_rct=false, size_t nRingSize=5, CCoinControl *coin_control=nullptr, bool fund_paid_msg=true);
+        bool fund_from_rct=false, size_t nRingSize=5, wallet::CCoinControl *coin_control=nullptr, bool fund_paid_msg=true);
 
     bool GetPowHash(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_t nPayload, uint256 &hash);
     int HashMsg(const SecureMessage &smsg, const uint8_t *pPayload, uint32_t nPayload, uint160 &hash);
-    int FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bool fTestFee, CAmount *nFee, size_t *nTxBytes, bool fund_from_rct, size_t nRingSize, CCoinControl *coin_control);
+    int FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bool fTestFee, CAmount *nFee, size_t *nTxBytes, bool fund_from_rct, size_t nRingSize, wallet::CCoinControl *coin_control);
     /** Place message in send queue, proof of work will happen in a thread. */
     int SubmitMsg(const SecureMessage &smsg, const CKeyID &addressTo, bool stash, std::string &sError);
 
@@ -544,9 +546,9 @@ public:
     std::set<SecMsgPurged> setPurged;
     std::set<int64_t> setPurgedTimestamps;
     SecMsgOptions options;
-    std::shared_ptr<CWallet> pactive_wallet; // The wallet used to fund smsges
-    std::vector<std::shared_ptr<CWallet>> m_vpwallets;
-    std::map<CWallet*, std::unique_ptr<interfaces::Handler>> m_wallet_unload_handlers;
+    std::shared_ptr<wallet::CWallet> pactive_wallet; // The wallet used to fund smsges
+    std::vector<std::shared_ptr<wallet::CWallet>> m_vpwallets;
+    std::map<wallet::CWallet*, std::unique_ptr<interfaces::Handler>> m_wallet_unload_handlers;
     std::unique_ptr<interfaces::Handler> m_wallet_load_handler;
 
     int64_t start_time = 0;
@@ -564,7 +566,7 @@ public:
     bool m_track_funding_txns{false};
     leveldb::WriteBatch *m_connect_block_batch{nullptr};
 
-    NodeContext *m_node = nullptr;
+    node::NodeContext *m_node = nullptr;
 };
 
 double GetDifficulty(uint32_t compact);

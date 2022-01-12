@@ -19,6 +19,8 @@
 #include <netbase.h>
 #include <txdb.h> // for -dbcache defaults
 
+#include <chrono>
+
 #include <QDataWidgetMapper>
 #include <QDir>
 #include <QIntValidator>
@@ -242,6 +244,7 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
     mapper->addMapping(ui->subFeeFromAmount, OptionsModel::SubFeeFromAmount);
     mapper->addMapping(ui->externalSignerPath, OptionsModel::ExternalSignerPath);
+    mapper->addMapping(ui->m_enable_psbt_controls, OptionsModel::EnablePSBTControls);
     mapper->addMapping(ui->showIncomingStakeNotifications, OptionsModel::ShowIncomingStakeNotifications);
     mapper->addMapping(ui->showZeroValueCoinstakes, OptionsModel::ShowZeroValueCoinstakes);
 
@@ -366,7 +369,7 @@ void OptionsDialog::showRestartWarning(bool fPersistent)
         ui->statusLabel->setText(tr("This change would require a client restart."));
         // clear non-persistent status label after 10 seconds
         // Todo: should perhaps be a class attribute, if we extend the use of statusLabel
-        QTimer::singleShot(10000, this, &OptionsDialog::clearStatusLabel);
+        QTimer::singleShot(10s, this, &OptionsDialog::clearStatusLabel);
     }
 }
 

@@ -13,10 +13,12 @@
 #include <cstdint>
 #include <type_traits>
 
-class CWallet;
 class CScript;
 
 typedef std::vector<unsigned char> valtype;
+
+namespace wallet {
+class CWallet;
 
 /**
  * IsMine() return codes, which depend on ScriptPubKeyMan implementation.
@@ -75,5 +77,6 @@ struct CachableAmount
         m_value[filter] = value;
     }
 };
+} // namespace wallet
 
 #endif // BITCOIN_WALLET_ISMINE_H

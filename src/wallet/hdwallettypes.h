@@ -27,6 +27,7 @@ const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain r
 
 extern const uint256 ABANDON_HASH;
 
+
 enum OutputRecordFlags
 {
     ORF_OWNED               = (1 << 0),

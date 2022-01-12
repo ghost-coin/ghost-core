@@ -99,7 +99,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
             continue;
         }
 
-        std::unique_ptr<CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
+        std::unique_ptr<node::CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
         assert(pblocktemplate.get());
 
         if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
@@ -119,7 +119,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
     SyncWithValidationInterfaceQueue();
 };
 
-static std::shared_ptr<CHDWallet> CreateTestWallet(WalletContext& wallet_context, std::string wallet_name)
+static std::shared_ptr<CHDWallet> CreateTestWallet(wallet::WalletContext& wallet_context, std::string wallet_name)
 {
     DatabaseOptions options;
     DatabaseStatus status;
@@ -135,7 +135,7 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(WalletContext& wallet_context
 static void AddTx(benchmark::Bench& bench, const std::string from, const std::string to, const bool owned)
 {
     TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
-    const auto context = util::AnyPtr<NodeContext>(&test_setup.m_node);
+    const auto context = util::AnyPtr<node::NodeContext>(&test_setup.m_node);
 
     std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain(test_setup.m_node);
     std::unique_ptr<interfaces::WalletLoader> wallet_loader = interfaces::MakeWalletLoader(*chain, *Assert(test_setup.m_node.args));

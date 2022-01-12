@@ -47,6 +47,15 @@
 
 #include <univalue.h>
 
+using node::AnalyzePSBT;
+using node::BroadcastTransaction;
+using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
+using node::FindCoins;
+using node::GetTransaction;
+using node::NodeContext;
+using node::PSBTAnalysis;
+using node::ReadBlockFromDisk;
+
 void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const uint256 hashBlock,
                       const CTxMemPool *pmempool, UniValue& entry, int nHeight = 0, int nConfirmations = 0, int nBlockTime = 0)
 {
@@ -382,7 +391,7 @@ static RPCHelpMan getrawtransaction()
 
     {
         LOCK(cs_main);
-        BlockMap::iterator mi = chainman.BlockIndex().find(hash_block);
+        node::BlockMap::iterator mi = chainman.BlockIndex().find(hash_block);
         if (mi != chainman.BlockIndex().end() && mi->second) {
             CBlockIndex *pindex = mi->second;
             if (chainman.ActiveChain().Contains(pindex)) {
@@ -1133,7 +1142,7 @@ static RPCHelpMan sendrawtransaction()
     CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
 
     const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
-                                             fParticlMode ? DEFAULT_MAX_RAW_TX_FEE_RATE : DEFAULT_MAX_RAW_TX_FEE_RATE_BTC :
+                                             fParticlMode ? node::DEFAULT_MAX_RAW_TX_FEE_RATE : node::DEFAULT_MAX_RAW_TX_FEE_RATE_BTC :
                                              CFeeRate(AmountFromValue(request.params[1]));
 
     int64_t virtual_size = GetVirtualTransactionSize(*tx);
@@ -1216,7 +1225,7 @@ static RPCHelpMan testmempoolaccept()
     }
 
     const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
-                                             fParticlMode ? DEFAULT_MAX_RAW_TX_FEE_RATE : DEFAULT_MAX_RAW_TX_FEE_RATE_BTC :
+                                             fParticlMode ? node::DEFAULT_MAX_RAW_TX_FEE_RATE : node::DEFAULT_MAX_RAW_TX_FEE_RATE_BTC :
                                              CFeeRate(AmountFromValue(request.params[1]));
 
     bool ignore_locks = !request.params[2].isNull() ? request.params[2].get_bool() : false;

@@ -45,10 +45,14 @@
 #include <optional>
 #include <typeinfo>
 
-
 // Particl includes
 #include <smsg/smessage.h>
 
+using node::ReadBlockFromDisk;
+using node::ReadRawBlockFromDisk;
+using node::fImporting;
+using node::fPruneMode;
+using node::fReindex;
 
 /** How long to cache transactions in mapRelay for normal relay */
 static constexpr auto RELAY_TX_CACHE_TIME = 15min;
@@ -1606,7 +1610,7 @@ void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     }
 }
 
-void RemoveNonReceivedHeaderFromNodes(BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+void RemoveNonReceivedHeaderFromNodes(node::BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     auto it = mapNodeState.begin();
     for (; it != mapNodeState.end(); ++it) {

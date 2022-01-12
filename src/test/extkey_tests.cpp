@@ -550,7 +550,7 @@ BOOST_AUTO_TEST_CASE(extkey_account)
 
     const CEKAKey *pak = nullptr;
     const CEKASCKey *pasc = nullptr;
-    isminetype ismine;
+    wallet::isminetype ismine;
     BOOST_CHECK(HK_YES == eka.HaveKey(idk, false, pak, pasc, ismine));
     BOOST_CHECK(pak != nullptr);
     BOOST_CHECK(pasc == nullptr);

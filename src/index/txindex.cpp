@@ -9,11 +9,14 @@
 #include <util/system.h>
 #include <validation.h>
 
+// Particl
 #include <insight/csindex.h>
 #include <script/script.h>
 #include <script/interpreter.h>
 #include <wallet/ismine.h>
 #include <key_io.h>
+
+using node::OpenBlockFile;
 
 constexpr uint8_t DB_TXINDEX{'t'};
 

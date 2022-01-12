@@ -627,7 +627,7 @@ int CExtKeyAccount::HaveSavedKey(const CKeyID &id)
     return HK_NO;
 };
 
-int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, isminetype &ismine)
+int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, wallet::isminetype &ismine)
 {
     // If fUpdate, promote key if found in look ahead
     LOCK(cs_account);
@@ -654,7 +654,7 @@ int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak,
     return HaveStealthKey(id, pasc, ismine);
 };
 
-int CExtKeyAccount::HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, isminetype &ismine)
+int CExtKeyAccount::HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, wallet::isminetype &ismine)
 {
     LOCK(cs_account);
 
@@ -663,13 +663,13 @@ int CExtKeyAccount::HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, ism
         pasc = &miSck->second;
         AccStealthKeyMap::const_iterator miSk = mapStealthKeys.find(pasc->idStealthKey);
         if (miSk == mapStealthKeys.end()) {
-            ismine = ISMINE_NO;
+            ismine = wallet::ISMINE_NO;
         } else {
             ismine = IsMine(miSk->second.akSpend.nParent);
         }
         return HK_YES;
     }
-    ismine = ISMINE_NO;
+    ismine = wallet::ISMINE_NO;
     return HK_NO;
 };
 
@@ -838,7 +838,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKAKey &keyIn)
 
                 const CEKAKey *pak = nullptr;
                 const CEKASCKey *pasc = nullptr;
-                isminetype ismine;
+                wallet::isminetype ismine;
                 if (HK_YES != HaveKey(pk.GetID(), false, pak, pasc, ismine)) {
                     break;
                 }

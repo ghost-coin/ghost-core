@@ -9,6 +9,7 @@
 #include <wallet/wallet.h>
 #include <wallet/hdwallet.h>
 
+namespace wallet {
 isminetype InputIsMine(const CWallet& wallet, const CTxIn &txin)
 {
     AssertLockHeld(wallet.cs_wallet);
@@ -692,7 +693,6 @@ std::set< std::set<CTxDestination> > GetAddressGroupings(const CWallet& wallet)
     return ret;
 }
 
-
 isminetype CWallet::IsMine(const CKeyID &address) const
 {
     auto spk_man = GetLegacyScriptPubKeyMan();
@@ -714,3 +714,4 @@ isminetype CWallet::IsMine(const CKeyID &address) const
     }
     return ISMINE_NO;
 }
+} // namespace wallet

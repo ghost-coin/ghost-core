@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     auto &chain_active = m_node.chainman->ActiveChain();
     auto &chainstate_active = m_node.chainman->ActiveChainstate();
     CHDWallet *pwallet = pwalletMain.get();
-    const auto context = util::AnyPtr<NodeContext>(&m_node);
+    const auto context = util::AnyPtr<node::NodeContext>(&m_node);
     {
         int last_height = WITH_LOCK(cs_main, return chain_active.Height());
         uint256 last_hash = WITH_LOCK(cs_main, return chain_active.Tip()->GetBlockHash());

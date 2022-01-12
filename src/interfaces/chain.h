@@ -30,8 +30,10 @@ enum class RBFTransactionState;
 struct bilingual_str;
 struct CBlockLocator;
 struct FeeCalculation;
+namespace node {
 struct NodeContext;
 struct CBlockTemplate;
+} // namespace node
 
 class CBlockIndex;
 class CCmpPubKey;
@@ -306,7 +308,7 @@ public:
     virtual size_t getAnonOutputs() = 0;
     virtual int64_t getSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, bool reduce_height=false) = 0;
     virtual CTransactionRef transactionFromMempool(const uint256 &txhash) = 0;
-    virtual std::unique_ptr<CBlockTemplate> createNewBlock() = 0;
+    virtual std::unique_ptr<node::CBlockTemplate> createNewBlock() = 0;
     virtual CTxMemPool *getMempool() = 0;
     virtual CBlockIndex *getTip() = 0;
     virtual ChainstateManager *getChainman() = 0;
@@ -345,7 +347,7 @@ public:
 };
 
 //! Return implementation of Chain interface.
-std::unique_ptr<Chain> MakeChain(NodeContext& node);
+std::unique_ptr<Chain> MakeChain(node::NodeContext& node);
 
 } // namespace interfaces
 

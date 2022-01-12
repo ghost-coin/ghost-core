@@ -15,6 +15,8 @@
 #include <key/extkey.h>
 #include <key/stealth.h>
 
+using namespace wallet;
+
 static const size_t DEFAULT_STEALTH_LOOKAHEAD_SIZE = 5;
 
 //! -fallbackfee default
@@ -29,10 +31,13 @@ typedef std::map<uint256, CWalletTx> MapWallet_t;
 class UniValue;
 typedef struct secp256k1_scratch_space_struct secp256k1_scratch_space;
 
+namespace node {
 struct CBlockTemplate;
+} // namespace node
+
 class TxValidationState;
 
-class CHDWallet : public CWallet
+class CHDWallet : public wallet::CWallet
 {
 public:
     CHDWallet(interfaces::Chain* chain, const std::string& name, const ArgsManager& args, std::unique_ptr<WalletDatabase> database) : CWallet(chain, name, args, std::move(database))
@@ -475,8 +480,8 @@ public:
     void AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t nTime, int nHeight) const;
     bool SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int nHeight, std::set<std::pair<const CWalletTx*,unsigned int> > &setCoinsRet, int64_t &nValueRet) const;
     bool CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight, int64_t nFees, CMutableTransaction &txNew, CKey &key);
-    bool SignBlock(CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime);
-    std::unique_ptr<CBlockTemplate> CreateNewBlock();
+    bool SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime);
+    std::unique_ptr<node::CBlockTemplate> CreateNewBlock();
 
     boost::signals2::signal<void (CAmount nReservedBalance)> NotifyReservedBalanceChanged;
 

@@ -19,7 +19,9 @@
 
 #include <univalue.h>
 
+extern UniValue SendTypeToInner(const JSONRPCRequest &request);
 
+namespace wallet {
 void ParseRecipients(const UniValue& address_amounts, const UniValue& subtract_fee_outputs, std::vector<CRecipient> &recipients) {
     std::set<CTxDestination> destinations;
     int i = 0;
@@ -121,7 +123,6 @@ static void SetFeeEstimateMode(const CWallet& wallet, CCoinControl& cc, const Un
     }
 }
 
-extern UniValue SendTypeToInner(const JSONRPCRequest &request);
 RPCHelpMan sendtoaddress()
 {
     return RPCHelpMan{"sendtoaddress",
@@ -1544,3 +1545,4 @@ RPCHelpMan walletcreatefundedpsbt()
 },
     };
 }
+} // namespace wallet

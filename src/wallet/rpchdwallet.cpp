@@ -47,6 +47,10 @@
 
 #include <univalue.h>
 
+namespace wallet {
+extern void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry, bool fFilterMode=false);
+}
+
 void EnsureWalletIsUnlocked(const CHDWallet *pwallet)
 {
     if (pwallet->IsLocked()) {
@@ -3069,8 +3073,6 @@ static bool ParseOutput(
     return true;
 }
 
-extern void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry, bool fFilterMode=false);
-
 static void ParseOutputs(
     UniValue            &entries,
     CWalletTx           &wtx,
@@ -5806,7 +5808,7 @@ static UniValue createsignatureinner(const JSONRPCRequest &request, ChainstateMa
             }
         } else {
             uint256 hashBlock;
-            CTransactionRef txn = GetTransaction(nullptr, mempool, prev_out.hash, Params().GetConsensus(), hashBlock);
+            CTransactionRef txn = node::GetTransaction(nullptr, mempool, prev_out.hash, Params().GetConsensus(), hashBlock);
             if (txn) {
                 if (txn->GetNumVOuts() > prev_out.n) {
                     txout = txn->vpout[prev_out.n];
@@ -7841,7 +7843,7 @@ static RPCHelpMan tallyvotes()
             break;
         }
         if (pindex->nHeight <= nEndHeight) {
-            if (!ReadBlockFromDisk(block, pindex, consensusParams)) {
+            if (!node::ReadBlockFromDisk(block, pindex, consensusParams)) {
                 continue;
             }
 
@@ -9462,7 +9464,7 @@ static bool PruneBlockFile(ChainstateManager &chainman, FILE *fp, bool test_only
             nRewind = blkdat.GetPos();
 
             num_blocks_in_file++;
-            BlockMap::iterator mi = chainman.BlockIndex().find(blockhash);
+            node::BlockMap::iterator mi = chainman.BlockIndex().find(blockhash);
             if (mi == chainman.BlockIndex().end()
                 || !chainman.ActiveChain().Contains(mi->second)) {
                 num_blocks_removed++;
@@ -9556,9 +9558,9 @@ static RPCHelpMan pruneorphanedblocks()
         FILE *fp;
         for (;;) {
             FlatFilePos pos(nFile, 0);
-            fs::path blk_filepath = GetBlockPosFilename(pos);
+            fs::path blk_filepath = node::GetBlockPosFilename(pos);
             if (!fs::exists(blk_filepath)
-                || !(fp = OpenBlockFile(pos, true)))
+                || !(fp = node::OpenBlockFile(pos, true)))
                 break;
             LogPrintf("Pruning block file blk%05u.dat...\n", (unsigned int)nFile);
             size_t num_blocks_in_file = 0, num_blocks_removed = 0;
@@ -9574,7 +9576,7 @@ static RPCHelpMan pruneorphanedblocks()
 
             UniValue obj(UniValue::VOBJ);
             obj.pushKV("test_mode", test_only);
-            obj.pushKV("filename", fs::PathToString(GetBlockPosFilename(pos)));
+            obj.pushKV("filename", fs::PathToString(node::GetBlockPosFilename(pos)));
             obj.pushKV("blocks_in_file", (int)num_blocks_in_file);
             obj.pushKV("blocks_removed", (int)num_blocks_removed);
             files.push_back(obj);

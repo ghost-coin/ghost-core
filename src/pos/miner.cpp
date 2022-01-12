@@ -53,7 +53,7 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
     {
         LOCK(cs_main);
 
-        BlockMap::const_iterator mi = chainman.BlockIndex().find(pblock->hashPrevBlock);
+        node::BlockMap::const_iterator mi = chainman.BlockIndex().find(pblock->hashPrevBlock);
         if (mi == chainman.BlockIndex().end()) {
             return error("%s: %s prev block not found: %s.", __func__, hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
         }
@@ -86,7 +86,7 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
     return true;
 };
 
-bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
+bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
 {
     LogPrint(BCLog::POS, "%s, nHeight %d\n", __func__, nHeight);
 
@@ -178,7 +178,7 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight)
     return true;
 };
 
-void StartThreadStakeMiner(WalletContext &wallet_context, ChainstateManager &chainman)
+void StartThreadStakeMiner(wallet::WalletContext &wallet_context, ChainstateManager &chainman)
 {
     nMinStakeInterval = gArgs.GetIntArg("-minstakeinterval", 0);
     nMinerSleep = gArgs.GetIntArg("-minersleep", 500);
@@ -256,7 +256,7 @@ static inline void condWaitFor(size_t nThreadID, int ms)
     t->m_thread_interrupt.sleep_for(std::chrono::milliseconds(ms));
 };
 
-void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman)
+void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman)
 {
     LogPrintf("Starting staking thread %d, %d wallet%s.\n", nThreadID, nEnd - nStart, (nEnd - nStart) > 1 ? "s" : "");
 
@@ -275,7 +275,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
     LogPrint(BCLog::POS, "Stake thread conditional delay set to %d.\n", stake_thread_cond_delay_ms);
 
     while (!fStopMinerProc) {
-        if (fReindex || fImporting || fBusyImporting) {
+        if (node::fReindex || node::fImporting || fBusyImporting) {
             fIsStaking = false;
             LogPrint(BCLog::POS, "%s: Block import/reindex.\n", __func__);
             condWaitFor(nThreadID, 30000);
@@ -337,7 +337,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<CWallet>> &v
             continue;
         }
 
-        std::unique_ptr<CBlockTemplate> pblocktemplate;
+        std::unique_ptr<node::CBlockTemplate> pblocktemplate;
 
         size_t nWaitFor = stake_thread_cond_delay_ms;
         CAmount reserve_balance;

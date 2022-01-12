@@ -69,7 +69,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
             continue;
         }
 
-        std::unique_ptr<CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
+        std::unique_ptr<node::CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
         BOOST_REQUIRE(pblocktemplate.get());
 
         if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {

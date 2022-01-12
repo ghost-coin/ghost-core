@@ -17,6 +17,7 @@
 #include <wallet/walletutil.h>
 #include <wallet/hdwallet.h>
 
+namespace wallet {
 namespace WalletTool {
 
 // The standard wallet deleter function blocks on the validation interface
@@ -227,3 +228,4 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
     return true;
 }
 } // namespace WalletTool
+} // namespace wallet

@@ -38,8 +38,9 @@
 #include <rpc/rpcutil.h>
 #include <rpc/client.h>
 
-
 extern const std::string MESSAGE_MAGIC;
+
+using node::NodeContext;
 
 static RPCHelpMan validateaddress()
 {

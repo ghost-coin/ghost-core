@@ -16,6 +16,7 @@
 
 #include <future>
 
+namespace node {
 static TransactionError HandleATMPError(const TxValidationState& state, std::string& err_string_out)
 {
     err_string_out = state.ToString();
@@ -182,3 +183,4 @@ bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus
 
     return false;
 }
+} // namespace node

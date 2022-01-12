@@ -41,7 +41,7 @@ BOOST_FIXTURE_TEST_SUITE(rpc_hdwallet_tests, HDWalletTestingSetup)
 BOOST_AUTO_TEST_CASE(rpc_hdwallet)
 {
     UniValue rv;
-    const auto context = util::AnyPtr<NodeContext>(&m_node);
+    const auto context = util::AnyPtr<node::NodeContext>(&m_node);
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster xprv9s21ZrQH143K3VrEYG4rhyPddr2o53qqqpCufLP6Rb3XSta2FZsqCanRJVfpTi4UX28pRaAfVGfiGpYDczv8tzTM6Qm5TRvUA9HDStbNUbQ", context));
 

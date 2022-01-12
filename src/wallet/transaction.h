@@ -19,6 +19,9 @@
 #include <variant>
 #include <vector>
 
+extern const uint256 ABANDON_HASH;
+
+namespace wallet {
 //! State of transaction confirmed in a block.
 struct TxStateConfirmed {
     uint256 confirmed_block_hash;
@@ -129,7 +132,6 @@ public:
     }
 };
 
-extern const uint256 ABANDON_HASH;
 /**
  * A transaction with a bunch of additional info that only the owner cares about.
  * It includes any unrecorded transactions needed to link it back to the block chain.
@@ -307,5 +309,6 @@ public:
     CWalletTx(CWalletTx const &) = delete;
     void operator=(CWalletTx const &x) = delete;
 };
+} // namespace wallet
 
 #endif // BITCOIN_WALLET_TRANSACTION_H

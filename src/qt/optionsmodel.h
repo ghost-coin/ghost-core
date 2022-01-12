@@ -72,6 +72,7 @@ public:
         ShowZeroValueCoinstakes, // bool
         Listen,                 // bool
         Server,                 // bool
+        EnablePSBTControls,     // bool
         ReserveBalance,         // int
         OptionIDRowCount,
     };
@@ -94,6 +95,7 @@ public:
     bool getUseEmbeddedMonospacedFont() const { return m_use_embedded_monospaced_font; }
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
     bool getSubFeeFromAmount() const { return m_sub_fee_from_amount; }
+    bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
     /* Explicit setters */
@@ -122,6 +124,7 @@ private:
     bool m_use_embedded_monospaced_font;
     bool fCoinControlFeatures;
     bool m_sub_fee_from_amount;
+    bool m_enable_psbt_controls;
     bool fShowIncomingStakeNotifications;
     bool show_zero_value_coinstakes;
     /* settings that were overridden by command-line */

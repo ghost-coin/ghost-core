@@ -23,9 +23,12 @@
 #include <string>
 #include <utility>
 
+
 // Particl
 #include <util/strencodings.h>
 #include <smsg/smessage.h>
+
+using node::ReadBlockFromDisk;
 
 static std::multimap<std::string, CZMQAbstractPublishNotifier*> mapPublishNotifiers;
 

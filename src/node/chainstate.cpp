@@ -9,6 +9,7 @@
 #include <insight/insight.h>
 #include <validation.h>
 
+namespace node {
 std::optional<ChainstateLoadingError> LoadChainstate(bool fReset,
                                                      ChainstateManager& chainman,
                                                      CTxMemPool* mempool,
@@ -188,3 +189,4 @@ std::optional<ChainstateLoadVerifyError> VerifyLoadedChainstate(ChainstateManage
 
     return std::nullopt;
 }
+} // namespace node

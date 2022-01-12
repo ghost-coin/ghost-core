@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     auto &chain_active = m_node.chainman->ActiveChain();
     auto &chainstate_active = m_node.chainman->ActiveChainstate();
     CHDWallet *pwallet = pwalletMain.get();
-    const auto context = util::AnyPtr<NodeContext>(&m_node);
+    const auto context = util::AnyPtr<node::NodeContext>(&m_node);
     {
         int last_height = WITH_LOCK(cs_main, return chain_active.Height());
         uint256 last_hash = WITH_LOCK(cs_main, return chain_active.Tip()->GetBlockHash());
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     BOOST_REQUIRE(pindexDelete);
 
     CBlock block;
-    BOOST_REQUIRE(ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
+    BOOST_REQUIRE(node::ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
 
     const CTxIn &txin = block.vtx[0]->vin[0];
 
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     StakeNBlocks(pwallet, 1);
 
     CBlock blockLast;
-    BOOST_REQUIRE(ReadBlockFromDisk(blockLast, chain_active.Tip(), chainparams.GetConsensus()));
+    BOOST_REQUIRE(node::ReadBlockFromDisk(blockLast, chain_active.Tip(), chainparams.GetConsensus()));
 
     BOOST_REQUIRE(blockLast.vtx.size() == 2);
     BOOST_REQUIRE(blockLast.vtx[1]->GetHash() == tx_new->GetHash());
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         BOOST_REQUIRE(pindexDelete);
 
         CBlock block;
-        BOOST_REQUIRE(ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
+        BOOST_REQUIRE(node::ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
 
         {
         LOCK(cs_main);
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_REQUIRE(pindexDelete);
 
             CBlock block;
-            BOOST_REQUIRE(ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
+            BOOST_REQUIRE(node::ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
 
             CCoinsViewCache &view = chainstate_active.CoinsTip();
             LOCK(m_node.mempool->cs);

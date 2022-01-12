@@ -408,7 +408,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
 
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         CBlock& block = *pblock;
-        if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
+        if (!node::ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
             return errorN(false, sError, __func__, "ReadBlockFromDisk failed.");
         }
         if (DISCONNECT_OK != chainman.ActiveChainstate().DisconnectBlock(block, pindex, view)) {

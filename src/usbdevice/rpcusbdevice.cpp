@@ -536,14 +536,14 @@ static RPCHelpMan devicesignrawtransaction()
     CCoinsView viewDummy;
     CCoinsViewCache view(&viewDummy);
     {
-        NodeContext& node = EnsureAnyNodeContext(request.context);
-        const CTxMemPool& mempool = EnsureMemPool(node);
+        node::NodeContext &node = EnsureAnyNodeContext(request.context);
+        const CTxMemPool &mempool = EnsureMemPool(node);
         LOCK2(cs_main, mempool.cs);
         CCoinsViewCache &viewChain = chainman.ActiveChainstate().CoinsTip();
         CCoinsViewMemPool viewMempool(&viewChain, mempool);
         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        for (const CTxIn& txin : mtx.vin) {
+        for (const CTxIn &txin : mtx.vin) {
             view.AccessCoin(txin.prevout); // Load entries from viewChain into view; can fail.
         }
 

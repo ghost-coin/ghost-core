@@ -35,7 +35,14 @@
 #include <QLatin1String>
 
 #include <QUrl>
+namespace wallet {
 extern UniValue gettransaction_inner(const JSONRPCRequest& request);
+} // namespace wallet
+
+using wallet::ISMINE_ALL;
+using wallet::ISMINE_SPENDABLE;
+using wallet::ISMINE_WATCH_ONLY;
+using wallet::isminetype;
 
 QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const interfaces::WalletTxStatus& status, bool inMempool, int numBlocks)
 {
@@ -116,7 +123,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     if (wtx.is_record) {
         strHTML += "<b>" + tr("Transaction ID") + ":</b> " + QString::fromStdString(wtx.irtx->first.ToString()) + "<br>";
 
-        auto context = util::AnyPtr<NodeContext>(&node);
+        auto context = util::AnyPtr<node::NodeContext>(&node);
         JSONRPCRequest request;
         request.context = context;
         QByteArray encodedName = QUrl::toPercentEncoding(QString::fromStdString(wallet.getWalletName()));
@@ -126,7 +133,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         UniValue params(UniValue::VARR);
         params.push_back(wtx.irtx->first.ToString());
         request.params = params;
-        UniValue rv = gettransaction_inner(request);
+        UniValue rv = wallet::gettransaction_inner(request);
 
         if (!rv["hex"].isNull()) {
             strHTML += "<b>" + tr("Transaction total size") + ":</b> " + QString::number(rv["hex"].get_str().length() / 2) + " bytes<br>";
