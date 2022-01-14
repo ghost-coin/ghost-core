@@ -461,6 +461,8 @@ BOOST_AUTO_TEST_CASE(taproot)
         std::string(json_tests::particl_taproot,
         json_tests::particl_taproot + sizeof(json_tests::particl_taproot)));
 
+    BOOST_CHECK(!IsOpSuccess(OP_ISCOINSTAKE));
+
     unsigned int flags = SCRIPT_VERIFY_P2SH;
     flags |= SCRIPT_VERIFY_DERSIG;
     flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
@@ -562,6 +564,45 @@ BOOST_AUTO_TEST_CASE(taproot)
     bool ret = CheckInputScripts(tx6, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
     BOOST_CHECK(ret);
     }
+    }
+
+    // OP_CHECKSIGADD
+    {
+        CCoinsView viewDummy;
+        CCoinsViewCache inputs(&viewDummy);
+
+        CMutableTransaction mtx7;
+        BOOST_CHECK(DecodeHexTx(mtx7, test_txns[6].get_str()));
+        CTransaction tx7(mtx7);
+        AddCoins(inputs, tx7, 1);
+
+        {
+        // Should fail as sig2 is invalid
+        TxValidationState state;
+        CMutableTransaction mtx8;
+        BOOST_CHECK(DecodeHexTx(mtx8, test_txns[7].get_str()));
+        CTransaction tx8(mtx8);
+        LOCK(cs_main);
+        PrecomputedTransactionData txdata;
+        bool ret = CheckInputScripts(tx8, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(!ret);
+        BOOST_CHECK(state.GetRejectReason() == "non-mandatory-script-verify-flag (Invalid Schnorr signature)");
+
+        // Should pass without SCRIPT_VERIFY_TAPROOT
+        bool ret_without_taproot = CheckInputScripts(tx8, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(ret_without_taproot);
+        }
+
+        {
+        TxValidationState state;
+        CMutableTransaction mtx9;
+        BOOST_CHECK(DecodeHexTx(mtx9, test_txns[8].get_str()));
+        CTransaction tx9(mtx9);
+        LOCK(cs_main);
+        PrecomputedTransactionData txdata;
+        bool ret = CheckInputScripts(tx9, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(ret);
+        }
     }
 }
 
