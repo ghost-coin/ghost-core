@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -476,9 +476,12 @@ BOOST_AUTO_TEST_CASE(coin_year_reward)
 
 BOOST_AUTO_TEST_CASE(taproot)
 {
-    CKey k1, k2;
+    BOOST_CHECK(!IsOpSuccess(OP_ISCOINSTAKE));
+
+    CKey k1, k2, k3;
     InsecureNewKey(k1, true);
     InsecureNewKey(k2, true);
+    InsecureNewKey(k3, true);
 
     unsigned int flags = SCRIPT_VERIFY_P2SH;
     flags |= SCRIPT_VERIFY_DERSIG;
@@ -669,6 +672,110 @@ BOOST_AUTO_TEST_CASE(taproot)
     bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
     BOOST_CHECK(ret);
     }
+    }
+
+    // OP_CHECKSIGADD
+    {
+        CCoinsView viewDummy;
+        CCoinsViewCache inputs(&viewDummy);
+
+        TaprootBuilder builder;
+        XOnlyPubKey xpk1{k1.GetPubKey()};
+        XOnlyPubKey xpk2{k2.GetPubKey()};
+        XOnlyPubKey xpk3{k3.GetPubKey()};
+
+        CScript scriptCheckSigAdd = CScript() << ToByteVector(xpk1) << OP_CHECKSIG << ToByteVector(xpk2) << OP_CHECKSIGADD << OP_2 << OP_NUMEQUAL;
+        builder.Add(0, scriptCheckSigAdd, TAPROOT_LEAF_TAPSCRIPT);
+        builder.Finalize(xpk3);
+
+        // Add the txn/output being spent
+        CScript tr_scriptPubKey = GetScriptForDestination(builder.GetOutput());
+        CMutableTransaction txnPrev;
+        txnPrev.nVersion = PARTICL_TXN_VERSION;
+        BOOST_CHECK(txnPrev.IsParticlVersion());
+        txnPrev.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, tr_scriptPubKey));
+        CTransaction txnPrev_c(txnPrev);
+        AddCoins(inputs, txnPrev_c, 1);
+
+        CMutableTransaction txn;
+        txn.nVersion = PARTICL_TXN_VERSION;
+        txn.SetType(TXN_COINSTAKE);
+        txn.nLockTime = 0;
+        txn.vin.push_back(CTxIn(txnPrev.GetHash(), 0));
+
+        int nBlockHeight = 1;
+        OUTPUT_PTR<CTxOutData> outData = MAKE_OUTPUT<CTxOutData>();
+        outData->vData.resize(4);
+        uint32_t tmp32 = htole32(nBlockHeight);
+        memcpy(&outData->vData[0], &tmp32, 4);
+        txn.vpout.push_back(outData);
+
+        txn.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN + txfee, tr_scriptPubKey));
+
+        PrecomputedTransactionData txdata;
+        std::vector<CTxOutSign> spent_outputs;
+        std::vector<uint8_t> vchAmount(8);
+        part::SetAmount(vchAmount, 1 * COIN);
+        spent_outputs.emplace_back(vchAmount, tr_scriptPubKey);
+        txdata.Init_vec(txn, std::move(spent_outputs), true);
+        MutableTransactionSignatureCreator sig_creator(&txn, 0, vchAmount, &txdata, SIGHASH_ALL);
+
+        FlatSigningProvider keystore;
+        keystore.keys[k1.GetPubKey().GetID()] = k1;
+        keystore.keys[k2.GetPubKey().GetID()] = k2;
+        TaprootSpendData tr_spenddata = builder.GetSpendData();
+
+        uint256 leaf_hash = ComputeTapleafHash(TAPROOT_LEAF_TAPSCRIPT, scriptCheckSigAdd);
+
+        std::vector<unsigned char> empty_vec, sig1, sig2;
+        bool sig_created = sig_creator.CreateSchnorrSig(keystore, sig1, xpk1, &leaf_hash, nullptr, SigVersion::TAPSCRIPT);
+        BOOST_CHECK(sig_created);
+        sig_created = sig_creator.CreateSchnorrSig(keystore, sig2, xpk2, &leaf_hash, nullptr, SigVersion::TAPSCRIPT);
+        BOOST_CHECK(sig_created);
+
+        CScriptWitness witness;
+        witness.stack.push_back(sig1); // invalid
+        witness.stack.push_back(sig1);
+        witness.stack.push_back(std::vector<unsigned char>(scriptCheckSigAdd.begin(), scriptCheckSigAdd.end()));
+        std::vector<std::vector<unsigned char> > vec_controlblocks;
+        for (const auto &s : tr_spenddata.scripts[{scriptCheckSigAdd, TAPROOT_LEAF_TAPSCRIPT}]) {
+            vec_controlblocks.push_back(s);
+        }
+        BOOST_CHECK(vec_controlblocks.size() == 1);
+        BOOST_CHECK(vec_controlblocks[0].size() == 33);
+        witness.stack.push_back(vec_controlblocks[0]);
+        txn.vin[0].scriptWitness = std::move(witness);
+
+        {
+        // Should fail as sig2 is invalid
+        TxValidationState state;
+        CTransaction tx_c(txn);
+        LOCK(cs_main);
+        PrecomputedTransactionData txdata;
+        bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(!ret);
+        BOOST_CHECK(state.GetRejectReason() == "non-mandatory-script-verify-flag (Invalid Schnorr signature)");
+
+        // Should pass without SCRIPT_VERIFY_TAPROOT
+        bool ret_without_taproot = CheckInputScripts(tx_c, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(ret_without_taproot);
+        }
+
+        CScriptWitness witness_fixed;
+        witness_fixed.stack.push_back(sig2);
+        witness_fixed.stack.push_back(sig1);
+        witness_fixed.stack.push_back(std::vector<unsigned char>(scriptCheckSigAdd.begin(), scriptCheckSigAdd.end()));
+        witness_fixed.stack.push_back(vec_controlblocks[0]);
+        txn.vin[0].scriptWitness = std::move(witness_fixed);
+
+        {
+        TxValidationState state;
+        CTransaction tx_c(txn);
+        LOCK(cs_main);
+        PrecomputedTransactionData txdata;
+        bool ret = CheckInputScripts(tx_c, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(ret);
+        }
     }
 }
 
