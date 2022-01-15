@@ -31,8 +31,8 @@ def setup():
         subprocess.check_call(['git', 'clone', 'https://github.com/particl/particl-detached-sigs.git'])
     if not os.path.isdir('gitian-builder'):
         subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
-    if not os.path.isdir('particl-core'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/particl/particl-core.git'])
+    if not os.path.isdir('ghost-core'):
+        subprocess.check_call(['git', 'clone', 'git@git.afach.de:samerafach/ghost-core.git'])
     os.chdir('gitian-builder')
     make_image_prog = ['bin/make-base-vm', '--suite', 'bionic', '--arch', 'amd64', '--disksize', '20000']
     if args.docker:
@@ -56,7 +56,7 @@ def build():
 
     subprocess.check_call(['wget', '-O', 'inputs/osslsigncode-2.0.tar.gz', 'https://github.com/mtrojnar/osslsigncode/archive/2.0.tar.gz'])
     subprocess.check_call(["echo '5a60e0a4b3e0b4d655317b2f12a810211c50242138322b16e7e01c6fbb89d92f inputs/osslsigncode-2.0.tar.gz' | sha256sum -c"], shell=True)
-    subprocess.check_call(['make', '-C', '../particl-core/depends', 'download', 'SOURCES_PATH=' + os.getcwd() + '/cache/common'])
+    subprocess.check_call(['make', '-C', '../ghost-core/depends', 'download', 'SOURCES_PATH=' + os.getcwd() + '/cache/common'])
 
     if args.linux:
         print('\nCompiling ' + args.version + ' Linux')
@@ -73,7 +73,7 @@ def build():
 
     if args.macos:
         print('\nCompiling ' + args.version + ' MacOS')
-        subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'particl-core='+args.commit, '--url', 'particl-core='+args.url, '../particl-core/contrib/gitian-descriptors/gitian-osx.yml'])
+        subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'particl-core='+args.commit, '--url', 'particl-core='+args.url, '../ghost-core/contrib/gitian-descriptors/gitian-osx.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-unsigned', '--destination', '../gitian.sigs/', '../particl-core/contrib/gitian-descriptors/gitian-osx.yml'])
         subprocess.check_call('mv build/out/particl-*-osx-unsigned.tar.gz inputs/', shell=True)
         subprocess.check_call('mv build/out/particl-*.tar.gz build/out/particl-*.dmg build/out/src/particl-*.tar.gz ../particl-binaries/'+args.version, shell=True)
@@ -157,7 +157,7 @@ def main():
     parser = argparse.ArgumentParser(description='Script for running full Gitian builds.')
     parser.add_argument('-c', '--commit', action='store_true', dest='commit', help='Indicate that the version argument is for a commit or branch')
     parser.add_argument('-p', '--pull', action='store_true', dest='pull', help='Indicate that the version argument is the number of a github repository pull request')
-    parser.add_argument('-u', '--url', dest='url', default='https://github.com/particl/particl-core', help='Specify the URL of the repository. Default is %(default)s')
+    parser.add_argument('-u', '--url', dest='url', default='git@git.afach.de:samerafach/ghost-core', help='Specify the URL of the repository. Default is %(default)s')
     parser.add_argument('-v', '--verify', action='store_true', dest='verify', help='Verify the Gitian build')
     parser.add_argument('-b', '--build', action='store_true', dest='build', help='Do a Gitian build')
     parser.add_argument('-s', '--sign', action='store_true', dest='sign', help='Make signed binaries for Windows and MacOS')
@@ -231,7 +231,7 @@ def main():
         raise Exception('Cannot have both commit and pull')
     args.commit = ('' if args.commit else 'v') + args.version
 
-    os.chdir('particl-core')
+    os.chdir('ghost-core')
     if args.pull:
         subprocess.check_call(['git', 'fetch', args.url, 'refs/pull/'+args.version+'/merge'])
         os.chdir('../gitian-builder/inputs/bitcoin')
@@ -239,7 +239,9 @@ def main():
         args.commit = subprocess.check_output(['git', 'show', '-s', '--format=%H', 'FETCH_HEAD'], universal_newlines=True, encoding='utf8').strip()
         args.version = 'pull-' + args.version
     print(args.commit)
-    subprocess.check_call(['git', 'fetch'])
+    print(args.url)
+    subprocess.check_call(['git', 'fetch', '--all'])
+    subprocess.check_call(['git', 'branch', '-v'])
     subprocess.check_call(['git', 'checkout', args.commit])
     os.chdir(workdir)
 
