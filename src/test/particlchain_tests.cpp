@@ -478,6 +478,13 @@ BOOST_AUTO_TEST_CASE(taproot)
 {
     BOOST_CHECK(!IsOpSuccess(OP_ISCOINSTAKE));
 
+    CScript s;
+    std::vector<std::vector<unsigned char> > solutions;
+    s << OP_1 << ToByteVector(uint256::ZERO);
+    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_V1_TAPROOT);
+    BOOST_CHECK_EQUAL(solutions.size(), 1U);
+    BOOST_CHECK(solutions[0] == ToByteVector(uint256::ZERO));
+
     CKey k1, k2, k3;
     InsecureNewKey(k1, true);
     InsecureNewKey(k2, true);

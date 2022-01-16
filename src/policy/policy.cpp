@@ -269,7 +269,15 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
                 return false;
             }
 
-            if (whichType == TxoutType::SCRIPTHASH) {
+            if (whichType == TxoutType::NONSTANDARD || whichType == TxoutType::WITNESS_UNKNOWN) {
+                // WITNESS_UNKNOWN failures are typically also caught with a policy
+                // flag in the script interpreter, but it can be helpful to catch
+                // this type of NONSTANDARD transaction earlier in transaction
+                // validation.
+                return false;
+            } else
+            if (whichType == TxoutType::SCRIPTHASH
+                || whichType == TxoutType::SCRIPTHASH256) {
                 if (tx.vin[i].scriptWitness.stack.size() < 1) {
                     return false;
                 }
@@ -285,6 +293,9 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
                         return false;
                     }
                 }
+            } else if (whichType == TxoutType::WITNESS_V1_TAPROOT) {
+                // Don't allow Taproot spends unless Taproot is active.
+                if (!taproot_active) return false;
             }
         }
         return true;
@@ -301,8 +312,7 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
             // this type of NONSTANDARD transaction earlier in transaction
             // validation.
             return false;
-        } else if (whichType == TxoutType::SCRIPTHASH
-            || whichType == TxoutType::SCRIPTHASH256) {
+        } else if (whichType == TxoutType::SCRIPTHASH) {
             std::vector<std::vector<unsigned char> > stack;
             // convert the scriptSig into a stack, so we can inspect the redeemScript
             if (!EvalScript(stack, tx.vin[i].scriptSig, SCRIPT_VERIFY_NONE, BaseSignatureChecker(), SigVersion::BASE))
