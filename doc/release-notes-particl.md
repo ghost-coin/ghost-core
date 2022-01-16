@@ -89,6 +89,8 @@ Next Major Version
 ==============
 
 - qt: Fix abandon transaction button greyed out for record txns.
+- Backported taproot validation.
+- New checkpoints.
 
 
 0.19.2.18
