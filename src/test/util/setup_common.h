@@ -19,6 +19,7 @@
 #include <util/string.h>
 #include <util/vector.h>
 
+#include <functional>
 #include <type_traits>
 #include <vector>
 
@@ -27,6 +28,9 @@
 
 /** This is connected to the logger. Can be used to redirect logs to any other log */
 extern const std::function<void(const std::string&)> G_TEST_LOG_FUN;
+
+/** Retrieve the command line arguments. */
+extern const std::function<std::vector<const char*>()> G_TEST_COMMAND_LINE_ARGUMENTS;
 
 // Enable BOOST_CHECK_EQUAL for enum class types
 namespace std {

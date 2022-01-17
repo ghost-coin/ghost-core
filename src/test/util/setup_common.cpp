@@ -45,6 +45,7 @@
 #include <insight/insight.h>
 
 #include <functional>
+#include <stdexcept>
 
 using node::BlockAssembler;
 using node::CalculateCacheSizes;
@@ -107,10 +108,15 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::ve
             "-debugexclude=leveldb",
         },
         extra_args);
+
     if (fParticlMode) {
         arguments.push_back("-debugexclude=hdwallet");
     } else {
         arguments.push_back("-btcmode");
+    }
+
+    if (G_TEST_COMMAND_LINE_ARGUMENTS) {
+        arguments = Cat(arguments, G_TEST_COMMAND_LINE_ARGUMENTS());
     }
 
     util::ThreadRename("test");
@@ -121,9 +127,10 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::ve
     {
         SetupServerArgs(*m_node.args);
         std::string error;
-        const bool success{m_node.args->ParseParameters(arguments.size(), arguments.data(), error)};
-        assert(success);
-        assert(error.empty());
+        if (!m_node.args->ParseParameters(arguments.size(), arguments.data(), error)) {
+            m_node.args->ClearArgs();
+            throw std::runtime_error{error};
+        }
     }
 
     fBalancesIndex = false; // Must reset
@@ -241,7 +248,9 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
         throw std::runtime_error(strprintf("ActivateBestChain failed. (%s)", state.ToString()));
     }
 
-    m_node.addrman = std::make_unique<AddrMan>(/*asmap=*/std::vector<bool>(), /*deterministic=*/false, /*consistency_check_ratio=*/0);
+    m_node.addrman = std::make_unique<AddrMan>(/*asmap=*/std::vector<bool>(),
+                                               /*deterministic=*/false,
+                                               m_node.args->GetIntArg("-checkaddrman", 0));
     m_node.banman = std::make_unique<BanMan>(m_args.GetDataDirBase() / "banlist", nullptr, DEFAULT_MISBEHAVING_BANTIME);
     m_node.connman = std::make_unique<CConnman>(0x1337, 0x1337, *m_node.addrman); // Deterministic randomness for tests.
     m_node.peerman = PeerManager::make(chainparams, *m_node.connman, *m_node.addrman,
