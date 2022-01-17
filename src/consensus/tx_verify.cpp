@@ -321,7 +321,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (tx.GetHash() != txSpendingBlacklisted && state.m_spends_frozen_blinded && max_ring_size > 1) {
+    if (!txSpendingBlacklisted.count(tx.GetHash()) && state.m_spends_frozen_blinded && max_ring_size > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
     }
 
