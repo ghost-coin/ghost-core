@@ -29,10 +29,10 @@
   <string>????</string>
 
   <key>CFBundleExecutable</key>
-  <string>Particl-Qt</string>
+  <string>Ghost-Qt</string>
 
   <key>CFBundleName</key>
-  <string>Particl-Qt</string>
+  <string>Ghost-Qt</string>
 
   <key>LSHasLocalizedDisplayName</key>
   <true/>

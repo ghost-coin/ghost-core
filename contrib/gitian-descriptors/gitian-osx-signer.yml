@@ -41,9 +41,9 @@ script: |
   export PATH="$HOME/.local/bin":$PATH
   cd ..
 
-  UNSIGNED_TARBALL=particl-osx-unsigned.tar.gz
-  UNSIGNED_APP=dist/Particl-Qt.app
-  SIGNED=particl-osx-signed.dmg
+  UNSIGNED_TARBALL=ghost-osx-unsigned.tar.gz
+  UNSIGNED_APP=dist/Ghost-Qt.app
+  SIGNED=ghost-osx-signed.dmg
 
   tar -xf ${UNSIGNED_TARBALL}
   OSX_VOLNAME="$(cat osx_volname)"

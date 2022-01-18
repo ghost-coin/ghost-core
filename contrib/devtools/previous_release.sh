@@ -120,9 +120,9 @@ pushd "$TARGET" || exit 1
           make
           # Move binaries, so they're in the same place as in the release download:
           mkdir bin
-          mv src/particld src/particl-cli src/particl-tx bin
+          mv src/ghostd src/ghost-cli src/ghost-tx bin
           if [ "$FUNCTIONAL_TESTS" -eq "0" ]; then
-            mv src/qt/particl-qt bin
+            mv src/qt/ghost-qt bin
           fi
         }
         popd || exit 1

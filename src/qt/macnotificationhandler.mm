@@ -13,7 +13,7 @@
 - (NSString *)__bundleIdentifier
 {
     if (self == [NSBundle mainBundle]) {
-        return @"io.particl.Particl-Qt";
+        return @"io.particl.Ghost-Qt";
     } else {
         return [self __bundleIdentifier];
     }
