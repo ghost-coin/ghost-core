@@ -417,9 +417,9 @@ public:
         // Removed to make used of the default 0xffffffff
         // consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
-        consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01 17:00:00 UTC
+        consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01, 17:00:00 UTC
         // consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
-        consensus.smsg_fee_rate_fix_time = 1643734800;  // 2022-02-01 17:00:00 UTC
+        consensus.smsg_fee_rate_fix_time = 1643734800;  // 2022-02-01, 17:00:00 UTC
         consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
 
         consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry
