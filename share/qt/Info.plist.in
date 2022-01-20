@@ -11,7 +11,7 @@
   </array>
 
   <key>CFBundleIconFile</key>
-  <string>particl.icns</string>
+  <string>ghost.icns</string>
 
   <key>CFBundlePackageType</key>
   <string>APPL</string>
