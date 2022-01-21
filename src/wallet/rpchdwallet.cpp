@@ -7083,7 +7083,13 @@ static RPCHelpMan walletsettings()
                     "setting_value"},
                 },
                 RPCResult{
-                    RPCResult::Type::ANY, "", ""
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::OBJ, "setting_name", "",
+                        {
+                            {RPCResult::Type::STR, "time", /*optional=*/true, "Timestamp from when setting was last changed."},
+                        }
+                    }}
                 },
                 RPCExamples{
             "Set coldstaking changeaddress extended public key:\n"
