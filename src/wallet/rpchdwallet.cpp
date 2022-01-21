@@ -7189,7 +7189,15 @@ static UniValue walletsettings(const JSONRPCRequest &request)
                         },
                     },
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::OBJ, "setting_name", "",
+                        {
+                            {RPCResult::Type::STR, "time", /*optional=*/true, "Timestamp from when setting was last changed."},
+                        }
+                    }}
+                },
                 RPCExamples{
             "Set coldstaking changeaddress extended public key:\n"
             + HelpExampleCli("walletsettings", "changeaddress \"{\\\"coldstakingaddress\\\":\\\"extpubkey\\\"}\"") + "\n"
