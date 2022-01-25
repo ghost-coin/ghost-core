@@ -1556,7 +1556,7 @@ static bool HandleMissingData(MissingDataBehavior mdb)
 }
 
 template<typename T>
-bool SignatureHashSchnorr(uint256& hash_out, const ScriptExecutionData& execdata, const T& tx_to, uint32_t in_pos, uint8_t hash_type, SigVersion sigversion, const PrecomputedTransactionData& cache, MissingDataBehavior mdb)
+bool SignatureHashSchnorr(uint256& hash_out, ScriptExecutionData& execdata, const T& tx_to, uint32_t in_pos, uint8_t hash_type, SigVersion sigversion, const PrecomputedTransactionData& cache, MissingDataBehavior mdb)
 {
     uint8_t ext_flag, key_version;
     switch (sigversion) {
@@ -1624,13 +1624,16 @@ bool SignatureHashSchnorr(uint256& hash_out, const ScriptExecutionData& execdata
     // Data about the output (if only one).
     if (output_type == SIGHASH_SINGLE) {
         if (in_pos >= tx_to.GetNumVOuts()) return false;
-        CHashWriter sha_single_output(SER_GETHASH, 0);
-        if (tx_to.IsParticlVersion()) {
-            sha_single_output << *(tx_to.vpout[in_pos].get());
-        } else {
-            sha_single_output << tx_to.vout[in_pos];
+        if (!execdata.m_output_hash) {
+            CHashWriter sha_single_output(SER_GETHASH, 0);
+            if (tx_to.IsParticlVersion()) {
+                sha_single_output << *(tx_to.vpout[in_pos].get());
+            } else {
+                sha_single_output << tx_to.vout[in_pos];
+            }
+            execdata.m_output_hash = sha_single_output.GetSHA256();
         }
-        ss << sha_single_output.GetSHA256();
+        ss << execdata.m_output_hash.value();
     }
 
     // Additional data for BIP 342 signatures
@@ -1761,7 +1764,7 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
 }
 
 template <class T>
-bool GenericTransactionSignatureChecker<T>::CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey_in, SigVersion sigversion, const ScriptExecutionData& execdata, ScriptError* serror) const
+bool GenericTransactionSignatureChecker<T>::CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey_in, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror) const
 {
     assert(sigversion == SigVersion::TAPROOT || sigversion == SigVersion::TAPSCRIPT);
     // Schnorr signatures have 32-byte public keys. The caller is responsible for enforcing this.
