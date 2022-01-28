@@ -1334,7 +1334,7 @@ static RPCHelpMan listcoldstakeunspent()
     it->Seek(std::make_pair(DB_TXINDEX_CSLINK, seek_key));
 
     int min_kernel_depth = Params().GetStakeMinConfirmations();
-    std::pair<char, ColdStakeIndexLinkKey> key;
+    std::pair<uint8_t, ColdStakeIndexLinkKey> key;
     while (it->Valid() && it->StartsWith(DB_TXINDEX_CSLINK) && it->GetKey(key)) {
         ColdStakeIndexLinkKey &lk = key.second;
 

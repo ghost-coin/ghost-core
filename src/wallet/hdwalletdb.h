@@ -306,11 +306,11 @@ public:
         // Convert to streams
         ssKey.SetType(SER_DISK);
         ssKey.clear();
-        ssKey.write((char*)datKey.get_data(), datKey.get_size());
+        ssKey.write(AsBytes(Span{(char*)datKey.get_data(), datKey.get_size()}));
 
         ssValue.SetType(SER_DISK);
         ssValue.clear();
-        ssValue.write((char*)datValue.get_data(), datValue.get_size());
+        ssValue.write(AsBytes(Span{(char*)datValue.get_data(), datValue.get_size()}));
         return 0;
     }
 
@@ -335,7 +335,7 @@ public:
         // Convert to streams
         ssKey.SetType(SER_DISK);
         ssKey.clear();
-        ssKey.write((char*)datKey.get_data(), datKey.get_size());
+        ssKey.write(AsBytes(Span{(char*)datKey.get_data(), datKey.get_size()}));
         return 0;
     }
 

@@ -272,8 +272,7 @@ struct RPCResult {
           m_cond{std::move(cond)}
     {
         CHECK_NONFATAL(!m_cond.empty());
-        const bool inner_needed{type == Type::ARR || type == Type::ARR_FIXED || type == Type::OBJ || type == Type::OBJ_DYN};
-        CHECK_NONFATAL(inner_needed != inner.empty());
+        CheckInnerDoc();
     }
 
     RPCResult(
@@ -297,8 +296,7 @@ struct RPCResult {
           m_description{std::move(description)},
           m_cond{}
     {
-        const bool inner_needed{type == Type::ARR || type == Type::ARR_FIXED || type == Type::OBJ || type == Type::OBJ_DYN};
-        CHECK_NONFATAL(inner_needed != inner.empty());
+        CheckInnerDoc();
     }
 
     RPCResult(
@@ -316,6 +314,9 @@ struct RPCResult {
     std::string ToDescriptionString() const;
     /** Check whether the result JSON type matches. */
     bool MatchesType(const UniValue& result) const;
+
+private:
+    void CheckInnerDoc() const;
 };
 
 struct RPCResults {

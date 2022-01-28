@@ -337,7 +337,7 @@ bool CBlockTreeDB::ReadAddressUnspentIndex(uint256 addressHash, int type,
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) return false;
-        std::pair<char, CAddressUnspentKey> key;
+        std::pair<uint8_t, CAddressUnspentKey> key;
         if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX && key.second.hashBytes == addressHash) {
             CAddressUnspentValue nValue;
             if (pcursor->GetValue(nValue)) {
@@ -381,7 +381,7 @@ bool CBlockTreeDB::ReadAddressIndex(uint256 addressHash, int type,
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) return false;
-        std::pair<char, CAddressIndexKey> key;
+        std::pair<uint8_t, CAddressIndexKey> key;
         if (pcursor->GetKey(key) && key.first == DB_ADDRESSINDEX && key.second.hashBytes == addressHash) {
             if (end > 0 && key.second.blockHeight > end) {
                 break;
@@ -416,7 +416,7 @@ bool CBlockTreeDB::ReadTimestampIndex(const unsigned int &high, const unsigned i
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) return false;
-        std::pair<char, CTimestampIndexKey> key;
+        std::pair<uint8_t, CTimestampIndexKey> key;
         if (pcursor->GetKey(key) && key.first == DB_TIMESTAMPINDEX && key.second.timestamp < high) {
             hashes.push_back(std::make_pair(key.second.blockHash, key.second.timestamp));
             pcursor->Next();
@@ -483,21 +483,24 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
             CDiskBlockIndex diskindex;
             if (pcursor->GetValue(diskindex)) {
                 // Construct block index object
-                CBlockIndex* pindexNew  = insertBlockIndex(diskindex.GetBlockHash());
-                pindexNew->pprev                    = insertBlockIndex(diskindex.hashPrev);
-                pindexNew->nHeight                  = diskindex.nHeight;
-                pindexNew->nFile                    = diskindex.nFile;
-                pindexNew->nDataPos                 = diskindex.nDataPos;
-                pindexNew->nUndoPos                 = diskindex.nUndoPos;
-                pindexNew->nVersion                 = diskindex.nVersion;
-                pindexNew->hashMerkleRoot           = diskindex.hashMerkleRoot;
-                pindexNew->hashWitnessMerkleRoot    = diskindex.hashWitnessMerkleRoot;
-                pindexNew->nTime                    = diskindex.nTime;
-                pindexNew->nBits                    = diskindex.nBits;
-                pindexNew->nNonce                   = diskindex.nNonce;
-                pindexNew->nStatus                  = diskindex.nStatus;
-                pindexNew->nTx                      = diskindex.nTx;
+                CBlockIndex* pindexNew = insertBlockIndex(diskindex.GetBlockHash());
+                pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);
+                pindexNew->nHeight        = diskindex.nHeight;
+                pindexNew->nVersion       = diskindex.nVersion;
+                pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
+                pindexNew->nTime          = diskindex.nTime;
+                pindexNew->nBits          = diskindex.nBits;
+                pindexNew->nNonce         = diskindex.nNonce;
+                pindexNew->nTx            = diskindex.nTx;
+                {
+                    LOCK(::cs_main);
+                    pindexNew->nFile = diskindex.nFile;
+                    pindexNew->nDataPos = diskindex.nDataPos;
+                    pindexNew->nUndoPos = diskindex.nUndoPos;
+                    pindexNew->nStatus = diskindex.nStatus;
+                }
 
+                pindexNew->hashWitnessMerkleRoot    = diskindex.hashWitnessMerkleRoot;
                 pindexNew->nFlags                   = diskindex.nFlags & (uint32_t)~BLOCK_DELAYED;
                 pindexNew->bnStakeModifier          = diskindex.bnStakeModifier;
                 pindexNew->prevoutStake             = diskindex.prevoutStake;
@@ -505,7 +508,6 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
                 pindexNew->nMoneySupply             = diskindex.nMoneySupply;
                 pindexNew->nAnonOutputs             = diskindex.nAnonOutputs;
-
 
                 if (pindexNew->nHeight == 0
                     && pindexNew->GetBlockHash() != Params().GetConsensus().hashGenesisBlock)
@@ -517,7 +519,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                         pindexNew->nBits, Params().GetConsensus(), 0, Params().GetLastImportHeight()))
                         return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
                 } else
-                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, Params().GetConsensus())) {
+                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams)) {
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
                 }
 
@@ -557,48 +559,55 @@ size_t CBlockTreeDB::CountBlockIndex()
 
 bool CBlockTreeDB::ReadRCTOutput(int64_t i, CAnonOutput &ao)
 {
-    return Read(std::make_pair(DB_RCTOUTPUT, i), ao);
+    std::pair<uint8_t, int64_t> key = std::make_pair(DB_RCTOUTPUT, i);
+    return Read(key, ao);
 };
 
 bool CBlockTreeDB::WriteRCTOutput(int64_t i, const CAnonOutput &ao)
 {
+    std::pair<uint8_t, int64_t> key = std::make_pair(DB_RCTOUTPUT, i);
     CDBBatch batch(*this);
-    batch.Write(std::make_pair(DB_RCTOUTPUT, i), ao);
+    batch.Write(key, ao);
     return WriteBatch(batch);
 };
 
 bool CBlockTreeDB::EraseRCTOutput(int64_t i)
 {
+    std::pair<uint8_t, int64_t> key = std::make_pair(DB_RCTOUTPUT, i);
     CDBBatch batch(*this);
-    batch.Erase(std::make_pair(DB_RCTOUTPUT, i));
+    batch.Erase(key);
     return WriteBatch(batch);
 };
 
 
 bool CBlockTreeDB::ReadRCTOutputLink(const CCmpPubKey &pk, int64_t &i)
 {
-    return Read(std::make_pair(DB_RCTOUTPUT_LINK, pk), i);
+    std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTOUTPUT_LINK, pk);
+    return Read(key, i);
 };
 
 bool CBlockTreeDB::WriteRCTOutputLink(const CCmpPubKey &pk, int64_t i)
 {
+    std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTOUTPUT_LINK, pk);
     CDBBatch batch(*this);
-    batch.Write(std::make_pair(DB_RCTOUTPUT_LINK, pk), i);
+    batch.Write(key, i);
     return WriteBatch(batch);
 };
 
 bool CBlockTreeDB::EraseRCTOutputLink(const CCmpPubKey &pk)
 {
+    std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTOUTPUT_LINK, pk);
     CDBBatch batch(*this);
-    batch.Erase(std::make_pair(DB_RCTOUTPUT_LINK, pk));
+    batch.Erase(key);
     return WriteBatch(batch);
 };
 
 bool CBlockTreeDB::ReadRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &data)
 {
+    std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTKEYIMAGE, ki);
     // Versions before 0.19.2.15 store only the txid
     CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-    if (!ReadStream(std::make_pair(DB_RCTKEYIMAGE, ki), ssValue)) {
+    if (!ReadStream(key, ssValue)) {
         return false;
     }
     try {
@@ -616,21 +625,24 @@ bool CBlockTreeDB::ReadRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &data
 
 bool CBlockTreeDB::EraseRCTKeyImage(const CCmpPubKey &ki)
 {
+    std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTKEYIMAGE, ki);
     CDBBatch batch(*this);
-    batch.Erase(std::make_pair(DB_RCTKEYIMAGE, ki));
+    batch.Erase(key);
     return WriteBatch(batch);
 };
 
 bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
 {
+    std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTKEYIMAGE, CCmpPubKey());
+
     CDBBatch batch(*this);
     size_t total = 0, removing = 0;
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
-    pcursor->Seek(std::make_pair(DB_RCTKEYIMAGE, CCmpPubKey()));
+    pcursor->Seek(key);
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) return false;
-        std::pair<char, CCmpPubKey> key;
+        std::pair<uint8_t, CCmpPubKey> key;
         if (pcursor->GetKey(key) && key.first == DB_RCTKEYIMAGE) {
             CAnonKeyImageInfo ki_data;
             total++;
@@ -638,7 +650,8 @@ bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
                 if (pcursor->GetValue(ki_data)) {
                     if (height < ki_data.height) {
                         removing++;
-                        batch.Erase(std::make_pair(DB_RCTKEYIMAGE, key.second));
+                        std::pair<uint8_t, CCmpPubKey> erase_key = std::make_pair(DB_RCTKEYIMAGE, key.second);
+                        batch.Erase(erase_key);
                     }
                 } else {
                     return error("%s: failed to read value", __func__);
@@ -659,13 +672,15 @@ bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
 
 bool CBlockTreeDB::ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin)
 {
-    return Read(std::make_pair(DB_SPENTCACHE, outpoint), coin);
+    std::pair<uint8_t, COutPoint> key = std::make_pair(DB_SPENTCACHE, outpoint);
+    return Read(key, coin);
 };
 
 bool CBlockTreeDB::EraseSpentCache(const COutPoint &outpoint)
 {
+    std::pair<uint8_t, COutPoint> key = std::make_pair(DB_SPENTCACHE, outpoint);
     CDBBatch batch(*this);
-    batch.Erase(std::make_pair(DB_SPENTCACHE, outpoint));
+    batch.Erase(key);
     return WriteBatch(batch);
 };
 

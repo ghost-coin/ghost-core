@@ -25,9 +25,9 @@ public:
     {
         READWRITE(obj.pubkey);
         if (ser_action.ForRead()) {
-            s.read((char*)&obj.commitment.data[0], 33);
+            s.read(AsWritableBytes(Span{(char*)&obj.commitment.data[0], 33}));
         } else {
-            s.write((char*)&obj.commitment.data[0], 33);
+            s.write(AsBytes(Span{(char*)&obj.commitment.data[0], 33}));
         }
 
         READWRITE(obj.outpoint);

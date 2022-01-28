@@ -110,20 +110,20 @@ struct CExtPubKey {
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)&nDepth, 1);
-        s.write((char*)vchFingerprint, 4);
+        s.write(AsBytes(Span{(char*)&nDepth, 1}));
+        s.write(AsBytes(Span{(char*)vchFingerprint, 4}));
         ser_writedata32(s, nChild);
-        s.write((char*)chaincode, 32);
+        s.write(AsBytes(Span{(char*)chaincode, 32}));
 
         pubkey.Serialize(s);
     }
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)&nDepth, 1);
-        s.read((char*)vchFingerprint, 4);
+        s.read(AsWritableBytes(Span{(char*)&nDepth, 1}));
+        s.read(AsWritableBytes(Span{(char*)vchFingerprint, 4}));
         nChild = ser_readdata32(s);
-        s.read((char*)chaincode, 32);
+        s.read(AsWritableBytes(Span{(char*)chaincode, 32}));
 
         pubkey.Unserialize(s);
     }
@@ -159,29 +159,29 @@ struct CExtKey {
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)&nDepth, 1);
-        s.write((char*)vchFingerprint, 4);
+        s.write(AsBytes(Span{(char*)&nDepth, 1}));
+        s.write(AsBytes(Span{(char*)vchFingerprint, 4}));
         ser_writedata32(s, nChild);
-        s.write((char*)chaincode, 32);
+        s.write(AsBytes(Span{(char*)chaincode, 32}));
 
         char fValid = key.IsValid();
-        s.write((char*)&fValid, 1);
+        s.write(AsBytes(Span{(char*)&fValid, 1}));
         if (fValid) {
-            s.write((char*)key.begin(), 32);
+            s.write(AsBytes(Span{(char*)key.begin(), 32}));
         }
     }
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)&nDepth, 1);
-        s.read((char*)vchFingerprint, 4);
+        s.read(AsWritableBytes(Span{(char*)&nDepth, 1}));
+        s.read(AsWritableBytes(Span{(char*)vchFingerprint, 4}));
         nChild = ser_readdata32(s);
-        s.read((char*)chaincode, 32);
+        s.read(AsWritableBytes(Span{(char*)chaincode, 32}));
 
         char tmp[33];
-        s.read((char*)tmp, 1); // key.IsValid()
+        s.read(AsWritableBytes(Span{(char*)tmp, 1})); // key.IsValid()
         if (tmp[0]) {
-            s.read((char*)tmp+1, 32);
+            s.read(AsWritableBytes(Span{(char*)tmp+1, 32}));
             key.Set((uint8_t*)tmp+1, 1);
         }
     }
@@ -268,15 +268,15 @@ public:
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)&nDepth, 1);
-        s.write((char*)vchFingerprint, 4);
+        s.write(AsBytes(Span{(char*)&nDepth, 1}));
+        s.write(AsBytes(Span{(char*)vchFingerprint, 4}));
         ser_writedata32(s, nChild);
-        s.write((char*)chaincode, 32);
+        s.write(AsBytes(Span{(char*)chaincode, 32}));
 
         char fValid = key.IsValid();
-        s.write((char*)&fValid, 1);
+        s.write(AsBytes(Span{(char*)&fValid, 1}));
         if (fValid) {
-            s.write((char*)key.begin(), 32);
+            s.write(AsBytes(Span{(char*)key.begin(), 32}));
         }
 
         pubkey.Serialize(s);
@@ -284,15 +284,15 @@ public:
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)&nDepth, 1);
-        s.read((char*)vchFingerprint, 4);
+        s.read(AsWritableBytes(Span{(char*)&nDepth, 1}));
+        s.read(AsWritableBytes(Span{(char*)vchFingerprint, 4}));
         nChild = ser_readdata32(s);
-        s.read((char*)chaincode, 32);
+        s.read(AsWritableBytes(Span{(char*)chaincode, 32}));
 
         char tmp[33];
-        s.read((char*)tmp, 1); // key.IsValid()
+        s.read(AsWritableBytes(Span{(char*)tmp, 1})); // key.IsValid()
         if (tmp[0]) {
-            s.read((char*)tmp+1, 32);
+            s.read(AsWritableBytes(Span{(char*)tmp+1, 32}));
             key.Set((uint8_t*)tmp+1, 1);
         } else {
             key.Clear();
@@ -509,7 +509,7 @@ public:
     void Serialize(Stream &s) const
     {
         s << idStealthKey;
-        s.write((char*)sShared.begin(), EC_SECRET_SIZE);
+        s.write(AsBytes(Span{(char*)sShared.begin(), EC_SECRET_SIZE}));
         std::string obsolete_label;
         s << obsolete_label;
     }
@@ -517,7 +517,7 @@ public:
     void Unserialize(Stream &s)
     {
         s >> idStealthKey;
-        s.read((char*)sShared.begin(), EC_SECRET_SIZE);
+        s.read(AsWritableBytes(Span{(char*)sShared.begin(), EC_SECRET_SIZE}));
         sShared.SetFlags(true, true);
         std::string obsolete_label;
         s >> obsolete_label;

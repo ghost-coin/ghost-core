@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     tainted_filter.insert(txid_ct_anon_large);
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
     stream << tainted_filter;
-    LoadCTTaintedFilter(stream.data(), stream.size());
+    LoadCTTaintedFilter(UCharCast(stream.data()), stream.size());
     BOOST_REQUIRE(IsFrozenBlindOutput(txid_ct_anon_small));
     BOOST_REQUIRE(IsFrozenBlindOutput(txid_ct_anon_large));
     BOOST_REQUIRE(!IsFrozenBlindOutput(txid_ct_plain_small));

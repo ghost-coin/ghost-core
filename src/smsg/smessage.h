@@ -294,14 +294,14 @@ public:
     void Serialize(Stream &s) const
     {
         s << timestamp;
-        s.write((char*)&sample[0], 8);
+        s.write(AsBytes(Span{(char*)&sample[0], 8}));
         s << timepurged;
     };
     template <typename Stream>
     void Unserialize(Stream& s)
     {
         s >> timestamp;
-        s.read((char*)&sample[0], 8);
+        s.read(AsWritableBytes(Span{(char*)&sample[0], 8}));
         s >> timepurged;
     };
 

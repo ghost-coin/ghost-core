@@ -41,7 +41,7 @@ CDataStream TxOutSer(const COutPoint& outpoint, const Coin& coin) {
             ss << coin.out.nValue;
             break;
         case OUTPUT_CT:
-            ss.write((char*)coin.commitment.data, 33);
+            ss.write(AsBytes(Span{(char*)coin.commitment.data, 33}));
             break;
         default:
             break;
@@ -78,7 +78,7 @@ static void ApplyHash(CHashWriter& ss, const uint256& hash, const std::map<uint3
                 ss << it->second.out.nValue;
                 break;
             case OUTPUT_CT:
-                ss.write((char*)it->second.commitment.data, 33);
+                ss.write(AsBytes(Span{(char*)it->second.commitment.data, 33}));
                 break;
             default:
                 break;

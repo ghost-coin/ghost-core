@@ -1314,12 +1314,12 @@ public:
         it = itBegin;
         while (scriptCode.GetOp(it, opcode)) {
             if (opcode == OP_CODESEPARATOR) {
-                s.write((char*)&itBegin[0], it-itBegin-1);
+                s.write(AsBytes(Span{&itBegin[0], size_t(it - itBegin - 1)}));
                 itBegin = it;
             }
         }
         if (itBegin != scriptCode.end())
-            s.write((char*)&itBegin[0], it-itBegin);
+            s.write(AsBytes(Span{&itBegin[0], size_t(it - itBegin)}));
     }
 
     /** Serialize an input of txTo */
@@ -1438,7 +1438,7 @@ uint256 GetSpentAmountsSHA256(const std::vector<CTxOutSign>& outputs_spent)
             continue;
         }
         //ss << txout.amount;
-        ss.write((const char*)txout.amount.data(), txout.amount.size());
+        ss.write(AsBytes(Span{(const char*)txout.amount.data(), txout.amount.size()}));
     }
     return ss.GetSHA256();
 }
@@ -1696,7 +1696,7 @@ uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn
 
         //ss << amount;
         // Match << CAmount when amount.size() == 8
-        ss.write((const char*)amount.data(), amount.size());
+        ss.write(AsBytes(Span{(const char*)amount.data(), amount.size()}));
 
         ss << txTo.vin[nIn].nSequence;
         // Outputs (none/one/all, depending on flags)

@@ -43,6 +43,7 @@
             "valueSat": 18000000,
             "scriptPubKey": {
                 "asm": "OP_DUP OP_HASH160 1fc11f39be1729bf973a7ab6a615ca4729d64574 OP_EQUALVERIFY OP_CHECKSIG",
+                "desc": "addr(PapgSNuYnXdEf3VXHaxHmTsutq8pWMJUKx)#sxlu9ucn",
                 "hex": "76a9141fc11f39be1729bf973a7ab6a615ca4729d6457488ac",
                 "address": "PapgSNuYnXdEf3VXHaxHmTsutq8pWMJUKx",
                 "type": "pubkeyhash"
@@ -55,6 +56,7 @@
             "valueSat": 400000000,
             "scriptPubKey": {
                 "asm": "OP_DUP OP_HASH160 f2d4db28cad6502226ee484ae24505c2885cb12d OP_EQUALVERIFY OP_CHECKSIG",
+                "desc": "addr(Pv4kf1FdtqSnVepTMnJgpFJe3moLwC5ZM8)#93vunet9",
                 "hex": "76a914f2d4db28cad6502226ee484ae24505c2885cb12d88ac",
                 "address": "Pv4kf1FdtqSnVepTMnJgpFJe3moLwC5ZM8",
                 "type": "pubkeyhash"

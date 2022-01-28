@@ -380,7 +380,7 @@ public:
     void Serialize(Stream &s) const
     {
         const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
-        s.write((char*)commitment.data, 33);
+        s.write(AsBytes(Span{(char*)commitment.data, 33}));
         s << vData;
         s << *(CScriptBase*)(&scriptPubKey);
 
@@ -394,7 +394,7 @@ public:
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)commitment.data, 33);
+        s.read(AsWritableBytes(Span{(char*)commitment.data, 33}));
         s >> vData;
         s >> *(CScriptBase*)(&scriptPubKey);
 
@@ -456,8 +456,8 @@ public:
     void Serialize(Stream &s) const
     {
         const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
-        s.write((char*)pk.begin(), 33);
-        s.write((char*)commitment.data, 33);
+        s.write(AsBytes(Span{(char*)pk.begin(), 33}));
+        s.write(AsBytes(Span{(char*)commitment.data, 33}));
         s << vData;
 
         if (fAllowWitness) {
@@ -470,8 +470,8 @@ public:
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)pk.ncbegin(), 33);
-        s.read((char*)commitment.data, 33);
+        s.read(AsWritableBytes(Span{(char*)pk.ncbegin(), 33}));
+        s.read(AsWritableBytes(Span{(char*)commitment.data, 33}));
         s >> vData;
         s >> vRangeproof;
     }
@@ -584,7 +584,7 @@ public:
         if (ser_action.ForRead()) {
             assert(false);
         }
-        s.write((const char*)obj.amount.data(), obj.amount.size());
+        s.write(AsBytes(Span{(const char*)obj.amount.data(), obj.amount.size()}));
         READWRITE(obj.scriptPubKey);
     }
 };

@@ -693,8 +693,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     // Send scriptData through script_sig as it's larger than particl_extra can be
                     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
                     stream << txin.scriptData.stack;
-                    std::string s_scriptData(stream.begin(), stream.end());
-                    msg_input->set_script_sig(s_scriptData);
+                    msg_input->set_script_sig(stream.str());
                 } else {
                     std::string s_scriptSig(txin.scriptSig.begin(), txin.scriptSig.end());
                     msg_input->set_script_sig(s_scriptSig);
@@ -806,16 +805,14 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     msg_output->set_particl_output_type(OUTPUT_CT);
                     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
                     stream << *((CTxOutCT*)send_output.get());
-                    std::string s(stream.begin(), stream.end());
-                    msg_output->set_script_pubkey(s);
+                    msg_output->set_script_pubkey(stream.str());
                     msg_output->set_amount(0);
                 } else
                 if (send_output->IsType(OUTPUT_RINGCT)) {
                     msg_output->set_particl_output_type(OUTPUT_RINGCT);
                     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
                     stream << *((CTxOutRingCT*)send_output.get());
-                    std::string s(stream.begin(), stream.end());
-                    msg_output->set_script_pubkey(s);
+                    msg_output->set_script_pubkey(stream.str());
                     msg_output->set_amount(0);
                 } else {
                     return errorN(1, m_error, __func__, "Unknown output type.");

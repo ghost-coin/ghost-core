@@ -11352,10 +11352,6 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
         const uint256& wtxid = item.first;
         const CWalletTx& wtx = item.second;
 
-        if (!chain().checkFinalTx(*wtx.tx)) {
-            continue;
-        }
-
         int nDepth = GetTxDepthInMainChain(wtx);
         if (nDepth < 0) {
             continue;

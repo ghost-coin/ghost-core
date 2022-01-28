@@ -96,7 +96,7 @@ public:
         if (!fParticlMode) return;
         ::Serialize(s, nType);
         if (nType == OUTPUT_CT) {
-            s.write((char*)&commitment.data[0], 33);
+            s.write(AsBytes(Span{(char*)&commitment.data[0], 33}));
         }
     }
 
@@ -110,7 +110,7 @@ public:
         if (!fParticlMode) return;
         ::Unserialize(s, nType);
         if (nType == OUTPUT_CT) {
-            s.read((char*)&commitment.data[0], 33);
+            s.read(AsWritableBytes(Span{(char*)&commitment.data[0], 33}));
         }
     }
 

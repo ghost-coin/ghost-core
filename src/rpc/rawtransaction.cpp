@@ -309,6 +309,7 @@ static RPCHelpMan getrawtransaction()
                                      {RPCResult::Type::OBJ, "scriptPubKey", "",
                                      {
                                          {RPCResult::Type::STR, "asm", "the asm"},
+                                         {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
                                          {RPCResult::Type::STR, "hex", "the hex"},
                                          {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
                                          {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
@@ -375,7 +376,8 @@ static RPCHelpMan getrawtransaction()
     if (!tx) {
         std::string errmsg;
         if (blockindex) {
-            if (!(blockindex->nStatus & BLOCK_HAVE_DATA)) {
+            const bool block_has_data = WITH_LOCK(::cs_main, return blockindex->nStatus & BLOCK_HAVE_DATA);
+            if (!block_has_data) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Block not available");
             }
             errmsg = "No such transaction found in the provided block";
@@ -665,6 +667,7 @@ static RPCHelpMan decoderawtransaction()
                                 {RPCResult::Type::OBJ, "scriptPubKey", "",
                                 {
                                     {RPCResult::Type::STR, "asm", "the asm"},
+                                    {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
                                     {RPCResult::Type::STR_HEX, "hex", "the hex"},
                                     {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
                                     {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
@@ -721,6 +724,7 @@ static RPCHelpMan decodescript()
             RPCResult::Type::OBJ, "", "",
             {
                 {RPCResult::Type::STR, "asm", "Script public key"},
+                {RPCResult::Type::STR, "desc", "Inferred descriptor for the script"},
                 {RPCResult::Type::STR, "type", "The output type (e.g. " + GetAllOutputTypes() + ")"},
                 {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
                 {RPCResult::Type::STR, "p2sh", /*optional=*/true,
@@ -733,6 +737,7 @@ static RPCHelpMan decodescript()
                      {RPCResult::Type::STR, "type", "The type of the script public key (e.g. witness_v0_keyhash or witness_v0_scripthash)"},
                      {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
                      {RPCResult::Type::STR, "stakeaddress", /*optional=*/true, "The Particl stake address (only if a well-defined stakeaddress exists)"},
+                     {RPCResult::Type::STR, "desc", "Inferred descriptor for the script"},
                      {RPCResult::Type::STR, "p2sh-segwit", "address of the P2SH script wrapping this witness redeem script"},
                  }},
             },

@@ -33,15 +33,15 @@ struct CAddressUnspentKey {
     template<typename Stream>
     void Serialize(Stream& s) const {
         ser_writedata8(s, type);
-        hashBytes.Serialize(s);
-        txhash.Serialize(s);
+        s << hashBytes;
+        s << txhash;
         ser_writedata32(s, index);
     }
     template<typename Stream>
     void Unserialize(Stream& s) {
         type = ser_readdata8(s);
-        hashBytes.Unserialize(s);
-        txhash.Unserialize(s);
+        s >> hashBytes;
+        s >> txhash;
         index = ser_readdata32(s);
     }
 

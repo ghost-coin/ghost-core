@@ -93,7 +93,7 @@ public:
         bool fHaveScanSecret = scan_secret.IsValid();
         s << fHaveScanSecret;
         if (fHaveScanSecret) {
-            s.write((char*)scan_secret.begin(), EC_SECRET_SIZE);
+            s.write(AsBytes(Span{(char*)scan_secret.begin(), EC_SECRET_SIZE}));
         }
     }
     template <typename Stream>
@@ -113,7 +113,7 @@ public:
         s >> fHaveScanSecret;
 
         if (fHaveScanSecret) {
-            s.read((char*)scan_secret.begin(), EC_SECRET_SIZE);
+            s.read(AsWritableBytes(Span{(char*)scan_secret.begin(), EC_SECRET_SIZE}));
             scan_secret.SetFlags(true, true);
 
             // Only derive spend_secret_id if also have the scan secret.

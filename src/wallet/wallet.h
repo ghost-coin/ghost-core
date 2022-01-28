@@ -1021,12 +1021,15 @@ bool RemoveWalletSetting(interfaces::Chain& chain, const std::string& wallet_nam
 
 bool DummySignInput(const SigningProvider& provider, CTxIn &tx_in, const CTxOut &txout, bool use_max_sig);
 
+bool FillInputToWeight(CTxIn& txin, int64_t target_weight);
+
 /**
  * Refresh mempool status so the wallet is in an internally consistent state and
  * immediately knows the transaction's status: Whether it can be considered
  * trusted and is eligible to be abandoned ...
  */
 void RefreshMempoolStatus(CWalletTx& tx, interfaces::Chain& chain);
+
 } // namespace wallet
 
 #endif // BITCOIN_WALLET_WALLET_H

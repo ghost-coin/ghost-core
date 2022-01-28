@@ -6,7 +6,9 @@ $(package)_sha256_hash=c593001a89f5a85dd2ddf564805deb860e02471171b3f204944857336
 $(package)_patches=remove_libstd_link.patch netbsd_kevent_void.patch
 
 define $(package)_set_vars
-  $(package)_config_opts=--without-docs --disable-shared --enable-curve --enable-curve-keygen --disable-perf
+  $(package)_config_opts = --without-docs --disable-shared --disable-valgrind
+  $(package)_config_opts += --disable-perf --disable-libbsd
+  $(package)_config_opts += --enable-curve --enable-curve-keygen
   $(package)_config_opts += --without-libsodium --without-libgssapi_krb5 --without-pgm --without-norm --without-vmci
   $(package)_config_opts += --disable-libunwind --disable-radix-tree --without-gcov --disable-dependency-tracking
   $(package)_config_opts += --disable-Werror --disable-drafts --enable-option-checking
@@ -18,8 +20,8 @@ endef
 define $(package)_preprocess_cmds
   patch -p1 < $($(package)_patch_dir)/remove_libstd_link.patch && \
   patch -p1 < $($(package)_patch_dir)/netbsd_kevent_void.patch && \
-  cp -f $(BASEDIR)/config.guess $(BASEDIR)/config.sub config
-  sed -i 's/getrandom(buf/breakgetrandom(buf/g' acinclude.m4 && \
+  cp -f $(BASEDIR)/config.guess $(BASEDIR)/config.sub config && \
+  sed -i 's/getrandom(buf/breakgetrandom(buf/g' acinclude.m4
 endef
 
 define $(package)_config_cmds

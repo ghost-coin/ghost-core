@@ -440,7 +440,6 @@ bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx, std::set<uin
     if (wtx.tx->IsCoinStake() && wtx.isAbandoned()) { // Ignore failed stakes
         return false;
     }
-    if (!wallet.chain().checkFinalTx(*wtx.tx)) return false;
     int nDepth = wallet.GetTxDepthInMainChain(wtx);
     if (nDepth >= 1) return true;
     if (nDepth < 0) return false;

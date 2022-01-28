@@ -3165,7 +3165,8 @@ static void ClearSpentCache(CChainState &chainstate, CDBBatch &batch, int height
         const CTransaction &tx = *(block.vtx[i]);
         for (const auto &txin : tx.vin) {
             if (!txin.IsAnonInput()) {
-                batch.Erase(std::make_pair(DB_SPENTCACHE, txin.prevout));
+                std::pair<uint8_t, COutPoint> key = std::make_pair(DB_SPENTCACHE, txin.prevout);
+                batch.Erase(key);
             }
         }
     }
@@ -3227,16 +3228,20 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &
 
         for (const auto &it : view->keyImages) {
             CAnonKeyImageInfo data(it.second, state.m_spend_height);
-            batch.Write(std::make_pair(DB_RCTKEYIMAGE, it.first), data);
+            std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTKEYIMAGE, it.first);
+            batch.Write(key, data);
         }
         for (const auto &it : view->anonOutputs) {
-            batch.Write(std::make_pair(DB_RCTOUTPUT, it.first), it.second);
+            std::pair<uint8_t, int64_t> key = std::make_pair(DB_RCTOUTPUT, it.first);
+            batch.Write(key, it.second);
         }
         for (const auto &it : view->anonOutputLinks) {
-            batch.Write(std::make_pair(DB_RCTOUTPUT_LINK, it.first), it.second);
+            std::pair<uint8_t, CCmpPubKey> key = std::make_pair(DB_RCTOUTPUT_LINK, it.first);
+            batch.Write(key, it.second);
         }
         for (const auto &it : view->spent_cache) {
-            batch.Write(std::make_pair(DB_SPENTCACHE, it.first), it.second);
+            std::pair<uint8_t, COutPoint> key = std::make_pair(DB_SPENTCACHE, it.first);
+            batch.Write(key, it.second);
         }
         if (state.m_spend_height > (int)MIN_BLOCKS_TO_KEEP) {
             ClearSpentCache(chainstate, batch, state.m_spend_height - (MIN_BLOCKS_TO_KEEP+1));
@@ -5379,7 +5384,7 @@ void CChainState::LoadExternalBlockFile(FILE* fileIn, FlatFilePos* dbp, Chainsta
             try {
                 // locate a header
                 unsigned char buf[CMessageHeader::MESSAGE_START_SIZE];
-                blkdat.FindByte(char(m_params.MessageStart()[0]));
+                blkdat.FindByte(m_params.MessageStart()[0]);
                 nRewind = blkdat.GetPos() + 1;
                 blkdat >> buf;
                 if (memcmp(buf, m_params.MessageStart(), CMessageHeader::MESSAGE_START_SIZE)) {

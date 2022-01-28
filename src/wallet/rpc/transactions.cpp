@@ -201,8 +201,8 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, bool
             continue;
 
         if ((wtx.IsCoinBase() && (nDepth < 1 || !include_coinbase))
-            || (wallet.IsTxImmatureCoinBase(wtx) && !include_immature_coinbase)
-            || !wallet.chain().checkFinalTx(*wtx.tx)) {
+            || (wallet.IsTxImmatureCoinBase(wtx) && !include_immature_coinbase))
+        {
             continue;
         }
 

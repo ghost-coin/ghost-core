@@ -153,7 +153,6 @@ WalletTxStatus MakeWalletTxStatus(const CWallet& wallet, const CWalletTx& wtx)
     result.depth_in_main_chain = wallet.GetTxDepthInMainChain(wtx);
     result.time_received = wtx.nTimeReceived;
     result.lock_time = wtx.tx->nLockTime;
-    result.is_final = wallet.chain().checkFinalTx(*wtx.tx);
     result.is_trusted = CachedTxIsTrusted(wallet, wtx);
     result.is_abandoned = wtx.isAbandoned();
     result.is_coinbase = wtx.IsCoinBase();
@@ -169,7 +168,6 @@ WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const 
     result.depth_in_main_chain = wallet.GetDepthInMainChain(rtx);
     result.time_received = rtx.GetTxTime();
     result.lock_time = 0; // TODO
-    result.is_final = true; // TODO
     result.is_trusted = wallet.IsTrusted(hash, rtx);
     result.is_abandoned = rtx.IsAbandoned();
     result.is_coinbase = false;

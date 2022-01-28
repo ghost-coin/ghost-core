@@ -203,9 +203,9 @@ public:
     SERIALIZE_METHODS(CKey, obj)
     {
         if (!ser_action.ForRead()) {
-            s.write((char*)&obj.keydata[0], 32);
+            s.write(AsBytes(Span{(char*)&obj.keydata[0], 32}));
         } else {
-            s.read((char*)&obj.keydata[0], 32);
+            s.read(AsWritableBytes(Span{(char*)&obj.keydata[0], 32}));
         }
         READWRITE(obj.fValid);
         READWRITE(obj.fCompressed);
