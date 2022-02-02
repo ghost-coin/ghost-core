@@ -2324,7 +2324,8 @@ static RPCHelpMan smsgpurge()
 static RPCHelpMan smsggetfeerate()
 {
     return RPCHelpMan{"smsggetfeerate",
-                "\nReturn paid SMSG fee.\n",
+                "\nReturn paid SMSG fee rate.\n"
+                "The fee is set per thousand message bytes per day.\n",
                 {
                     {"height", RPCArg::Type::NUM, RPCArg::DefaultHint{"current height"}, "Chain height to get fee rate for, pass a negative number for more detailed output."},
                 },

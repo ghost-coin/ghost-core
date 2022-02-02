@@ -323,7 +323,7 @@ public:
     virtual bool GetCTFee(CAmount &nFee) const { return false; };
     virtual bool SetCTFee(CAmount &nFee) { return false; };
     virtual bool GetTreasuryFundCfwd(CAmount &nCfwd) const { return false; };
-    virtual bool GetSmsgFeeRate(CAmount &nCfwd) const { return false; };
+    virtual bool GetSmsgFeeRate(CAmount &fee_rate) const { return false; };
     virtual bool GetSmsgDifficulty(uint32_t &compact) const { return false; };
 
     std::string ToString() const;
