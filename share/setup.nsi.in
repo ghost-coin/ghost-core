@@ -54,7 +54,7 @@ Var StartMenuGroup
 
 # Installer attributes
 InstallDir $PROGRAMFILES64\Particl
-CRCCheck on
+CRCCheck force
 XPStyle on
 BrandingText " "
 ShowInstDetails show
