@@ -87,6 +87,11 @@ Next Major Version
 
 0.19.2.19
 ==============
+- Raised min protocol version to 90014
+
+
+0.19.2.19
+==============
 
 - qt: Fix abandon transaction button greyed out for record txns.
 - Backported taproot validation.
