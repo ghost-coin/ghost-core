@@ -2781,7 +2781,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-diff");
                 }
                 if (smsg_difficulty_new < 1 || smsg_difficulty_new > consensus.smsg_min_difficulty) {
-
                     LogPrintf("ERROR: %s: Smsg difficulty out of range.\n", __func__);
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-diff");
                 }
@@ -3729,6 +3728,7 @@ static void LimitValidationInterfaceQueue() LOCKS_EXCLUDED(cs_main) {
 bool CChainState::ActivateBestChain(BlockValidationState& state, std::shared_ptr<const CBlock> pblock)
 {
     AssertLockNotHeld(m_chainstate_mutex);
+    std::vector<uint256> connected_blocks;
 
     // Note that while we're often called here from ProcessNewBlock, this is
     // far from a guarantee. Things in the P2P/RPC will often end up calling
@@ -3740,6 +3740,7 @@ bool CChainState::ActivateBestChain(BlockValidationState& state, std::shared_ptr
     // because this function periodically releases cs_main so that it does not lock up other threads for too long
     // during large connects - and to allow for e.g. the callback queue to drain
     // we use m_chainstate_mutex to enforce mutual exclusion so that only one caller may execute this function at a time
+    { // CheckDelayedBlocks can call ActivateBestChain
     LOCK(m_chainstate_mutex);
 
     CBlockIndex *pindexMostWork = nullptr;
@@ -3754,7 +3755,6 @@ bool CChainState::ActivateBestChain(BlockValidationState& state, std::shared_ptr
         // probably have a DEBUG_LOCKORDER test for this in the future.
         LimitValidationInterfaceQueue();
 
-        std::vector<uint256> connected_blocks;
         {
             LOCK(cs_main);
             // Lock transaction pool for at least as long as it takes for connectTrace to be consumed
@@ -3812,10 +3812,6 @@ bool CChainState::ActivateBestChain(BlockValidationState& state, std::shared_ptr
         }
         // When we reach this point, we switched to a new tip (stored in pindexNewTip).
 
-        for (const auto &block_hash : connected_blocks) {
-            particl::CheckDelayedBlocks(m_blockman, state, m_params, block_hash);
-        }
-
         if (nStopAtHeight && pindexNewTip && pindexNewTip->nHeight >= nStopAtHeight) StartShutdown();
 
         // We check shutdown only after giving ActivateBestChainStep a chance to run once so that we
@@ -3830,6 +3826,12 @@ bool CChainState::ActivateBestChain(BlockValidationState& state, std::shared_ptr
     if (!FlushStateToDisk(state, FlushStateMode::PERIODIC)) {
         return false;
     }
+    }
+
+    for (const auto &block_hash : connected_blocks) {
+        particl::CheckDelayedBlocks(m_blockman, state, m_params, block_hash);
+    }
+
     return true;
 }
 

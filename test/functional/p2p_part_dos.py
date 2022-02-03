@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2022 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import time
 
 from test_framework.test_particl import ParticlTestFramework
-from test_framework.messages import CBlockHeader, msg_headers
+from test_framework.messages import (
+    CBlockHeader,
+    CBlock,
+    msg_headers,
+    msg_block,
+    from_hex)
+
 
 _compactblocks = __import__('p2p_compactblocks')
 TestP2PConn = _compactblocks.TestP2PConn
@@ -57,8 +63,8 @@ class DoSTest(ParticlTestFramework):
 
         check_blockindex_decay = True
 
-        dos_nodes = self.num_nodes
-        dos_nodes = 1
+        dos_nodes = 1  # or self.num_nodes
+        log_path = self.options.tmpdir + '/node0/regtest/debug.log'
 
         nodes = self.nodes
         self.connect_nodes(0, 1)
@@ -85,10 +91,10 @@ class DoSTest(ParticlTestFramework):
         ITERATIONS = 200
 
         block_count = nodes[0].getblockcount()
-        pastBlockHash = nodes[0].getblockhash(block_count-MAX_HEADERS-1)
+        pastBlockHash = nodes[0].getblockhash(block_count - MAX_HEADERS - 1)
 
         # In each iteration, send a `headers` message with the maximum number of entries
-        t = int(time.time()+15) & 0xfffffff0
+        t = int(time.time() + 15) & 0xfffffff0
         self.log.info('Initial blockindexsize: %d\n' % (nodes[0].getblockchaininfo()['blockindexsize']))
         self.log.info('Generating lots of headers with no stake\n')
         sent = 0
@@ -115,7 +121,6 @@ class DoSTest(ParticlTestFramework):
         self.log.info('Number of headers sent: %d' % (sent))
         self.log.info('blockindexsize: %d' % (nodes[0].getblockchaininfo()['blockindexsize']))
 
-        log_path = self.options.tmpdir + '/node0/regtest/debug.log'
         self.log.info('Reading log file: ' + log_path)
         found_error_line = False
         found_misbehave_line = False
@@ -196,13 +201,13 @@ class DoSTest(ParticlTestFramework):
         self.log.info('After restart blockindexsize: %d' % (nodes[0].getblockchaininfo()['blockindexsize']))
         assert(nodes[0].getblockchaininfo()['blockindexsize'] == 21)
 
-        self.log.info('sending many duplicate headers\n\n')
+        self.log.info('Sending many duplicate headers\n\n')
 
         self.nodes[0].add_p2p_connection(p2p_conns[0], wait_for_verack=False)
         for i in range(dos_nodes):
             self.nodes[i].p2ps[0].wait_for_verack()
 
-        self.log.info("Initial blockindexsize: %d\n" % (nodes[0].getblockchaininfo()['blockindexsize']))
+        self.log.info('Initial blockindexsize: %d\n' % (nodes[0].getblockchaininfo()['blockindexsize']))
 
         DUPLICATE_ITERATIONS = 3000
         target_block_hash = nodes[0].getblockhash(20)
@@ -235,6 +240,43 @@ class DoSTest(ParticlTestFramework):
                     self.log.info('Found line in log: ' + line)
                     break
         assert(found_dos_line)
+
+        self.log.info('Test that invalid coinstakes are detected in acceptblock')
+        prev_block_hash = nodes[0].getbestblockhash()
+        prev_block = nodes[0].getblock(prev_block_hash, 2)
+
+        block_hex = nodes[0].getblock(prev_block_hash, 0)
+        b = from_hex(CBlock(), block_hex)
+        b.vtx[0].vin[0].prevout.hash = int(prev_block['tx'][0]['txid'], 16)
+        b.vtx[0].vin[0].prevout.n = 1
+
+        b.hashMerkleRoot = b.calc_merkle_root()
+        b.rehash()
+        # Without resigning shound raise bad-block-signature
+        p2p_conns[0].send_message(msg_block(block=b))
+        block_modified_hex = b.serialize(with_witness=True, with_pos_sig=True).hex()
+
+        block_sig_addr = prev_block['tx'][0]['vout'][1]['scriptPubKey']['address']
+        block_resigned_hex = nodes[0].rehashblock(block_modified_hex, block_sig_addr)
+        b = from_hex(CBlock(), block_resigned_hex)
+        b.rehash()
+        p2p_conns[0].send_message(msg_block(block=b))
+
+        time.sleep(2)
+
+        self.log.info('Reading log file: ' + log_path)
+        bad_sig_line = 0
+        invalid_stake_line = 0
+        with open(log_path, 'r', encoding='utf8') as fp:
+            for line in fp:
+                if line.find('AcceptBlock FAILED (bad-block-signature') > -1:
+                    bad_sig_line += 1
+                    self.log.info('Found line in log: ' + line)
+                elif line.find('AcceptBlock FAILED (invalid-stake-depth') > -1:
+                    invalid_stake_line += 1
+                    self.log.info('Found line in log: ' + line)
+        assert(bad_sig_line == 1)
+        assert(invalid_stake_line == 1)
 
 
 if __name__ == '__main__':

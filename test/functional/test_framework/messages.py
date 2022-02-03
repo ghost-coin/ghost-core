@@ -65,6 +65,14 @@ FILTER_TYPE_BASIC = 0
 
 WITNESS_SCALE_FACTOR = 4
 
+PARTICL_BLOCK_VERSION = 0xa0
+PARTICL_TX_VERSION = 0xa0
+PARTICL_TX_ANON_MARKER = 0xffffffa0
+OUTPUT_TYPE_STANDARD = 1
+OUTPUT_TYPE_CT = 2
+OUTPUT_TYPE_RINGCT = 3
+OUTPUT_TYPE_DATA = 4
+
 
 def sha256(s):
     return hashlib.sha256(s).digest()
@@ -437,6 +445,54 @@ class CTxOut:
                self.scriptPubKey.hex())
 
 
+class CTxOutPart:
+    __slots__ = ("nVersion", "nValue", "scriptPubKey", "commitment", "data", "rangeproof")
+
+    def __init__(self, nValue=0, scriptPubKey=b""):
+        self.nVersion = OUTPUT_TYPE_STANDARD
+        self.nValue = nValue
+        self.scriptPubKey = scriptPubKey
+
+    def deserialize(self, f):
+        if self.nVersion == OUTPUT_TYPE_STANDARD:
+            self.nValue = struct.unpack("<q", f.read(8))[0]
+            self.scriptPubKey = deser_string(f)
+        elif self.nVersion == OUTPUT_TYPE_DATA:
+            self.data = deser_string(f)
+        elif self.nVersion == OUTPUT_TYPE_CT:
+            self.commitment = f.read(33)
+            self.data = deser_string(f)
+            self.scriptPubKey = deser_string(f)
+            self.rangeproof = deser_string(f)
+        else:
+            raise ValueError(f'Unknown output type {self.nVersion}')
+
+    def serialize(self, with_witness=True):
+        r = b""
+        if self.nVersion == OUTPUT_TYPE_STANDARD:
+            r += struct.pack("<q", self.nValue)
+            r += ser_string(self.scriptPubKey)
+        elif self.nVersion == OUTPUT_TYPE_DATA:
+            r += ser_string(self.data)
+        elif self.nVersion == OUTPUT_TYPE_CT:
+            assert(len(self.commitment) == 33)
+            r += self.commitment
+            r += ser_string(self.data)
+            r += ser_string(self.scriptPubKey)
+            if with_witness:
+                r += ser_string(self.rangeproof)
+            else:
+                r += ser_compact_size(0)  # rangeproof stub
+        else:
+            raise ValueError(f'Unknown output type {self.nVersion}')
+        return r
+
+    def __repr__(self):
+        return "CTxOutPart(nValue=%i.%08i scriptPubKey=%s)" \
+            % (self.nValue // COIN, self.nValue % COIN,
+               self.scriptPubKey.hex())
+
+
 class CScriptWitness:
     __slots__ = ("stack",)
 
@@ -526,7 +582,33 @@ class CTransaction:
             self.wit = copy.deepcopy(tx.wit)
 
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        self.nVersion = int(struct.unpack("<B", f.read(1))[0])
+        if self.nVersion == PARTICL_TX_VERSION:
+            self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 8
+
+            self.nLockTime = struct.unpack("<I", f.read(4))[0]
+
+            self.vin = deser_vector(f, CTxIn)
+
+            num_outputs = deser_compact_size(f)
+            self.vout.clear()
+            for i in range(num_outputs):
+                txo = CTxOutPart()
+                txo.nVersion = int(struct.unpack("<B", f.read(1))[0])
+                txo.deserialize(f)
+                self.vout.append(txo)
+
+            self.wit.vtxinwit = [CTxInWitness() for i in range(len(self.vin))]
+            self.wit.deserialize(f)
+
+            self.sha256 = None
+            self.hash = None
+            return
+
+        self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 8
+        self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 16
+        self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 24
+        # self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.vin = deser_vector(f, CTxIn)
         flags = 0
         if len(self.vin) == 0:
@@ -547,7 +629,16 @@ class CTransaction:
         self.sha256 = None
         self.hash = None
 
-    def serialize_without_witness(self):
+    def serialize_without_witness(self, include_rangeproof=False):
+        if self.nVersion & 0xff == PARTICL_TX_VERSION:
+            r = struct.pack("<H", self.nVersion)
+            r += struct.pack("<I", self.nLockTime)
+            r += ser_vector(self.vin)
+            r += ser_compact_size(len(self.vout))
+            for txo in self.vout:
+                r += bytes((txo.nVersion,))
+                r += txo.serialize(with_witness=include_rangeproof)
+            return r
         r = b""
         r += struct.pack("<i", self.nVersion)
         r += ser_vector(self.vin)
@@ -557,6 +648,12 @@ class CTransaction:
 
     # Only serialize with witness when explicitly called for
     def serialize_with_witness(self):
+        if self.nVersion & 0xff == PARTICL_TX_VERSION:
+            r = self.serialize_without_witness(include_rangeproof=True)
+            while len(self.wit.vtxinwit) < len(self.vin):
+                self.wit.vtxinwit.append(CTxInWitness())
+            r += self.wit.serialize()
+            return r
         flags = 0
         if not self.wit.is_null():
             flags |= 1
@@ -664,6 +761,7 @@ class CBlockHeader:
         self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
+        self.is_part = self.is_part or self.nVersion == PARTICL_BLOCK_VERSION
         if self.is_part:
             self.hashWitnessMerkleRoot = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
@@ -712,23 +810,31 @@ BLOCK_HEADER_SIZE = len(CBlockHeader().serialize())
 assert_equal(BLOCK_HEADER_SIZE, 80)
 
 class CBlock(CBlockHeader):
-    __slots__ = ("vtx",)
+    __slots__ = ("vtx", "blocksig")
 
     def __init__(self, header=None):
         super().__init__(header)
         self.vtx = []
+        self.blocksig = bytes()
 
     def deserialize(self, f):
         super().deserialize(f)
         self.vtx = deser_vector(f, CTransaction)
 
-    def serialize(self, with_witness=True):
+        if self.nVersion == PARTICL_BLOCK_VERSION:
+            self.blocksig = deser_string(f)
+
+    def serialize(self, with_witness=True, with_pos_sig=True):
         r = b""
         r += super().serialize()
         if with_witness:
             r += ser_vector(self.vtx, "serialize_with_witness")
         else:
             r += ser_vector(self.vtx, "serialize_without_witness")
+
+        # Block with no txns is likely being sent as a header
+        if len(self.vtx) > 0 and with_pos_sig and self.nVersion == PARTICL_BLOCK_VERSION:
+            r += ser_string(self.blocksig)
         return r
 
     # Calculate the merkle root given a vector of transaction hashes
