@@ -1089,8 +1089,7 @@ static UniValue smsgfund(const JSONRPCRequest &request)
     if (v_psmsgs.size() < 1) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Must specify one or more message ids");
     }
-    size_t max_output_size = GetAdjustedTime() >= Params().GetConsensus().smsg_fee_rate_fix_time ? MAX_DATA_OUTPUT_SIZE : MAX_DATA_OUTPUT_SIZE_OLD;
-    size_t max_messages = (max_output_size - 1) / 24;
+    size_t max_messages = (MAX_DATA_OUTPUT_SIZE - 1) / 24;
     if (v_psmsgs.size() > max_messages) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Too many messages, max %d", max_messages));
     }

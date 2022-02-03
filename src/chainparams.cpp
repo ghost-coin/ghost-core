@@ -69,10 +69,7 @@ int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64
 int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev, int64_t time) const
 {
     int64_t max_delta = (smsg_fee_prev * consensus.smsg_fee_max_delta_percent) / 1000000;
-    if (time >= consensus.smsg_fee_rate_fix_time) {
-        return std::max((int64_t)1, max_delta);
-    }
-    return max_delta;
+    return std::max((int64_t)1, max_delta);
 };
 
 bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
@@ -468,7 +465,6 @@ public:
 
         consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01 17:00:00 UTC
         consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
-        consensus.smsg_fee_rate_fix_time = 1643734800;  // 2022-02-01 17:00:00 UTC
         consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
 
         consensus.m_frozen_anon_index = 27340;
@@ -674,7 +670,6 @@ public:
         consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00
 
         consensus.clamp_tx_version_time = 1641056400;   // 2022-01-01 17:00:00 UTC
-        consensus.smsg_fee_rate_fix_time = 1641056400;  // 2022-01-01 17:00:00 UTC
         consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
 
         consensus.smsg_fee_period = 5040;
@@ -946,7 +941,6 @@ public:
         consensus.smsg_fee_max_delta_percent = 4300;
         consensus.smsg_min_difficulty = 0x1f0fffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
-        consensus.smsg_fee_rate_fix_time = 0;
         consensus.m_taproot_time = 0;
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
