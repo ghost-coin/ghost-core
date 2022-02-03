@@ -33,7 +33,6 @@ static constexpr unsigned int LOCKTIME_VERIFY_SEQUENCE = (1 << 0);
 /** Use GetMedianTimePast() instead of nTime for end point timestamp. */
 static constexpr unsigned int LOCKTIME_MEDIAN_TIME_PAST = (1 << 1);
 
-static const size_t MAX_DATA_OUTPUT_SIZE_OLD = 34 + 5 + 34; // DO_STEALTH 33, DO_STEALTH_PREFIX 4, DO_NARR_CRYPT (max 32 bytes)
 static const size_t MAX_DATA_OUTPUT_SIZE = 512;
 
 #endif // BITCOIN_CONSENSUS_CONSENSUS_H

@@ -816,16 +816,12 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 
 bool ReadTransactionFromDiskBlock(const CBlockIndex* pindex, int nIndex, CTransactionRef &txOut)
 {
-    FlatFilePos hpos;
-    {
-        LOCK(cs_main);
-        hpos = pindex->GetBlockPos();
-    }
+    const FlatFilePos block_pos{WITH_LOCK(cs_main, return pindex->GetBlockPos())};
 
     // Open history file to read
-    CAutoFile filein(OpenBlockFile(hpos, true), SER_DISK, CLIENT_VERSION);
+    CAutoFile filein(OpenBlockFile(block_pos, true), SER_DISK, CLIENT_VERSION);
     if (filein.IsNull())
-        return error("%s: OpenBlockFile failed for %s", __func__, hpos.ToString());
+        return error("%s: OpenBlockFile failed for %s", __func__, block_pos.ToString());
 
     CBlockHeader blockHeader;
     try {
@@ -834,18 +830,18 @@ bool ReadTransactionFromDiskBlock(const CBlockIndex* pindex, int nIndex, CTransa
         int nTxns = ReadCompactSize(filein);
 
         if (nTxns <= nIndex || nIndex < 0)
-            return error("%s: Block %s, txn %d not in available range %d.", __func__, pindex->GetBlockPos().ToString(), nIndex, nTxns);
+            return error("%s: Block %s, txn %d not in available range %d.", __func__, block_pos.ToString(), nIndex, nTxns);
 
         for (int k = 0; k <= nIndex; ++k)
             filein >> txOut;
     } catch (const std::exception& e)
     {
-        return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), hpos.ToString());
+        return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), block_pos.ToString());
     }
 
     if (blockHeader.GetHash() != pindex->GetBlockHash())
         return error("%s: Hash doesn't match index for %s at %s",
-                __func__, pindex->ToString(), hpos.ToString());
+                __func__, pindex->ToString(), block_pos.ToString());
     return true;
 }
 
