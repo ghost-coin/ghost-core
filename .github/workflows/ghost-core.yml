@@ -82,8 +82,3 @@ jobs:
         
       - name: Unittests
         run: make check
-
-      - name: Deploy
-        run: make deploy
-
-
