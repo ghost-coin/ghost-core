@@ -73,7 +73,7 @@ static RPCHelpMan smsgenable()
 
     UniValue result(UniValue::VOBJ);
 
-    std::shared_ptr<CWallet> pwallet;
+    std::shared_ptr<wallet::CWallet> pwallet;
     std::string sFindWallet, wallet_name = "Not set.";
 #ifdef ENABLE_WALLET
     auto vpwallets = GetWallets(*smsgModule.m_node->wallet_loader->context());
@@ -168,7 +168,7 @@ static RPCHelpMan smsgsetwallet()
 
     UniValue result(UniValue::VOBJ);
 
-    std::shared_ptr<CWallet> pwallet;
+    std::shared_ptr<wallet::CWallet> pwallet;
     std::string wallet_name = "Not set.";
 #ifndef ENABLE_WALLET
     throw JSONRPCError(RPC_MISC_ERROR, "Wallet is disabled.");

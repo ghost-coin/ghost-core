@@ -4814,7 +4814,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
         } else {
             pindex->bnStakeModifier = ComputeStakeModifierV2(pindex->pprev, pindex->prevoutStake.hash);
         }
-        pindex->nFlags &= ~BLOCK_DELAYED;
+        pindex->nFlags &= (int)~BLOCK_DELAYED;
         m_blockman.m_dirty_blockindex.insert(pindex);
     }
 
