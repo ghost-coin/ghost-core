@@ -22,6 +22,7 @@
 #include <validation.h>
 #include <timedata.h>
 #include <anon.h>
+#include <fs.h>
 #include <validationinterface.h>
 #include <node/context.h>
 #include <interfaces/wallet.h>
@@ -38,6 +39,8 @@ extern void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwalle
 #endif
 
 #include <univalue.h>
+#include <fstream>
+
 
 static void EnsureSMSGIsEnabled()
 {
@@ -2636,7 +2639,7 @@ static RPCHelpMan smsgdebug()
         bool active_only = request.params.size() > 1 ? GetBool(request.params[1]) : true;
         int64_t now = GetAdjustedTime();
 
-        fsbridge::ofstream file;
+        std::ofstream file;
         file.open(filepath);
         if (!file.is_open()) {
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Cannot open dump file");

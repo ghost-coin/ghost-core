@@ -24,16 +24,18 @@
 #include <script/particlconsensus.h>
 #endif
 
-#include <key/extkey.h>
-#include <key/stealth.h>
-
-#include <stdint.h>
+#include <cstdint>
+#include <fstream>
 #include <string>
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
 
 #include <univalue.h>
+
+// Particl
+#include <key/extkey.h>
+#include <key/stealth.h>
 
 // Uncomment if you want to output updated JSON tests.
 // #define UPDATE_JSON_TESTS
@@ -1745,7 +1747,7 @@ BOOST_AUTO_TEST_CASE(script_assets_test)
     bool exists = fs::exists(path);
     BOOST_WARN_MESSAGE(exists, "File $DIR_UNIT_TEST_DATA/script_assets_test.json not found, skipping script_assets_test");
     if (!exists) return;
-    fs::ifstream file(path);
+    std::ifstream file{path};
     BOOST_CHECK(file.is_open());
     file.seekg(0, std::ios::end);
     size_t length = file.tellg();

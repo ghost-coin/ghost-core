@@ -4814,7 +4814,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
         } else {
             pindex->bnStakeModifier = ComputeStakeModifierV2(pindex->pprev, pindex->prevoutStake.hash);
         }
-        pindex->nFlags &= (int)~BLOCK_DELAYED;
+        pindex->nFlags = pindex->nFlags & (uint32_t)~BLOCK_DELAYED;
         m_blockman.m_dirty_blockindex.insert(pindex);
     }
 
@@ -6503,7 +6503,7 @@ static void EraseDelayedBlock(BlockManager &blockman, std::list<DelayedBlock>::i
     assert(state.m_chainman);
     auto it = state.m_chainman->BlockIndex().find(p->m_pblock->GetHash());
     if (it != state.m_chainman->BlockIndex().end()) {
-        it->second->nFlags &= ~BLOCK_DELAYED;
+        it->second->nFlags = it->second->nFlags & (uint32_t)~BLOCK_DELAYED;
         blockman.m_dirty_blockindex.insert(it->second);
     }
 }
