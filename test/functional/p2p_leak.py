@@ -121,7 +121,7 @@ class P2PLeakTest(BitcoinTestFramework):
         # Pre-wtxidRelay peer that sends a version but not a verack and does not support feature negotiation
         # messages which start at nVersion == 70016
         pre_wtxidrelay_peer = self.nodes[0].add_p2p_connection(NoVerackIdlePeer(), send_version=False, wait_for_verack=False)
-        pre_wtxidrelay_peer.send_message(self.create_old_version(90013))
+        pre_wtxidrelay_peer.send_message(self.create_old_version(90014))
 
         # Wait until the peer gets the verack in response to the version. Though, don't wait for the node to receive the
         # verack, since the peer never sent one
