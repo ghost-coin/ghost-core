@@ -417,10 +417,10 @@ public:
         // Removed to make used of the default 0xffffffff
         // consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
 
-        consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01, 17:00:00 UTC
+        consensus.clamp_tx_version_time = 1646150400;   // 2022-03-01 17:00:00 UTC
         // consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
-        consensus.smsg_fee_rate_fix_time = 1643734800;  // 2022-02-01, 17:00:00 UTC
-        consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
+        consensus.smsg_fee_rate_fix_time = 1646150400;  // 2022-03-01 17:00:00 UTC
+        // consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
 
         consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry
         consensus.m_frozen_blinded_height = 884433;
@@ -650,9 +650,9 @@ public:
         consensus.smsg_difficulty_time = 0x5D19F5C0;    // 2019-07-01 12:00:00
         // consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00
 
-        consensus.clamp_tx_version_time = 1643693322;   // 2022-01-01 17:00:00 UTC
-        consensus.smsg_fee_rate_fix_time = 1643693322;  // 2022-01-01 17:00:00 UTC
-        consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
+        consensus.clamp_tx_version_time = 1646150400;   // 2022-03-01 17:00:00
+        consensus.smsg_fee_rate_fix_time = 1646150400;  // 2022-03-01 17:00:00
+        // consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
 
         consensus.smsg_fee_period = 5040;
         consensus.smsg_fee_funding_tx_per_k = 200000;
@@ -942,7 +942,7 @@ public:
         consensus.smsg_min_difficulty = 0x1f0fffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
         consensus.smsg_fee_rate_fix_time = 0;
-        consensus.m_taproot_time = 0;
+        // consensus.m_taproot_time = 0;
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
