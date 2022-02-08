@@ -25,6 +25,17 @@ bool VerifyWallets(interfaces::Chain& chain)
         boost::system::error_code error;
         // The canonical path cleans the path, preventing >1 Berkeley environment instances for the same directory
         fs::path canonical_wallet_dir = fs::canonical(wallet_dir, error);
+
+        // Ensure trailing slash is stripped as std::filesystem::canonical would do
+        std::string canonical_wallet_dir_string = canonical_wallet_dir.string();
+        if (!canonical_wallet_dir_string.empty() &&
+            canonical_wallet_dir_string != "/" &&
+            !part::endsWith(canonical_wallet_dir_string, ":\\") &&
+            (canonical_wallet_dir_string.back() == '/' || canonical_wallet_dir_string.back() == '\\')) {
+            canonical_wallet_dir_string.erase(canonical_wallet_dir_string.size() - 1);
+            canonical_wallet_dir = canonical_wallet_dir_string;
+        }
+
         if (error || !fs::exists(wallet_dir)) {
             chain.initError(strprintf(_("Specified -walletdir \"%s\" does not exist"), wallet_dir.string()));
             return false;
