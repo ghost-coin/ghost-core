@@ -17,6 +17,11 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic ignored "-Wshadow"
+#elif defined(__clang__)
+#pragma GCC diagnostic ignored "-Wshadow-field"
+#endif
 #include <usbdevice/trezor/messages-bitcoin.pb.h>
 #include <usbdevice/trezor/messages-management.pb.h>
 #include <usbdevice/trezor/messages.pb.h>
