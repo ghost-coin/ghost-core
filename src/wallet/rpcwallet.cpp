@@ -379,7 +379,7 @@ static RPCHelpMan getnewaddress()
         bool f256bit = request.params.size() > 3 ? GetBool(request.params[3]) : false;
 
         if (output_type == OutputType::P2SH_SEGWIT) {
-            //throw JSONRPCError(RPC_INVALID_PARAMETER, "Valid address_types are \"legacy\" and \"bech32\"");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "p2sh-segwit is disabled");
         }
         if (f256bit && output_type != OutputType::LEGACY) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "256bit must be used with address_type \"legacy\"");

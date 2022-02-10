@@ -340,17 +340,12 @@ class AddressIndexTest(ParticlTestFramework):
         self.log.info("Testing Bitcoin segwit addresses...")
 
         addr_sw_bech32 = nodes[2].getnewaddress('segwit script', False, False, False, 'bech32')
-        addr_sw_p2sh = nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
         nodes[0].sendtoaddress(addr_sw_bech32, 1.0)
-        nodes[0].sendtoaddress(addr_sw_p2sh, 1.0)
 
         self.sync_all()
         mempool_sw_b = nodes[1].getaddressmempool({'addresses': [addr_sw_bech32]})
         assert(len(mempool_sw_b) == 1)
         assert(mempool_sw_b[0]['address'] == addr_sw_bech32)
-        mempool_sw_p = nodes[1].getaddressmempool({'addresses': [addr_sw_p2sh]})
-        assert(len(mempool_sw_p) == 1)
-        assert(mempool_sw_p[0]['address'] == addr_sw_p2sh)
 
         inputs = [{'txid': mempool_sw_b[0]['txid'], 'vout': mempool_sw_b[0]['index']}]
         outputs = {nodes[0].getnewaddress(): 0.99}

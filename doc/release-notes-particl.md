@@ -1,6 +1,7 @@
 
 0.21.2.6
 ==============
+
 - wallet:
   - Add minimum and maximumAmount to fundrawtransactionfrom and sendtypeto
   - Add includeWatching option to sendtypeto
@@ -73,9 +74,11 @@
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
-0.19.2.19
+0.19.2.20
 ==============
+
 - Raised min protocol version to 90014
+- Disable p2sh-p2wpkh addresses.
 
 
 0.19.2.19
