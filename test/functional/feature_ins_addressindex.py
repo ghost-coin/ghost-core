@@ -343,7 +343,6 @@ class AddressIndexTest(ParticlTestFramework):
         self.log.info("Testing Bitcoin segwit addresses...")
 
         addr_sw_bech32 = nodes[2].getnewaddress('segwit script', False, False, False, 'bech32')
-        addr_sw_p2sh = nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
 
         secret_key = generate_privkey()
         internal_key = compute_xonly_pubkey(secret_key)[0]
@@ -352,7 +351,7 @@ class AddressIndexTest(ParticlTestFramework):
         scriptPubKey = tri.scriptPubKey
 
         addr_sw_tr = encode_segwit_address("rtpw", 1, scriptPubKey[2:])
-        addrs = (addr_sw_bech32, addr_sw_p2sh, addr_sw_tr)
+        addrs = (addr_sw_bech32, addr_sw_tr)
 
         for a in addrs:
             nodes[0].sendtoaddress(a, 1.0)
