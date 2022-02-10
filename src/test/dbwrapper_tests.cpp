@@ -8,7 +8,6 @@
 #include <fs.h>
 
 #include <memory>
-#include <cstdio>
 
 #include <boost/test/unit_test.hpp>
 
@@ -48,7 +47,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper_compression)
     // Perform tests both with compression and without
     for (int i = 0; i < 2; i++) {
         bool compression = (bool)i;
-        std::filesystem::path ph = std::filesystem::temp_directory_path() / std::tmpnam(nullptr);
+        std::filesystem::path ph = std::filesystem::temp_directory_path() / InsecureRand256().ToString();
         CDBWrapper dbw(ph, (1 << 20), true, false, false, compression);
         uint8_t key = 'k';
         uint256 in = GetRandHash();
@@ -62,7 +61,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper_compression)
 
 BOOST_AUTO_TEST_CASE(dbwrapper_maxopenfiles_64)
 {
-    std::filesystem::path ph = std::filesystem::temp_directory_path() / std::tmpnam(nullptr);
+    std::filesystem::path ph = std::filesystem::temp_directory_path() / InsecureRand256().ToString();
     CDBWrapper dbw(ph, (1 << 20), true, false, false, false, 64);
     uint8_t key = 'k';
     uint256 in = GetRandHash();
@@ -75,7 +74,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper_maxopenfiles_64)
 
 BOOST_AUTO_TEST_CASE(dbwrapper_maxopenfiles_1000)
 {
-    std::filesystem::path ph = std::filesystem::temp_directory_path() / std::tmpnam(nullptr);
+    std::filesystem::path ph = std::filesystem::temp_directory_path() / InsecureRand256().ToString();
     CDBWrapper dbw(ph, (1 << 20), true, false, false, false, 1000);
     uint8_t key = 'k';
     uint256 in = GetRandHash();
