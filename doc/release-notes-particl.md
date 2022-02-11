@@ -90,6 +90,7 @@ Next Major Version
 
 - Raised min protocol version to 90014
 - Disable p2sh-p2wpkh addresses.
+- qt: 'Import Chain' defaults to disabled.
 
 
 0.19.2.19
