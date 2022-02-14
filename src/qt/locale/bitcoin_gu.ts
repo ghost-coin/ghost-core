@@ -166,7 +166,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>એન્ક્રિપ્શન ખાતરી કરો </translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR PARTICL&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR GHOST&lt;/b&gt;!</source>
         <translation>ચેતવણી: જો તમે તમારું વletલેટ એન્ક્રિપ્ટ કરો છો અને તમારો પાસફ્રેઝ ખોવાઈ જાય છે, તો તમે તમારા બધા બિટકોઇન્સ ગુમાવશો!</translation>
     </message>
     <message>

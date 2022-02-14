@@ -170,7 +170,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>אישור הצפנת הארנק</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR PARTICL&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR GHOST&lt;/b&gt;!</source>
         <translation>אזהרה: הצפנת הארנק שלך ושיכחת הסיסמה &lt;b&gt;תגרום לאיבוד כל הביטקוינים שלך&lt;/b&gt;!</translation>
     </message>
     <message>
