@@ -52,9 +52,13 @@ if ENABLE_AVX2
 LIBPARTICL_CRYPTO_AVX2 = crypto/libparticl_crypto_avx2.a
 LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_AVX2)
 endif
-if ENABLE_SHANI
-LIBPARTICL_CRYPTO_SHANI = crypto/libparticl_crypto_shani.a
-LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_SHANI)
+if ENABLE_X86_SHANI
+LIBPARTICL_CRYPTO_X86_SHANI = crypto/libparticl_crypto_x86_shani.a
+LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_X86_SHANI)
+endif
+if ENABLE_ARM_SHANI
+LIBPARTICL_CRYPTO_ARM_SHANI = crypto/libparticl_crypto_arm_shani.a
+LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_ARM_SHANI)
 endif
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
@@ -592,11 +596,17 @@ crypto_libparticl_crypto_avx2_a_CXXFLAGS += $(AVX2_CXXFLAGS)
 crypto_libparticl_crypto_avx2_a_CPPFLAGS += -DENABLE_AVX2
 crypto_libparticl_crypto_avx2_a_SOURCES = crypto/sha256_avx2.cpp
 
-crypto_libparticl_crypto_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libparticl_crypto_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libparticl_crypto_shani_a_CXXFLAGS += $(SHANI_CXXFLAGS)
-crypto_libparticl_crypto_shani_a_CPPFLAGS += -DENABLE_SHANI
-crypto_libparticl_crypto_shani_a_SOURCES = crypto/sha256_shani.cpp
+crypto_libparticl_crypto_x86_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libparticl_crypto_x86_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libparticl_crypto_x86_shani_a_CXXFLAGS += $(X86_SHANI_CXXFLAGS)
+crypto_libparticl_crypto_x86_shani_a_CPPFLAGS += -DENABLE_X86_SHANI
+crypto_libparticl_crypto_x86_shani_a_SOURCES = crypto/sha256_x86_shani.cpp
+
+crypto_libparticl_crypto_arm_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libparticl_crypto_arm_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libparticl_crypto_arm_shani_a_CXXFLAGS += $(ARM_SHANI_CXXFLAGS)
+crypto_libparticl_crypto_arm_shani_a_CPPFLAGS += -DENABLE_ARM_SHANI
+crypto_libparticl_crypto_arm_shani_a_SOURCES = crypto/sha256_arm_shani.cpp
 
 # consensus: shared between all executables that validate any consensus rules.
 libparticl_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
@@ -807,7 +817,7 @@ particl_bin_ldadd = \
   $(LIBPARTICL_MNEMONIC) \
   $(LIBPARTICL_USBDEVICE)
 
-particl_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
+particl_bin_ldadd += $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
 if ENABLE_USBDEVICE
 particl_bin_ldadd += $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
@@ -840,7 +850,7 @@ particl_cli_LDADD = \
   $(LIBPARTICL_UTIL) \
   $(LIBPARTICL_CRYPTO)
 
-particl_cli_LDADD += $(BOOST_LIBS) $(EVENT_LIBS)
+particl_cli_LDADD += $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
@@ -860,8 +870,6 @@ particl_tx_LDADD = \
   $(LIBPARTICL_CONSENSUS) \
   $(LIBPARTICL_CRYPTO) \
   $(LIBSECP256K1)
-
-particl_tx_LDADD += $(BOOST_LIBS)
 #
 
 # bitcoin-wallet binary #
@@ -887,7 +895,7 @@ particl_wallet_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1) \
   $(LIBUNIVALUE)
-particl_wallet_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
+particl_wallet_LDADD += $(BDB_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
 if ENABLE_USBDEVICE
 particl_wallet_LDADD += $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
@@ -914,8 +922,6 @@ particl_util_LDADD = \
   $(LIBPARTICL_CONSENSUS) \
   $(LIBPARTICL_CRYPTO) \
   $(LIBSECP256K1)
-
-particl_util_LDADD += $(BOOST_LIBS)
 #
 
 # bitcoinconsensus library #

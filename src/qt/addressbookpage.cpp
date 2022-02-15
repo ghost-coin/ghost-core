@@ -193,7 +193,7 @@ void AddressBookPage::onEditAction()
     dlg->setModel(model);
     QModelIndex origIndex = proxyModel->mapToSource(indexes.at(0));
     dlg->loadRow(origIndex.row());
-    GUIUtil::ShowModalDialogAndDeleteOnClose(dlg);
+    GUIUtil::ShowModalDialogAsynchronously(dlg);
 }
 
 void AddressBookPage::onVerifyAddressOnHWAction()
