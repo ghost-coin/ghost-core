@@ -91,6 +91,7 @@ Next Major Version
 - Raised min protocol version to 90014
 - Disable p2sh-p2wpkh addresses.
 - qt: 'Import Chain' defaults to disabled.
+- wallet, qt: Default ring size set to 12 to match Particl Desktop.
 
 
 0.19.2.19
