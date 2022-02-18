@@ -284,6 +284,18 @@ const std::pair<const char*, CAmount> genesisOutputsTestnet[] = {
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
 };
 const size_t nGenesisOutputsTestnet = sizeof(genesisOutputsTestnet) / sizeof(genesisOutputsTestnet[0]);
 
@@ -665,9 +677,9 @@ public:
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1512; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.fPowNoRetargeting = true; // No retargeting for now in testnet
+        consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
+        consensus.nMinerConfirmationWindow = 144; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -683,7 +695,7 @@ public:
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
 
-        consensus.nMinRCTOutputDepth = 12;
+        consensus.nMinRCTOutputDepth = 2;
         consensus.m_frozen_anon_index = 0;
         consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
 
@@ -714,12 +726,12 @@ public:
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
 
-        genesis = CreateGenesisBlockTestNet(1645041600, 126440, 0x1f00ffff);
+        genesis = CreateGenesisBlockTestNet(1645041600, 92978, 0x1f00ffff);
 
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000573ac56e82771d5e3f5d679dedfe86a1d002e467e6da7df153e7a076980d"));
-        assert(genesis.hashMerkleRoot == uint256S("0xa695384ff5b2bf60103ca0ae6e8ee998a7703027628ee41539f1098df5327491"));
-        assert(genesis.hashWitnessMerkleRoot == uint256S("0x345a71c13f2427fcc31a37cf7ab6a7da8f37589b925c0ba398afb476226c9cd8"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0000465ed7553f3753350cef9199cbe58c82840ad505ecc49dc38429309ac2ff"));
+        assert(genesis.hashMerkleRoot == uint256S("0x92d156055c42e52bee6ce47ed0576c5490699c8bc39d8cef84e3b3f960f9d912"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0x906467b56d0592400e13454ff3c98885c72ae86542d8875612f3b23d04e30cdb"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -761,7 +773,7 @@ public:
 
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         // Full Script pubkey of the recovery addr: 76a91418cf988c85fdff42269cf1d39c526aa3530c778d88ac
-        anonRecoveryAddress = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it";
+        anonRecoveryAddress = "XXZL34hbjru176j3q3f1EkofGCSprn5Hbq";
         checkpointData = {
             {
                 { 0, genesis.GetHash()},
@@ -774,6 +786,7 @@ public:
             /* nTxCount */ 0,
             /* dTxRate  */ 0
         };
+        blacklistedAnonTxs.insert(anon_index_blacklist.begin(), anon_index_blacklist.end());
     }
 };
 
