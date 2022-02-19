@@ -1108,7 +1108,7 @@ static RPCHelpMan getblock()
                                         {
                                             {RPCResult::Type::STR, "asm", "The asm"},
                                             {RPCResult::Type::STR, "hex", "The hex"},
-                                            {RPCResult::Type::STR, "address", /* optional */ true, "The Bitcoin address (only if a well-defined address exists)"},
+                                            {RPCResult::Type::STR, "address", /* optional */ true, "The Particl address (only if a well-defined address exists)"},
                                             {RPCResult::Type::STR, "type", "The type, eg 'pubkeyhash'"},
                                         }},
                                     }},
@@ -1414,7 +1414,7 @@ static RPCHelpMan gettxout()
                     {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
                     {RPCResult::Type::STR_HEX, "hex", ""},
                     {RPCResult::Type::STR, "type", "The type, eg pubkeyhash"},
-                    {RPCResult::Type::STR, "address", /*optional=*/true, "The Bitcoin address (only if a well-defined address exists)"},
+                    {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
                     {RPCResult::Type::STR, "stakeaddress", /*optional=*/true, "The Particl stake address (only if a well-defined stakeaddress exists)"},
                 }},
                 {RPCResult::Type::BOOL, "coinbase", "Coinbase or not"},
