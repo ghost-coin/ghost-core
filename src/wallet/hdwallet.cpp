@@ -2069,19 +2069,21 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
             isInvalid = true;
             return ISMINE_NO;
         }
-        if ((mine = HaveKey(keyID, pak, pasc, pa)))
+        if ((mine = HaveKey(keyID, pak, pasc, pa))) {
             return mine;
+        }
         break;
     case TxoutType::PUBKEYHASH:
     case TxoutType::TIMELOCKED_PUBKEYHASH:
     case TxoutType::PUBKEYHASH256:
-        if (vSolutions[0].size() == 20)
+        if (vSolutions[0].size() == 20) {
             keyID = CKeyID(uint160(vSolutions[0]));
-        else
-        if (vSolutions[0].size() == 32)
+        } else
+        if (vSolutions[0].size() == 32) {
             keyID = CKeyID(uint256(vSolutions[0]));
-        else
+        } else {
             return ISMINE_NO;
+        }
         if (sigversion != SigVersion::BASE) {
             CPubKey pubkey;
             if (GetPubKey(keyID, pubkey) && !pubkey.IsCompressed()) {
@@ -2098,13 +2100,14 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
     case TxoutType::SCRIPTHASH256:
     {
         CScriptID scriptID;
-        if (vSolutions[0].size() == 20)
+        if (vSolutions[0].size() == 20) {
             scriptID = CScriptID(uint160(vSolutions[0]));
-        else
-        if (vSolutions[0].size() == 32)
+        } else
+        if (vSolutions[0].size() == 32) {
             scriptID.Set(uint256(vSolutions[0]));
-        else
+        } else {
             return ISMINE_NO;
+        }
         CScript subscript;
         std::unique_ptr<SigningProvider> provider = GetSolvingProvider(subscript);
         if (provider && provider->GetCScript(scriptID, subscript)) {
@@ -2118,10 +2121,22 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
         break;
     }
     case TxoutType::WITNESS_V0_KEYHASH:
+    {
+        keyID = CKeyID(uint160(vSolutions[0]));
+        if ((mine = HaveKey(keyID, pak, pasc, pa))) {
+            return mine;
+        }
+        break;
+    }
     case TxoutType::WITNESS_V0_SCRIPTHASH:
-        LogPrintf("%s: Ignoring WITNESS_V0 script type.\n", __func__); // shouldn't happen
+        LogPrintf("%s: Ignoring WITNESS_V0_SCRIPTHASH script type.\n", __func__); // shouldn't happen
         return ISMINE_NO;
-
+    case TxoutType::WITNESS_V1_TAPROOT:
+        LogPrintf("%s: Ignoring WITNESS_V1_TAPROOT script type.\n", __func__); // shouldn't happen
+        return ISMINE_NO;
+    case TxoutType::WITNESS_UNKNOWN:
+        LogPrintf("%s: Ignoring WITNESS_UNKNOWN script type.\n", __func__); // shouldn't happen
+        return ISMINE_NO;
     case TxoutType::MULTISIG:
     case TxoutType::TIMELOCKED_MULTISIG:
     {
@@ -7967,7 +7982,7 @@ int CHDWallet::ExtKeyGetIndex(CExtKeyAccount *sea, uint32_t &index)
 };
 
 int CHDWallet::NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPubKey &pkOut,
-    bool fInternal, bool fHardened, bool f256bit, bool fBech32, const char *plabel)
+    bool fInternal, bool fHardened, bool f256bit, bool fBech32, const char *plabel, OutputType output_type)
 {
     // If plabel is not null, add to m_address_book
 
@@ -8048,6 +8063,9 @@ int CHDWallet::NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPu
             vPath.clear();
         }
 
+        if (output_type == OutputType::BECH32) {
+            SetAddressBook(pwdb, WitnessV0KeyHash(pkOut), plabel, "receive", vPath, false);
+        } else
         if (f256bit) {
             CKeyID256 idKey256 = pkOut.GetID256();
             SetAddressBook(pwdb, idKey256, plabel, "receive", vPath, false, fBech32);
@@ -8059,7 +8077,7 @@ int CHDWallet::NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPu
     return 0;
 };
 
-int CHDWallet::NewKeyFromAccount(CPubKey &pkOut, bool fInternal, bool fHardened, bool f256bit, bool fBech32, const char *plabel)
+int CHDWallet::NewKeyFromAccount(CPubKey &pkOut, bool fInternal, bool fHardened, bool f256bit, bool fBech32, const char *plabel, OutputType output_type)
 {
     {
         LOCK(cs_wallet);
@@ -8069,7 +8087,7 @@ int CHDWallet::NewKeyFromAccount(CPubKey &pkOut, bool fInternal, bool fHardened,
             return werrorN(1, "%s TxnBegin failed.", __func__);
         }
 
-        if (0 != NewKeyFromAccount(&wdb, idDefaultAccount, pkOut, fInternal, fHardened, f256bit, fBech32, plabel)) {
+        if (0 != NewKeyFromAccount(&wdb, idDefaultAccount, pkOut, fInternal, fHardened, f256bit, fBech32, plabel, output_type)) {
             wdb.TxnAbort();
             return 1;
         }
@@ -12603,8 +12621,7 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
 
     todo.insert(hashTx);
 
-    while (!todo.empty())
-    {
+    while (!todo.empty()) {
         uint256 now = *todo.begin();
         todo.erase(now);
         done.insert(now);
@@ -12617,8 +12634,8 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
                 continue;
             }
 
-            if (!rtx.IsAbandoned()
-                && currentconfirm == 0) {
+            if (!rtx.IsAbandoned() &&
+                currentconfirm == 0) {
                 // If the orig tx was not in block/mempool, none of its spends can be in mempool
                 assert(!InMempool(now));
                 rtx.nIndex = -1;
@@ -12628,19 +12645,16 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
             }
 
         } else
-        if ((mwi = mapWallet.find(now)) != mapWallet.end())
-        {
+        if ((mwi = mapWallet.find(now)) != mapWallet.end()) {
             CWalletTx &wtx = mwi->second;
             int currentconfirm = wtx.GetDepthInMainChain();
-            if (currentconfirm > 0)
-            {
+            if (currentconfirm > 0) {
                 WalletLogPrintf("ERROR: %s - Txn %s is %d blocks deep.\n", __func__, now.ToString(), currentconfirm);
                 continue;
-            };
+            }
 
-            if (!wtx.isAbandoned()
-                && currentconfirm == 0)
-            {
+            if (!wtx.isAbandoned() &&
+                currentconfirm == 0) {
                 // AbandonTransaction can happen before CWallet::transactionRemovedFromMempool is called
                 wtx.fInMempool = InMempool(wtx.GetHash());
 
@@ -12668,10 +12682,10 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
         };
 
         TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(hashTx, 0));
-        while (iter != mapTxSpends.end() && iter->first.hash == now)
-        {
-            if (!done.count(iter->second))
+        while (iter != mapTxSpends.end() && iter->first.hash == now) {
+            if (!done.count(iter->second)) {
                 todo.insert(iter->second);
+            }
             iter++;
         };
     };
@@ -12790,23 +12804,20 @@ void CHDWallet::SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator> r
 
     int nMinOrderPos = std::numeric_limits<int>::max();
     const CWalletTx* copyFrom = nullptr;
-    for (TxSpends::iterator it = range.first; it != range.second; ++it)
-    {
+    for (TxSpends::iterator it = range.first; it != range.second; ++it) {
         const uint256& hash = it->second;
         CWalletTx *wtx = GetWalletTx(hash);
         if (!wtx)
             continue;
 
         int n = wtx->nOrderPos;
-        if (n < nMinOrderPos)
-        {
+        if (n < nMinOrderPos) {
             nMinOrderPos = n;
             copyFrom = wtx;
         }
     }
     // Now copy data from copyFrom to rest:
-    for (TxSpends::iterator it = range.first; it != range.second; ++it)
-    {
+    for (TxSpends::iterator it = range.first; it != range.second; ++it) {
         const uint256& hash = it->second;
 
         CWalletTx* copyTo = GetWalletTx(hash);
@@ -12856,7 +12867,6 @@ bool CHDWallet::SetSetting(const std::string &setting, const UniValue &json)
     if (!wdb.WriteWalletSetting(setting, sJson)) {
         return false;
     }
-
     return true;
 };
 
@@ -12869,7 +12879,6 @@ bool CHDWallet::EraseSetting(const std::string &setting)
     if (!wdb.EraseWalletSetting(setting)) {
         return false;
     }
-
     return true;
 };
 

@@ -51,11 +51,18 @@ class SegwitScriptsTest(ParticlTestFramework):
         nodes[1].sendtoaddress(addr_sw_pk2, 3)
 
         ro = nodes[2].getaddressinfo(addr_part_native)
+        assert(ro['path'] == 'm/0/0')
         assert(ro['iswitness'] == False)
+        assert(ro['ischange'] == False)
+        assert('addr_part_native' in ro['labels'])
         pk0 = ro['pubkey']
 
         ro = nodes[2].getaddressinfo(addr_sw_bech32)
+        assert(ro['path'] == 'm/0/1')
+        assert(ro['iswitness'] == True)
+        assert(ro['ischange'] == False)
         assert(ro['witness_version'] == 0)
+        assert('btc native segwit' in ro['labels'])
         pk1 = ro['pubkey']
 
         ro = nodes[2].getaddressinfo(addr_sw_pk2)

@@ -303,8 +303,8 @@ public:
     int ExtKeyGetIndex(CHDWalletDB *pwdb, CExtKeyAccount *sea, uint32_t &index, bool &fUpdate) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyGetIndex(CExtKeyAccount *sea, uint32_t &index);
 
-    int NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPubKey &pkOut, bool fInternal, bool fHardened, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    int NewKeyFromAccount(CPubKey &pkOut, bool fInternal=false, bool fHardened=false, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr); // wrapper - use default account
+    int NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPubKey &pkOut, bool fInternal, bool fHardened, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr, OutputType output_type=OutputType::LEGACY) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int NewKeyFromAccount(CPubKey &pkOut, bool fInternal=false, bool fHardened=false, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr, OutputType output_type=OutputType::LEGACY); // wrapper - use default account
 
     int NewStealthKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, const std::string &sLabel, CEKAStealthKey &akStealthOut, uint32_t nPrefixBits, const char *pPrefix, bool fBech32=false, uint32_t *pscankey_num=nullptr, bool add_to_lookahead=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int NewStealthKeyFromAccount(const std::string &sLabel, CEKAStealthKey &akStealthOut, uint32_t nPrefixBits, const char *pPrefix, bool fBech32=false); // wrapper - use default account

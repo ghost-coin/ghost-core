@@ -399,7 +399,7 @@ static RPCHelpMan getnewaddress()
                 throw JSONRPCError(RPC_WALLET_ERROR, "No default account set.");
             }
         }
-        if (0 != phdw->NewKeyFromAccount(newKey, false, fHardened, f256bit, fBech32, label.c_str())) {
+        if (0 != phdw->NewKeyFromAccount(newKey, false, fHardened, f256bit, fBech32, label.c_str(), output_type)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "NewKeyFromAccount failed.");
         }
 
@@ -4901,8 +4901,9 @@ RPCHelpMan getaddressinfo()
                 }
             }
         } else
-        if (dest.type() == typeid(PKHash)
-            || dest.type() == typeid(CKeyID256)) {
+        if (dest.type() == typeid(PKHash) ||
+            dest.type() == typeid(CKeyID256) ||
+            dest.type() == typeid(WitnessV0KeyHash)) {
             CKeyID idk;
             const CEKAKey *pak = nullptr;
             const CEKASCKey *pasc = nullptr;
