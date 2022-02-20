@@ -94,10 +94,9 @@ RPCHelpMan getnewaddress()
                 throw JSONRPCError(RPC_WALLET_ERROR, "No default account set.");
             }
         }
-        if (0 != phdw->NewKeyFromAccount(newKey, false, fHardened, f256bit, fBech32, label.c_str())) {
+        if (0 != phdw->NewKeyFromAccount(newKey, false, fHardened, f256bit, fBech32, label.c_str(), output_type)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "NewKeyFromAccount failed.");
         }
-
 
         if (output_type != OutputType::LEGACY) {
             CTxDestination dest;
@@ -739,8 +738,9 @@ RPCHelpMan getaddressinfo()
                 }
             }
         } else
-        if (dest.index() == DI::_PKHash
-            || dest.index() == DI::_CKeyID256) {
+        if (dest.index() == DI::_PKHash ||
+            dest.index() == DI::_CKeyID256 ||
+            dest.index() == DI::_WitnessV0KeyHash) {
             CKeyID idk;
             const CEKAKey *pak = nullptr;
             const CEKASCKey *pasc = nullptr;

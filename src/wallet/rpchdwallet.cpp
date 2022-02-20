@@ -4215,9 +4215,11 @@ static RPCHelpMan manageaddressbook()
         EnsureWalletIsUnlocked(pwallet);
     }
 
+    bool label_was_set = false;
     bool fHavePurpose = false;
     if (request.params.size() > 2) {
         sLabel = request.params[2].get_str();
+        label_was_set = true;
     }
     if (request.params.size() > 3) {
         sPurpose = request.params[3].get_str();
@@ -4327,12 +4329,13 @@ static RPCHelpMan manageaddressbook()
         // Only update the purpose field if address does not yet exist
         if (mabi != pwallet->m_address_book.end()) {
             sPurpose = ""; // "" means don't change purpose
+            if (!label_was_set) {
+                sLabel = mabi->second.GetLabel();
+            }
         }
-
         if (!pwallet->SetAddressBook(dest, sLabel, sPurpose)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
         }
-
         if (mabi != pwallet->m_address_book.end()) {
             sPurpose = mabi->second.purpose;
         }
