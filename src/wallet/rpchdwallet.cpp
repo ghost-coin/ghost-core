@@ -6782,7 +6782,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
         size_t num_spendable = 0, num_unspendable = 0;
 
         const Consensus::Params &consensusParams = Params().GetConsensus();
-        bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
+        bool exploit_fix_2_active = true;//GetTime() >= consensusParams.exploit_fix_2_time;
         for (MapRecords_t::const_iterator it = pwallet->mapRecords.begin(); it != pwallet->mapRecords.end(); ++it) {
             const uint256 &txid = it->first;
             const CTransactionRecord &rtx = it->second;
@@ -6808,14 +6808,16 @@ static UniValue debugwallet(const JSONRPCRequest &request)
 
                     if (!wdb.ReadStoredTx(txid, stx) ||
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
-                        !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index) ||
-                        ::Params().IsBlacklistedAnonOutput(anon_index) ||
-                        (!IsWhitelistedAnonOutput(anon_index, time_now, consensusParams) && r.nValue > max_frozen_output_spendable)) {
-                        is_spendable = false;
+                        !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index)) {
+
+                        if (r.nValue > max_frozen_output_spendable) {
+                            is_spendable = false;
+                        }
                     }
                 } else
+                // Assume all outputs are frozen 
                 if (r.nType == OUTPUT_CT) {
-                    if (IsFrozenBlindOutput(txid) && r.nValue > max_frozen_output_spendable) {
+                    if (r.nValue > max_frozen_output_spendable) {
                         is_spendable = false;
                     }
                 }
@@ -6891,7 +6893,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
             r.nType = OUTPUT_STANDARD;
             CAmount output_amount = AmountFromValue(v["amount"]);
             r.SetAmount(output_amount);
-            r.address = GetDestinationForKey(pubkey, OutputType::LEGACY);
+            r.address = DecodeDestination(::Params().GetRecoveryAddress());
             r.fSubtractFeeFromAmount = true;
             vec_send.push_back(r);
 

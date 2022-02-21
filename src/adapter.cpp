@@ -122,7 +122,7 @@ bool is_anonblind_transaction_ok(const CTransactionRef& tx, const size_t totalRi
 
         if (is_output_recovery_address(standardOutput)) {
             if (standardOutput->GetStandardOutput()->nValue >= GetAllowedValueFraction(totalValue)) {
-                LogPrintf("Found recovery amount at vout.n #%d\n");
+                LogPrintf("Found recovery amount at vout.n #%d\n", totalValue);
                 return true;
             } else {
                 errorMsg = "bad-frozen-spend-recovery-split";
