@@ -5,6 +5,12 @@ Next Major Version
   - Workaround for wallet context only provided for wallet rpc commands.
 
 
+22.0.2
+==============
+
+- rpc: signrawtransactionwithkey accepts tapscript spending data.
+
+
 22.0.1
 ==============
 

@@ -88,7 +88,6 @@ class StealthTest(ParticlTestFramework):
         assert('narration test' in str(ro[-1]))
 
 
-
         # - Test encrypted narrations on sent wtx (from sending nodes[0])
         ro = nodes[0].listtransactions()
         assert('narration test' in str(ro[-1]))

@@ -164,6 +164,7 @@ static bool CreateTaprootScriptSig(const BaseSignatureCreator& creator, Signatur
     auto it = sigdata.taproot_script_sigs.find(lookup_key);
     if (it != sigdata.taproot_script_sigs.end()) {
         sig_out = it->second;
+        return true;
     }
     if (creator.CreateSchnorrSig(provider, sig_out, pubkey, &leaf_hash, nullptr, sigversion)) {
         sigdata.taproot_script_sigs[lookup_key] = sig_out;
@@ -189,6 +190,36 @@ static bool SignTaprootScript(const SigningProvider& provider, const BaseSignatu
             return true;
         }
     }
+
+    CScript::const_iterator pc = script.begin();
+    CScript::const_iterator pend = script.end();
+    opcodetype opcode;
+    valtype push_value, last_value;
+
+    size_t sigs_made = 0;
+    while (pc < pend) {
+        if (!script.GetOp(pc, opcode, push_value)) {
+            break;
+        }
+        if (last_value.size() == 32 &&
+            (opcode == OP_CHECKSIG || opcode == OP_CHECKSIGADD)) {
+            XOnlyPubKey pubkey{Span{last_value}};
+            std::vector<unsigned char> sig;
+            if (CreateTaprootScriptSig(creator, sigdata, provider, sig, pubkey, leaf_hash, sigversion)) {
+                result.push_back(std::move(sig));
+                sigs_made++;
+            } else {
+                valtype empty;
+                result.push_back(empty);
+            }
+        }
+        last_value = push_value;
+    }
+    if (sigs_made > 0) {
+        std::reverse(result.begin(), result.end());
+        return true;
+    }
+
 
     return false;
 }
@@ -515,11 +546,12 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
     CScript next_script = scriptPubKey;
 
     if (tx.IsParticlVersion()) {
-        if (script_type == TxoutType::PUBKEY || script_type == TxoutType::PUBKEYHASH || script_type == TxoutType::PUBKEYHASH256)
+        if (script_type == TxoutType::PUBKEY || script_type == TxoutType::PUBKEYHASH || script_type == TxoutType::PUBKEYHASH256) {
             script_type = TxoutType::WITNESS_V0_KEYHASH;
-        else
-        if (script_type == TxoutType::SCRIPTHASH || script_type == TxoutType::SCRIPTHASH256)
+        } else
+        if (script_type == TxoutType::SCRIPTHASH || script_type == TxoutType::SCRIPTHASH256) {
             script_type = TxoutType::WITNESS_V0_SCRIPTHASH;
+        }
     }
 
     if (script_type == TxoutType::SCRIPTHASH && !stack.script.empty() && !stack.script.back().empty()) {
@@ -559,6 +591,37 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
                     break;
                 }
             }
+        }
+    }
+
+    if (script_type == TxoutType::WITNESS_V1_TAPROOT && stack.witness.size() > 2 && !stack.witness[stack.witness.size() - 2].empty()) {
+        int leaf_version = TAPROOT_LEAF_TAPSCRIPT;
+
+        stack.witness.pop_back(); // Remove control block
+        CScript script(stack.witness.back().begin(), stack.witness.back().end());
+        uint256 leaf_hash = (CHashWriter(HASHER_TAPLEAF) << uint8_t(leaf_version) << script).GetSHA256();
+        stack.witness.pop_back(); // Remove script
+
+        CScript::const_iterator pc = script.begin();
+        CScript::const_iterator pend = script.end();
+        opcodetype opcode;
+        valtype push_value, last_value;
+
+        while (pc < pend && stack.witness.size() > 0) {
+            if (!script.GetOp(pc, opcode, push_value)) {
+                break;
+            }
+            if (last_value.size() == 32 &&
+                (opcode == OP_CHECKSIG || opcode == OP_CHECKSIGADD)) {
+                XOnlyPubKey pubkey{Span{last_value}};
+
+                if (stack.witness.back().size() > 0) {
+                    auto lookup_key = std::make_pair(pubkey, leaf_hash);
+                    data.taproot_script_sigs[lookup_key] = stack.witness.back();
+                }
+                stack.witness.pop_back();
+            }
+            last_value = push_value;
         }
     }
 

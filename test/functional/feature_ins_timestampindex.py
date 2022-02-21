@@ -7,8 +7,6 @@
 # Test timestampindex generation and fetching
 #
 
-import time
-
 from test_framework.test_particl import ParticlTestFramework
 from test_framework.util import assert_equal
 
@@ -51,11 +49,9 @@ class TimestampIndexTest(ParticlTestFramework):
         blockhashes = []
         self.stakeToHeight(1, False)
         blockhashes.append(nodes[0].getblockhash(1))
-        time.sleep(3)
 
         self.stakeToHeight(2, False)
         blockhashes.append(nodes[0].getblockhash(2))
-        time.sleep(3)
 
         self.stakeToHeight(3, False)
         blockhashes.append(nodes[0].getblockhash(3))

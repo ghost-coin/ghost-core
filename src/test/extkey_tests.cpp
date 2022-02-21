@@ -306,7 +306,6 @@ void RunSerialiseTests()
     BOOST_CHECK(0 == skInvalid.kp.IsValidP());
 
 
-
     // path
 
     std::vector<uint8_t> vPath;
@@ -419,7 +418,6 @@ void RunSerialiseTests()
     BOOST_CHECK(1 == skp.DeriveNextKey(k, nChild, true));
 
 
-
     CPubKey pk;
     sk.nGenerated = 1;
     BOOST_CHECK(0 == sk.DeriveNextKey(pk, nChild, false));
@@ -443,8 +441,6 @@ void RunSerialiseTests()
 
     // CBitcoinAddress tests
     // CBitcoinAddress always deals in public keys - should never expose a secret in an address
-
-
 
     CExtKeyPair kp, kpT;
     CTxDestination dest;
@@ -569,4 +565,3 @@ BOOST_AUTO_TEST_CASE(extkey_misc_keys)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-

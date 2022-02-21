@@ -30,7 +30,6 @@ BOOST_AUTO_TEST_CASE(mnemonic_test)
     std::vector<uint8_t> vSeed;
     std::string password = "";
     BOOST_CHECK(0 == mnemonic::ToSeed(words, password, vSeed));
-
     BOOST_CHECK(HexStr(vSeed) == expect_seed);
 }
 
@@ -66,7 +65,6 @@ BOOST_AUTO_TEST_CASE(mnemonic_addchecksum)
     std::string sWordsInFrench = "zoologie ficeler xénon voyelle village viande vignette sécréter séduire torpille remède";
 
     BOOST_CHECK(0 == mnemonic::AddChecksum(-1, sWordsInFrench, sWordsOut, sError));
-
     BOOST_CHECK(sWordsOut == "zoologie ficeler xénon voyelle village viande vignette sécréter séduire torpille remède abolir");
 }
 

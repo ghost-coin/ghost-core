@@ -61,7 +61,6 @@ static RPCHelpMan anonoutput()
             throw JSONRPCError(RPC_INVALID_PARAMETER, sIn + " is not a hexadecimal or decimal string.");
         }
         std::vector<uint8_t> vIn = ParseHex(sIn);
-
         CCmpPubKey pk(vIn.begin(), vIn.end());
 
         if (!pk.IsValid()) {

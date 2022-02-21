@@ -992,11 +992,24 @@ static RPCHelpMan signrawtransactionwithkey()
                     },
                     {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "JSON object with options",
                         {
-                            {"taproot", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "A JSON object of json objects, key is offset in privkeys of privkey info applies to",
+                            {"taproot", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "A JSON object of json objects, key is the output pubkey of the txoutput",
                                 {
                                     {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                                         {
-                                            {"output_pubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Output pubkey"},
+                                            {"internal_key_index", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "Offset of privatekey in privkeys array"},
+                                            {"internal_pubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Internal pubkey if internal_key_index isn't set"},
+                                            {"merkle_root", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Merkle root of scripts tree"},
+                                            {"scripts", RPCArg::Type::ARR, RPCArg::Optional::NO, "The inputs",
+                                                {
+                                                    {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                                                        {
+                                                            {"depth", RPCArg::Type::NUM, RPCArg::Optional::NO, "Depth of script"},
+                                                            {"merkle_hash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Merkle root of scripts tree"},
+                                                            {"script", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "Script in hex"},
+                                                        },
+                                                    },
+                                                },
+                                            },
                                         },
                                     },
                                 },
@@ -1073,27 +1086,82 @@ static RPCHelpMan signrawtransactionwithkey()
         if (options.exists("taproot")) {
             const UniValue &taproot = options["taproot"].get_obj();
 
-            for (unsigned int idx = 0; idx < keys.size(); ++idx) {
-                const std::string str_idx = strprintf("%d",  idx);
-                if (!taproot.exists(str_idx)) {
-                    continue;
+            for (const auto &str_output_pubkey : taproot.getKeys()) {
+                if (!IsHex(str_output_pubkey) || !(str_output_pubkey.size() == 64)) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Output public key must be 32 bytes and hex encoded.");
                 }
-                const UniValue &taproot_key_info = taproot[str_idx].get_obj();
-                UniValue k = keys[idx];
-                CKey internal_key = DecodeSecret(k.get_str());
-                XOnlyPubKey internal_pubkey{internal_key.GetPubKey()};
-                TaprootSpendData trs;
-                trs.internal_key = internal_pubkey;
+                const UniValue &taproot_key_info = taproot[str_output_pubkey].get_obj();
 
-                if (taproot_key_info.exists("output_pubkey")) {
-                    std::string s = taproot_key_info["output_pubkey"].get_str();
-                    if (!IsHex(s) || !(s.size() == 64)) {
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 32 bytes and hex encoded.");
+                XOnlyPubKey internal_pubkey;
+                TaprootSpendData trs;
+
+                if (taproot_key_info.exists("internal_key_index")) {
+                    int xk_offset = taproot_key_info["internal_key_index"].get_int();
+                    if (xk_offset < 0 || xk_offset >= (int) keys.size()) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "internal_key_index out of range.");
                     }
-                    std::vector<uint8_t> v = ParseHex(s);
-                    XOnlyPubKey output_pubkey{v};
-                    keystore.tr_spenddata[output_pubkey].Merge(trs);
+                    const UniValue &k = keys[xk_offset];
+                    CKey internal_key = DecodeSecret(k.get_str());
+                    internal_pubkey = XOnlyPubKey(internal_key.GetPubKey());
+                } else
+                if (taproot_key_info.exists("internal_pubkey")) {
+                    std::string s = taproot_key_info["internal_pubkey"].get_str();
+                    if (!IsHex(s) || !(s.size() == 64)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "internal_pubkey must be 32 bytes and hex encoded.");
+                    }
+                    internal_pubkey = XOnlyPubKey(ParseHex(s));
                 }
+
+                if (taproot_key_info.exists("merkle_root")) {
+                    std::string s = taproot_key_info["merkle_root"].get_str();
+                    if (!IsHex(s) || !(s.size() == 64)) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Merkle root must be 32 bytes and hex encoded.");
+                    }
+                    trs.merkle_root = uint256(ParseHex(s));
+                    if (taproot_key_info.exists("scripts")) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "merkle_root and scripts are incompatible.");
+                    }
+                }
+                if (taproot_key_info.exists("scripts")) {
+                    TaprootBuilder builder;
+
+                    const UniValue &scripts = taproot_key_info["scripts"].get_array();
+
+                    for (unsigned int idx = 0; idx < scripts.size(); ++idx) {
+                        const UniValue &script = scripts[idx];
+
+                        int leaf_version = TAPROOT_LEAF_TAPSCRIPT;
+
+                        if (!script.exists("depth")) {
+                            throw JSONRPCError(RPC_INVALID_PARAMETER, "script depth is required.");
+                        }
+                        int depth = script["depth"].get_int();
+
+                        if (script.exists("script") && script.exists("merkle_hash")) {
+                            throw JSONRPCError(RPC_INVALID_PARAMETER, "script is incompatible with merkle_hash.");
+                        }
+                        if (script.exists("script")) {
+                            std::vector<unsigned char> script_data(ParseHex(script["script"].get_str()));
+                            CScript script(script_data.begin(), script_data.end());
+                            builder.Add(depth, script, leaf_version);
+                        } else
+                        if (script.exists("merkle_hash")) {
+                            std::string s = script["merkle_hash"].get_str();
+                            if (!IsHex(s) || !(s.size() == 64)) {
+                                throw JSONRPCError(RPC_INVALID_PARAMETER, "Merkle hash must be 32 bytes and hex encoded.");
+                            }
+                            uint256 merkle_hash = uint256(ParseHex(s));
+                            builder.AddOmitted(depth, merkle_hash);
+                        }
+                    }
+                    builder.Finalize(internal_pubkey);
+                    trs = builder.GetSpendData();
+                } else {
+                    trs.internal_key = internal_pubkey;
+                }
+
+                XOnlyPubKey output_pubkey{ParseHex(str_output_pubkey)};
+                keystore.tr_spenddata[output_pubkey].Merge(trs);
             }
         }
     }
