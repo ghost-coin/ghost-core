@@ -11040,6 +11040,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, c
         vEphemPath = mvi->second;
 
         if (vEphemPath.size() != 12) { // accid / chainchild / start
+            WalletLogPrintf("Error: Bad vEphemPath.size() %s.\n", txhash.ToString());
             return false;
         }
 
@@ -11166,8 +11167,8 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, c
         }
 
         stx.tx = MakeTransactionRef(tx);
-        if (!wdb.WriteTxRecord(txhash, rtx)
-            || !wdb.WriteStoredTx(txhash, stx)) {
+        if (!wdb.WriteTxRecord(txhash, rtx) ||
+            !wdb.WriteStoredTx(txhash, stx)) {
             return false;
         }
     }

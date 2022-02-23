@@ -47,9 +47,9 @@ class DisableTest(ParticlTestFramework):
         self.stakeBlocks(2)
 
         txids = []
-        txids.append(nodes[1].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},]))
-        txids.append(nodes[1].sendtypeto('anon', 'blind', [{'address': sx1, 'amount': 1},]))
-        txids.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},]))
+        txids.append(nodes[1].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},], '', '', 5))
+        txids.append(nodes[1].sendtypeto('anon', 'blind', [{'address': sx1, 'amount': 1},], '', '', 5))
+        txids.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},], '', '', 5))
         txids.append(nodes[1].sendtypeto('blind', 'part', [{'address': sx1, 'amount': 1},]))
         txids.append(nodes[1].sendtypeto('blind', 'anon', [{'address': sx1, 'amount': 1},]))
 
@@ -83,12 +83,12 @@ class DisableTest(ParticlTestFramework):
         except Exception:
             pass
         try:
-            nodes[1].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},])
+            nodes[1].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},], '', '', 5)
             assert(False)
         except Exception:
             pass
         try:
-            nodes[1].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},])
+            nodes[1].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},], '', '', 5)
             assert(False)
         except Exception:
             pass
@@ -99,13 +99,13 @@ class DisableTest(ParticlTestFramework):
             pass
 
         txids = []
-        txids.append(nodes[0].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},]))
+        txids.append(nodes[0].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},], '', '', 5))
         txids.append(nodes[0].sendtypeto('part', 'anon', [{'address': sx1, 'amount': 1},]))
-        txids.append(nodes[0].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},]))
+        txids.append(nodes[0].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},], '', '', 5))
         txids.append(nodes[0].sendtypeto('part', 'blind', [{'address': sx1, 'amount': 1},]))
         txids.append(nodes[0].sendtypeto('blind', 'part', [{'address': sx1, 'amount': 1},]))
         txids.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sx1, 'amount': 1},]))
-        txids.append(nodes[0].sendtypeto('anon', 'blind', [{'address': sx1, 'amount': 1},]))
+        txids.append(nodes[0].sendtypeto('anon', 'blind', [{'address': sx1, 'amount': 1},], '', '', 5))
 
         for txid in txids:
             rtx = nodes[0].getrawtransaction(txid)
