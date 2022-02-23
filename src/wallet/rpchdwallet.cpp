@@ -7088,16 +7088,16 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         }
                         continue;
                     }
-                    if ((r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT)
-                        && (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY)
-                        && !pwallet->IsSpent(txhash, r.n)) {
+                    if ((r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) &&
+                        (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY) &&
+                        !pwallet->IsSpent(txhash, r.n)) {
                         uint256 tmp;
                         if (!stx.GetBlind(r.n, tmp.begin())) {
                             add_error("Missing blinding factor.", txhash, r.n);
                         }
                     }
-                    if (r.nType == OUTPUT_RINGCT
-                        && (r.nFlags & ORF_OWNED)) {
+                    if (r.nType == OUTPUT_RINGCT &&
+                        (r.nFlags & ORF_OWNED)) {
                         CCmpPubKey anon_pubkey, ki;
                         if (!stx.GetAnonPubkey(r.n, anon_pubkey)) {
                             add_error("Could not get anon pubkey.", txhash, r.n);
@@ -8629,8 +8629,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                 {"estimate_mode", UniValueType(UniValue::VSTR)},
                 {"avoid_reuse", UniValueType(UniValue::VBOOL)},
                 {"sign_tx", UniValueType(UniValue::VBOOL)},
-                {"anon_ring_size", UniValueType(UniValue::VBOOL)},
-                {"anon_inputs_per_sig", UniValueType(UniValue::VBOOL)},
+                {"anon_ring_size", UniValueType(UniValue::VNUM)},
+                {"anon_inputs_per_sig", UniValueType(UniValue::VNUM)},
                 {"blind_watchonly_visible", UniValueType(UniValue::VBOOL)},
                 {"minimumAmount", UniValueType()},
                 {"maximumAmount", UniValueType()},
