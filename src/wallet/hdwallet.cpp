@@ -3010,7 +3010,7 @@ void CHDWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputRecor
         CStealthAddressIndexed sxi;
         sx.ToRaw(sxi.addrRaw);
         uint32_t sxId;
-        if (GetStealthKeyIndex(sxi, sxId)){
+        if (GetStealthKeyIndex(sxi, sxId)) {
             rec.vPath.resize(5);
             rec.vPath[0] = ORA_STEALTH;
             memcpy(&rec.vPath[1], &sxId, 4);
@@ -9270,19 +9270,25 @@ bool CHDWallet::IndexStealthKey(CHDWalletDB *pwdb, uint160 &hash, const CStealth
     return true;
 };
 
-bool CHDWallet::GetStealthKeyIndex(const CStealthAddressIndexed &sxi, uint32_t &id)
+bool CHDWallet::GetStealthKeyIndex(CHDWalletDB *pwdb, const CStealthAddressIndexed &sxi, uint32_t &id)
 {
-    LOCK(cs_wallet);
-    uint160 hash = Hash160(sxi.addrRaw);
+    AssertLockHeld(cs_wallet);
 
-    CHDWalletDB wdb(*database);
-    if (wdb.ReadStealthAddressIndexReverse(hash, id)) {
+    uint160 hash = Hash160(sxi.addrRaw);
+    if (pwdb->ReadStealthAddressIndexReverse(hash, id)) {
         return true;
     }
 
-    return IndexStealthKey(&wdb, hash, sxi, id);
+    return IndexStealthKey(pwdb, hash, sxi, id);
 };
 
+bool CHDWallet::GetStealthKeyIndex(const CStealthAddressIndexed &sxi, uint32_t &id)
+{
+    LOCK(cs_wallet);
+    CHDWalletDB wdb(*database);
+
+    return GetStealthKeyIndex(&wdb, sxi, id);
+};
 
 bool CHDWallet::UpdateStealthAddressIndex(const CKeyID &idK, const CStealthAddressIndexed &sxi, uint32_t &id)
 {
@@ -9322,11 +9328,32 @@ bool CHDWallet::GetStealthByIndex(uint32_t sxId, CStealthAddress &sx) const
     if (!wdb.ReadStealthAddressIndex(sxId, sxi)) {
         return false;
     }
-
     if (sxi.addrRaw.size() < MIN_STEALTH_RAW_SIZE) {
         return werror("%s: Incorrect size for stealthId: %u", __func__, sxId);
     }
+    if (0 != sx.FromRaw(&sxi.addrRaw[0], sxi.addrRaw.size())) {
+        return werror("%s: FromRaw failed for stealthId: %u", __func__, sxId);
+    }
 
+    return true;
+};
+
+bool CHDWallet::GetStealthLinked(CHDWalletDB *pwdb, const CKeyID &idK, CStealthAddress &sx) const
+{
+    assert(pwdb);
+    AssertLockHeld(cs_wallet);
+
+    uint32_t sxId;
+    if (!pwdb->ReadStealthAddressLink(idK, sxId)) {
+        return false;
+    }
+    CStealthAddressIndexed sxi;
+    if (!pwdb->ReadStealthAddressIndex(sxId, sxi)) {
+        return false;
+    }
+    if (sxi.addrRaw.size() < MIN_STEALTH_RAW_SIZE) {
+        return werror("%s: Incorrect size for stealthId: %u", __func__, sxId);
+    }
     if (0 != sx.FromRaw(&sxi.addrRaw[0], sxi.addrRaw.size())) {
         return werror("%s: FromRaw failed for stealthId: %u", __func__, sxId);
     }
@@ -9337,28 +9364,9 @@ bool CHDWallet::GetStealthByIndex(uint32_t sxId, CStealthAddress &sx) const
 bool CHDWallet::GetStealthLinked(const CKeyID &idK, CStealthAddress &sx) const
 {
     LOCK(cs_wallet);
-
     CHDWalletDB wdb(*database);
 
-    uint32_t sxId;
-    if (!wdb.ReadStealthAddressLink(idK, sxId)) {
-        return false;
-    }
-
-    CStealthAddressIndexed sxi;
-    if (!wdb.ReadStealthAddressIndex(sxId, sxi)) {
-        return false;
-    }
-
-    if (sxi.addrRaw.size() < MIN_STEALTH_RAW_SIZE) {
-        return werror("%s: Incorrect size for stealthId: %u", __func__, sxId);
-    }
-
-    if (0 != sx.FromRaw(&sxi.addrRaw[0], sxi.addrRaw.size())) {
-        return werror("%s: FromRaw failed for stealthId: %u", __func__, sxId);
-    }
-
-    return true;
+    return GetStealthLinked(&wdb, idK, sx);
 };
 
 bool CHDWallet::GetStealthSecret(const CStealthAddress &sx, CKey &key_out) const
@@ -9569,10 +9577,9 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
         }
 
         MapRecords_t::iterator mir;
-
         mir = mapRecords.find(op.hash);
-        if (mir == mapRecords.end()
-            || !wdb.ReadStoredTx(op.hash, stx)) {
+        if (mir == mapRecords.end() ||
+            !wdb.ReadStoredTx(op.hash, stx)) {
             WalletLogPrintf("%s: Error: mapRecord not found for %s.\n", __func__, op.ToString());
             continue;
         }
@@ -9600,15 +9607,15 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
         pout->n = op.n;
         switch (txout->nVersion) {
             case OUTPUT_CT:
-                if (OwnBlindOut(&wdb, op.hash, (CTxOutCT*)txout.get(), nullptr, n, *pout, stx, fUpdated)
-                    && !fHave) {
+                if (OwnBlindOut(&wdb, op.hash, (CTxOutCT*)txout.get(), nullptr, n, *pout, stx, fUpdated) &&
+                    !fHave) {
                     fUpdated = true;
                     rtx.InsertOutput(*pout);
                 }
                 break;
             case OUTPUT_RINGCT:
-                if (OwnAnonOut(&wdb, op.hash, (CTxOutRingCT*)txout.get(), nullptr, n, *pout, stx, fUpdated)
-                    && !fHave) {
+                if (OwnAnonOut(&wdb, op.hash, (CTxOutRingCT*)txout.get(), nullptr, n, *pout, stx, fUpdated) &&
+                    !fHave) {
                     fUpdated = true;
                     rtx.InsertOutput(*pout);
                 }
@@ -9627,8 +9634,8 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
                 ProcessPlaceholder(*stx.tx.get(), rtx);
             }
 
-            if (!wdb.WriteTxRecord(op.hash, rtx)
-                || !wdb.WriteStoredTx(op.hash, stx)) {
+            if (!wdb.WriteTxRecord(op.hash, rtx) ||
+                !wdb.WriteStoredTx(op.hash, stx)) {
                 return false;
             }
 
@@ -9645,8 +9652,8 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
 
     // Trigger a rescan from the deepest anon out, spend info may need to be updated
     // Only possible if outputs were spent from a different wallet.
-    if (!m_is_only_instance
-        && earliest_anon_out_time != std::numeric_limits<int64_t>::max()) {
+    if (!m_is_only_instance &&
+        earliest_anon_out_time != std::numeric_limits<int64_t>::max()) {
         WalletRescanReserver reserver(*this);
         if (!reserver.reserve()) {
             WalletLogPrintf("%s: Wallet is currently rescanning.\n", __func__);
@@ -9811,9 +9818,9 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
     CKeyID ckidMatch = ToKeyID(boost::get<PKHash>(address));
     if (HaveKey(ckidMatch)) {
         CStealthAddress sx;
-        if (fNeedShared
-            && GetStealthLinked(ckidMatch, sx)
-            && GetStealthAddressScanKey(sx)) {
+        if (fNeedShared &&
+            GetStealthLinked(ckidMatch, sx) &&
+            GetStealthAddressScanKey(sx)) {
             if (StealthShared(sx.scan_secret, vchEphemPK, sShared) != 0) {
                 WalletLogPrintf("%s: StealthShared failed.\n", __func__);
                 //continue;
@@ -10781,7 +10788,7 @@ int CHDWallet::OwnBlindOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOu
             CStealthAddress sx;
             CKey scan_secret;
 
-            if (GetStealthLinked(idk, sx) &&
+            if (GetStealthLinked(pwdb, idk, sx) &&
                 GetStealthSecret(sx, scan_secret)) {
 
                 // pk_tweaked = pkEphem + G * tweak
@@ -10871,8 +10878,8 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
 
     if (IsLocked()) {
         COutPoint op(txhash, rout.n);
-        if ((rout.nFlags & ORF_LOCKED)
-            && !pwdb->HaveLockedAnonOut(op)) {
+        if ((rout.nFlags & ORF_LOCKED) &&
+            !pwdb->HaveLockedAnonOut(op)) {
             rout.nValue = 0;
             fUpdated = true;
             if (LogAcceptCategory(BCLog::HDWALLET)) WalletLogPrintf("%s: Adding locked anon output %s, %d.\n", __func__, txhash.ToString(), rout.n);
@@ -10916,7 +10923,7 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
         if (rewind_rv < 1) {
             CStealthAddress sx;
             CKey scan_secret;
-            if (GetStealthLinked(idk, sx) &&
+            if (GetStealthLinked(pwdb, idk, sx) &&
                 GetStealthSecret(sx, scan_secret)) {
 
                 // pk_tweaked = pkEphem + G * tweak
@@ -10950,9 +10957,9 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
         ExtractNarration(nonce, pout->vData, rout.sNarration);
     } else
     if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-        blindOut, &amountOut, msg, &mlen, nonce.begin(),
-        &min_value, &max_value,
-        &pout->commitment, pout->vRangeproof.data(), pout->vRangeproof.size(),
+                blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                &min_value, &max_value,
+                &pout->commitment, pout->vRangeproof.data(), pout->vRangeproof.size(),
         nullptr, 0,
         secp256k1_generator_h)) {
         return werrorN(0, "%s: secp256k1_rangeproof_rewind failed.", __func__);
@@ -10969,11 +10976,11 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
 
     if (rout.vPath.size() == 0) {
         CStealthAddress sx;
-        if (GetStealthLinked(idk, sx)) {
+        if (GetStealthLinked(pwdb, idk, sx)) {
             CStealthAddressIndexed sxi;
             sx.ToRaw(sxi.addrRaw);
             uint32_t sxId;
-            if (GetStealthKeyIndex(sxi, sxId)) {
+            if (GetStealthKeyIndex(pwdb, sxi, sxId)) {
                 rout.vPath.resize(5);
                 rout.vPath[0] = ORA_STEALTH;
                 memcpy(&rout.vPath[1], &sxId, 4);
