@@ -95,7 +95,7 @@ static const int DEFAULT_STOPATHEIGHT = 0;
 extern unsigned int MIN_BLOCKS_TO_KEEP;
 extern unsigned int NODE_NETWORK_LIMITED_MIN_BLOCKS;
 static const signed int DEFAULT_CHECKBLOCKS = 6;
-static const unsigned int DEFAULT_CHECKLEVEL = 3;
+static constexpr int DEFAULT_CHECKLEVEL{3};
 // Require that user allocate at least 550 MiB for block & undo files (blk???.dat and rev???.dat)
 // At 1MB per block, 288 blocks = 288MB.
 // Add 15% for Undo data = 331MB

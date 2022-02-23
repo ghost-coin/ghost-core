@@ -112,7 +112,7 @@ class HelpRpcTest(BitcoinTestFramework):
         # command titles
         titles = [line[3:-3] for line in node.help().splitlines() if line.startswith('==')]
 
-        components = ['Addressindex', 'Anon', 'Blockchain', 'Control', 'Csindex', 'Generating', 'Mining', 'Mnemonic', 'Network', 'Rawtransactions', 'Util', 'Smsg']
+        components = ['Addressindex', 'Anon', 'Blockchain', 'Control', 'Csindex', 'Mining', 'Mnemonic', 'Network', 'Rawtransactions', 'Util', 'Smsg']
 
         if self.is_usbdevice_compiled():
             components.append('Usbdevice')
