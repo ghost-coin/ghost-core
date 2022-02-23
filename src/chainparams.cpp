@@ -708,10 +708,11 @@ public:
         nBIP44IDCurrent = 0x80000213;
         nBIP44IDLegacy = nBIP44IDCurrent;
 
-        nModifierInterval = 10 * 60;    // 10 minutes
-        nStakeMinConfirmations = 225;   // 225 * 2 minutes
-        nTargetSpacing = 120;           // 2 minutes
-        nTargetTimespan = 24 * 60;      // 24 mins
+        nModifierInterval = 2 * 60;    
+        nStakeMinConfirmations = 12;   
+        nTargetSpacing = 5;           
+        nTargetTimespan = 16 * 60;
+
         consensus.nLWMADiffUpgradeHeight = 40863;
         consensus.nZawyLwmaAveragingWindow = 45;
         nBlockReward = 6 * COIN;
