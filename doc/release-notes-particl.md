@@ -17,6 +17,12 @@ Next Major Version
 - script: Remove timelocked script signing.
 
 
+0.21.2.7
+==============
+
+- wallet: Fix receiving anon txns on locked wallet and new address.
+
+
 0.21.2.6
 ==============
 

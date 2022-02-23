@@ -369,9 +369,11 @@ public:
     int LoadStealthAddresses();
     int LoadMasterKeys();
     bool IndexStealthKey(CHDWalletDB *pwdb, uint160 &hash, const CStealthAddressIndexed &sxi, uint32_t &id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetStealthKeyIndex(CHDWalletDB *pwdb, const CStealthAddressIndexed &sxi, uint32_t &id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool GetStealthKeyIndex(const CStealthAddressIndexed &sxi, uint32_t &id);
     bool UpdateStealthAddressIndex(const CKeyID &idK, const CStealthAddressIndexed &sxi, uint32_t &id); // Get stealth index or create new index if none found
     bool GetStealthByIndex(uint32_t sxId, CStealthAddress &sx) const;
+    bool GetStealthLinked(CHDWalletDB *pwdb, const CKeyID &idK, CStealthAddress &sx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool GetStealthLinked(const CKeyID &idK, CStealthAddress &sx) const;
     bool GetStealthSecret(const CStealthAddress &sx, CKey &key_out) const;
     bool ProcessLockedStealthOutputs() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
