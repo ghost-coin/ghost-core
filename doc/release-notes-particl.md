@@ -4,6 +4,11 @@
 
 - wallet: Fix receiving anon txns on locked wallet and new address.
 - wallet: Fix passing anon_ring_size parameter to fundrawtransactionfrom.
+- Raised min protocol version to 90014
+- Disable p2sh-p2wpkh addresses.
+- qt: 'Import Chain' defaults to disabled.
+- wallet, qt: Default ring size set to 12 to match Particl Desktop.
+- wallet: Fix BTC segwit address path and label in getaddressinfo.
 
 
 0.21.2.6
