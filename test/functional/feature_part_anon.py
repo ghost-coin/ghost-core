@@ -69,7 +69,7 @@ class AnonTest(ParticlTestFramework):
         for txnHash in txnHashes:
             assert(txnHash in ro['tx'])
 
-        txnHash = nodes[1].sendanontoanon(sxAddrTo0_1, 1, '', '', False, 'node1 -> node0 a->a', 5, 1))
+        txnHash = nodes[1].sendanontoanon(sxAddrTo0_1, 1, '', '', False, 'node1 -> node0 a->a', 5, 1)
         txnHashes = [txnHash,]
 
         assert(self.wait_for_mempool(nodes[0], txnHash))
