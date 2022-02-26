@@ -53,7 +53,7 @@ class ParticlTestFramework(BitcoinTestFramework):
         assert_equal(len(extra_args), self.num_nodes)
         try:
             for i, node in enumerate(self.nodes):
-                if self.is_wallet_compiled() and '-disablewallet' not in extra_args[i] \
+                if self.is_wallet_compiled() and '-disablewallet' not in extra_args[i] and '-nowallet' not in extra_args[i] \
                    and len([a for a in extra_args[i] if a is not None and a.startswith('-wallet')]) == 0:
                     ea = ['-wallet=default_wallet',]
                     if extra_args[i] is not None:
