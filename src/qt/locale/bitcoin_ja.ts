@@ -3856,7 +3856,7 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation>エラー: 内向きの接続をリッスンするのに失敗しました（%s エラーが返却されました）</translation>
     </message>
     <message>
-        <source>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</source>
+        <source>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</source>
         <translation>%sが破損しています。ウォレットのツールparticl-walletを使って復旧するか、バックアップから復元してみてください。</translation>
     </message>
     <message>
