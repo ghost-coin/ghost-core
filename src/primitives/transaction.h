@@ -912,8 +912,8 @@ public:
     bool IsCoinBase() const
     {
         if (IsParticlVersion()) {
-            return (GetType() == TXN_COINBASE
-                && vin.size() == 1 && vin[0].prevout.IsNull()); // TODO [rm]?
+            return (GetType() == TXN_COINBASE &&
+                    vin.size() == 1 && vin[0].prevout.IsNull()); // TODO [rm]?
         }
 
         return (vin.size() == 1 && vin[0].prevout.IsNull());
@@ -921,10 +921,10 @@ public:
 
     bool IsCoinStake() const
     {
-        return GetType() == TXN_COINSTAKE
-            && vin.size() > 0 && vpout.size() > 1
-            && vpout[0]->nVersion == OUTPUT_DATA
-            && vpout[1]->nVersion == OUTPUT_STANDARD;
+        return (GetType() == TXN_COINSTAKE &&
+                vin.size() > 0 && vpout.size() > 1 &&
+                vpout[0]->nVersion == OUTPUT_DATA &&
+                vpout[1]->nVersion == OUTPUT_STANDARD);
     }
 
     bool GetCoinStakeHeight(int &height) const
