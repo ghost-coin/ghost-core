@@ -186,8 +186,8 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
         <translation>វាយបញ្ចូលឃ្លាសម្ងាត់ចាស់ និងឃ្លាសសម្លាត់ថ្មី សម្រាប់កាបូបចល័តរបស់អ្នក។</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
+        <translation>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -496,7 +496,7 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
         <translation>&amp;អាសយដ្ឋានទទួល</translation>
     </message>
     <message>
-        <source>Open a particl: URI</source>
+        <source>Open a ghost: URI</source>
         <translation>បើកប៊ីតខញមួយៈ URl</translation>
     </message>
     <message>
@@ -1502,16 +1502,16 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
         <translation>ការស្នើរសុំទូរទាត់ប្រាក់ជួបបញ្ហា</translation>
     </message>
     <message>
-        <source>Cannot start particl: click-to-pay handler</source>
-        <translation>Cannot start particl: click-to-pay handler</translation>
+        <source>Cannot start ghost: click-to-pay handler</source>
+        <translation>Cannot start ghost: click-to-pay handler</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation>URI handling</translation>
     </message>
     <message>
-        <source>'particl://' is not a valid URI. Use 'particl:' instead.</source>
-        <translation>'particl://' is not a valid URI. Use 'particl:' instead.</translation>
+        <source>'ghost://' is not a valid URI. Use 'ghost:' instead.</source>
+        <translation>'ghost://' is not a valid URI. Use 'ghost:' instead.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.</source>
@@ -2262,8 +2262,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
         <translation>Hide transaction fee settings</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for particl transactions than the network can process.</source>
-        <translation>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for particl transactions than the network can process.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for ghost transactions than the network can process.</source>
+        <translation>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for ghost transactions than the network can process.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2505,8 +2505,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
         <translation>The amount to send in the selected unit</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less ghost than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation>The fee will be deducted from the amount being sent. The recipient will receive less ghost than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2533,8 +2533,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
         <translation>បញ្ចូលស្លាក​សញ្ញាមួយ សម្រាប់អាសយដ្ឋាននេះ ដើម្បីបញ្ចូលវាទៅក្នងបញ្ចីរអាសយដ្ឋានដែលបានប្រើប្រាស់</translation>
     </message>
     <message>
-        <source>A message that was attached to the particl: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</source>
-        <translation>A message that was attached to the particl: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</translation>
+        <source>A message that was attached to the ghost: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</source>
+        <translation>A message that was attached to the ghost: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2563,8 +2563,8 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
         <translation>&amp;ចុះហត្ថលេខា សារ</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</translation>
+        <source>You can sign messages/agreements with your addresses to prove you can receive ghost sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <translation>You can sign messages/agreements with your addresses to prove you can receive ghost sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</translation>
     </message>
     <message>
         <source>The Particl address to sign the message with</source>
@@ -3588,8 +3588,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation>Error: Listening for incoming connections failed (listen returned error %s)</translation>
     </message>
     <message>
-        <source>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</source>
-        <translation>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</translation>
+        <source>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</source>
+        <translation>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</translation>
     </message>
     <message>
         <source>Cannot upgrade a non HD split wallet without upgrading to support pre split keypool. Please use version 169900 or no version specified.</source>

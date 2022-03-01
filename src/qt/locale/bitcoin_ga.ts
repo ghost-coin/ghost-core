@@ -186,8 +186,8 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation>Cuir isteach an sean pasfhrása agus an pasfhrása nua don sparán.</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
-        <translation>Cuimhnigh nach dtugann chriptiú do sparán cosaint go hiomlán do do particl ó bheith goidte ag bogearraí mailíseacha atá ag ionfhabhtú do ríomhaire.</translation>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
+        <translation>Cuimhnigh nach dtugann chriptiú do sparán cosaint go hiomlán do do ghost ó bheith goidte ag bogearraí mailíseacha atá ag ionfhabhtú do ríomhaire.</translation>
     </message>
     <message>
         <source>Wallet to be encrypted</source>
@@ -412,8 +412,8 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation>Barra uirlisí cluaisíní</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and particl: URIs)</source>
-        <translation>Iarr íocaíochtaí (gineann cóid QR agus particl: URIs)</translation>
+        <source>Request payments (generates QR codes and ghost: URIs)</source>
+        <translation>Iarr íocaíochtaí (gineann cóid QR agus ghost: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -504,8 +504,8 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation>S&amp;eoltaí glacadh</translation>
     </message>
     <message>
-        <source>Open a particl: URI</source>
-        <translation>Oscail particl: URI</translation>
+        <source>Open a ghost: URI</source>
+        <translation>Oscail ghost: URI</translation>
     </message>
     <message>
         <source>Open Wallet</source>
@@ -1064,12 +1064,12 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation>Foirm</translation>
     </message>
     <message>
-        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the particl network, as detailed below.</source>
-        <translation>B’fhéidir nach mbeidh idirbhearta dheireanacha le feiceáil fós, agus dá bhrí sin d’fhéadfadh go mbeadh iarmhéid do sparán mícheart. Beidh an faisnéis seo ceart nuair a bheidh do sparán críochnaithe ag sioncrónú leis an líonra particl, mar atá luaite thíos.</translation>
+        <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the ghost network, as detailed below.</source>
+        <translation>B’fhéidir nach mbeidh idirbhearta dheireanacha le feiceáil fós, agus dá bhrí sin d’fhéadfadh go mbeadh iarmhéid do sparán mícheart. Beidh an faisnéis seo ceart nuair a bheidh do sparán críochnaithe ag sioncrónú leis an líonra ghost, mar atá luaite thíos.</translation>
     </message>
     <message>
-        <source>Attempting to spend particl that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
-        <translation>Ní ghlacfaidh an líonra le hiarrachtí particl a chaitheamh a mbaineann le hidirbhearta nach bhfuil ar taispeáint go fóill.</translation>
+        <source>Attempting to spend ghost that are affected by not-yet-displayed transactions will not be accepted by the network.</source>
+        <translation>Ní ghlacfaidh an líonra le hiarrachtí ghost a chaitheamh a mbaineann le hidirbhearta nach bhfuil ar taispeáint go fóill.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1119,8 +1119,8 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
 <context>
     <name>OpenURIDialog</name>
     <message>
-        <source>Open particl URI</source>
-        <translation>Oscail URI particl</translation>
+        <source>Open ghost URI</source>
+        <translation>Oscail URI ghost</translation>
     </message>
     <message>
         <source>URI:</source>
@@ -1630,16 +1630,16 @@ Ní féidir síniú ach le seoltaí 'oidhreachta'.</translation>
         <translation>Earráid iarratais íocaíocht</translation>
     </message>
     <message>
-        <source>Cannot start particl: click-to-pay handler</source>
-        <translation>Ní féidir particl a thosú: láimhseálaí cliceáil-chun-íoc</translation>
+        <source>Cannot start ghost: click-to-pay handler</source>
+        <translation>Ní féidir ghost a thosú: láimhseálaí cliceáil-chun-íoc</translation>
     </message>
     <message>
         <source>URI handling</source>
         <translation>Láimhseála URI</translation>
     </message>
     <message>
-        <source>'particl://' is not a valid URI. Use 'particl:' instead.</source>
-        <translation>Ní URI bailí é 'particl://'. Úsáid 'particl:' ina ionad.</translation>
+        <source>'ghost://' is not a valid URI. Use 'ghost:' instead.</source>
+        <translation>Ní URI bailí é 'ghost://'. Úsáid 'ghost:' ina ionad.</translation>
     </message>
     <message>
         <source>Cannot process payment request because BIP70 is not supported.</source>
@@ -2442,8 +2442,8 @@ Nóta: Ós rud é go ríomhtar an táille ar bunús gach beart, ní thabharfadh 
         <translation>Folaigh socruithe táillí idirbhirt</translation>
     </message>
     <message>
-        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for particl transactions than the network can process.</source>
-        <translation>Nuair a bhíonn méid idirbhirt níos lú ná spás sna bloic, féadfaidh mianadóirí chomh maith le nóid athsheachadadh táille íosta a fhorfheidhmiú. Tá sé sách maith an táille íosta seo a íoc, ach bíodh a fhios agat go bhféadfadh idirbheart nach ndeimhnítear riamh a bheith mar thoradh air seo a nuair a bhíonn níos mó éilimh ar idirbhearta particl ná mar is féidir leis an líonra a phróiseáil.</translation>
+        <source>When there is less transaction volume than space in the blocks, miners as well as relaying nodes may enforce a minimum fee. Paying only this minimum fee is just fine, but be aware that this can result in a never confirming transaction once there is more demand for ghost transactions than the network can process.</source>
+        <translation>Nuair a bhíonn méid idirbhirt níos lú ná spás sna bloic, féadfaidh mianadóirí chomh maith le nóid athsheachadadh táille íosta a fhorfheidhmiú. Tá sé sách maith an táille íosta seo a íoc, ach bíodh a fhios agat go bhféadfadh idirbheart nach ndeimhnítear riamh a bheith mar thoradh air seo a nuair a bhíonn níos mó éilimh ar idirbhearta ghost ná mar is féidir leis an líonra a phróiseáil.</translation>
     </message>
     <message>
         <source>A too low fee might result in a never confirming transaction (read the tooltip)</source>
@@ -2701,8 +2701,8 @@ Nóta: Ós rud é go ríomhtar an táille ar bunús gach beart, ní thabharfadh 
         <translation>An méid atá le seoladh san aonad roghnaithe</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less particl than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Bainfear an táille ón méid a sheolfar. Gheobhaidh an faighteoir níos lú particl ná mar a iontrálann tú sa réimse méid. Má roghnaítear faighteoirí iolracha, roinntear an táille go cothrom.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less ghost than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation>Bainfear an táille ón méid a sheolfar. Gheobhaidh an faighteoir níos lú ghost ná mar a iontrálann tú sa réimse méid. Má roghnaítear faighteoirí iolracha, roinntear an táille go cothrom.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2729,8 +2729,8 @@ Nóta: Ós rud é go ríomhtar an táille ar bunús gach beart, ní thabharfadh 
         <translation>Iontráil lipéad don seoladh seo chun é a chur le liosta na seoltaí úsáidte</translation>
     </message>
     <message>
-        <source>A message that was attached to the particl: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</source>
-        <translation>Teachtaireacht a bhí ceangailte leis an particl: URI a stórálfar leis an idirbheart le haghaidh do thagairt. Nóta: Ní sheolfar an teachtaireacht seo thar líonra Particl.</translation>
+        <source>A message that was attached to the ghost: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Particl network.</source>
+        <translation>Teachtaireacht a bhí ceangailte leis an ghost: URI a stórálfar leis an idirbheart le haghaidh do thagairt. Nóta: Ní sheolfar an teachtaireacht seo thar líonra Particl.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2763,8 +2763,8 @@ Nóta: Ós rud é go ríomhtar an táille ar bunús gach beart, ní thabharfadh 
         <translation>&amp;Sínigh Teachtaireacht</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive particl sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Féadfaidh tú teachtaireachtaí / comhaontuithe a shíniú le do sheoltaí chun a chruthú gur féidir leat particl a sheoltear chucu a fháil. Bí cúramach gan aon rud doiléir nó randamach a shíniú, mar d’fhéadfadh ionsaithe fioscaireachta iarracht ar d’aitheantas a shíniú chucu. Ná sínigh ach ráitis lán-mhionsonraithe a aontaíonn tú leo.</translation>
+        <source>You can sign messages/agreements with your addresses to prove you can receive ghost sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <translation>Féadfaidh tú teachtaireachtaí / comhaontuithe a shíniú le do sheoltaí chun a chruthú gur féidir leat ghost a sheoltear chucu a fháil. Bí cúramach gan aon rud doiléir nó randamach a shíniú, mar d’fhéadfadh ionsaithe fioscaireachta iarracht ar d’aitheantas a shíniú chucu. Ná sínigh ach ráitis lán-mhionsonraithe a aontaíonn tú leo.</translation>
     </message>
     <message>
         <source>The Particl address to sign the message with</source>
@@ -3832,8 +3832,8 @@ Téigh go Comhad &gt; Oscail Sparán chun sparán a lódáil.
         <translation>Earráid: Theip ar éisteacht le naisc teacht-isteach (chuir éist earráid %s ar ais)</translation>
     </message>
     <message>
-        <source>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</source>
-        <translation>Tá %s truaillithe. Triail an uirlis sparán particl-wallet a úsáid chun tharrtháil nó chun cúltaca a athbhunú.</translation>
+        <source>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</source>
+        <translation>Tá %s truaillithe. Triail an uirlis sparán ghost-wallet a úsáid chun tharrtháil nó chun cúltaca a athbhunú.</translation>
     </message>
     <message>
         <source>Cannot upgrade a non HD split wallet without upgrading to support pre split keypool. Please use version 169900 or no version specified.</source>

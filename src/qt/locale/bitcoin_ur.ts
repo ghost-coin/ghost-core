@@ -189,7 +189,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>پرس کے لئے پرانا پاسفریج اور نیا پاسفریز درج کریں۔</translation>
     </message>
     <message>
-        <source>Remember that encrypting your wallet cannot fully protect your particl from being stolen by malware infecting your computer.</source>
+        <source>Remember that encrypting your wallet cannot fully protect your ghost from being stolen by malware infecting your computer.</source>
         <translation>یاد رکھیں کہ آپ کے پرس کو خفیہ کرنا آپ کے بٹ کوائنز کو میلویئر/چور سے آپ کے کمپیوٹر میں انفیکشن لگانے کے ذریعہ چوری ہونے سے پوری طرح محفوظ نہیں رکھ سکتا ہے۔</translation>
     </message>
     <message>

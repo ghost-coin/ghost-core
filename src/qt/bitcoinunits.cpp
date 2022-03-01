@@ -44,7 +44,7 @@ QString BitcoinUnits::longName(int unit)
     {
     case BTC: return QString("GHOST");
     case mBTC: return QString("mGHOST");
-    case uBTC: return QString::fromUtf8("μGHOST (parts)");
+    case uBTC: return QString::fromUtf8("μGHOST (ghosts)");
     case SAT: return QString("Satoshi (sat)");
     default: return QString("???");
     }
@@ -54,7 +54,7 @@ QString BitcoinUnits::shortName(int unit)
 {
     switch(unit)
     {
-    case uBTC: return QString::fromUtf8("parts");
+    case uBTC: return QString::fromUtf8("ghosts");
     case SAT: return QString("sat");
     default:   return longName(unit);
     }
@@ -64,9 +64,9 @@ QString BitcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("Particls");
-    case mBTC: return QString("Milli-Particls (1 / 1" THIN_SP_UTF8 "000)");
-    case uBTC: return QString("Micro-Particls (parts) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case BTC: return QString("Ghosts");
+    case mBTC: return QString("Milli-Ghosts (1 / 1" THIN_SP_UTF8 "000)");
+    case uBTC: return QString("Micro-Ghosts (ghosts) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     case SAT: return QString("Satoshi (sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }

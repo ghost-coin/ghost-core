@@ -13184,6 +13184,7 @@ bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int n
     } else {
         m_cached_stakeable_coins.clear();
         AvailableCoinsForStaking(m_cached_stakeable_coins, nTime, nHeight);
+        LogPrint(BCLog::POS, "%s: ELSE SELECT COINS.\n", __func__);
         m_have_cached_stakeable_coins = true;
     }
 
@@ -13217,7 +13218,7 @@ bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int n
             nValueRet += coin.first;
         }
     }
-
+    LogPrint(BCLog::POS, "%s: SET COINS SIZE %d.\n", __func__, setCoinsRet.size());
     return true;
 };
 
@@ -13241,10 +13242,12 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
     // Select coins with suitable depth
     if (!SelectCoinsForStaking(nBalance - nReserveBalance, nTime, nBlockHeight, setCoins, nValueIn)) {
+        LogPrint(BCLog::POS, "%s: SelectCoinsForStaking failed.\n", __func__);
         return false;
     }
 
     if (setCoins.empty()) {
+        LogPrint(BCLog::POS, "%s: empty failed.\n", __func__);
         return false;
     }
 
@@ -13402,6 +13405,8 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
             setCoins.erase(it);
             break;
+        }else {
+            WalletLogPrintf("%s:FAILED ADDED KERNEL.\n", __func__);
         }
     }
 

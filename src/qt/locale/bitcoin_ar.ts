@@ -3702,8 +3702,8 @@ Go to File &gt; Open Wallet to load a wallet.
         <translation>Error: Listening for incoming connections failed (listen returned error %s)</translation>
     </message>
     <message>
-        <source>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</source>
-        <translation>%s corrupt. Try using the wallet tool particl-wallet to salvage or restoring a backup.</translation>
+        <source>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</source>
+        <translation>%s corrupt. Try using the wallet tool ghost-wallet to salvage or restoring a backup.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>
