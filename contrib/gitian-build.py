@@ -26,14 +26,15 @@ def setup():
         programs += ['apt-cacher-ng', 'lxc', 'debootstrap']
     subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
     if not os.path.isdir('gitian.sigs'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/particl/gitian.sigs.git'])
-    if not os.path.isdir('particl-detached-sigs'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/particl/particl-detached-sigs.git'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/ghost-coin/gitian.sigs.git'])
+    if not os.path.isdir('ghost-detached-sigs'):
+        subprocess.check_call(['git', 'clone', 'https://github.com/ghost-coin/ghost-detached-sigs.git'])
     if not os.path.isdir('gitian-builder'):
         subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
     if not os.path.isdir('ghost-core'):
-        subprocess.check_call(['git', 'clone', 'git@git.afach.de:samerafach/ghost-core.git'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/ghost-coin/ghost-core.git'])
     os.chdir('gitian-builder')
+
     make_image_prog = ['bin/make-base-vm', '--suite', 'bionic', '--arch', 'amd64', '--disksize', '20000']
     if args.docker:
         make_image_prog += ['--docker']

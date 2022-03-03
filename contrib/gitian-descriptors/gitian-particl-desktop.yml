@@ -1,5 +1,5 @@
 ---
-name: "particl-desktop"
+name: "ghost-desktop"
 enable_cache: true
 sudo: true
 suites:
@@ -24,8 +24,8 @@ packages:
 - "apt-transport-https"
 - "libjpeg-dev"
 remotes:
-- "url": "https://github.com/particl/particl-desktop"
-  "dir": "particl-desktop"
+- "url": "https://github.com/ghost-coin/ghost-desktop"
+  "dir": "ghost-desktop"
 files: []
 script: |
   # prepare
