@@ -9,6 +9,7 @@ src/particl-gui
 src/particl-node
 src/particl-tx
 src/particl-util
+src/particl-chainstate
 src/particl-wallet
 src/test/fuzz/fuzz
 src/test/test_particl
