@@ -503,7 +503,7 @@ public:
 
         consensus.nMinRCTOutputDepth = 12;
 
-        anonRecoveryAddress = "GbnRxvcgEdkoTwnnbPRaiGrcXHdvbb4A7j";
+        anonRecoveryAddress = "GXNPyTVatWqWnKLjaaXhVTQVess7tPGwkk";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
