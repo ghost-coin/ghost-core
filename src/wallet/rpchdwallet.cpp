@@ -9475,7 +9475,7 @@ static bool PruneBlockFile(ChainstateManager &chainman, FILE *fp, bool test_only
             num_blocks_in_file++;
             node::BlockMap::iterator mi = chainman.BlockIndex().find(blockhash);
             if (mi == chainman.BlockIndex().end()
-                || !chainman.ActiveChain().Contains(mi->second)) {
+                || !chainman.ActiveChain().Contains(&mi->second)) {
                 num_blocks_removed++;
             } else
             if (!test_only) {

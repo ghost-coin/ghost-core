@@ -8,9 +8,11 @@ set -e
 
 ROOTDIR=dist
 BUNDLE="${ROOTDIR}/Particl-Qt.app"
+BINARY="${BUNDLE}/Contents/MacOS/Particl-Qt"
 SIGNAPPLE=signapple
 TEMPDIR=sign.temp
-OUT=signature-osx.tar.gz
+ARCH=$(${SIGNAPPLE} info ${BINARY} | head -n 1 | cut -d " " -f 1)
+OUT="signature-osx-${ARCH}.tar.gz"
 OUTROOT=osx/dist
 
 if [ -z "$1" ]; then

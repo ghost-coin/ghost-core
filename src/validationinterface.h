@@ -182,6 +182,7 @@ protected:
     virtual void NewSecureMessage(const smsg::SecureMessage *psmsg, const uint160 &hash) {};
 
     friend class CMainSignals;
+    friend class ValidationInterfaceTest;
 };
 
 struct MainSignalsInstance;

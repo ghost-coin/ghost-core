@@ -151,7 +151,7 @@ class WalletSendTest(BitcoinTestFramework):
             # Ensure transaction exists in the wallet:
             tx = from_wallet.gettransaction(res["txid"])
             assert tx
-            assert_equal(tx["bip125_replaceable"], "yes" if replaceable else "no")
+            assert_equal(tx["bip125-replaceable"], "yes" if replaceable else "no")
             # Ensure transaction exists in the mempool:
             tx = from_wallet.getrawtransaction(res["txid"], True)
             assert tx
@@ -462,10 +462,10 @@ class WalletSendTest(BitcoinTestFramework):
         self.log.info("Replaceable...")
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, add_to_wallet=True, replaceable=True)
         assert res["complete"]
-        assert_equal(self.nodes[0].gettransaction(res["txid"])["bip125_replaceable"], "yes")
+        assert_equal(self.nodes[0].gettransaction(res["txid"])["bip125-replaceable"], "yes")
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, add_to_wallet=True, replaceable=False)
         assert res["complete"]
-        assert_equal(self.nodes[0].gettransaction(res["txid"])["bip125_replaceable"], "no")
+        assert_equal(self.nodes[0].gettransaction(res["txid"])["bip125-replaceable"], "no")
 
         self.log.info("Subtract fee from output")
         self.test_send(from_wallet=w0, to_wallet=w1, amount=1, subtract_fee_from_outputs=[0])

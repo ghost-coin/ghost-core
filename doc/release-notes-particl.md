@@ -1,6 +1,12 @@
 Next Major Version
 ==============
 
+- rpc: Reverted bip125_replaceable change back to bip125-replaceable.
+
+
+23.0.1
+==============
+
 - rpc: devicesignrawtransactionwithwallet is split out of devicesignrawtransaction.
   - Workaround for wallet context only provided for wallet rpc commands.
 

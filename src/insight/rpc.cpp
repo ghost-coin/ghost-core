@@ -810,7 +810,7 @@ return RPCHelpMan{"getblockdeltas",
     }
 
     CBlock block;
-    CBlockIndex *pblockindex = chainman.BlockIndex()[hash];
+    CBlockIndex *pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
 
     if (node::fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Block not available (pruned data)");
@@ -939,7 +939,8 @@ static RPCHelpMan gettxoutsetinfobyscript()
         pcursor = std::unique_ptr<CCoinsViewCursor>(chainman.ActiveChainstate().CoinsDB().Cursor());
         assert(pcursor);
         hashBlock = pcursor->GetBestBlock();
-        nHeight = chainman.BlockIndex().find(hashBlock)->second->nHeight;
+
+        nHeight = chainman.m_blockman.LookupBlockIndex(hashBlock)->nHeight;
     }
 
     class PerScriptTypeStats {

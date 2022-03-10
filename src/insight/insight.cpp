@@ -84,7 +84,7 @@ bool ExtractIndexInfo(const CTxOutBase *out, int &scriptType, std::vector<uint8_
 
 static bool HashOnchainActive(ChainstateManager &chainman, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
-    CBlockIndex* pblockindex = chainman.BlockIndex()[hash];
+    CBlockIndex* pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
 
     if (!chainman.ActiveChain().Contains(pblockindex)) {
         return false;

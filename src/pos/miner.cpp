@@ -58,12 +58,12 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
             return error("%s: %s prev block not found: %s.", __func__, hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
         }
 
-        if (!chainman.ActiveChain().Contains(mi->second)) {
+        if (!chainman.ActiveChain().Contains(&mi->second)) {
             return error("%s: %s prev block in active chain: %s.", __func__, hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
         }
 
         BlockValidationState state;
-        if (!CheckProofOfStake(chainman.ActiveChainstate(), state, mi->second, *pblock->vtx[0], pblock->nTime, pblock->nBits, proofHash, hashTarget)) {
+        if (!CheckProofOfStake(chainman.ActiveChainstate(), state, &mi->second, *pblock->vtx[0], pblock->nTime, pblock->nBits, proofHash, hashTarget)) {
             return error("%s: proof-of-stake checking failed.", __func__);
         }
         if (pblock->hashPrevBlock != chainman.ActiveChain().Tip()->GetBlockHash()) { // hashbestchain

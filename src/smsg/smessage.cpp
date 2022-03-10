@@ -3565,7 +3565,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
         LOCK(cs_main);
         node::BlockMap::iterator mi = m_node->chainman->BlockIndex().find(hashBlock);
         if (mi != m_node->chainman->BlockIndex().end()) {
-            pindex = mi->second;
+            pindex = &mi->second;
             if (pindex && m_node->chainman->ActiveChain().Contains(pindex)) {
                 blockDepth = m_node->chainman->ActiveChain().Height() - pindex->nHeight + 1;
                 nMsgFeePerKPerDay = particl::GetSmsgFeeRate(*m_node->chainman, pindex);
