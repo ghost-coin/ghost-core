@@ -5102,7 +5102,6 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
     }
 
     const Consensus::Params &consensusParams = Params().GetConsensus();
-    bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
     size_t min_ringsize = Params().IsMockableChain() ? MIN_RINGSIZE : Params().GetConsensus().m_min_ringsize_post_hf2; // Allow incorrect size for testing
     if (nRingSize < min_ringsize || nRingSize > MAX_RINGSIZE) {
         return wserrorN(1, sError, __func__, _("Ring size out of range [%d, %d]").translated, MIN_RINGSIZE, MAX_RINGSIZE);
@@ -5130,13 +5129,17 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
     }
     int64_t min_anon_input = 1;
     int64_t available_outputs = nLastRCTOutIndex;
-    if (exploit_fix_2_active) {
-        available_outputs -= consensusParams.m_frozen_anon_index;
-        min_anon_input = consensusParams.m_frozen_anon_index + 1;
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
-            WalletLogPrintf("%s: Set min anon input to %d.\n", __func__, min_anon_input);
-        }
+
+    // @note: This need to be reviewed when the recovery process is end 
+    // Since we don't have exploit_fix_2_active feature activation flag
+    // This is modified such that only indexes after m_frozen_anon_index + 1 are chosen for spending
+
+    available_outputs -= consensusParams.m_frozen_anon_index;
+    min_anon_input = consensusParams.m_frozen_anon_index + 1;
+    if (LogAcceptCategory(BCLog::HDWALLET)) {
+        WalletLogPrintf("%s: Set min anon input to %d.\n", __func__, min_anon_input);
     }
+    
     if (coinControl->m_mixin_selection_mode != MIXIN_SEL_DEBUG &&
         available_outputs < (int64_t)(nInputs * nRingSize)) {
         return wserrorN(1, sError, __func__, _("Not enough anon outputs exist, last: %d, required: %d").translated, available_outputs, nInputs * nRingSize);
@@ -11812,16 +11815,15 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlyS
     bool allow_used_addresses = !IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE) || (coinControl && !coinControl->m_avoid_address_reuse);
 
     const Consensus::Params &consensusParams = Params().GetConsensus();
-    bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
     for (MapRecords_t::const_iterator it = mapRecords.begin(); it != mapRecords.end(); ++it) {
         const uint256 &txid = it->first;
         const CTransactionRecord &rtx = it->second;
 
-        if (exploit_fix_2_active && rtx.block_height > 0) { // height 0 is mempool
-            if (!spend_frozen && rtx.block_height <= consensusParams.m_frozen_blinded_height) {
+        if (rtx.block_height > 0) { // height 0 is mempool
+            if (!spend_frozen && rtx.block_height <= consensusParams.anonRestrictionStartHeight) {
                 continue;
             } else
-            if (spend_frozen && rtx.block_height > consensusParams.m_frozen_blinded_height) {
+            if (spend_frozen && rtx.block_height > consensusParams.anonRestrictionStartHeight) {
                 continue;
             }
         }
@@ -12067,16 +12069,16 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
     CHDWalletDB wdb(GetDatabase());
 
     const Consensus::Params &consensusParams = Params().GetConsensus();
-    bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
+
     for (MapRecords_t::const_iterator it = mapRecords.begin(); it != mapRecords.end(); ++it) {
         const uint256 &txid = it->first;
         const CTransactionRecord &rtx = it->second;
 
-        if (exploit_fix_2_active && rtx.block_height > 0) { // height 0 is mempool
-            if (!spend_frozen && rtx.block_height <= consensusParams.m_frozen_blinded_height) {
+        if (rtx.block_height > 0) { // height 0 is mempool
+            if (!spend_frozen && rtx.block_height <= consensusParams.anonRestrictionStartHeight) {
                 continue;
             } else
-            if (spend_frozen && rtx.block_height > consensusParams.m_frozen_blinded_height) {
+            if (spend_frozen && rtx.block_height > consensusParams.anonRestrictionStartHeight) {
                 continue;
             }
         }
@@ -12128,7 +12130,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
                 if (!wdb.ReadStoredTx(txid, stx) ||
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                     !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
-                    ::Params().IsBlacklistedAnonOutput(index) ||
+                    !::Params().IsBlacklistedAnonOutput(index) ||
                     (!IsWhitelistedAnonOutput(index, time_now, consensusParams) && r.nValue > consensusParams.m_max_tainted_value_out)) {
                     continue;
                 }

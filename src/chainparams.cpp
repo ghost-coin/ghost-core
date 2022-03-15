@@ -474,6 +474,10 @@ public:
         consensus.smsg_fee_max_delta_percent = 43;
         consensus.smsg_min_difficulty = 0x1effffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
+
+        // @note We will instead use this in place of m_frozen_blinded_height. They have the same meaning here
+        // We use this to avoid a fork. Also this is already parameterize and testable
+        // It could be better named anonRestrictionEndHeight since the height 300'000 denotes the limit
         consensus.anonRestrictionStartHeight = 300000;
 
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -503,7 +507,7 @@ public:
 
         consensus.nMinRCTOutputDepth = 12;
 
-        anonRecoveryAddress = "GXNPyTVatWqWnKLjaaXhVTQVess7tPGwkk";
+        anonRecoveryAddress = "GeF4crGDi56ri72HtREoBuJQgiJLspJfAW";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.

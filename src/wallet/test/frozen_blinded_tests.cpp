@@ -182,7 +182,9 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     const CBlockIndex *tip = ::ChainActive().Tip();
     // @todo(Sonkeng): When back to normal restore normal tests
     RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
-    RegtestParams().GetConsensus_nc().m_frozen_blinded_height = tip->nHeight;
+    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = tip->nHeight;
+    std::set<std::uint64_t> aoi_blacklist{1, 2, 3, 4, 5};
+    RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
 
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
@@ -198,6 +200,10 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     // Enable HF2
     RegtestParams().GetConsensus_nc().exploit_fix_2_time = tip->nTime + 1;
     RegtestParams().GetConsensus_nc().exploit_fix_2_height = tip->nHeight + 1;
+    
+    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = 0;
+    RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
+
     CAmount moneysupply_before_fork = tip->nMoneySupply;
 
     while (GetTime() < tip->nTime + 1) {
@@ -209,11 +215,14 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     auto r = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context);
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    // since we assumed all outputs are frozen
-    // BOOST_CHECK(rv["num_spendable"].get_int() == 0);
-    // BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
-    // BOOST_CHECK(rv["error"].get_str() == "No spendable outputs.");
-    // RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 500 * COIN;
+    BOOST_CHECK(rv["num_spendable"].get_int() == 0);
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
+    BOOST_CHECK(rv["error"].get_str() == "No spendable outputs.");
+
+    RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 500 * COIN;
+    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = tip->nHeight;
+    RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
+
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
     BOOST_CHECK(rv["num_spendable"].get_int() > 0);

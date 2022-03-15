@@ -6462,7 +6462,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
             bool in_height = true;
             num_searched += 1;
             if (rtx.block_height < 1 || // height 0 is mempool
-                rtx.block_height > consensusParams.m_frozen_blinded_height) {
+                rtx.block_height > consensusParams.anonRestrictionStartHeight) {
                 in_height = false;
             }
 
@@ -6486,7 +6486,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
 
                 bool is_spendable = true;
                 int64_t anon_index = -1;
-                if (r.nType == OUTPUT_RINGCT) {
+                if (r.nType == OUTPUT_RINGCT) {  
                     CStoredTransaction stx;
                     if (!wdb.ReadStoredTx(txid, stx) ||
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
@@ -6494,7 +6494,7 @@ static void traceFrozenOutputs(UniValue &rv, CAmount min_value, CAmount max_froz
                         warnings.push_back(strprintf("Failed to get anon index for %s.%d", txid.ToString(), r.n));
                         continue;
                     }
-                    if (::Params().IsBlacklistedAnonOutput(anon_index)) {
+                    if (!::Params().IsBlacklistedAnonOutput(anon_index)) {
                         is_spendable = false;
                     }
                 }
@@ -6788,7 +6788,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
             const CTransactionRecord &rtx = it->second;
 
             if (rtx.block_height < 1 || // height 0 is mempool
-                rtx.block_height > consensusParams.m_frozen_blinded_height) {
+                rtx.block_height > consensusParams.anonRestrictionStartHeight) {
                 continue;
             }
 
@@ -6808,11 +6808,10 @@ static UniValue debugwallet(const JSONRPCRequest &request)
 
                     if (!wdb.ReadStoredTx(txid, stx) ||
                         !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
-                        !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index)) {
+                        !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, anon_index)
+                        || (::Params().IsBlacklistedAnonOutput(anon_index) && r.nValue > max_frozen_output_spendable) ) {
 
-                        if (r.nValue > max_frozen_output_spendable) {
                             is_spendable = false;
-                        }
                     }
                 } else
                 // Assume all outputs are frozen 
