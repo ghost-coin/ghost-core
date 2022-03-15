@@ -323,6 +323,7 @@ PARTICL_SCRIPTS = [
     'feature_control_anon.py',
     'feature_control_anon2.py',
     'feature_control_anon3.py',
+    'feature_control_anon4.py',
 ]
 
 PARTICL_SCRIPTS_EXT = [
