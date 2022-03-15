@@ -284,6 +284,7 @@ const std::pair<const char*, CAmount> genesisOutputsTestnet[] = {
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
     std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
     std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
@@ -732,8 +733,7 @@ public:
 
         consensus.nMinRCTOutputDepth = 2;
         consensus.m_frozen_anon_index = 0;
-        consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
-
+        consensus.anonRestrictionStartHeight = 50;
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -764,12 +764,12 @@ public:
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
 
-        genesis = CreateGenesisBlockTestNet(1645041600, 25644, 0x1f00ffff);
+        genesis = CreateGenesisBlockTestNet(1645041600, 19631, 0x1f00ffff);
 
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x00005cb9755c1f413b9c583b1f12a061ce3be407ed5d4616c1d4941fcc2d2303"));
-        assert(genesis.hashMerkleRoot == uint256S("0x7bcb2ba360ad7249205eb4ec2816a0db2917c6f8b0ac4fe75edfb45e9ce14715"));
-        assert(genesis.hashWitnessMerkleRoot == uint256S("0x9b859042647a69863cc839367974cf6c9742f39d8dbb14b87b887945943664ab"));
+        assert(consensus.hashGenesisBlock == uint256S("0x000009523b7e8a8bd898fbdcf0dd15eaee7f66ac9e16a9e28130f06f676997d8"));
+        assert(genesis.hashMerkleRoot == uint256S("0xe76938a98a9a2cc7075f5bdc4c4970d284d8f0c16a60535707e950b54aa67af1"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0xfe443e194b65cd7476c39fed37bd51647a77bc57cdffb973e27cc66947a72cab"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -824,7 +824,7 @@ public:
             /* nTxCount */ 0,
             /* dTxRate  */ 0
         };
-        blacklistedAnonTxs.insert(anon_index_blacklist.begin(), anon_index_blacklist.end());
+        blacklistedAnonTxs = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
     }
 };
 
