@@ -732,7 +732,7 @@ public:
         consensus.defaultAssumeValid = uint256{};
 
         consensus.nMinRCTOutputDepth = 2;
-        consensus.m_frozen_anon_index = 0;
+        consensus.m_frozen_anon_index = 20;
         consensus.anonRestrictionStartHeight = 50;
 
         pchMessageStart[0] = 0x08;

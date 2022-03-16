@@ -196,5 +196,56 @@ class ControlAnonTest4(GhostTestFramework):
         assert_equal(tx["mempool-allowed"], True)
 
 
+        # Blacklist everything
+        # Create P->A tx
+        # Attempt to spend the anon
+
+
+        self.restart_nodes_with_anonoutputs()
+        
+        ao = nodes[0].anonoutput()["lastindex"]
+        last_anon_index = ao
+
+        tx_to_blacklist = (list)(range(1, last_anon_index + 1))
+        tx_to_blacklist = ','.join(map(str, tx_to_blacklist))
+
+        anon_restriction_start_height = nodes[0].anonoutput(output=str(last_anon_index))["blockheight"]
+        self.stop_nodes()
+
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-blacklistedanon='+ tx_to_blacklist, '-anonrestrictionstartheight='+ str(anon_restriction_start_height), '-lastanonindex='+ str(last_anon_index)])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-blacklistedanon='+ tx_to_blacklist, '-anonrestrictionstartheight='+ str(anon_restriction_start_height), '-lastanonindex='+ str(last_anon_index)])
+        self.connect_nodes_bi(0, 1)
+
+        outputs = [{
+            'address': nodes[0].getnewstealthaddress(),
+            'amount': 500,
+            'subfee': True
+        }]
+
+        coincontrol = {'test_mempool_accept': True}
+        tx = nodes[0].sendtypeto('part', 'anon', outputs, 'comment', 'comment-to', 3, 1, False, coincontrol)
+        assert_equal(tx["mempool-allowed"], True)
+
+        coincontrol = {'test_mempool_accept': True}
+        tx = nodes[0].sendtypeto('part', 'anon', outputs, 'comment', 'comment-to', 3, 1, False, coincontrol)
+        assert_equal(tx["mempool-allowed"], True)
+
+        self.stakeBlocks(10)
+
+        balances = nodes[0].getbalances()["mine"]
+        assert balances["anon_trusted"] > 100
+
+        # Now send back A->P
+        outputs[0]["address"] = nodes[0].getnewaddress()
+        
+        unspent = nodes[0].listunspentanon(0, 9999)
+        outputs[0]["amount"] = unspent[0]["amount"]
+
+        inputs = [{'tx': unspent[0]["txid"], 'n': unspent[0]["vout"]}]
+        coincontrol = {'test_mempool_accept': True, 'inputs': inputs}
+
+        tx = nodes[0].sendtypeto('anon', 'part', outputs, 'comment', 'comment-to', 3, 1, False, coincontrol)
+        assert_equal(tx["mempool-allowed"], True)
+
 if __name__ == '__main__':
     ControlAnonTest4().main()
