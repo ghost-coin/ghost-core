@@ -6622,7 +6622,9 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         "options"},
                 },
                 RPCResults{},
-                RPCExamples{""},
+                RPCExamples{
+                    HelpExampleCli("debugwallet", "\"{\\\"attempt_repair\\\":true}\"")
+                },
             }.Check(request);
 
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -7115,13 +7117,16 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         }
                         CAnonKeyImageInfo ki_data;
                         bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, ki_data);
-                        bool spent_in_wallet = pwallet->IsSpent(txhash, r.n);
+                        uint256 spent_by;
+                        bool spent_in_wallet = pwallet->GetSpendingTxid(txhash, r.n, spent_by);
 
                         if (spent_in_chain && !spent_in_wallet) {
                             add_error("Spent in chain but not wallet.", txhash, r.n);
+                            errors.get(errors.size() - 1).pushKV("spent_by", ki_data.txid.ToString());
                         } else
                         if (!spent_in_chain && spent_in_wallet) {
                             add_error("Spent in wallet but not chain.", txhash, r.n);
+                            errors.get(errors.size() - 1).pushKV("spent_by", spent_by.ToString());
                         }
                     }
                 }
