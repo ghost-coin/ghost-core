@@ -394,7 +394,7 @@ static RPCHelpMan getrawtransaction()
     {
         LOCK(cs_main);
         node::BlockMap::iterator mi = chainman.BlockIndex().find(hash_block);
-        if (mi != chainman.BlockIndex().end() && &mi->second) {
+        if (mi != chainman.BlockIndex().end()) {
             CBlockIndex *pindex = &mi->second;
             if (chainman.ActiveChain().Contains(pindex)) {
                 nHeight = pindex->nHeight;

@@ -234,6 +234,21 @@ int main(int argc, char* argv[])
         case BlockValidationResult::BLOCK_CHECKPOINT:
             std::cerr << "the block failed to meet one of our checkpoints" << std::endl;
             break;
+        case BlockValidationResult::DOS_100:
+            std::cerr << "the block failed with a DOS penalty" << std::endl;
+            break;
+        case BlockValidationResult::DOS_50:
+            std::cerr << "the block failed with a DOS penalty" << std::endl;
+            break;
+        case BlockValidationResult::DOS_20:
+            std::cerr << "the block failed with a DOS penalty" << std::endl;
+            break;
+        case BlockValidationResult::DOS_5:
+            std::cerr << "the block failed with a DOS penalty" << std::endl;
+            break;
+        case BlockValidationResult::DOS_1:
+            std::cerr << "the block failed with a DOS penalty" << std::endl;
+            break;
         }
     }
 

@@ -116,7 +116,7 @@ if BUILD_BITCOIN_UTIL
 endif
 
 if BUILD_BITCOIN_CHAINSTATE
-  bin_PROGRAMS += bitcoin-chainstate
+  bin_PROGRAMS += particl-chainstate
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -231,6 +231,7 @@ BITCOIN_CORE_H = \
   reverse_iterator.h \
   rpc/blockchain.h \
   rpc/client.h \
+  rpc/mempool.h \
   rpc/mining.h \
   rpc/protocol.h \
   rpc/rawtransaction_util.h \
@@ -414,6 +415,7 @@ libparticl_node_a_SOURCES = \
   rest.cpp \
   rpc/anon.cpp \
   rpc/blockchain.cpp \
+  rpc/mempool.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
@@ -929,7 +931,7 @@ particl_util_LDADD = \
 #
 
 # bitcoin-chainstate binary #
-bitcoin_chainstate_SOURCES = \
+particl_chainstate_SOURCES = \
   bitcoin-chainstate.cpp \
   arith_uint256.cpp \
   blockfilter.cpp \
@@ -1008,11 +1010,11 @@ bitcoin_chainstate_SOURCES = \
   validationinterface.cpp \
   versionbits.cpp \
   warnings.cpp
-bitcoin_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-bitcoin_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-bitcoin_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
-bitcoin_chainstate_LDADD = \
-  $(LIBBITCOIN_CRYPTO) \
+particl_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+particl_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+particl_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
+particl_chainstate_LDADD = \
+  $(LIBPARTICL_CRYPTO) \
   $(LIBUNIVALUE) \
   $(LIBSECP256K1) \
   $(LIBLEVELDB) \
