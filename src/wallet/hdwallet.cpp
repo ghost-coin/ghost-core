@@ -2492,9 +2492,9 @@ CAmount CHDWallet::GetSpendableBalance() const
         }
 
         for (const auto &r : rtx.vout) {
-            if (r.nType == OUTPUT_STANDARD
-                && (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY)
-                && !IsSpent(txhash, r.n)) {
+            if (r.nType == OUTPUT_STANDARD &&
+                (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY) &&
+                 !IsSpent(txhash, r.n)) {
                 nBalance += r.nValue;
             }
         }
@@ -12426,18 +12426,18 @@ bool CHDWallet::IsSpent(const uint256& hash, unsigned int n) const
     std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range;
     range = mapTxSpends.equal_range(outpoint);
 
-    for (TxSpends::const_iterator it = range.first; it != range.second; ++it)
-    {
+    for (TxSpends::const_iterator it = range.first; it != range.second; ++it) {
         const uint256 &wtxid = it->second;
         MapWallet_t::const_iterator mit = mapWallet.find(wtxid);
-        if (mit != mapWallet.end())
-        {
-            if (mit->second.isAbandoned())
+        if (mit != mapWallet.end()) {
+            if (mit->second.isAbandoned()) {
                 continue;
+            }
 
             int depth = GetTxDepthInMainChain(mit->second);
-            if (depth > 0  || (depth == 0 && !mit->second.isAbandoned()))
+            if (depth > 0  || (depth == 0 && !mit->second.isAbandoned())) {
                 return true; // Spent
+            }
         }
 
         MapRecords_t::const_iterator rit = mapRecords.find(wtxid);
@@ -12448,6 +12448,46 @@ bool CHDWallet::IsSpent(const uint256& hash, unsigned int n) const
 
             int depth = GetDepthInMainChain(rit->second);
             if (depth >= 0) {
+                return true; // Spent
+            }
+        }
+    }
+    return false;
+};
+
+bool CHDWallet::GetSpendingTxid(const uint256& hash, unsigned int n, uint256 &spent_by_txid) const
+{
+    const COutPoint outpoint(hash, n);
+    if (m_collapsed_txn_inputs.find(outpoint) != m_collapsed_txn_inputs.end()) {
+        return true;
+    }
+    std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range;
+    range = mapTxSpends.equal_range(outpoint);
+
+    for (TxSpends::const_iterator it = range.first; it != range.second; ++it) {
+        const uint256 &wtxid = it->second;
+        MapWallet_t::const_iterator mit = mapWallet.find(wtxid);
+        if (mit != mapWallet.end()) {
+            if (mit->second.isAbandoned()) {
+                continue;
+            }
+
+            int depth = GetTxDepthInMainChain(mit->second);
+            if (depth > 0  || (depth == 0 && !mit->second.isAbandoned())) {
+                spent_by_txid = wtxid;
+                return true; // Spent
+            }
+        }
+
+        MapRecords_t::const_iterator rit = mapRecords.find(wtxid);
+        if (rit != mapRecords.end()) {
+            if (rit->second.IsAbandoned()) {
+                continue;
+            }
+
+            int depth = GetDepthInMainChain(rit->second);
+            if (depth >= 0) {
+                spent_by_txid = wtxid;
                 return true; // Spent
             }
         }

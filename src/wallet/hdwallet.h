@@ -441,6 +441,7 @@ public:
     bool AttemptSelection(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
 
     bool IsSpent(const uint256& hash, unsigned int n) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetSpendingTxid(const uint256& hash, unsigned int n, uint256 &spent_by_txid) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /** Whether this or any UTXO with the same CTxDestination has been spent. */
     bool IsSpentKey(const CScript *pscript) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

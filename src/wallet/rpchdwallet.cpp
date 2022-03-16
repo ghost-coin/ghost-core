@@ -6514,7 +6514,8 @@ static RPCHelpMan debugwallet()
                 RPCResult{
                     RPCResult::Type::ANY, "", ""
                 },
-                RPCExamples{""},
+                RPCExamples{
+                    HelpExampleCli("debugwallet", "\"{\\\"attempt_repair\\\":true}\"") + "\n"},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -7006,13 +7007,16 @@ static RPCHelpMan debugwallet()
                         }
                         CAnonKeyImageInfo ki_data;
                         bool spent_in_chain = pwallet->chain().readRCTKeyImage(ki, ki_data);
-                        bool spent_in_wallet = pwallet->IsSpent(txhash, r.n);
+                        uint256 spent_by;
+                        bool spent_in_wallet = pwallet->GetSpendingTxid(txhash, r.n, spent_by);
 
                         if (spent_in_chain && !spent_in_wallet) {
                             add_error("Spent in chain but not wallet.", txhash, r.n);
+                            errors.get(errors.size() - 1).pushKV("spent_by", ki_data.txid.ToString());
                         } else
                         if (!spent_in_chain && spent_in_wallet) {
                             add_error("Spent in wallet but not chain.", txhash, r.n);
+                            errors.get(errors.size() - 1).pushKV("spent_by", spent_by.ToString());
                         }
                     }
                 }
