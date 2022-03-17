@@ -353,7 +353,8 @@ void RandAddStaticEnv(CSHA512& hasher)
 #endif
 
     // Memory locations
-    hasher << &hasher << &RandAddStaticEnv << &malloc << &errno << &environ;
+    uintptr_t malloc_offset = (uintptr_t) &malloc; // Particl: Avoid "internal compiler error" in i686-w64-mingw32 (~11.2.0)
+    hasher << &hasher << &RandAddStaticEnv << malloc_offset << &errno << &environ;
 
     // Hostname
     char hname[256];

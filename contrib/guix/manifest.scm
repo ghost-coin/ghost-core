@@ -605,7 +605,7 @@ inspecting signatures in Mach-O binaries.")
            ;; Windows
            (list zip
                  (make-mingw-pthreads-cross-toolchain "i686-w64-mingw32")
-                 (make-nsis-with-sde-support nsis-i686)
+                 (make-nsis-for-gcc-10 nsis-i686)
                  osslsigncode))
           ((string-contains target "-linux-")
            (list ;; Native GCC 7 toolchain

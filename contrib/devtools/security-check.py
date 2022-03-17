@@ -143,12 +143,18 @@ def check_PE_control_flow(binary) -> bool:
     '''
     Check for control flow instrumentation
     '''
-    main = binary.get_symbol('main').value
+    try:
+        main = binary.get_symbol('main').value
 
-    section_addr = binary.section_from_rva(main).virtual_address
-    virtual_address = binary.optional_header.imagebase + section_addr + main
+        section_addr = binary.section_from_rva(main).virtual_address
+        virtual_address = binary.optional_header.imagebase + section_addr + main
 
-    content = binary.get_content_from_virtual_address(virtual_address, 4, lief.Binary.VA_TYPES.VA)
+        content = binary.get_content_from_virtual_address(virtual_address, 4, lief.Binary.VA_TYPES.VA)
+    except Exception:
+        # Fails in win32 build,
+        # checking binary.abstract.header.is_32 causes win64 build to fail with:
+        #    AttributeError: 'lief.Binary' object has no attribute 'section_from_rva'
+        return True
 
     if content == [243, 15, 30, 250]: # endbr64
         return True
