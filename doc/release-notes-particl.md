@@ -94,6 +94,7 @@
 - qt: 'Import Chain' defaults to disabled.
 - wallet, qt: Default ring size set to 12 to match Particl Desktop.
 - wallet: Fix BTC segwit address path and label in getaddressinfo.
+- rpc: Fix bug in filtertransactions hiding txns with watchonly inputs and spendable outputs.
 
 
 0.19.2.19
