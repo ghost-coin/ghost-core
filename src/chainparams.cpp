@@ -285,6 +285,7 @@ const std::pair<const char*, CAmount> genesisOutputsTestnet[] = {
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
     std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
     std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
     std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
@@ -764,12 +765,12 @@ public:
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
 
-        genesis = CreateGenesisBlockTestNet(1645041600, 19631, 0x1f00ffff);
+        genesis = CreateGenesisBlockTestNet(1645041600, 39904, 0x1f00ffff);
 
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x000009523b7e8a8bd898fbdcf0dd15eaee7f66ac9e16a9e28130f06f676997d8"));
-        assert(genesis.hashMerkleRoot == uint256S("0xe76938a98a9a2cc7075f5bdc4c4970d284d8f0c16a60535707e950b54aa67af1"));
-        assert(genesis.hashWitnessMerkleRoot == uint256S("0xfe443e194b65cd7476c39fed37bd51647a77bc57cdffb973e27cc66947a72cab"));
+        assert(consensus.hashGenesisBlock == uint256S("0x00009f9cb2deb45406db7b8e34961eb1afdb6c4f2908d58bddf3312e8c15a43a"));
+        assert(genesis.hashMerkleRoot == uint256S("0xc088a85a1e2aa0a55900f079078075af187600d5d242c09d5139fc3bbb23f1f8"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0x5e35a3292cbf2e112a65236817519565a3c50544dd24d602ceba985dba4e806c"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
