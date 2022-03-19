@@ -1009,11 +1009,16 @@ particl_chainstate_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  warnings.cpp
+  warnings.cpp \
+  insight/insight.cpp
 particl_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 particl_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 particl_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 particl_chainstate_LDADD = \
+  $(LIBPARTICL_SMSG) \
+  $(LIBPARTICL_NODE) \
+  $(LIBPARTICL_COMMON) \
+  $(LIBPARTICL_UTIL) \
   $(LIBPARTICL_CRYPTO) \
   $(LIBUNIVALUE) \
   $(LIBSECP256K1) \
