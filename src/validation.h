@@ -754,7 +754,7 @@ public:
     bool IsInitialBlockDownload() const;
 
     /** Find the last common block of this chain and a locator. */
-    CBlockIndex* FindForkInGlobalIndex(const CBlockLocator& locator) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    const CBlockIndex* FindForkInGlobalIndex(const CBlockLocator& locator) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     /**
      * Make various assertions about the state of the block index.
@@ -903,7 +903,7 @@ public:
     bool m_snapshot_validated{false};
 
     CBlockIndex* m_best_invalid;
-    friend bool node::BlockManager::LoadBlockIndex(const Consensus::Params&, ChainstateManager&);
+    friend bool node::BlockManager::LoadBlockIndex(const Consensus::Params&);
 
     //! Internal helper for ActivateSnapshot().
     [[nodiscard]] bool PopulateAndValidateSnapshot(

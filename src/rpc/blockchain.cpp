@@ -108,7 +108,8 @@ static int ComputeNextBlockAndDepth(const CBlockIndex* tip, const CBlockIndex* b
     return blockindex == tip ? 1 : -1;
 }
 
-CBlockIndex* ParseHashOrHeight(const UniValue& param, ChainstateManager& chainman) {
+static const CBlockIndex* ParseHashOrHeight(const UniValue& param, ChainstateManager& chainman)
+{
     LOCK(::cs_main);
     CChain& active_chain = chainman.ActiveChain();
 
@@ -125,7 +126,7 @@ CBlockIndex* ParseHashOrHeight(const UniValue& param, ChainstateManager& chainma
         return active_chain[height];
     } else {
         const uint256 hash{ParseHashV(param, "hash_or_height")};
-        CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(hash);
+        const CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(hash);
 
         if (!pindex) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -508,7 +509,7 @@ static RPCHelpMan getblockhash()
     if (nHeight < 0 || nHeight > active_chain.Height())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
 
-    CBlockIndex* pblockindex = active_chain[nHeight];
+    const CBlockIndex* pblockindex = active_chain[nHeight];
     return pblockindex->GetBlockHash().GetHex();
 },
     };
@@ -840,7 +841,7 @@ static RPCHelpMan pruneblockchain()
     // too low to be a block time (corresponds to timestamp from Sep 2001).
     if (heightParam > 1000000000) {
         // Add a 2 hour buffer to include blocks which might have had old timestamps
-        CBlockIndex* pindex = active_chain.FindEarliestAtLeast(heightParam - TIMESTAMP_WINDOW, 0);
+        const CBlockIndex* pindex = active_chain.FindEarliestAtLeast(heightParam - TIMESTAMP_WINDOW, 0);
         if (!pindex) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not find block with at least the specified timestamp.");
         }
@@ -934,7 +935,7 @@ static RPCHelpMan gettxoutsetinfo()
 {
     UniValue ret(UniValue::VOBJ);
 
-    CBlockIndex* pindex{nullptr};
+    const CBlockIndex* pindex{nullptr};
     const CoinStatsHashType hash_type{request.params[0].isNull() ? CoinStatsHashType::HASH_SERIALIZED : ParseHashType(request.params[0].get_str())};
     CCoinsStats stats{hash_type};
     stats.index_requested = request.params[2].isNull() || request.params[2].get_bool();
@@ -1239,39 +1240,39 @@ RPCHelpMan getblockchaininfo()
 {
     /* TODO: from v24, remove -deprecatedrpc=softforks */
     return RPCHelpMan{"getblockchaininfo",
-                "Returns an object containing various state info regarding blockchain processing.\n",
-                {},
-                RPCResult{
-                    RPCResult::Type::OBJ, "", "",
-                    {
-                        {RPCResult::Type::STR, "chain", "current network name (main, test, signet, regtest)"},
-                        {RPCResult::Type::NUM, "blocks", "the height of the most-work fully-validated chain. The genesis block has height 0"},
-                        {RPCResult::Type::NUM, "headers", "the current number of headers we have validated"},
-                        {RPCResult::Type::STR, "bestblockhash", "the hash of the currently best block"},
-                        {RPCResult::Type::STR, "moneysupply", "the total amount of coin in the network"},
-                        {RPCResult::Type::NUM, "difficulty", "the current difficulty"},
-                        {RPCResult::Type::NUM_TIME, "time", "The block time expressed in " + UNIX_EPOCH_TIME},
-                        {RPCResult::Type::NUM_TIME, "mediantime", "The median block time expressed in " + UNIX_EPOCH_TIME},
-                        {RPCResult::Type::NUM, "verificationprogress", "estimate of verification progress [0..1]"},
-                        {RPCResult::Type::BOOL, "initialblockdownload", "(debug information) estimate of whether this node is in Initial Block Download mode"},
-                        {RPCResult::Type::STR_HEX, "chainwork", "total amount of work in active chain, in hexadecimal"},
-                        {RPCResult::Type::NUM, "size_on_disk", "the estimated size of the block and undo files on disk"},
-                        {RPCResult::Type::BOOL, "pruned", "if the blocks are subject to pruning"},
-                        {RPCResult::Type::NUM, "pruneheight", /*optional=*/true, "lowest-height complete block stored (only present if pruning is enabled)"},
-                        {RPCResult::Type::BOOL, "automatic_pruning", /*optional=*/true, "whether automatic pruning is enabled (only present if pruning is enabled)"},
-                        {RPCResult::Type::NUM, "prune_target_size", /*optional=*/true, "the target size used by pruning (only present if automatic pruning is enabled)"},
-                        {RPCResult::Type::OBJ_DYN, "softforks", "(DEPRECATED, returned only if config option -deprecatedrpc=softforks is passed) status of softforks",
-                        {
-                            {RPCResult::Type::OBJ, "xxxx", "name of the softfork",
-                                RPCHelpForDeployment
-                            },
-                        }},
-                        {RPCResult::Type::STR, "warnings", "any network and blockchain warnings"},
-                    }},
-                RPCExamples{
-                    HelpExampleCli("getblockchaininfo", "")
+        "Returns an object containing various state info regarding blockchain processing.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "chain", "current network name (main, test, signet, regtest)"},
+                {RPCResult::Type::NUM, "blocks", "the height of the most-work fully-validated chain. The genesis block has height 0"},
+                {RPCResult::Type::NUM, "headers", "the current number of headers we have validated"},
+                {RPCResult::Type::STR, "bestblockhash", "the hash of the currently best block"},
+                {RPCResult::Type::STR, "moneysupply", "the total amount of coin in the network"},
+                {RPCResult::Type::NUM, "difficulty", "the current difficulty"},
+                {RPCResult::Type::NUM_TIME, "time", "The block time expressed in " + UNIX_EPOCH_TIME},
+                {RPCResult::Type::NUM_TIME, "mediantime", "The median block time expressed in " + UNIX_EPOCH_TIME},
+                {RPCResult::Type::NUM, "verificationprogress", "estimate of verification progress [0..1]"},
+                {RPCResult::Type::BOOL, "initialblockdownload", "(debug information) estimate of whether this node is in Initial Block Download mode"},
+                {RPCResult::Type::STR_HEX, "chainwork", "total amount of work in active chain, in hexadecimal"},
+                {RPCResult::Type::NUM, "size_on_disk", "the estimated size of the block and undo files on disk"},
+                {RPCResult::Type::BOOL, "pruned", "if the blocks are subject to pruning"},
+                {RPCResult::Type::NUM, "pruneheight", /*optional=*/true, "lowest-height complete block stored (only present if pruning is enabled)"},
+                {RPCResult::Type::BOOL, "automatic_pruning", /*optional=*/true, "whether automatic pruning is enabled (only present if pruning is enabled)"},
+                {RPCResult::Type::NUM, "prune_target_size", /*optional=*/true, "the target size used by pruning (only present if automatic pruning is enabled)"},
+                {RPCResult::Type::OBJ_DYN, "softforks", /*optional=*/true, "(DEPRECATED, returned only if config option -deprecatedrpc=softforks is passed) status of softforks",
+                {
+                    {RPCResult::Type::OBJ, "xxxx", "name of the softfork",
+                        RPCHelpForDeployment
+                    },
+                }},
+                {RPCResult::Type::STR, "warnings", "any network and blockchain warnings"},
+            }},
+        RPCExamples{
+            HelpExampleCli("getblockchaininfo", "")
             + HelpExampleRpc("getblockchaininfo", "")
-                },
+        },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const ArgsManager& args{EnsureAnyArgsman(request.context)};
@@ -1350,7 +1351,7 @@ const std::vector<RPCResult> RPCHelpForDeployment{
             {RPCResult::Type::NUM, "count", "the number of blocks with the version bit set in the current period"},
             {RPCResult::Type::BOOL, "possible", /*optional=*/true, "returns false if there are not enough blocks left in this period to pass activation threshold (only for \"started\" status)"},
         }},
-        {RPCResult::Type::STR, "signalling", "indicates blocks that signalled with a # and blocks that did not with a -"},
+        {RPCResult::Type::STR, "signalling", /*optional=*/true, "indicates blocks that signalled with a # and blocks that did not with a -"},
     }},
 };
 
@@ -1379,7 +1380,7 @@ static RPCHelpMan getdeploymentinfo()
             RPCResult::Type::OBJ, "", "", {
                 {RPCResult::Type::STR, "hash", "requested block hash (or tip)"},
                 {RPCResult::Type::NUM, "height", "requested block height (or tip)"},
-                {RPCResult::Type::OBJ, "deployments", "", {
+                {RPCResult::Type::OBJ_DYN, "deployments", "", {
                     {RPCResult::Type::OBJ, "xxxx", "name of the deployment", RPCHelpForDeployment}
                 }},
             }
@@ -1852,7 +1853,7 @@ static RPCHelpMan getblockstats()
 {
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
     LOCK(cs_main);
-    CBlockIndex* pindex{ParseHashOrHeight(request.params[0], chainman)};
+    const CBlockIndex* pindex{ParseHashOrHeight(request.params[0], chainman)};
     CHECK_NONFATAL(pindex != nullptr);
 
     std::set<std::string> stats;
@@ -2224,7 +2225,7 @@ static RPCHelpMan scantxoutset()
         g_should_abort_scan = false;
         int64_t count = 0;
         std::unique_ptr<CCoinsViewCursor> pcursor;
-        CBlockIndex* tip;
+        const CBlockIndex* tip;
         NodeContext& node = EnsureAnyNodeContext(request.context);
         {
             ChainstateManager& chainman = EnsureChainman(node);
@@ -2459,7 +2460,7 @@ UniValue CreateUTXOSnapshot(
 {
     std::unique_ptr<CCoinsViewCursor> pcursor;
     CCoinsStats stats{CoinStatsHashType::HASH_SERIALIZED};
-    CBlockIndex* tip;
+    const CBlockIndex* tip;
 
     {
         // We need to lock cs_main to ensure that the coinsdb isn't written to

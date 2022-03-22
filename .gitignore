@@ -161,6 +161,6 @@ dist/
 
 /guix-build-*
 
+/ci/scratch/
 sanitizer-output
-ci/scratch
 *~
