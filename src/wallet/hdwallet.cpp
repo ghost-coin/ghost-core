@@ -4123,7 +4123,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 CTxOutBaseRef c = txNew.vpout[r.n];
                 // Only reduce change if remaining amount is still a large enough output.
-                if (c->GetValue() >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                if (c->GetValue() >= CHANGE_LOWER + additionalFeeNeeded) {
                     c->SetValue(c->GetValue() - additionalFeeNeeded);
                     r.nAmount = c->GetValue();
                     nFeeRet += additionalFeeNeeded;
@@ -4685,7 +4685,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
 
-                if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                if (r.nAmount >= CHANGE_LOWER + additionalFeeNeeded) {
                     r.nAmount -= additionalFeeNeeded;
                     nFeeRet += additionalFeeNeeded;
                     break; // Done, able to increase fee from change
@@ -5475,7 +5475,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 auto &r = vecSend[nChangePosInOut];
 
                 CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
-                if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                if (r.nAmount >= CHANGE_LOWER + additionalFeeNeeded) {
                     r.nAmount -= additionalFeeNeeded;
                     nFeeRet += additionalFeeNeeded;
                     break; // Done, able to increase fee from change
@@ -12350,7 +12350,7 @@ bool CHDWallet::AttemptSelection(const CAmount& nTargetValue, const CoinEligibil
             nValueRet += coin.first;
             return true;
         } else
-        if (nV < nTargetValue + MIN_CHANGE) {
+        if (nV < nTargetValue + CHANGE_UPPER) {
             vValue.push_back(coin);
             nTotalLower += nV;
         } else
@@ -12383,14 +12383,14 @@ bool CHDWallet::AttemptSelection(const CAmount& nTargetValue, const CoinEligibil
     CAmount nBest;
 
     ApproximateBestSubset(vValue, nTotalLower, nTargetValue, vfBest, nBest);
-    if (nBest != nTargetValue && nTotalLower >= nTargetValue + MIN_CHANGE) {
-        ApproximateBestSubset(vValue, nTotalLower, nTargetValue + MIN_CHANGE, vfBest, nBest);
+    if (nBest != nTargetValue && nTotalLower >= nTargetValue + CHANGE_UPPER) {
+        ApproximateBestSubset(vValue, nTotalLower, nTargetValue + CHANGE_UPPER, vfBest, nBest);
     }
 
     // If we have a bigger coin and (either the stochastic approximation didn't find a good solution,
     //                                   or the next bigger coin is closer), return the bigger coin
     if (coinLowestLarger.second.first != mapRecords.end() &&
-        ((nBest != nTargetValue && nBest < nTargetValue + MIN_CHANGE) || coinLowestLarger.first <= nBest)) {
+        ((nBest != nTargetValue && nBest < nTargetValue + CHANGE_UPPER) || coinLowestLarger.first <= nBest)) {
         setCoinsRet.push_back(coinLowestLarger.second);
         nValueRet += coinLowestLarger.first;
     } else {
