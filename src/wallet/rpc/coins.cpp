@@ -757,26 +757,17 @@ RPCHelpMan listunspent()
     const bool avoid_reuse = pwallet->IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE);
 
     for (const COutput& out : vecOutputs) {
-
-        CAmount nValue;
         CTxDestination address;
-        const CScript *scriptPubKey;
-        if (pwallet->IsParticlWallet()) {
-            scriptPubKey = out.tx->tx->vpout[out.i]->GetPScriptPubKey();
-            nValue = out.tx->tx->vpout[out.i]->GetValue();
-        } else {
-            scriptPubKey = &out.tx->tx->vout[out.i].scriptPubKey;
-            nValue = out.tx->tx->vout[out.i].nValue;
-        }
+        const CScript& scriptPubKey = out.txout.scriptPubKey;
+        bool fValidAddress = ExtractDestination(scriptPubKey, address);
+        bool reused = avoid_reuse && pwallet->IsSpentKey(out.outpoint.hash, out.outpoint.n);
 
-        bool fValidAddress = ExtractDestination(*scriptPubKey, address);
-        bool reused = avoid_reuse && pwallet->IsSpentKey(out.tx->GetHash(), out.i);
         if (destinations.size() && (!fValidAddress || !destinations.count(address)))
             continue;
 
         UniValue entry(UniValue::VOBJ);
-        entry.pushKV("txid", out.tx->GetHash().GetHex());
-        entry.pushKV("vout", out.i);
+        entry.pushKV("txid", out.outpoint.hash.GetHex());
+        entry.pushKV("vout", (int)out.outpoint.n);
 
         if (fValidAddress) {
             entry.pushKV("address", EncodeDestination(address));
@@ -786,9 +777,9 @@ RPCHelpMan listunspent()
                 entry.pushKV("label", address_book_entry->GetLabel());
             }
 
-            std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(*scriptPubKey);
+            std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(scriptPubKey);
             if (provider) {
-                if (scriptPubKey->IsPayToScriptHash()) {
+                if (scriptPubKey.IsPayToScriptHash()) {
                     const CScriptID& hash = CScriptID(std::get<ScriptHash>(address));
                     CScript redeemScript;
                     if (provider->GetCScript(hash, redeemScript)) {
@@ -808,7 +799,7 @@ RPCHelpMan listunspent()
                             }
                         }
                     }
-                } else if (scriptPubKey->IsPayToWitnessScriptHash()) {
+                } else if (scriptPubKey.IsPayToWitnessScriptHash()) {
                     const WitnessV0ScriptHash& whash = std::get<WitnessV0ScriptHash>(address);
                     CScriptID id;
                     CRIPEMD160().Write(whash.begin(), whash.size()).Finalize(id.begin());
@@ -816,8 +807,8 @@ RPCHelpMan listunspent()
                     if (provider->GetCScript(id, witnessScript)) {
                         entry.pushKV("witnessScript", HexStr(witnessScript));
                     }
-                } else if (scriptPubKey->IsPayToScriptHash256()) {
-                    const CScriptID256& hash = std::get<CScriptID256>(address);
+                } else if (scriptPubKey.IsPayToScriptHash256()) {
+                    const CScriptID256 &hash = std::get<CScriptID256>(address);
                     CScriptID scriptID;
                     scriptID.Set(hash);
                     CScript redeemScript;
@@ -828,51 +819,51 @@ RPCHelpMan listunspent()
             }
         }
 
-        if (HasIsCoinstakeOp(*scriptPubKey)) {
+        if (HasIsCoinstakeOp(scriptPubKey)) {
             CScript scriptStake;
-            if (GetCoinstakeScriptPath(*scriptPubKey, scriptStake)) {
+            if (GetCoinstakeScriptPath(scriptPubKey, scriptStake)) {
                 if (ExtractDestination(scriptStake, address)) {
                     entry.pushKV("coldstaking_address", EncodeDestination(address));
                 }
             }
         }
 
-        entry.pushKV("scriptPubKey", HexStr(*scriptPubKey));
+        entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
 
         if (fCCFormat) {
-            entry.pushKV("time", out.tx->GetTxTime());
-            entry.pushKV("amount", nValue);
+            entry.pushKV("time", out.time);
+            entry.pushKV("amount", out.txout.nValue);
         } else {
-            entry.pushKV("amount", ValueFromAmount(nValue));
+            entry.pushKV("amount", ValueFromAmount(out.txout.nValue));
         }
-        entry.pushKV("confirmations", out.nDepth);
-        if (!out.nDepth) {
+        entry.pushKV("confirmations", out.depth);
+        if (!out.depth) {
             size_t ancestor_count, descendant_count, ancestor_size;
             CAmount ancestor_fees;
-            pwallet->chain().getTransactionAncestry(out.tx->GetHash(), ancestor_count, descendant_count, &ancestor_size, &ancestor_fees);
+            pwallet->chain().getTransactionAncestry(out.outpoint.hash, ancestor_count, descendant_count, &ancestor_size, &ancestor_fees);
             if (ancestor_count) {
                 entry.pushKV("ancestorcount", uint64_t(ancestor_count));
                 entry.pushKV("ancestorsize", uint64_t(ancestor_size));
                 entry.pushKV("ancestorfees", uint64_t(ancestor_fees));
             }
         }
-        entry.pushKV("spendable", out.fSpendable);
-        entry.pushKV("solvable", out.fSolvable);
-        if (out.fSolvable) {
-            std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(*scriptPubKey);
+        entry.pushKV("spendable", out.spendable);
+        entry.pushKV("solvable", out.solvable);
+        if (out.solvable) {
+            std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(scriptPubKey);
             if (provider) {
-                auto descriptor = InferDescriptor(*scriptPubKey, *provider);
+                auto descriptor = InferDescriptor(scriptPubKey, *provider);
                 entry.pushKV("desc", descriptor->ToString());
             }
         }
         if (avoid_reuse) entry.pushKV("reused", reused);
-        entry.pushKV("safe", out.fSafe);
+        entry.pushKV("safe", out.safe);
 
         if (IsParticlWallet(pwallet.get())) {
             const CHDWallet *phdw = GetParticlWallet(pwallet.get());
             LOCK_ASSERTION(phdw->cs_wallet);
             CKeyID stakingKeyID;
-            bool fStakeable = particl::ExtractStakingKeyID(*scriptPubKey, stakingKeyID);
+            bool fStakeable = particl::ExtractStakingKeyID(scriptPubKey, stakingKeyID);
             if (fStakeable) {
                 isminetype mine = phdw->IsMine(stakingKeyID);
                 if (!(mine & ISMINE_SPENDABLE)
@@ -884,10 +875,10 @@ RPCHelpMan listunspent()
         }
 
         if (fIncludeImmature)
-            entry.pushKV("mature", out.fMature);
+            entry.pushKV("mature", out.mature);
 
-        if (out.fNeedHardwareKey)
-            entry.pushKV("ondevice", out.fNeedHardwareKey);
+        if (out.need_hardware_key)
+            entry.pushKV("ondevice", out.need_hardware_key);
 
         results.push_back(entry);
     }

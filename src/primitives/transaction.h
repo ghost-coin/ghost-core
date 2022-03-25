@@ -228,6 +228,54 @@ public:
     std::string ToString() const;
 };
 
+/** An output of a transaction.  It contains the public key that the next input
+ * must be able to sign with to claim it.
+ */
+class CTxOut
+{
+public:
+    CAmount nValue;
+    CScript scriptPubKey;
+
+    CTxOut()
+    {
+        SetNull();
+    }
+
+    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
+
+    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey); }
+
+    void SetNull()
+    {
+        nValue = -1;
+        scriptPubKey.clear();
+    }
+
+    bool IsNull() const
+    {
+        return (nValue == -1);
+    }
+
+    bool IsEmpty() const
+    {
+        return (nValue == 0 && scriptPubKey.empty());
+    }
+
+    friend bool operator==(const CTxOut& a, const CTxOut& b)
+    {
+        return (a.nValue       == b.nValue &&
+                a.scriptPubKey == b.scriptPubKey);
+    }
+
+    friend bool operator!=(const CTxOut& a, const CTxOut& b)
+    {
+        return !(a == b);
+    }
+
+    std::string ToString() const;
+};
+
 class CTxOutStandard;
 class CTxOutCT;
 class CTxOutRingCT;
@@ -301,6 +349,15 @@ public:
     {
         assert(nVersion == OUTPUT_STANDARD);
         return (CTxOutStandard*)this;
+    }
+
+    bool setTxout(CTxOut &txout) const
+    {
+        if (nVersion != OUTPUT_STANDARD) {
+            return false;
+        }
+        txout.nValue = GetValue();
+        return GetScriptPubKey(txout.scriptPubKey);
     }
 
     virtual bool IsEmpty() const { return false;}
@@ -609,54 +666,6 @@ public:
     }
 };
 
-
-/** An output of a transaction.  It contains the public key that the next input
- * must be able to sign with to claim it.
- */
-class CTxOut
-{
-public:
-    CAmount nValue;
-    CScript scriptPubKey;
-
-    CTxOut()
-    {
-        SetNull();
-    }
-
-    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
-
-    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey); }
-
-    void SetNull()
-    {
-        nValue = -1;
-        scriptPubKey.clear();
-    }
-
-    bool IsNull() const
-    {
-        return (nValue == -1);
-    }
-
-    bool IsEmpty() const
-    {
-        return (nValue == 0 && scriptPubKey.empty());
-    }
-
-    friend bool operator==(const CTxOut& a, const CTxOut& b)
-    {
-        return (a.nValue       == b.nValue &&
-                a.scriptPubKey == b.scriptPubKey);
-    }
-
-    friend bool operator!=(const CTxOut& a, const CTxOut& b)
-    {
-        return !(a == b);
-    }
-
-    std::string ToString() const;
-};
 
 struct CMutableTransaction;
 

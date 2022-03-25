@@ -3161,7 +3161,6 @@ static void ParseOutputs(
                     addresses,
                     amounts,
                     is_watchonly)) {
-                    LogPrintf("[rm] ret 4\n");
                     return ;
                 }
                 output.pushKV("amount", ValueFromAmount(-s.amount));
@@ -4592,18 +4591,18 @@ static RPCHelpMan getcoldstakinginfo()
     CKeyID keyID;
     CScript coinstakePath;
     for (const auto &out : vecOutputs) {
-        const CScript *scriptPubKey = out.tx->tx->vpout[out.i]->GetPScriptPubKey();
-        CAmount nValue = out.tx->tx->vpout[out.i]->GetValue();
+        const CScript *scriptPubKey = &out.txout.scriptPubKey;
+        CAmount nValue = out.txout.nValue;
 
         if (scriptPubKey->IsPayToPublicKeyHash() || scriptPubKey->IsPayToPublicKeyHash256()) {
-            if (!out.fSpendable) {
+            if (!out.spendable) {
                 continue;
             }
             nStakeable += nValue;
         } else
         if (scriptPubKey->IsPayToPublicKeyHash256_CS() || scriptPubKey->IsPayToScriptHash256_CS() || scriptPubKey->IsPayToScriptHash_CS()) {
             // Show output on both the spending and staking wallets
-            if (!out.fSpendable) {
+            if (!out.spendable) {
                 if (!particl::ExtractStakingKeyID(*scriptPubKey, keyID)
                     || !pwallet->HaveKey(keyID)) {
                     continue;
@@ -4614,7 +4613,7 @@ static RPCHelpMan getcoldstakinginfo()
             continue;
         }
 
-        if (out.nDepth < nRequiredDepth) {
+        if (out.depth < nRequiredDepth) {
             continue;
         }
 
@@ -4880,8 +4879,8 @@ static RPCHelpMan listunspentanon()
             entry.pushKV("amount", ValueFromAmount(nValue));
         }
         entry.pushKV("confirmations", out.nDepth);
-        //entry.pushKV("spendable", out.fSpendable);
-        //entry.pushKV("solvable", out.fSolvable);
+        //entry.pushKV("spendable", out.spendable);
+        //entry.pushKV("solvable", out.solvable);
         entry.pushKV("safe", out.fSafe);
         if (fIncludeImmature) {
             entry.pushKV("mature", out.fMature);
@@ -5138,7 +5137,7 @@ static RPCHelpMan listunspentblind()
             entry.pushKV("amount", ValueFromAmount(nValue));
         }
         entry.pushKV("confirmations", out.nDepth);
-        entry.pushKV("spendable", out.fSpendable);
+        entry.pushKV("spendable", out.fSolvable);
         entry.pushKV("solvable", out.fSolvable);
         if (out.fSolvable) {
             auto descriptor = InferDescriptor(*scriptPubKey, *pwallet->GetLegacyScriptPubKeyMan());

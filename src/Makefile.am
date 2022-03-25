@@ -425,6 +425,7 @@ libparticl_node_a_SOURCES = \
   rpc/rpcutil.cpp \
   rpc/util.cpp \
   rpc/server_util.cpp \
+  rpc/txoutproof.cpp \
   script/sigcache.cpp \
   shutdown.cpp \
   signet.cpp \

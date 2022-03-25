@@ -3812,10 +3812,10 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     {
         LOCK(cs_wallet);
 
-        std::vector<CInputCoin> selected_coins;
-        std::vector<COutput> vAvailableCoins;
+        std::vector<COutput> vAvailableCoins, selected_coins;
         AvailableCoins(vAvailableCoins, coinControl, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
-        CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
+        FastRandomContext rng_fast;
+        CoinSelectionParams coin_selection_params{rng_fast}; // Parameters for coin selection, init with dummy
 
         // Set discard feerate
         coin_selection_params.m_discard_feerate = GetDiscardRate(*this);
@@ -4156,7 +4156,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             for (const auto &coin : selected_coins) {
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
 
-                // TODO: ismine field on CInputCoin
+                // TODO: ismine field on COutput
                 if (coinControl->fNeedHardwareKey && (IsMine(scriptPubKey) & ISMINE_HARDWARE_DEVICE)) {
                     nIn++;
                     continue;
@@ -4185,7 +4185,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 for (const auto &coin : selected_coins) {
                     Coin newcoin;
                     newcoin.out.scriptPubKey = coin.txout.scriptPubKey;
-                    newcoin.out.nValue = coin.GetValue();
+                    newcoin.out.nValue = coin.txout.nValue;
                     newcoin.nHeight = 1;
                     view.AddCoin(coin.outpoint, std::move(newcoin), true);
                 }
@@ -4329,8 +4329,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     // No point hiding the amount in one output
     // If one of the outputs was always 0 it would be easy to track amounts,
     // the output that gets spent would be = plain input.
-    if (fCT
-        && vecSend.size() < 2) {
+    if (fCT && vecSend.size() < 2) {
         CTempRecipient &r0 = vecSend[0];
         CTempRecipient rN;
         rN.nType = r0.nType;
@@ -10219,12 +10218,13 @@ void CHDWallet::PostProcessUnloadSpent()
     }
 
     for (const COutput& coin : availableCoins) {
-        if (coin.tx->IsCoinBase()) {
-            return;
+        CTransactionRef tx;
+        if (!GetTransaction(coin.outpoint.hash, tx) ||
+            tx->IsCoinBase()) {
+            continue;
         }
-
-        for (const CTxIn& txin : coin.tx->tx->vin) {
-            try_unload.insert(std::make_pair(txin.prevout.hash, coin.tx->GetHash()));
+        for (const CTxIn& txin : tx->vin) {
+            try_unload.insert(std::make_pair(txin.prevout.hash, tx->GetHash()));
         }
     }
 
@@ -11433,25 +11433,23 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
             continue;
         }
 
+        bool tx_from_me = CachedTxIsFromMe(*this, wtx, ISMINE_ALL);
+
         for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
             if (!wtx.tx->vpout[i]->IsStandardOutput()) {
                 continue;
             }
-
             const CTxOutStandard *txout = wtx.tx->vpout[i]->GetStandardOutput();
 
             if (txout->nValue < nMinimumAmount || txout->nValue > nMaximumAmount) {
                 continue;
             }
-
             if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(wtxid, i))) {
                 continue;
             }
-
             if (!allow_locked && IsLockedCoin(wtxid, i)) {
                 continue;
             }
-
             if (IsSpent(wtxid, i)) {
                 continue;
             }
@@ -11471,7 +11469,12 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
             bool fSolvableIn = provider ? IsSolvable(*provider, txout->scriptPubKey) : false;
             bool fNeedHardwareKey = (mine & ISMINE_HARDWARE_DEVICE);
 
-            vCoins.emplace_back(*this, wtx, i, nDepth, fSpendableIn, fSolvableIn, safeTx, (coinControl && coinControl->fAllowWatchOnly), fMature, fNeedHardwareKey);
+            CTxOut txout_old;
+            if (!txout->setTxout(txout_old)) {
+                continue;
+            }
+            int input_bytes = GetTxSpendSize(*this, wtx, i, (coinControl && coinControl->fAllowWatchOnly));
+            vCoins.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, fMature, fNeedHardwareKey);
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
@@ -11501,7 +11504,6 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
         if (nDepth < 0) {
             continue;
         }
-
         if (nDepth < min_depth || nDepth > max_depth) {
             continue;
         }
@@ -11516,11 +11518,9 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
         if (nDepth == 0 && rtx.mapValue.count(RTXVT_REPLACES_TXID)) {
             safeTx = false;
         }
-
         if (nDepth == 0 && rtx.mapValue.count(RTXVT_REPLACED_BY_TXID)) {
             safeTx = false;
         }
-
         if (only_safe && !safeTx) {
             continue;
         }
@@ -11530,33 +11530,27 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
             if (r.nType != OUTPUT_STANDARD) {
                 continue;
             }
-
             if (!(r.nFlags & ORF_OWN_ANY)) {
                 continue;
             }
-
             if (IsSpent(txid, r.n)) {
                 continue;
             }
-
             if (r.nValue < nMinimumAmount || r.nValue > nMaximumAmount) {
                 continue;
             }
-
             if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
                 continue;
             }
-
             if (!allow_locked && IsLockedCoin(txid, r.n)) {
                 continue;
             }
-
             if (!allow_used_addresses && IsSpentKey(&r.scriptPubKey)) {
                 continue;
             }
 
-            if (twi == mapTempWallet.end()
-                && (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
+            if (twi == mapTempWallet.end() &&
+                (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
                 if (0 != InsertTempTxn(txid, &rtx)
                     || (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
                     WalletLogPrintf("ERROR: %s - InsertTempTxn failed %s.\n", __func__, txid.ToString());
@@ -11567,7 +11561,11 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
             bool fSpendableIn = (r.nFlags & ORF_OWNED) || (coinControl && coinControl->fAllowWatchOnly);
             bool fNeedHardwareKey = (r.nFlags & ORF_HARDWARE_DEVICE);
 
-            vCoins.emplace_back(*this, twi->second, r.n, nDepth, fSpendableIn, true, safeTx, (coinControl && coinControl->fAllowWatchOnly), true, fNeedHardwareKey);
+            CTxOut txout(r.nValue, r.scriptPubKey);
+            bool from_me = rtx.vin.size() > 0;
+            int64_t time = rtx.GetTxTime();
+            int input_bytes = CalculateMaximumSignedInputSize(txout, this, (coinControl && coinControl->fAllowWatchOnly));
+            vCoins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, /*mature*/true, fNeedHardwareKey);
 
             if (nMinimumSumAmount != MAX_MONEY) {
                 nTotal += r.nValue;
@@ -11598,18 +11596,16 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     if (coin_control.HasSelected() && !coin_control.fAllowOtherInputs) {
         SelectionResult result(nTargetValue);
         for (const auto &out : vCoins) {
-            COutPoint op(out.tx->GetHash(), out.i);
-            if (!coin_control.IsSelected(op)) {
+            if (!coin_control.IsSelected(out.outpoint)) {
                 continue;
             }
-            if (!out.fSpendable) {
+            if (!out.spendable) {
                 continue;
             }
             /* Set depth, from_me, ancestors, and descendants to 0 or false as these don't matter for preset inputs as no actual selection is being done.
              * positive_only is set to false because we want to include all preset inputs, even if they are dust.
              */
-            CInputCoin ic(out.tx->tx, out.i);
-            preset_inputs.Insert(ic, 0, false, 0, 0, false);
+            preset_inputs.Insert(out, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
         }
         result.AddInput(preset_inputs);
         if (result.GetSelectedValue() < nTargetValue) return std::nullopt;
@@ -11617,57 +11613,57 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     }
 
     // calculate value from preset inputs and store them
-    std::set<CInputCoin> setPresetCoins;
+    std::set<COutPoint> preset_coins;
     std::vector<COutPoint> vPresetInputs;
     coin_control.ListSelected(vPresetInputs);
 
     for (const auto &outpoint : vPresetInputs) {
+        int input_bytes = -1;
         CTxOut txout_null, txout;
-        CInputCoin ic = CInputCoin(outpoint, txout_null, -1);
         MapWallet_t::const_iterator it = mapTempWallet.find(outpoint.hash);
         if (it != mapTempWallet.end()) {
             const CWalletTx *pcoin = &it->second;
             // Clearly invalid input, fail
-            if (pcoin->tx->vpout.size() <= outpoint.n) {
+            if (pcoin->tx->vpout.size() <= outpoint.n ||
+                !pcoin->tx->vpout[outpoint.n]->setTxout(txout)) {
                 return std::nullopt;
             }
-            ic = CInputCoin(pcoin->tx, outpoint.n);
-            ic.m_input_bytes = CalculateMaximumSignedInputSize(ic.txout, this, true);
+            input_bytes = CalculateMaximumSignedInputSize(txout, this, true);
         } else {
             it = mapWallet.find(outpoint.hash);
             if (it != mapWallet.end()) {
                 const CWalletTx *pcoin = &it->second;
                 // Clearly invalid input, fail
-                if (pcoin->tx->vpout.size() <= outpoint.n) {
+                if (pcoin->tx->vpout.size() <= outpoint.n ||
+                    !pcoin->tx->vpout[outpoint.n]->setTxout(txout)) {
                     return std::nullopt;
                 }
-                ic = CInputCoin(pcoin->tx, outpoint.n);
-                ic.m_input_bytes = CalculateMaximumSignedInputSize(ic.txout, this, true);
+                input_bytes = CalculateMaximumSignedInputSize(txout, this, true);
             } else {
                 // The input is external. We either did not find the tx in mapWallet, or we did but couldn't compute the input size with wallet data
                 if (!coin_control.GetExternalOutput(outpoint, txout)) {
                     // Not ours, and we don't have solving data.
                     return std::nullopt;
                 }
-                ic = CInputCoin(outpoint, txout, -1);
             }
         }
-        ic.effective_value = ic.txout.nValue - coin_selection_params.m_effective_feerate.GetFee(ic.m_input_bytes);
+        COutput output(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
+        output.effective_value = output.txout.nValue - coin_selection_params.m_effective_feerate.GetFee(output.input_bytes);
         if (coin_selection_params.m_subtract_fee_outputs) {
-            value_to_select -= ic.txout.nValue;
+            value_to_select -= txout.nValue;
         } else {
-            value_to_select -= ic.effective_value;
+            value_to_select -= output.effective_value;
         }
+        preset_coins.insert(outpoint);
         /* Set depth, from_me, ancestors, and descendants to 0 or false as don't matter for preset inputs as no actual selection is being done.
          * positive_only is set to false because we want to include all preset inputs, even if they are dust.
          */
-        preset_inputs.Insert(ic, 0, false, 0, 0, false);
-        setPresetCoins.insert(ic);
+        preset_inputs.Insert(output, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
     }
 
     // remove preset inputs from vCoins
     for (std::vector<COutput>::iterator it = vCoins.begin(); it != vCoins.end() && coin_control.HasSelected();) {
-        if (setPresetCoins.count(CInputCoin(it->tx->tx, it->i))) {
+        if (preset_coins.count(it->outpoint)) {
             it = vCoins.erase(it);
         } else {
             ++it;
@@ -11689,6 +11685,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
         // explicitly shuffling the outputs before processing
         Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
     }
+
 
     // Coin Selection attempts to select inputs from a pool of eligible UTXOs to fund the
     // transaction at a target feerate. If an attempt fails, more attempts may be made using a more
@@ -12183,9 +12180,12 @@ std::map<CTxDestination, std::vector<COutput>> CHDWallet::ListCoins() const
     AvailableCoins(availableCoins, &coinControl);
 
     for (const auto& coin : availableCoins) {
+        CTransactionRef tx;
         CTxDestination address;
-        if (coin.fSpendable &&
-            ExtractDestination(*(FindNonChangeParentOutput(*coin.tx->tx, coin.i)->GetPScriptPubKey()), address)) {
+
+        if (coin.spendable &&
+            GetTransaction(coin.outpoint.hash, tx) &&
+            ExtractDestination(*(FindNonChangeParentOutput(*tx, coin.outpoint.n)->GetPScriptPubKey()), address)) {
             result[address].emplace_back(std::move(coin));
         }
     }
@@ -12930,12 +12930,7 @@ size_t CHDWallet::CountColdstakeOutputs()
     coinControl.m_include_unsafe_inputs = true;
     AvailableCoins(vAvailableCoins, &coinControl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     for (const auto &coin : vAvailableCoins) {
-        assert(coin.i < (int)coin.tx->tx->GetNumVOuts());
-        auto txoutBase = coin.tx->tx->vpout[coin.i];
-        if (!txoutBase->IsStandardOutput()) {
-            continue;
-        }
-        if (HasIsCoinstakeOp(*txoutBase->GetPScriptPubKey())) {
+        if (HasIsCoinstakeOp(coin.txout.scriptPubKey)) {
             nColdstakeOutputs++;
         }
     }
@@ -13021,8 +13016,9 @@ uint64_t CHDWallet::GetStakeWeight() const
 {
     // Choose coins to use
     int64_t nBalance = GetSpendableBalance();
-    if (nBalance <= nReserveBalance)
+    if (nBalance <= nReserveBalance) {
         return 0;
+    }
 
     int nHeight;
     {
@@ -13031,21 +13027,20 @@ uint64_t CHDWallet::GetStakeWeight() const
     }
 
     // Choose coins to use
-    std::vector<const CWalletTx*> vwtxPrev;
-    std::set<std::pair<const CWalletTx*,unsigned int> > setCoins;
+    std::set<COutput> setCoins;
     CAmount nValueIn = 0;
 
     // Select coins with suitable depth
-    if (!SelectCoinsForStaking(nBalance - nReserveBalance, GetTime(), nHeight, setCoins, nValueIn))
+    if (!SelectCoinsForStaking(nBalance - nReserveBalance, GetTime(), nHeight, setCoins, nValueIn)) {
         return 0;
-
-    if (setCoins.empty())
+    }
+    if (setCoins.empty()) {
         return 0;
-
+    }
     uint64_t nWeight = 0;
 
     for (const auto &pcoin : setCoins) {
-        nWeight += pcoin.first->tx->vpout[pcoin.second]->GetValue();
+        nWeight += pcoin.txout.nValue;
     }
 
     return nWeight;
@@ -13100,9 +13095,9 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
                 COutPoint kernel(wtxid, i);
-                if (!particl::CheckStakeUnused(kernel)
-                     || IsSpent(wtxid, i)
-                     || IsLockedCoin(wtxid, i)) {
+                if (!particl::CheckStakeUnused(kernel) ||
+                     IsSpent(wtxid, i) ||
+                     IsLockedCoin(wtxid, i)) {
                     continue;
                 }
 
@@ -13124,7 +13119,12 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
 
-                vCoins.emplace_back(*this, *pcoin, i, nDepth, fSpendableIn, fSolvableIn, true, true, fNeedHardwareKey, false);
+                CTxOut txout_old;
+                if (!txout->setTxout(txout_old)) {
+                    continue;
+                }
+                int input_bytes = 0; // unnecessary
+                vCoins.emplace_back(COutPoint(wtxid, i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, /*safe*/true, /*time, unneeded*/0, /*from_me, unneeded*/false, /*mature*/true, fNeedHardwareKey);
             }
         }
 
@@ -13153,9 +13153,9 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
                 COutPoint kernel(txid, r.n);
-                if (!particl::CheckStakeUnused(kernel)
-                    || IsSpent(txid, r.n)
-                    || IsLockedCoin(txid, r.n)) {
+                if (!particl::CheckStakeUnused(kernel) ||
+                    IsSpent(txid, r.n) ||
+                    IsLockedCoin(txid, r.n)) {
                     continue;
                 }
 
@@ -13172,10 +13172,10 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
 
-                if (twi == mapTempWallet.end()
-                    && (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
-                    if (0 != InsertTempTxn(txid, &rtx)
-                        || (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
+                if (twi == mapTempWallet.end() &&
+                    (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
+                    if (0 != InsertTempTxn(txid, &rtx) ||
+                        (twi = mapTempWallet.find(txid)) == mapTempWallet.end()) {
                         WalletLogPrintf("ERROR: %s - InsertTempTxn failed %s.\n", __func__, txid.ToString());
                         return;
                     }
@@ -13183,7 +13183,9 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
 
                 bool fSpendableIn = true;
                 bool fNeedHardwareKey = false;
-                vCoins.emplace_back(*this, twi->second, r.n, nDepth, fSpendableIn, true, true, true, fNeedHardwareKey, false);
+                CTxOut txout(r.nValue, r.scriptPubKey);
+                int input_bytes = 0; // unnecessary
+                vCoins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, /*safe*/true, /*time, unneeded*/0, /*from_me, unneeded*/false, /*mature*/true, fNeedHardwareKey);
             }
         }
     }
@@ -13192,7 +13194,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
     return;
 };
 
-bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int nHeight, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64_t& nValueRet) const
+bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int nHeight, std::set<COutput> &setCoinsRet, int64_t &nValueRet) const
 {
     if (m_have_cached_stakeable_coins) {
         Shuffle(m_cached_stakeable_coins.begin(), m_cached_stakeable_coins.end(), FastRandomContext());
@@ -13208,28 +13210,22 @@ bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int n
     nValueRet = 0;
 
     for (const auto &output : vCoins) {
-        const CWalletTx *pcoin = output.tx;
-        int i = output.i;
-
         // Stop if we've chosen enough inputs
         if (nValueRet >= nTargetValue) {
             break;
         }
 
-        int64_t n = pcoin->tx->vpout[i]->GetValue();
-
-        std::pair<int64_t, std::pair<const CWalletTx*, unsigned int> > coin = std::make_pair(n, std::make_pair(pcoin, i));
-
+        int64_t n = output.txout.nValue;
         if (n >= nTargetValue) {
             // If input value is greater or equal to target then simply insert
             //    it into the current subset and exit
-            setCoinsRet.insert(coin.second);
-            nValueRet += coin.first;
+            setCoinsRet.insert(output);
+            nValueRet += n;
             break;
         } else
         if (n < nTargetValue + CENT) {
-            setCoinsRet.insert(coin.second);
-            nValueRet += coin.first;
+            setCoinsRet.insert(output);
+            nValueRet += n;
         }
     }
 
@@ -13259,8 +13255,8 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     }
 
     // Choose coins to use
-    std::vector<const CWalletTx*> vwtxPrev;
-    std::set<std::pair<const CWalletTx*,unsigned int> > setCoins;
+    std::vector<COutput> vwtxPrev;
+    std::set<COutput> setCoins;
     CAmount nValueIn = 0;
 
     // Select coins with suitable depth
@@ -13275,7 +13271,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
 
-    std::set<std::pair<const CWalletTx*,unsigned int> >::iterator it = setCoins.begin();
+    std::set<COutput>::iterator it = setCoins.begin();
 
     for (; it != setCoins.end(); ++it) {
         auto pcoin = *it;
@@ -13283,25 +13279,18 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             return false;
         }
 
-        COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
-
         int64_t nBlockTime;
-        if (CheckKernel(pchainman->ActiveChainstate(), pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
+        if (CheckKernel(pchainman->ActiveChainstate(), pindexPrev, nBits, nTime, pcoin.outpoint, &nBlockTime)) {
             LOCK(cs_wallet);
             // Found a kernel
             if (LogAcceptCategory(BCLog::POS)) {
                 WalletLogPrintf("%s: Kernel found.\n", __func__);
             }
 
-            if (!pcoin.first->tx->vpout[pcoin.second]->IsStandardOutput()) {
-                continue;
-            }
-            CTxOutStandard *kernelOut = (CTxOutStandard*)pcoin.first->tx->vpout[pcoin.second].get();
-
             std::vector<valtype> vSolutions;
             TxoutType whichType;
 
-            const CScript *pscriptPubKey = &kernelOut->scriptPubKey;
+            const CScript *pscriptPubKey = &pcoin.txout.scriptPubKey;
             CScript coinstakePath;
             bool fConditionalStake = false;
             if ((HasIsCoinstakeOp(*pscriptPubKey))) {
@@ -13338,7 +13327,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             }
 
             if (fConditionalStake) {
-                scriptPubKeyKernel = kernelOut->scriptPubKey;
+                scriptPubKeyKernel = pcoin.txout.scriptPubKey;
             } else {
                 scriptPubKeyKernel << OP_DUP << OP_HASH160 << ToByteVector(spendId) << OP_EQUALVERIFY << OP_CHECKSIG;
 
@@ -13394,10 +13383,10 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             txNew.nVersion = PARTICL_TXN_VERSION;
             txNew.SetType(TXN_COINSTAKE);
 
-            txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
+            txNew.vin.push_back(CTxIn(pcoin.outpoint));
 
-            nCredit += kernelOut->nValue;
-            vwtxPrev.push_back(pcoin.first);
+            nCredit += pcoin.txout.nValue;
+            vwtxPrev.push_back(pcoin);
 
             OUTPUT_PTR<CTxOutData> out0 = MAKE_OUTPUT<CTxOutData>();
             out0->vData.resize(4);
@@ -13452,35 +13441,30 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             break;
         }
 
-        std::set<std::pair<const CWalletTx*, unsigned int> >::iterator itc = it++; // copy the current iterator then increment it
+        std::set<COutput>::iterator itc = it++; // copy the current iterator then increment it
         auto pcoin = *itc;
 
-        if (!pcoin.first->tx->vpout[pcoin.second]->IsStandardOutput()) {
-            continue;
-        }
-        CTxOutStandard *prevOut = (CTxOutStandard*)pcoin.first->tx->vpout[pcoin.second].get();
-
         // Only add coins of the same key/address as kernel
-        if (prevOut->scriptPubKey != scriptPubKeyKernel) {
+        if (pcoin.txout.scriptPubKey != scriptPubKeyKernel) {
             continue;
         }
 
         // Stop adding inputs if reached reserve limit
-        if (nCredit + prevOut->nValue > nBalance - nReserveBalance) {
+        if (nCredit + pcoin.txout.nValue > nBalance - nReserveBalance) {
             break;
         }
 
         // Do not add additional significant input
-        if (prevOut->nValue >= nStakeCombineThreshold) {
+        if (pcoin.txout.nValue >= nStakeCombineThreshold) {
             continue;
         }
 
-        txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
-        nCredit += prevOut->nValue;
-        vwtxPrev.push_back(pcoin.first);
+        txNew.vin.push_back(CTxIn(pcoin.outpoint));
+        nCredit += pcoin.txout.nValue;
+        vwtxPrev.push_back(pcoin);
 
         if (LogAcceptCategory(BCLog::POS)) {
-            WalletLogPrintf("%s: Combining kernel %s, %d.\n", __func__, pcoin.first->GetHash().ToString(), pcoin.second);
+            WalletLogPrintf("%s: Combining kernel %s, %d.\n", __func__, pcoin.outpoint.hash.ToString(), pcoin.outpoint.n);
         }
         nStakesCombined++;
         setCoins.erase(itc);
@@ -13676,16 +13660,12 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     // Sign
     int nIn = 0;
     for (const auto &pcoin : vwtxPrev) {
-        uint32_t nPrev = txNew.vin[nIn].prevout.n;
-
-        CTxOutStandard *prevOut = (CTxOutStandard*)pcoin->tx->vpout[nPrev].get();
-        CScript &scriptPubKeyOut = prevOut->scriptPubKey;
         auto provider = GetLegacyScriptPubKeyMan();
         std::vector<uint8_t> vchAmount;
-        prevOut->PutValue(vchAmount);
+        part::SetAmount(vchAmount, pcoin.txout.nValue);
 
         SignatureData sigdata;
-        if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKeyOut, sigdata)) {
+        if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), pcoin.txout.scriptPubKey, sigdata)) {
             return werror("%s: ProduceSignature failed.", __func__);
         }
 

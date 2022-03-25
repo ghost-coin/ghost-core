@@ -481,7 +481,7 @@ public:
     void SetStakeLimitHeight(int stake_limit);
     uint64_t GetStakeWeight() const;
     void AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t nTime, int nHeight) const;
-    bool SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int nHeight, std::set<std::pair<const CWalletTx*,unsigned int> > &setCoinsRet, int64_t &nValueRet) const;
+    bool SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int nHeight, std::set<COutput> &setCoinsRet, int64_t &nValueRet) const;
     bool CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight, int64_t nFees, CMutableTransaction &txNew, CKey &key);
     bool SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime);
     std::unique_ptr<node::CBlockTemplate> CreateNewBlock();
@@ -520,7 +520,7 @@ public:
     mutable LooseKeyMap mapLooseKeys;       // Keys derived from extkeys not attached to an account
     mutable LooseKeyMap mapLooseLookAhead;
 
-    mutable MapWallet_t mapTempWallet;
+    mutable MapWallet_t mapTempWallet;  // TODO: Remove
 
     MapRecords_t mapRecords;
     RtxOrdered_t rtxOrdered;

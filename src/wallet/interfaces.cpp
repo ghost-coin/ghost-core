@@ -177,16 +177,13 @@ WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const 
 
 //! Construct wallet TxOut struct.
 WalletTxOut MakeWalletTxOut(const CWallet& wallet,
-    const CWalletTx& wtx,
-    int n,
-    int depth) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
+    const COutput& output) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     WalletTxOut result;
-    result.txout.nValue = wtx.tx->vpout[n]->GetValue();
-    result.txout.scriptPubKey = *wtx.tx->vpout[n]->GetPScriptPubKey();
-    result.time = wtx.GetTxTime();
-    result.depth_in_main_chain = depth;
-    result.is_spent = wallet.IsSpent(wtx.GetHash(), n);
+    result.txout = output.txout;
+    result.time = output.time;
+    result.depth_in_main_chain = output.depth;
+    result.is_spent = wallet.IsSpent(output.outpoint.hash, output.outpoint.n);
     return result;
 }
 
@@ -205,6 +202,7 @@ WalletTxOut MakeWalletTxOut(CHDWallet &wallet,
     result.is_spent = wallet.IsSpent(hash, n);
     return result;
 }
+
 
 class WalletImpl : public Wallet
 {
@@ -618,8 +616,8 @@ public:
         for (const auto& entry : ListCoins(*m_wallet)) {
             auto& group = result[entry.first];
             for (const auto& coin : entry.second) {
-                group.emplace_back(COutPoint(coin.tx->GetHash(), coin.i),
-                    MakeWalletTxOut(*m_wallet, *coin.tx, coin.i, coin.nDepth));
+                group.emplace_back(coin.outpoint,
+                    MakeWalletTxOut(*m_wallet, coin));
             }
         }
         return result;
@@ -633,9 +631,11 @@ public:
             result.emplace_back();
             auto it = m_wallet->mapWallet.find(output.hash);
             if (it != m_wallet->mapWallet.end()) {
-                int depth = m_wallet->GetTxDepthInMainChain(it->second);
+                const CWalletTx& wtx = it->second;
+                int depth = m_wallet->GetTxDepthInMainChain(wtx);
                 if (depth >= 0) {
-                    result.back() = MakeWalletTxOut(*m_wallet, it->second, output.n, depth);
+                    COutput utxo(COutPoint(wtx.GetHash(), output.n), wtx.tx->vout.at(output.n), depth, -1, true, true, true, wtx.GetTxTime(), false);
+                    result.back() = MakeWalletTxOut(*m_wallet, utxo);
                 }
             } else
             if (m_wallet_part) {
@@ -875,6 +875,7 @@ public:
         std::shared_ptr<CWallet> wallet;
         DatabaseOptions options;
         DatabaseStatus status;
+        ReadDatabaseArgs(*m_context.args, options);
         options.require_create = true;
         options.create_flags = wallet_creation_flags;
         options.create_passphrase = passphrase;
@@ -884,6 +885,7 @@ public:
     {
         DatabaseOptions options;
         DatabaseStatus status;
+        ReadDatabaseArgs(*m_context.args, options);
         options.require_existing = true;
         return MakeWallet(m_context, LoadWallet(m_context, name, true /* load_on_start */, options, status, error, warnings));
     }
