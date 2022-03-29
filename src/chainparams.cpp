@@ -534,7 +534,7 @@ public:
         consensus.nBlockRewardIncreaseHeight = 40862;
         consensus.nGVRPayOnetimeAmt = 129000 * COIN;
         consensus.nOneTimeGVRPayHeight = 42308;
-        consensus.nGVRTreasuryFundAdjustment = 140536;
+        consensus.nGVRTreasuryFundAdjustment = 458743;
         nBlockRewardIncrease = 2;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
 
@@ -555,7 +555,8 @@ public:
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
-        vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66.67, 5040)); //As above but to a GVR held addr
+        vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66.67, 5040));
+        vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66.67, 5040));
         vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66.67, 5040)); //Approx each week to GVR Funds addr
         vTreasuryFundSettings.emplace_back(0,      TreasuryFundSettings("GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV", 33.00, 360));  //Approx each 12 hr payment to dev fund
 
