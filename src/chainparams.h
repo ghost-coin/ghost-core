@@ -227,6 +227,7 @@ protected:
     std::string anonRecoveryAddress;
     std::uint32_t anonMaxOutputSize = 2;
 
+    // the `first` of the pair here is the Height 
     std::vector<std::pair<int64_t, TreasuryFundSettings> > vTreasuryFundSettings;
 
 
