@@ -26,6 +26,8 @@ class ForkTest(ParticlTestFramework):
         self.connect_nodes_bi(0, 2)
         self.connect_nodes_bi(1, 2)
 
+        self.connect_nodes_bi(0, 3)
+
         self.connect_nodes_bi(3, 4)
         self.connect_nodes_bi(3, 5)
         self.connect_nodes_bi(4, 5)
@@ -47,9 +49,16 @@ class ForkTest(ParticlTestFramework):
 
         n0_wi_before = nodes[0].getwalletinfo()
 
+        common_blocks = 5
+        self.stakeBlocks(common_blocks)
+
+        # Disconnect groups
+        self.disconnect_nodes(0, 3)
+        self.disconnect_nodes(0, 3)
+
         # Start staking
-        nBlocksShorterChain = 2
-        nBlocksLongerChain = 5
+        nBlocksShorterChain = common_blocks + 2
+        nBlocksLongerChain = common_blocks + 5
 
         nodes[3].walletsettings('stakelimit', {'height': nBlocksLongerChain})
         nodes[3].reservebalance(False)
@@ -81,7 +90,7 @@ class ForkTest(ParticlTestFramework):
         nodes[3].reservebalance(True, 10000000)
 
         node0_chain = []
-        for k in range(1, nBlocksLongerChain+1):
+        for k in range(1, nBlocksLongerChain + 1):
             try:
                 ro = nodes[0].getblockhash(k)
             except JSONRPCException as e:
@@ -91,7 +100,7 @@ class ForkTest(ParticlTestFramework):
             print('node0 ', k, ' - ', ro)
 
         node3_chain = []
-        for k in range(1, 6):
+        for k in range(1, nBlocksLongerChain + 1):
             ro = nodes[3].getblockhash(k)
             node3_chain.append(ro)
             print('node3 ', k, ' - ', ro)
@@ -131,9 +140,9 @@ class ForkTest(ParticlTestFramework):
 
 
         ro = nodes[0].getblockchaininfo()
-        assert(ro['blocks'] == 5)
+        assert(ro['blocks'] == nBlocksLongerChain)
         ro = nodes[3].getblockchaininfo()
-        assert(ro['blocks'] == 5)
+        assert(ro['blocks'] == nBlocksLongerChain)
 
         # Ensure all valid txns are trusted
         # resendwallettransactions() has a delay
