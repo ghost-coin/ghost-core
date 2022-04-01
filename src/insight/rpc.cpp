@@ -1354,6 +1354,7 @@ UniValue getinsightinfo(const JSONRPCRequest& request)
                     {RPCResult::Type::BOOL, "addressindex", "True if addressindex is enabled"},
                     {RPCResult::Type::BOOL, "spentindex", "True if spentindex is enabled"},
                     {RPCResult::Type::BOOL, "timestampindex", "True if timestampindex is enabled"},
+                    {RPCResult::Type::BOOL, "balancesindex", "True if balancesindex is enabled"},
                     {RPCResult::Type::BOOL, "coldstakeindex", "True if coldstakeindex is enabled"},
                 }
             },

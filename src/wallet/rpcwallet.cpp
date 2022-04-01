@@ -1913,34 +1913,35 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
 
         entry.pushKV("vout", r.n);
 
-        int confirms = phdw->GetDepthInMainChain(rtx);
-        entry.pushKV("confirmations", confirms);
-        if (confirms > 0) {
-            entry.pushKV("blockhash", rtx.blockHash.GetHex());
-            entry.pushKV("blockindex", rtx.nIndex);
-            PushTime(entry, "blocktime", rtx.nBlockTime);
-        } else {
-            entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
-        }
-
-        entry.pushKV("txid", hash.ToString());
-
-        UniValue conflicts(UniValue::VARR);
-        std::set<uint256> setconflicts = phdw->GetConflicts(hash);
-        setconflicts.erase(hash);
-        for (const auto &conflict : setconflicts) {
-            conflicts.push_back(conflict.GetHex());
-        }
-        entry.pushKV("walletconflicts", conflicts);
-
-        PushTime(entry, "time", rtx.GetTxTime());
-
         if (!r.sNarration.empty()) {
             entry.pushKV("narration", r.sNarration);
         }
 
-        if (r.nFlags & ORF_FROM) {
-            entry.pushKV("abandoned", rtx.IsAbandoned());
+        if (fLong) {
+            int confirms = phdw->GetDepthInMainChain(rtx);
+            entry.pushKV("confirmations", confirms);
+            if (confirms > 0) {
+                entry.pushKV("blockhash", rtx.blockHash.GetHex());
+                entry.pushKV("blockindex", rtx.nIndex);
+                PushTime(entry, "blocktime", rtx.nBlockTime);
+            } else {
+                entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
+            }
+
+            entry.pushKV("txid", hash.ToString());
+
+            UniValue conflicts(UniValue::VARR);
+            std::set<uint256> setconflicts = phdw->GetConflicts(hash);
+            setconflicts.erase(hash);
+            for (const auto &conflict : setconflicts) {
+                conflicts.push_back(conflict.GetHex());
+            }
+            entry.pushKV("walletconflicts", conflicts);
+
+            PushTime(entry, "time", rtx.GetTxTime());
+            if (r.nFlags & ORF_FROM) {
+                entry.pushKV("abandoned", rtx.IsAbandoned());
+            }
         }
 
         ret.push_back(entry);

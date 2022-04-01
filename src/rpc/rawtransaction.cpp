@@ -51,6 +51,7 @@ void TxToJSONExpanded(const CTransaction& tx, const uint256 hashBlock, const CTx
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
     entry.pushKV("size", (int)::GetSerializeSize(tx, PROTOCOL_VERSION));
     entry.pushKV("vsize", (int)::GetVirtualTransactionSize(tx));
+    entry.pushKV("weight", GetTransactionWeight(tx));
     entry.pushKV("version", tx.nVersion);
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
 
