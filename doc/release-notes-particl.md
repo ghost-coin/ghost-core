@@ -1,7 +1,17 @@
 Next Major Version
 ==============
 
-- rpc: Reverted bip125_replaceable change back to bip125-replaceable.
+- rpc changes
+  - Reverted bip125_replaceable change back to bip125-replaceable.
+  - smsgsend
+    - Changed tx_bytes to tx_vsize
+  - getrawtransaction
+    - Changed ring_row_{row} to object of row: value pairs
+  - gettransaction
+    - Removed n{vout}: narration pairs, vouts already have separate narration entry
+    - Removed duplicate tx info in details section.
+  - getstakinginfo
+    - errors -> warnings
 
 
 23.0.1

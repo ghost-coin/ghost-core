@@ -167,7 +167,10 @@ static RPCHelpMan listdevices()
                     {
                         {RPCResult::Type::STR, "vendor", "USB vendor string"},
                         {RPCResult::Type::STR, "product", "USB product string"},
-                        {RPCResult::Type::STR, "firmwareversion", "Detected firmware version of device, if possible"},
+                        {RPCResult::Type::STR, "serialno", "USB serial number of device"},
+                        {RPCResult::Type::STR, "firmwareversion", /*optional=*/true, "Detected firmware version of device, if possible"},
+                        {RPCResult::Type::STR, "error", /*optional=*/true, "Error"},
+                        {RPCResult::Type::STR, "tip", /*optional=*/true, "Tip"},
                     }},
             }},
             RPCExamples{
@@ -304,7 +307,9 @@ static RPCHelpMan getdeviceinfo()
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR, "error", "If failed."},
+                        {RPCResult::Type::ELISION, "", ""},
+                        {RPCResult::Type::STR, "device", "Device type."},
+                        {RPCResult::Type::STR, "error", /*optional=*/true, "If failed."},
                 }},
                 RPCExamples{
             HelpExampleCli("getdeviceinfo", "") +
@@ -498,15 +503,19 @@ static RPCHelpMan devicesignrawtransaction()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR_HEX, "hex", "The hex-encoded raw transaction with signature(s)"},
                         {RPCResult::Type::BOOL, "complete", "If the transaction has a complete set of signatures"},
-                        {RPCResult::Type::ARR, "errors", "Script verification errors (if there are any)",
+                        {RPCResult::Type::ARR, "errors", /*optional=*/true, "Script verification errors (if there are any)",
                         {
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::STR_HEX, "txid", "The hash of the referenced, previous transaction"},
                                 {RPCResult::Type::NUM, "vout", "The index of the output to spent and used as input"},
+                                {RPCResult::Type::ARR, "witness", "",
+                                {
+                                    {RPCResult::Type::STR_HEX, "witness", ""},
+                                }},
                                 {RPCResult::Type::STR_HEX, "scriptSig", "The hex-encoded signature script"},
                                 {RPCResult::Type::NUM, "sequence", "Script sequence number"},
-                                {RPCResult::Type::STR, "error", "Verification or signing error related to the input"},
+                                {RPCResult::Type::STR, "error", /*optional=*/true, "Verification or signing error related to the input"},
                             }},
                         }},
                     },
@@ -768,6 +777,7 @@ static RPCHelpMan initaccountfromdevice()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR, "extkey", "The derived extended public key at \"path\""},
                         {RPCResult::Type::STR, "path", "The full path used to derive the account"},
+                        {RPCResult::Type::NUM, "scanfrom", "Rescanned blockchain from time"},
                 }},
                 RPCExamples{
             HelpExampleCli("initaccountfromdevice", "\"new_acc\" \"44h/1h/0h\" false") +
@@ -1196,12 +1206,16 @@ static RPCHelpMan devicesignrawtransactionwithwallet()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR_HEX, "hex", "The hex-encoded raw transaction with signature(s)"},
                         {RPCResult::Type::BOOL, "complete", "If the transaction has a complete set of signatures"},
-                        {RPCResult::Type::ARR, "errors", "Script verification errors (if there are any)",
+                        {RPCResult::Type::ARR, "errors", /*optional=*/true, "Script verification errors (if there are any)",
                         {
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::STR_HEX, "txid", "The hash of the referenced, previous transaction"},
                                 {RPCResult::Type::NUM, "vout", "The index of the output to spent and used as input"},
+                                {RPCResult::Type::ARR, "witness", "",
+                                {
+                                    {RPCResult::Type::STR_HEX, "witness", ""},
+                                }},
                                 {RPCResult::Type::STR_HEX, "scriptSig", "The hex-encoded signature script"},
                                 {RPCResult::Type::NUM, "sequence", "Script sequence number"},
                                 {RPCResult::Type::STR, "error", "Verification or signing error related to the input"},

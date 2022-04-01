@@ -79,11 +79,12 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
             in.pushKV("num_inputs", (int)nSigInputs);
             in.pushKV("ring_size", (int)nSigRingSize);
 
-            if (tx.HasWitness()
-                && !txin.scriptWitness.IsNull()
-                && txin.scriptWitness.stack.size() > 0) {
+            if (tx.HasWitness() &&
+                !txin.scriptWitness.IsNull() &&
+                txin.scriptWitness.stack.size() > 0) {
                 const std::vector<uint8_t> &vMI = txin.scriptWitness.stack[0];
 
+                UniValue ring_member_rows(UniValue::VOBJ);
                 size_t ofs = 0, nb = 0;
                 for (size_t k = 0; k < nSigInputs; ++k) {
                     std::string row_out;
@@ -95,8 +96,9 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
                         ofs += nb;
                         row_out += row_out.size() == 0 ? strprintf("%lu", anon_index) : strprintf(", %lu", anon_index); // linter fails ? "%lu" : ", %lu"
                     }
-                    in.pushKV(strprintf("ring_row_%d", k), row_out);
+                    ring_member_rows.pushKV(strprintf("%d", k), row_out);
                 }
+                in.pushKV("ring_member_rows", ring_member_rows);
             }
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
@@ -284,9 +286,18 @@ static RPCHelpMan getrawtransaction()
                              {
                                  {RPCResult::Type::OBJ, "", "",
                                  {
-                                     {RPCResult::Type::STR_HEX, "txid", "The transaction id"},
-                                     {RPCResult::Type::NUM, "vout", "The output number"},
-                                     {RPCResult::Type::OBJ, "scriptSig", "The script",
+                                     {RPCResult::Type::STR_HEX, "coinbase", /*optional=*/true, ""},
+                                     {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard"},
+                                     {RPCResult::Type::NUM, "valueSat", /*optional=*/true, "The value in sats"},  // TODO: Remove
+                                     {RPCResult::Type::NUM, "num_inputs", /*optional=*/true, "Number of inputs in ring signature"},
+                                     {RPCResult::Type::NUM, "ring_size", /*optional=*/true, "Number of columns in ring signature"},
+                                     {RPCResult::Type::OBJ_DYN, "ring_member_rows", /*optional=*/true, "",
+                                     {
+                                         {RPCResult::Type::STR, "row", "anon input ids"},
+                                     }},
+                                     {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "The transaction id"},
+                                     {RPCResult::Type::NUM, "vout", /*optional=*/true, "The output number"},
+                                     {RPCResult::Type::OBJ, "scriptSig", /*optional=*/true, "The script",
                                      {
                                          {RPCResult::Type::STR, "asm", "asm"},
                                          {RPCResult::Type::STR_HEX, "hex", "hex"},
@@ -296,15 +307,22 @@ static RPCHelpMan getrawtransaction()
                                      {
                                          {RPCResult::Type::STR_HEX, "hex", "hex-encoded witness data (if any)"},
                                      }},
+                                     {RPCResult::Type::ARR, "scriptdata", /*optional=*/true, "",
+                                     {
+                                         {RPCResult::Type::STR_HEX, "hex", "hex-encoded script data (if any)"},
+                                     }},
+                                     {RPCResult::Type::STR_AMOUNT, "value", /*optional=*/true, "spentindex - prevout value"},
+                                     {RPCResult::Type::NUM, "valueSat", /*optional=*/true, "spentindex - prevout value in sats"},  // TODO: Remove
+                                     {RPCResult::Type::STR, "address", /*optional=*/true, "spentindex - prevout address"},
                                  }},
                              }},
                              {RPCResult::Type::ARR, "vout", "",
                              {
                                  {RPCResult::Type::OBJ, "", "",
                                  {
-                                     {RPCResult::Type::NUM, "value", "The value in " + CURRENCY_UNIT},
+                                     {RPCResult::Type::NUM, "value", /*optional=*/true, "The value in " + CURRENCY_UNIT},
                                      {RPCResult::Type::NUM, "n", "index"},
-                                     {RPCResult::Type::OBJ, "scriptPubKey", "",
+                                     {RPCResult::Type::OBJ, "scriptPubKey", /*optional=*/true, "",
                                      {
                                          {RPCResult::Type::STR, "asm", "the asm"},
                                          {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
@@ -313,10 +331,24 @@ static RPCHelpMan getrawtransaction()
                                          {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
                                          {RPCResult::Type::STR, "stakeaddress", /*optional=*/true, "The Particl stake address (only if a well-defined stakeaddress exists)"},
                                      }},
+                                     {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
+                                     {RPCResult::Type::NUM, "valueSat", /*optional=*/true, "The value in sats"},  // TODO: Remove
+                                     {RPCResult::Type::STR_HEX, "data_hex", /*optional=*/true, "Data component"},
+                                     {RPCResult::Type::STR_AMOUNT, "ct_fee", /*optional=*/true, "data - SMSG confidential transaction fee"},
+                                     {RPCResult::Type::STR_AMOUNT, "smsgfeerate", /*optional=*/true, "data - SMSG fee rate"},
+                                     {RPCResult::Type::STR_HEX, "smsgdifficulty", /*optional=*/true, "data - SMSG difficulty"},
+                                     {RPCResult::Type::STR, "vote", /*optional=*/true, "data - Voting entry"},
+                                     {RPCResult::Type::STR_HEX, "pubkey", /*optional=*/true, "pubkey for anon output"},
+                                     {RPCResult::Type::STR_HEX, "valueCommitment", /*optional=*/true, "value commitment for blinded output"},
+                                     {RPCResult::Type::STR_HEX, "rangeproof", /*optional=*/true, "rangeproof for blinded output"},
+                                     {RPCResult::Type::STR_HEX, "spentTxId", /*optional=*/true, "Txid of spending transaction"},
+                                     {RPCResult::Type::NUM, "spentIndex", /*optional=*/true, "offset of input in spending transaction"},
+                                     {RPCResult::Type::NUM, "spentHeight", /*optional=*/true, "Block height of spending transaction"},
                                  }},
                              }},
                              {RPCResult::Type::STR_HEX, "blockhash", /*optional=*/true, "the block hash"},
                              {RPCResult::Type::NUM, "confirmations", /*optional=*/true, "The confirmations"},
+                             {RPCResult::Type::NUM, "height", /*optional=*/true, "The height of the containing block"},
                              {RPCResult::Type::NUM_TIME, "blocktime", /*optional=*/true, "The block time expressed in " + UNIX_EPOCH_TIME},
                              {RPCResult::Type::NUM, "time", /*optional=*/true, "Same as \"blocktime\""},
                         }
@@ -493,6 +525,9 @@ static RPCHelpMan decoderawtransaction()
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::STR_HEX, "coinbase", /*optional=*/true, ""},
+                                {RPCResult::Type::STR, "type", /*optional=*/true, "anon"},
+                                {RPCResult::Type::NUM, "num_inputs", /*optional=*/true, "Number of inputs in ring signature"},
+                                {RPCResult::Type::NUM, "ring_size", /*optional=*/true, "Number of columns in ring signature"},
                                 {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "The transaction id"},
                                 {RPCResult::Type::NUM, "vout", /*optional=*/true, "The output number"},
                                 {RPCResult::Type::OBJ, "scriptSig", /*optional=*/true, "The script",
@@ -504,16 +539,21 @@ static RPCHelpMan decoderawtransaction()
                                 {
                                     {RPCResult::Type::STR_HEX, "hex", "hex-encoded witness data (if any)"},
                                 }},
-                                {RPCResult::Type::NUM, "sequence", "The script sequence number"},
+                                {RPCResult::Type::ARR, "scriptdata", /*optional=*/true, "",
+                                {
+                                    {RPCResult::Type::STR_HEX, "hex", "hex-encoded script data (if any)"},
+                                }},
+                                {RPCResult::Type::NUM, "sequence", /*optional=*/true, "The script sequence number"},
                             }},
                         }},
                         {RPCResult::Type::ARR, "vout", "",
                         {
                             {RPCResult::Type::OBJ, "", "",
                             {
-                                {RPCResult::Type::NUM, "value", "The value in " + CURRENCY_UNIT},
+                                {RPCResult::Type::NUM, "value", /*optional=*/true, "The value in " + CURRENCY_UNIT},
+                                {RPCResult::Type::NUM, "valueSat", /*optional=*/true, "The value in sats"},  // TODO: Remove
                                 {RPCResult::Type::NUM, "n", "index"},
-                                {RPCResult::Type::OBJ, "scriptPubKey", "",
+                                {RPCResult::Type::OBJ, "scriptPubKey", /*optional=*/true, "",
                                 {
                                     {RPCResult::Type::STR, "asm", "the asm"},
                                     {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
@@ -522,6 +562,15 @@ static RPCHelpMan decoderawtransaction()
                                     {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
                                     {RPCResult::Type::STR, "stakeaddress", /*optional=*/true, "The Particl stake address (only if a well-defined stakeaddress exists)"},
                                 }},
+                                {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard"},
+                                {RPCResult::Type::STR_HEX, "data_hex", /*optional=*/true, "Data component"},
+                                {RPCResult::Type::STR_AMOUNT, "ct_fee", /*optional=*/true, "data - SMSG confidential transaction fee"},
+                                {RPCResult::Type::STR_AMOUNT, "smsgfeerate", /*optional=*/true, "data - SMSG fee rate"},
+                                {RPCResult::Type::STR_HEX, "smsgdifficulty", /*optional=*/true, "data - SMSG difficulty"},
+                                {RPCResult::Type::STR_HEX, "pubkey", /*optional=*/true, "pubkey for anon output"},
+                                {RPCResult::Type::STR_HEX, "valueCommitment", /*optional=*/true, "value commitment for blinded output"},
+                                {RPCResult::Type::STR_HEX, "rangeproof", /*optional=*/true, "rangeproof for blinded output"},
+                                {RPCResult::Type::STR, "vote", /*optional=*/true, "data - Voting entry"},
                             }},
                         }},
                     }

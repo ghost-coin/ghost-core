@@ -416,7 +416,7 @@ class SmsgPaidTest(ParticlTestFramework):
 
         fundoptions = {'fundtype': 'anon', 'testfee': True}
         sent_msgs = nodes[0].smsgfund(msgids, fundoptions)
-        assert(sent_msgs['tx_bytes'] > 500)
+        assert(sent_msgs['tx_vsize'] > 500)
         assert(not 'txid' in sent_msgs)
 
         fundoptions = {}

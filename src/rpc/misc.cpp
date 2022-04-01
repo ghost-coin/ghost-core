@@ -67,6 +67,14 @@ static RPCHelpMan validateaddress()
                         {RPCResult::Type::NUM, "index", "index of a potential error"},
                     }},
                 {RPCResult::Type::STR, "stakeonly_address", /* optional */ true, "The particl address encoded as a stakeonly_address"},
+                {RPCResult::Type::BOOL, "isstakeonly", /* optional */ true, "True if address is in stakeonly encoding"},
+                {RPCResult::Type::STR, "bech32_address", /* optional */ true, "Alternate bech32 encoding"},
+                {RPCResult::Type::STR, "base58_address", /* optional */ true, "Alternate base58 encoding"},
+                {RPCResult::Type::BOOL, "isstealthaddress", /*optional=*/true, "True if the address is a stealth address."},
+                {RPCResult::Type::NUM, "prefix_num_bits", /*optional=*/true, "Number of prefix bits if the address is a stealth address."},
+                {RPCResult::Type::STR, "prefix_bitfield", /*optional=*/true, "Prefix if the address is a stealth address."},
+                {RPCResult::Type::BOOL, "isextkey", /*optional=*/true, "True if the address is a extended address."},
+                {RPCResult::Type::BOOL, "is256bit", /*optional=*/true, "True if the address is a 256bit address."},
             }
         },
         RPCExamples{

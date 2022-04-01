@@ -134,11 +134,11 @@ static RPCHelpMan getaddressmempool()
                         {RPCResult::Type::OBJ, "", "", {
                             {RPCResult::Type::STR, "address", "The base58check encoded address"},
                             {RPCResult::Type::STR_HEX, "txid", "The related txids"},
-                            {RPCResult::Type::STR_HEX, "index", "The related input or output index"},
+                            {RPCResult::Type::NUM, "index", "The related input or output index"},
                             {RPCResult::Type::NUM, "satoshis", "The difference of satoshis"},
                             {RPCResult::Type::NUM_TIME, "timestamp", "The time the transaction entered the mempool (seconds)"},
-                            {RPCResult::Type::STR_HEX, "prevtxid", "The previous txid (if spending)"},
-                            {RPCResult::Type::NUM, "prevout", "The previous transaction output index (if spending)"},
+                            {RPCResult::Type::STR_HEX, "prevtxid", /*optional=*/true, "The previous txid (if spending)"},
+                            {RPCResult::Type::NUM, "prevout", /*optional=*/true, "The previous transaction output index (if spending)"},
                         }}
                     }
                 },
@@ -222,7 +222,13 @@ return RPCHelpMan{"getaddressutxos",
                         }
                     },
                     RPCResult{"With chainInfo", RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR_HEX, "hash", "Start hash"}
+                        {RPCResult::Type::STR_HEX, "hash", "Start hash"},
+                        {RPCResult::Type::NUM, "height", "Chain height"},
+                        {RPCResult::Type::ARR, "utxos", "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::ELISION, "", "Same as Default"},
+                            }}
+                        }}
                     }}
                 },
                 RPCExamples{
@@ -314,12 +320,26 @@ static RPCHelpMan getaddressdeltas()
                                 {RPCResult::Type::NUM, "satoshis", "The difference of satoshis"},
                                 {RPCResult::Type::STR_HEX, "txid", "The related txid"},
                                 {RPCResult::Type::NUM, "index", "The block height"},
+                                {RPCResult::Type::NUM, "blockindex", "The index of the transaction in the block"},
+                                {RPCResult::Type::NUM, "height", "The block height"},
                                 {RPCResult::Type::STR, "address", "The base58check encoded address"},
                             }}
                         }
                     },
                     RPCResult{"With chainInfo", RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR_HEX, "hash", "Start hash"}
+                        {RPCResult::Type::ARR, "deltas", "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::ELISION, "", "Same output as Default output"},
+                            }}
+                        }},
+                        {RPCResult::Type::OBJ, "start", "", {
+                            {RPCResult::Type::STR_HEX, "hash", "Start hash"},
+                            {RPCResult::Type::NUM, "height", "Start height"},
+                        }},
+                        {RPCResult::Type::OBJ, "end", "", {
+                            {RPCResult::Type::STR_HEX, "hash", "End hash"},
+                            {RPCResult::Type::NUM, "height", "End height"},
+                        }},
                     }}
                 },
                 RPCExamples{
@@ -917,6 +937,23 @@ static RPCHelpMan gettxoutsetinfobyscript()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::NUM, "height", "The current block height (index)"},
                         {RPCResult::Type::STR_HEX, "bestblock", "The best block hash hex"},
+                        {RPCResult::Type::OBJ, "paytopubkeyhash", "", {
+                            {RPCResult::Type::NUM, "num_plain", "Number of plain outputs"},
+                            {RPCResult::Type::NUM, "num_blinded", "Number of blinded outputs"},
+                            {RPCResult::Type::STR_AMOUNT, "total_amount", "Total plain value"},
+                        }},
+                        {RPCResult::Type::OBJ, "paytoscripthash", "", {
+                            {RPCResult::Type::ELISION, "", "Same as paytopubkeyhash"},
+                        }},
+                        {RPCResult::Type::OBJ, "coldstake_paytopubkeyhash", "", {
+                            {RPCResult::Type::ELISION, "", "Same as paytopubkeyhash"},
+                        }},
+                        {RPCResult::Type::OBJ, "coldstake_paytoscripthash", "", {
+                            {RPCResult::Type::ELISION, "", "Same as paytopubkeyhash"},
+                        }},
+                        {RPCResult::Type::OBJ, "other", "Unknown script type", {
+                            {RPCResult::Type::ELISION, "", "Same as paytopubkeyhash"},
+                        }},
                     }
                 },
                 RPCExamples{
@@ -1049,19 +1086,21 @@ static RPCHelpMan getblockreward()
                         {RPCResult::Type::NUM_TIME, "blocktime", "The block time expressed in " _UNIX_EPOCH_TIME},
                         {RPCResult::Type::STR_AMOUNT, "stakereward", "The stake reward portion, newly minted coin"},
                         {RPCResult::Type::STR_AMOUNT, "blockreward", "The block reward, value paid to staker, including fees"},
-                        {RPCResult::Type::STR_AMOUNT, "treasuryreward", "The accumulated treasury reward payout, if any"},
+                        {RPCResult::Type::STR_AMOUNT, "treasuryreward", /*optional=*/true, "The accumulated treasury reward payout, if any"},
                         {RPCResult::Type::OBJ, "kernelscript", "", {
                             {RPCResult::Type::STR_HEX, "hex", "The script from the kernel output"},
-                            {RPCResult::Type::STR, "stakeaddr", "The stake address, if output script is coldstake"},
+                            {RPCResult::Type::STR, "stakeaddr", /*optional=*/true, "The stake address, if output script is coldstake"},
                             {RPCResult::Type::STR, "spendaddr", "The spend address"},
                         }},
-                        {RPCResult::Type::ARR, "", "", {
-                            {RPCResult::Type::OBJ, "script", "", {
-                                {RPCResult::Type::STR_HEX, "hex", "The script from the kernel output"},
-                                {RPCResult::Type::STR, "stakeaddr", "The stake address, if output script is coldstake"},
-                                {RPCResult::Type::STR, "spendaddr", "The spend address"},
+                        {RPCResult::Type::ARR, "outputs", "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::OBJ, "script", "", {
+                                    {RPCResult::Type::STR_HEX, "hex", "The script from the kernel output"},
+                                    {RPCResult::Type::STR, "stakeaddr", /*optional=*/true, "The stake address, if output script is coldstake"},
+                                    {RPCResult::Type::STR, "spendaddr", "The spend address"},
+                                }},
+                                {RPCResult::Type::STR_AMOUNT, "value", "The value of the output"},
                             }},
-                            {RPCResult::Type::STR_AMOUNT, "value", "The value of the output"},
                         }}
                     }
                 },
@@ -1263,6 +1302,8 @@ static RPCHelpMan listcoldstakeunspent()
                             {RPCResult::Type::NUM, "height", "The height the output was staked into the chain"},
                             {RPCResult::Type::STR_AMOUNT, "value", "The value of the output"},
                             {RPCResult::Type::STR, "addrspend", "The spending address of the output"},
+                            {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "Transaction id output"},
+                            {RPCResult::Type::NUM, "n", /*optional=*/true, "The output index in transaction"},
                         }}
                     }
                 },
@@ -1339,9 +1380,9 @@ static RPCHelpMan listcoldstakeunspent()
     while (it->Valid() && it->StartsWith(DB_TXINDEX_CSLINK) && it->GetKey(key)) {
         ColdStakeIndexLinkKey &lk = key.second;
 
-        if (key.first != DB_TXINDEX_CSLINK
-            || lk.m_stake_id != seek_key.m_stake_id
-            || (int)lk.m_height > height)
+        if (key.first != DB_TXINDEX_CSLINK ||
+            lk.m_stake_id != seek_key.m_stake_id ||
+            (int)lk.m_height > height)
             break;
 
         std::vector <ColdStakeIndexOutputKey> oks;
@@ -1350,11 +1391,11 @@ static RPCHelpMan listcoldstakeunspent()
 
         if (it->GetValue(oks)) {
             for (const auto &ok : oks) {
-                if (db.Read(std::make_pair(DB_TXINDEX_CSOUTPUT, ok), ov)
-                    && (ov.m_spend_height == -1 || ov.m_spend_height > height)) {
+                if (db.Read(std::make_pair(DB_TXINDEX_CSOUTPUT, ok), ov) &&
+                    (ov.m_spend_height == -1 || ov.m_spend_height > height)) {
 
-                    if (mature_only
-                        && (!all_staked || !(ov.m_flags & CSI_FROM_STAKE))) {
+                    if (mature_only &&
+                        (!all_staked || !(ov.m_flags & CSI_FROM_STAKE))) {
                         int depth = height - lk.m_height;
                         int depth_required = std::min(min_kernel_depth-1, (int)(height / 2));
                         if (depth < depth_required) {
@@ -1423,6 +1464,7 @@ static RPCHelpMan getinsightinfo()
                     {RPCResult::Type::BOOL, "spentindex", "True if spentindex is enabled"},
                     {RPCResult::Type::BOOL, "timestampindex", "True if timestampindex is enabled"},
                     {RPCResult::Type::BOOL, "coldstakeindex", "True if coldstakeindex is enabled"},
+                    {RPCResult::Type::BOOL, "balancesindex", "True if balancesindex is enabled"},
                 }
             },
             RPCExamples{

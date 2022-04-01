@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,6 +18,7 @@
 #include <rpc/blockchain.h>
 #include <node/context.h>
 #include <node/blockstorage.h>
+#include <node/miner.h>
 #include <rpc/rawtransaction_util.h>
 #include <script/sign.h>
 #include <script/descriptor.h>
@@ -2150,8 +2151,8 @@ static RPCHelpMan importstealthaddress()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR, "result", "Result."},
-                        {RPCResult::Type::STR, "stealth_address", "The imported stealth address"},
-                        {RPCResult::Type::BOOL, "watchonly", "Watchonly."},
+                        {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The imported stealth address"},
+                        {RPCResult::Type::BOOL, "watchonly", /*optional=*/true, "True if the address was imported without the spend secret."},
                 }},
                 RPCExamples{
             HelpExampleCli("importstealthaddress", "scan_secret spend_secret \"label\" 3 \"0b101\"") +
@@ -2407,13 +2408,18 @@ static RPCHelpMan liststealthaddresses()
                         {RPCResult::Type::OBJ, "", "", {
                             {RPCResult::Type::STR, "Account", "Account name"},
                             {RPCResult::Type::ARR, "Stealth Addresses", "", {
-                                {RPCResult::Type::STR, "Label", "Stealth address label"},
-                                {RPCResult::Type::STR, "Address", "Stealth address"},
-                                {RPCResult::Type::STR, "Scan Secret", "Scan secret, if show_secrets=1"},
-                                {RPCResult::Type::STR, "Spend Secret", "Spend secret, if show_secrets=1"},
-                                {RPCResult::Type::STR_HEX, "scan_public_key", "Scan public key, if show_secrets=1"},
-                                {RPCResult::Type::STR_HEX, "spend_public_key", "Spend public key, if show_secrets=1"},
-                            }
+                                {RPCResult::Type::OBJ, "", "", {
+                                    {RPCResult::Type::STR, "Label", "Stealth address label"},
+                                    {RPCResult::Type::STR, "Address", "Stealth address"},
+                                    {RPCResult::Type::STR, "Scan Secret", /*optional=*/true, "Scan secret, if show_secrets=1"},
+                                    {RPCResult::Type::STR, "Spend Secret", /*optional=*/true, "Spend secret, if show_secrets=1"},
+                                    {RPCResult::Type::STR_HEX, "scan_public_key", /*optional=*/true, "Scan public key, if show_secrets=1"},
+                                    {RPCResult::Type::STR_HEX, "spend_public_key", /*optional=*/true, "Spend public key, if show_secrets=1"},
+                                    {RPCResult::Type::NUM, "received_addresses", /*optional=*/true, "Number of keys in the wallet derived from this address"},
+                                    {RPCResult::Type::STR, "scan_path", /*optional=*/true, "Key path of scan key"},
+                                    {RPCResult::Type::STR, "spend_path", /*optional=*/true, "Key path of spend key"},
+                                }
+                            }}
                         }}},
                     }
                 },
@@ -4395,17 +4401,15 @@ static RPCHelpMan getstakinginfo()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::BOOL, "enabled", "If staking is enabled on this wallet"},
                         {RPCResult::Type::BOOL, "staking", "If this wallet is currently staking"},
-                        {RPCResult::Type::ARR, "errors", "any error messages", {
-                            {RPCResult::Type::STR, "", ""},
-                        }},
+                        {RPCResult::Type::STR, "warnings", "Node warnings messages"},
                         {RPCResult::Type::STR_AMOUNT, "percentyearreward", "Current stake reward percentage"},
                         {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of particl in the network"},
-                        {RPCResult::Type::STR_AMOUNT, "reserve", "The reserve balance of the wallet in " + CURRENCY_UNIT},
-                        {RPCResult::Type::STR_AMOUNT, "wallettreasurydonationpercent", "User set percentage of the block reward ceded to the treasury"},
-                        {RPCResult::Type::STR_AMOUNT, "treasurydonationpercent", "Network enforced percentage of the block reward ceded to the treasury"},
+                        {RPCResult::Type::STR_AMOUNT, "reserve", /*optional=*/true, "The reserve balance of the wallet in " + CURRENCY_UNIT},
+                        {RPCResult::Type::STR_AMOUNT, "wallettreasurydonationpercent", /*optional=*/true, "User set percentage of the block reward ceded to the treasury"},
+                        {RPCResult::Type::STR_AMOUNT, "treasurydonationpercent", /*optional=*/true, "Network enforced percentage of the block reward ceded to the treasury"},
                         {RPCResult::Type::STR_AMOUNT, "minstakeablevalue", "The minimum value for an output to attempt staking in " + CURRENCY_UNIT},
                         {RPCResult::Type::NUM, "currentblocksize", "The last approximate block size in bytes"},
-                        {RPCResult::Type::NUM, "currentblockweight", "The last block weight"},
+                        {RPCResult::Type::NUM, "currentblockweight", /*optional=*/true, "The last block weight (only present if a block was ever assembled)"},
                         {RPCResult::Type::NUM, "currentblocktx", "The number of transactions in the last block"},
                         {RPCResult::Type::NUM, "pooledtx", "The number of transactions in the mempool"},
                         {RPCResult::Type::NUM, "difficulty", "The current difficulty"},
@@ -4413,6 +4417,7 @@ static RPCHelpMan getstakinginfo()
                         {RPCResult::Type::NUM, "weight", "The current stake weight of this wallet"},
                         {RPCResult::Type::NUM, "netstakeweight", "The current stake weight of the network"},
                         {RPCResult::Type::NUM, "expectedtime", "Estimated time for next stake"},
+                        {RPCResult::Type::STR, "cause", /*optional=*/true, "If not staking, possible reason why"},
                 }},
                 RPCExamples{
             HelpExampleCli("getstakinginfo", "") +
@@ -4480,7 +4485,7 @@ static RPCHelpMan getstakinginfo()
             break;
     }
 
-    obj.pushKV("errors", GetWarnings(false).original);
+    obj.pushKV("warnings", GetWarnings(false).original);
 
     obj.pushKV("percentyearreward", rCoinYearReward);
     obj.pushKV("moneysupply", ValueFromAmount(nMoneySupply));
@@ -4501,6 +4506,7 @@ static RPCHelpMan getstakinginfo()
     obj.pushKV("minstakeablevalue", pwallet->m_min_stakeable_value);
 
     obj.pushKV("currentblocksize", (uint64_t)nLastBlockSize);
+    if (node::BlockAssembler::m_last_block_weight) obj.pushKV("currentblockweight", *node::BlockAssembler::m_last_block_weight);
     obj.pushKV("currentblocktx", (uint64_t)nLastBlockTx);
 
     CTxMemPool *mempool = pwallet->HaveChain() ? pwallet->chain().getMempool() : nullptr;
@@ -4701,10 +4707,13 @@ static RPCHelpMan listunspentanon()
                             {RPCResult::Type::STR_HEX, "txid", "the transaction id"},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
                             {RPCResult::Type::STR, "address", "the particl address"},
-                            {RPCResult::Type::STR, "label", "The associated label, or \"\" for the default label"},
+                            {RPCResult::Type::STR, "label", /*optional=*/true, "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "the transaction output amount in " + CURRENCY_UNIT},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
-                            {RPCResult::Type::STR_HEX, "pubkey", "If \"show_pubkeys\""},
+                            {RPCResult::Type::STR_HEX, "pubkey", /*optional=*/true, "If \"show_pubkeys\""},
+                            {RPCResult::Type::BOOL, "safe", "Whether this output is considered safe to spend. Unconfirmed transactions\n"
+                                                            "from outside keys and unconfirmed replacement transactions are considered unsafe\n"
+                                                            "and are not eligible for spending by fundrawtransaction and sendtoaddress."},
                         }},
                     }
                 },
@@ -4942,15 +4951,16 @@ static RPCHelpMan listunspentblind()
                             {RPCResult::Type::STR_HEX, "txid", "the transaction id"},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
                             {RPCResult::Type::STR, "address", "the particl address"},
-                            {RPCResult::Type::STR, "label", "The associated label, or \"\" for the default label"},
+                            {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The associated stealth_address the transaction was received on"},
+                            {RPCResult::Type::STR, "label", /*optional=*/true, "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR, "scriptPubKey", "the script key"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "the transaction output amount in " + CURRENCY_UNIT},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
-                            {RPCResult::Type::STR_HEX, "redeemScript", "The redeemScript if scriptPubKey is P2SH"},
+                            {RPCResult::Type::STR_HEX, "redeemScript", /*optional=*/true, "The redeemScript if scriptPubKey is P2SH"},
                             {RPCResult::Type::BOOL, "spendable", "Whether we have the private keys to spend this output"},
                             {RPCResult::Type::BOOL, "solvable", "Whether we know how to spend this output, ignoring the lack of keys"},
-                            {RPCResult::Type::BOOL, "reused", "(only present if avoid_reuse is set) Whether this output is reused/dirty (sent to an address that was previously spent from)"},
-                            {RPCResult::Type::STR, "desc", "(only when solvable) A descriptor for spending this output"},
+                            {RPCResult::Type::BOOL, "reused", /*optional=*/true, "(only present if avoid_reuse is set) Whether this output is reused/dirty (sent to an address that was previously spent from)"},
+                            {RPCResult::Type::STR, "desc", /*optional=*/true, "(only when solvable) A descriptor for spending this output"},
                             {RPCResult::Type::BOOL, "safe", "Whether this output is considered safe to spend. Unconfirmed transactions"
             "                              from outside keys and unconfirmed replacement transactions are considered unsafe\n"
                                 "and are not eligible for spending by fundrawtransaction and sendtoaddress."},
@@ -5766,7 +5776,16 @@ static RPCHelpMan sendtypeto()
                 {
                     RPCResult{"Default", RPCResult::Type::STR_HEX, "", "The transaction id"},
                     RPCResult{"With certain options", RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR_HEX, "txid", "The transaction id"}
+                        {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "The transaction id"},
+                        {RPCResult::Type::STR_HEX, "hex", /*optional=*/true, "The hex encoded transaction"},
+                        {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "Transaction fee"},
+                        {RPCResult::Type::STR_AMOUNT, "bytes", /*optional=*/true, "Size of ttansaction in bytes"},
+                        {RPCResult::Type::BOOL, "need_hwdevice", /*optional=*/true, "True if a hardware device is required to sign the transaction"},
+                        {RPCResult::Type::BOOL, "mempool-allowed", /*optional=*/true, "True if transaction passed mempool checks, only present when \"test_mempool_accept\" is set"},
+                        {RPCResult::Type::STR, "mempool-reject-reason", /*optional=*/true, "Message from failed mempool test"},
+                        {RPCResult::Type::OBJ_DYN, "outputs_fee", "", {
+                            {RPCResult::Type::STR_AMOUNT, "address", "fee for output"},
+                            }},
                     }}
                 },
                 RPCExamples{
@@ -7109,14 +7128,19 @@ static RPCHelpMan walletsettings()
                         },
                     "setting_value"},
                 },
+                {
                 RPCResult{
-                    RPCResult::Type::OBJ, "", "",
+                    RPCResult::Type::OBJ_DYN, "", "",
                     {
-                        {RPCResult::Type::OBJ, "setting_name", "",
+                        {RPCResult::Type::ELISION, "", ""},
+                        {RPCResult::Type::OBJ_DYN, "setting_name", "",
                         {
+                            {RPCResult::Type::ELISION, "", ""},
                             {RPCResult::Type::STR, "time", /*optional=*/true, "Timestamp from when setting was last changed."},
                         }
                     }}
+                },
+                RPCResult{RPCResult::Type::ANY, "", ""}
                 },
                 RPCExamples{
             "Set coldstaking changeaddress extended public key:\n"
@@ -7393,7 +7417,7 @@ static RPCHelpMan transactionblinds()
                     {"txnid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id."},
                 },
                 RPCResult{
-                    RPCResult::Type::OBJ, "", "", {
+                    RPCResult::Type::OBJ_DYN, "", "", {
                         {RPCResult::Type::STR_HEX, "hex", "The blinding factor for output n"},
                 }},
                 RPCExamples{
@@ -7449,8 +7473,9 @@ static RPCHelpMan derivefromstealthaddress()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR, "address", "The derived address"},
                         {RPCResult::Type::STR_HEX, "pubkey", "The derived public key"},
-                        {RPCResult::Type::STR_HEX, "ephemeral", "The ephemeral public key"},
-                        {RPCResult::Type::STR, "privatekey", "The derived privatekey, if \"ephempubkey\" is provided"},
+                        {RPCResult::Type::STR_HEX, "ephemeral_pubkey", "The ephemeral public key"},
+                        {RPCResult::Type::STR, "ephemeral_privatekey", /*optional=*/true, "The ephemeral privatekey, if provided or generated"},
+                        {RPCResult::Type::STR, "privatekey", /*optional=*/true, "The derived privatekey, if \"ephempubkey\" is provided"},
                 }},
                 RPCExamples{
             HelpExampleCli("derivefromstealthaddress", "\"stealthaddress\"") +
@@ -7562,6 +7587,7 @@ static RPCHelpMan getkeyimage()
             RPCResult{
                 RPCResult::Type::OBJ, "", "", {
                     {RPCResult::Type::STR_HEX, "keyimage", "The derived public key"},
+                    {RPCResult::Type::STR, "warning", /*optional=*/true, "Note"},
             }},
             RPCExamples{
         HelpExampleCli("getkeyimage", "\"pubkey\"") +
@@ -7623,8 +7649,8 @@ static RPCHelpMan setvote()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR, "result", "Result."},
-                        {RPCResult::Type::NUM, "from_height", "Block from (including)."},
-                        {RPCResult::Type::NUM, "to_height", "Block to (including)."}
+                        {RPCResult::Type::NUM, "from_height", /*optional=*/true, "Block from (including)."},
+                        {RPCResult::Type::NUM, "to_height", /*optional=*/true, "Block to (including)."}
                     }
                 },
                 RPCExamples{
@@ -7719,6 +7745,7 @@ static RPCHelpMan votehistory()
                             {RPCResult::Type::NUM, "option", "The option marked"},
                             {RPCResult::Type::NUM, "from_height", "The starting chain height"},
                             {RPCResult::Type::NUM, "to_height", "The ending chain height"},
+                            {RPCResult::Type::NUM, "added", "Time setting was added"},
                         }},
                     }
                 },
@@ -7792,6 +7819,7 @@ static RPCHelpMan votehistory()
             vote.pushKV("option", (int)(v.nToken >> 16));
             vote.pushKV("from_height", vote_start);
             vote.pushKV("to_height", vote_end);
+            vote.pushKV("added", v.nTimeAdded);
 
             size_t k = 0;
             for (k = 0; k < result.size(); k++) {
@@ -7839,6 +7867,7 @@ static RPCHelpMan tallyvotes()
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::ELISION, "", ""}, // Option n
                         {RPCResult::Type::NUM, "proposal", "The proposal id"},
                         {RPCResult::Type::NUM, "option", "The option marked"},
                         {RPCResult::Type::NUM, "height_start", "The starting chain height"},
@@ -7941,6 +7970,7 @@ return RPCHelpMan{"buildscript",
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "recipe", "Script recipe"},
                         {RPCResult::Type::STR_HEX, "hex", "Script as hex"},
                         {RPCResult::Type::STR, "asm", "Script as asm"},
                 }},
@@ -8070,14 +8100,12 @@ static RPCHelpMan createrawparttransaction()
             //"5. \"fundfrombalance\"       (string, optional, default=none) Fund transaction from standard, blinded or anon balance.\n"
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR_HEX, "transaction", "hex string of the transaction"},
-                        {RPCResult::Type::NUM, "fee", "Fee in " + CURRENCY_UNIT + " the resulting transaction pays"},
-                        {RPCResult::Type::NUM, "changepos", "The position of the added change output, or -1"},
-                        {RPCResult::Type::OBJ, "amounts", "Coin values of outputs with blinding factors of blinded outputs", {
+                        {RPCResult::Type::STR_HEX, "hex", "hex string of the transaction"},
+                        {RPCResult::Type::OBJ_DYN, "amounts", "Coin values of outputs with blinding factors of blinded outputs", {
                             {RPCResult::Type::OBJ, "n", "", {
                                 {RPCResult::Type::STR_AMOUNT, "value", "The amount of the output in " + CURRENCY_UNIT},
-                                {RPCResult::Type::STR_HEX, "blind", "Blinding factor"},
-                                {RPCResult::Type::STR_HEX, "nonce", "Nonce"},
+                                {RPCResult::Type::STR_HEX, "blind", /*optional=*/true, "Blinding factor"},
+                                {RPCResult::Type::STR_HEX, "nonce", /*optional=*/true, "Nonce"},
                             }}
                         }},
                 }},
@@ -8465,10 +8493,10 @@ static RPCHelpMan fundrawtransactionfrom()
                         {RPCResult::Type::STR_HEX, "hex", "The resulting raw transaction"},
                         {RPCResult::Type::NUM, "fee", "Fee in " + CURRENCY_UNIT + " the resulting transaction pays"},
                         {RPCResult::Type::NUM, "changepos", "The position of the added change output, or -1"},
-                        {RPCResult::Type::OBJ, "output_amounts", "Output values and blinding factors", {
+                        {RPCResult::Type::OBJ_DYN, "output_amounts", "Output values and blinding factors", {
                             {RPCResult::Type::OBJ, "n", "", {
                                 {RPCResult::Type::STR_AMOUNT, "value", "The amount of the output in " + CURRENCY_UNIT},
-                                {RPCResult::Type::STR_HEX, "blind", "Blinding factor"},
+                                {RPCResult::Type::STR_HEX, "blind", /*optional=*/true, "Blinding factor"},
                             }}
                         }},
                 }},
@@ -9182,13 +9210,16 @@ static RPCHelpMan verifyrawtransaction()
                         {RPCResult::Type::BOOL, "inputs_valid", "If the transaction passed input verification"},
                         {RPCResult::Type::BOOL, "complete", "If the transaction has a complete set of signatures"},
                         {RPCResult::Type::NUM, "validscripts", "The number of scripts which passed verification"},
-                        {RPCResult::Type::STR, "label", "The label of the receiving address. The default label is \"\""},
-                        {RPCResult::Type::ARR, "errors", "Script verification errors (if there are any)",
+                        {RPCResult::Type::ARR, "errors", /*optional=*/true, "Script verification errors (if there are any)",
                         {
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::STR_HEX, "txid", "The hash of the referenced, previous transaction"},
                                 {RPCResult::Type::NUM, "vout", "The index of the output to spent and used as input"},
+                                {RPCResult::Type::ARR, "witness", "",
+                                {
+                                    {RPCResult::Type::STR_HEX, "witness", ""},
+                                }},
                                 {RPCResult::Type::STR_HEX, "scriptSig", "The hex-encoded signature script"},
                                 {RPCResult::Type::NUM, "sequence", "Script sequence number"},
                                 {RPCResult::Type::STR, "error", "Verification or signing error related to the input"},
@@ -9527,7 +9558,7 @@ static RPCHelpMan rewindchain()
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::NUM, "to_height", "Height rewound to."},
                         {RPCResult::Type::NUM, "nBlocks", "Blocks removed."},
-                        {RPCResult::Type::STR, "error", "Error, if failed."}
+                        {RPCResult::Type::STR, "error", /*optional=*/true, "Error, if failed."},
                     }
                 },
                 RPCExamples{""},

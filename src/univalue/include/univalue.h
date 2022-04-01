@@ -89,6 +89,7 @@ public:
     bool push_back(const UniValue& val);
     bool insert(size_t pos, const UniValue& val_);
     bool erase(size_t from, size_t to);
+    bool erase_by_key(const std::string& key);
 
     bool push_back(const std::string& val_) {
         UniValue tmpVal(VSTR, val_);

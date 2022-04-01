@@ -238,7 +238,7 @@ class AnonTest(ParticlTestFramework):
 
         assert(self.wait_for_mempool(nodes[1], txid))
         raw_tx = w1_2.getrawtransaction(txid, True)
-        possible_inputs = raw_tx['vin'][0]['ring_row_0'].split(', ')
+        possible_inputs = raw_tx['vin'][0]['ring_member_rows']['0'].split(', ')
         possible_inputs_txids = []
         for pi in possible_inputs:
             anonoutput = w1_2.anonoutput(pi)

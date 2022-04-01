@@ -25,6 +25,11 @@ static RPCHelpMan anonoutput()
                 {
                     {"output", RPCArg::Type::STR, RPCArg::Default{""}, "Output to view, specified by index or hex of publickey."},
                 },
+                {
+                RPCResult{"No arguments",
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::NUM, "lastindex", "Number of anon outputs"},
+                }},
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::NUM, "index", "Position in chain of anon output"},
@@ -32,7 +37,8 @@ static RPCHelpMan anonoutput()
                         {RPCResult::Type::STR_HEX, "txnhash", "Hash of transaction found in"},
                         {RPCResult::Type::NUM, "n", "Offset in transaction found in"},
                         {RPCResult::Type::NUM, "blockheight", "Height of block found in"},
-                }},
+                }}
+                },
                 RPCExamples{
             HelpExampleCli("anonoutput", "\"1\"")
             + HelpExampleRpc("anonoutput", "\"2\"")
@@ -98,8 +104,8 @@ static RPCHelpMan checkkeyimage()
             RPCResult{
                 RPCResult::Type::OBJ, "", "", {
                     {RPCResult::Type::BOOL, "spent", "Keyimage found in chain or not"},
-                    {RPCResult::Type::STR_HEX, "txid", "ID of spending transaction"},
-                    {RPCResult::Type::NUM, "height", "Chain height of containing block"},
+                    {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "ID of spending transaction"},
+                    {RPCResult::Type::NUM, "height", /*optional=*/true, "Chain height of containing block"},
             }},
             RPCExamples{
         HelpExampleCli("checkkeyimage", "\"keyimage\"")

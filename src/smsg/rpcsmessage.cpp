@@ -866,9 +866,12 @@ static RPCHelpMan smsgsend()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR, "result", "\"Sent\"/\"Not Sent\""},
-                        {RPCResult::Type::STR_HEX, "msgid", "Message id, if sent"},
-                        {RPCResult::Type::STR_HEX, "txid", "txnid of the funding txn, if paid msg"},
-                        {RPCResult::Type::STR_AMOUNT, "fee", "fee paid, if paid msg"},
+                        {RPCResult::Type::STR_HEX, "msgid", /*optional=*/true, "Message id, if sent"},
+                        {RPCResult::Type::STR_HEX, "msg", /*optional=*/true, "Hex encoded message"},
+                        {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "txnid of the funding transaction, if paid msg"},
+                        {RPCResult::Type::NUM, "tx_vsize", /*optional=*/true, "Virtual size of funding transaction, if paid msg"},
+                        {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "fee paid, if paid msg"},
+                        {RPCResult::Type::STR, "error", /*optional=*/true, "Error if failed to send"},
                 }},
                 RPCExamples{
              HelpExampleCli("smsgsend", "\"myaddress\" \"toaddress\" \"message\"") +
@@ -1020,7 +1023,7 @@ static RPCHelpMan smsgsend()
                 result.pushKV("txid", txid.ToString());
             }
             result.pushKV("fee", ValueFromAmount(nFee));
-            result.pushKV("tx_bytes", (int)nTxBytes);
+            result.pushKV("tx_vsize", (int)nTxBytes);
         }
     }
 
@@ -1088,7 +1091,8 @@ static RPCHelpMan smsgfund()
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
-                {RPCResult::Type::STR_HEX, "txid", "funding txid"},
+                {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "funding txid"},
+                {RPCResult::Type::NUM, "tx_vsize", "Virtual size of funding transaction"},
                 {RPCResult::Type::STR_AMOUNT, "fee", "tx fee paid"},
         }},
         RPCExamples{
@@ -1238,7 +1242,7 @@ static RPCHelpMan smsgfund()
     }
 
     result.pushKV("fee", ValueFromAmount(nTxFee));
-    result.pushKV("tx_bytes", (int)nTxBytes);
+    result.pushKV("tx_vsize", (int)nTxBytes);
 
     return result;
 },
@@ -1304,15 +1308,32 @@ static RPCHelpMan smsginbox()
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR_HEX, "msgid", "Message id"},
-                        {RPCResult::Type::STR, "version", "The message version"},
-                        {RPCResult::Type::STR, "received", "Time the message was received"},
-                        {RPCResult::Type::STR, "sent", "Time the message was sent"},
-                        {RPCResult::Type::NUM, "daysretention", "DEPRECATED Number of days message will stay in the network for"},
-                        {RPCResult::Type::NUM, "ttl", "Seconds message will stay in the network for"},
-                        {RPCResult::Type::STR, "from", "Address the message was sent from"},
-                        {RPCResult::Type::STR, "to", "Address the message was sent to"},
-                        {RPCResult::Type::STR, "text", "Message text"},
+                        {RPCResult::Type::STR, "result", "No of messages or error"},
+                        {RPCResult::Type::ARR, "messages", /*optional=*/true, "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::STR_HEX, "msgid", "Message id"},
+                                {RPCResult::Type::STR, "version", "The message version"},
+                                {RPCResult::Type::NUM, "received", /*optional=*/true, "Time the message was received"},
+                                {RPCResult::Type::NUM, "received_local", /*optional=*/true, "Time the message was received"},
+                                {RPCResult::Type::NUM, "received_utc", /*optional=*/true, "Time the message was received"},
+                                {RPCResult::Type::NUM, "sent", /*optional=*/true, "Time the message was sent"},
+                                {RPCResult::Type::NUM, "sent_local", /*optional=*/true, "Time the message was sent"},
+                                {RPCResult::Type::NUM, "sent_utc", /*optional=*/true, "Time the message was sent"},
+                                {RPCResult::Type::NUM, "daysretention", /*optional=*/true, "DEPRECATED Number of days message will stay in the network for"},
+                                {RPCResult::Type::NUM, "ttl", /*optional=*/true, "Seconds message will stay in the network for"},
+                                {RPCResult::Type::NUM, "expiration", /*optional=*/true, "Time Expired"},
+                                {RPCResult::Type::NUM, "payloadsize", /*optional=*/true, "Size in bytes of payload"},
+                                {RPCResult::Type::BOOL, "paid", /*optional=*/true, "True if paid message"},
+                                {RPCResult::Type::STR, "from", /*optional=*/true, "Address the message was sent from"},
+                                {RPCResult::Type::STR, "to", /*optional=*/true, "Address the message was sent to"},
+                                {RPCResult::Type::STR, "text", /*optional=*/true, "Message text"},
+                                {RPCResult::Type::STR, "hex", /*optional=*/true, "Message text"},
+                                {RPCResult::Type::STR, "unknown_encoding", /*optional=*/true, "Message text"},
+                                {RPCResult::Type::STR, "status", /*optional=*/true, "Message status"},
+                                {RPCResult::Type::STR, "error", /*optional=*/true, "Message error"},
+                            }},
+                        }},
+                        {RPCResult::Type::STR, "expected", /*optional=*/true, "values understood"},
                 }},
                 RPCExamples{
                     "Display unread received messages:"
@@ -1368,8 +1389,8 @@ static RPCHelpMan smsginbox()
 
             result.pushKV("result", strprintf("Deleted %u messages.", nMessages));
         } else
-        if (mode == "all"
-            || mode == "unread") {
+        if (mode == "all" ||
+            mode == "unread") {
             int fCheckReadStatus = mode == "unread" ? 1 : 0;
 
             smsg::SecMsgStored smsgStored;
@@ -1482,12 +1503,29 @@ static RPCHelpMan smsgoutbox()
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::STR_HEX, "msgid", "Message id"},
-                        {RPCResult::Type::STR, "version", "The message version"},
-                        {RPCResult::Type::STR, "sent", "Time the message was sent"},
-                        {RPCResult::Type::STR, "from", "Address the message was sent from"},
-                        {RPCResult::Type::STR, "to", "Address the message was sent to"},
-                        {RPCResult::Type::STR, "text", "Message text"},
+                        {RPCResult::Type::STR, "result", "No of messages or error"},
+                        {RPCResult::Type::ARR, "messages", /*optional=*/true, "", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::STR_HEX, "msgid", "Message id"},
+                                {RPCResult::Type::STR, "version", "The message version"},
+                                {RPCResult::Type::NUM, "sent", /*optional=*/true, "Time the message was sent"},
+                                {RPCResult::Type::NUM, "sent_local", /*optional=*/true, "Time the message was sent"},
+                                {RPCResult::Type::NUM, "sent_utc", /*optional=*/true, "Time the message was sent"},
+                                {RPCResult::Type::NUM, "daysretention", /*optional=*/true, "DEPRECATED Number of days message will stay in the network for"},
+                                {RPCResult::Type::NUM, "ttl", /*optional=*/true, "Seconds message will stay in the network for"},
+                                {RPCResult::Type::NUM, "expiration", /*optional=*/true, "Time Expired"},
+                                {RPCResult::Type::NUM, "payloadsize", /*optional=*/true, "Size in bytes of payload"},
+                                {RPCResult::Type::BOOL, "paid", /*optional=*/true, "True if paid message"},
+                                {RPCResult::Type::STR, "from", /*optional=*/true, "Address the message was sent from"},
+                                {RPCResult::Type::STR, "to", /*optional=*/true, "Address the message was sent to"},
+                                {RPCResult::Type::STR, "text", /*optional=*/true, "Message text"},
+                                {RPCResult::Type::STR, "hex", /*optional=*/true, "Message text"},
+                                {RPCResult::Type::STR, "unknown_encoding", /*optional=*/true, "Message text"},
+                                {RPCResult::Type::STR, "status", /*optional=*/true, "Message status"},
+                                {RPCResult::Type::STR, "error", /*optional=*/true, "Message error"},
+                            }},
+                        }},
+                        {RPCResult::Type::STR, "expected", /*optional=*/true, "values understood"},
                 }},
                 RPCExamples{
                     HelpExampleCli("smsgoutbox", "")
@@ -2061,15 +2099,25 @@ static RPCHelpMan smsgone()
                         {RPCResult::Type::STR_HEX, "msgid", "Message id"},
                         {RPCResult::Type::STR, "version", "The message version"},
                         {RPCResult::Type::STR, "location", "inbox|outbox|sending"},
-                        {RPCResult::Type::STR, "received", "Time the message was received"},
+                        {RPCResult::Type::NUM, "received", "Time the message was received"},
+                        {RPCResult::Type::NUM, "received_local", /*optional=*/true, "Time the message was received"},
+                        {RPCResult::Type::NUM, "received_utc", /*optional=*/true, "Time the message was received"},
                         {RPCResult::Type::BOOL, "read", "Read status"},
-                        {RPCResult::Type::STR, "sent", "Time the message was created"},
+                        {RPCResult::Type::NUM, "sent", "Time the message was created"},
+                        {RPCResult::Type::NUM, "sent_local", /*optional=*/true, "Time the message was created"},
+                        {RPCResult::Type::NUM, "sent_utc", /*optional=*/true, "Time the message was created"},
                         {RPCResult::Type::BOOL, "paid", "Paid or free message"},
                         {RPCResult::Type::NUM, "daysretention", "DEPRECATED Number of days message will stay in the network for"},
                         {RPCResult::Type::NUM, "ttl", "Seconds message will stay in the network for"},
                         {RPCResult::Type::NUM_TIME, "expiration", "Time the message will be dropped from the network"},
                         {RPCResult::Type::NUM, "payloadsize", "Size of user message"},
                         {RPCResult::Type::STR, "from", "Address the message was sent from"},
+                        {RPCResult::Type::STR, "to", "Address the message was sent to"},
+                        {RPCResult::Type::STR, "text", /*optional=*/true, "Message text"},
+                        {RPCResult::Type::STR, "hex", /*optional=*/true, "Message text"},
+                        {RPCResult::Type::STR, "unknown_encoding", /*optional=*/true, "Message text"},
+                        {RPCResult::Type::STR, "raw", /*optional=*/true, "Complete message hex encoded"},
+                        {RPCResult::Type::STR, "operation", /*optional=*/true, "Operation performed"},
                 }},
                 RPCExamples{
             HelpExampleCli("smsg", "\"msgid\"") +
@@ -2334,7 +2382,12 @@ static RPCHelpMan smsggetfeerate()
                 {
                     RPCResult{"Default", RPCResult::Type::NUM, "", "Fee rate in satoshis"},
                     RPCResult{"With height", RPCResult::Type::OBJ, "", "", {
-                        {RPCResult::Type::NUM, "currentrate", "Fee rate in satoshis"}
+                        {RPCResult::Type::NUM, "currentrate", "Fee rate in satoshis"},
+                        {RPCResult::Type::NUM, "inactiveuntil", /*optional=*/true, "Time smsg fees activates on the chain"},
+                        {RPCResult::Type::NUM, "currentrateblockheight", "Block height the current rate was sampled from"},
+                        {RPCResult::Type::NUM, "targetrate", "Rate at chain tip"},
+                        {RPCResult::Type::NUM, "targetblockheight", "Block tip height"},
+                        {RPCResult::Type::NUM, "nextratechangeheight", "Height next fee rate will activate"},
                     }}
                 },
                 RPCExamples{
@@ -2432,7 +2485,11 @@ static RPCHelpMan smsggetinfo()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::BOOL, "enabled", "True if SMSG is enabled"},
-                        {RPCResult::Type::STR, "wallet", "name of the currently active wallet or \"None set\""},
+                        {RPCResult::Type::STR, "active_wallet", /*optional=*/true, "name of the currently active wallet or \"None set\""},
+                        {RPCResult::Type::ARR, "enabled_wallets", /*optional=*/true, "Names of enabled wallets",
+                        {
+                            {RPCResult::Type::STR_HEX, "", "wallet_name"},
+                        }}
                     },
                 },
                 RPCExamples{
@@ -2474,12 +2531,23 @@ static RPCHelpMan smsgpeers()
                 {RPCResult::Type::OBJ, "", "",
                 {
                     {RPCResult::Type::NUM, "id", "Peer index"},
+                    {RPCResult::Type::STR, "address", "Node address"},
                     {RPCResult::Type::NUM, "version", "Peer version"},
                     {RPCResult::Type::NUM, "ignoreuntil", "Peer ignored until time"},
                     {RPCResult::Type::NUM, "misbehaving", "Misbehaviour counter"},
                     {RPCResult::Type::NUM, "numwantsent", "Number of smsges requested from peer"},
                     {RPCResult::Type::NUM, "receivecounter", "Messages received from peer in window"},
                     {RPCResult::Type::NUM, "ignoredcounter", "Number of times peer has been ignored"},
+                    {RPCResult::Type::NUM, "num_pending_inv", "Number of buckets peer has to show"},
+                    {RPCResult::Type::NUM, "num_shown_buckets", "Number of buckets peer showed last"},
+                    {RPCResult::Type::OBJ, "pending_inv_buckets", /*optional=*/true, "", {
+                        {RPCResult::Type::NUM, "active", "Active messages in bucket"},
+                        {RPCResult::Type::STR, "hash", "Bucket hash"},
+                    }},
+                    {RPCResult::Type::OBJ, "shown_buckets", /*optional=*/true, "", {
+                        {RPCResult::Type::NUM, "time", "Entry time"},
+                        {RPCResult::Type::NUM, "last_shown", "Number of buckets peer showed"},
+                    }},
                 }},
             }
         },

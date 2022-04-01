@@ -57,7 +57,10 @@ void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry
 
     if (!fFilterMode) {
         for (const std::pair<const std::string, std::string>& item : wtx.mapValue) {
-            entry.pushKV(item.first, item.second);
+            // Filter out narrations, displayed elsewhere
+            if (item.first.size() > 1 && item.first[0] != 'n') {
+                entry.pushKV(item.first, item.second);
+            }
         }
     }
 }
@@ -484,11 +487,13 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             entry.pushKV("fee", ValueFromAmount(-nFee));
             if (fLong) {
                 WalletTxToJSON(wallet, wtx, entry);
-            } else {
+            }
+            {
                 std::string sNarrKey = strprintf("n%d", s.vout);
                 mapValue_t::const_iterator mi = wtx.mapValue.find(sNarrKey);
-                if (mi != wtx.mapValue.end() && !mi->second.empty())
+                if (mi != wtx.mapValue.end() && !mi->second.empty()) {
                     entry.pushKV("narration", mi->second);
+                }
             }
             entry.pushKV("abandoned", wtx.isAbandoned());
 
@@ -545,7 +550,8 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             entry.pushKV("vout", r.vout);
             if (fLong) {
                 WalletTxToJSON(wallet, wtx, entry);
-            } else {
+            }
+            {
                 std::string sNarrKey = strprintf("n%d", r.vout);
                 mapValue_t::const_iterator mi = wtx.mapValue.find(sNarrKey);
                 if (mi != wtx.mapValue.end() && !mi->second.empty()) {
@@ -579,6 +585,13 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
             if (fLong) {
                 WalletTxToJSON(wallet, wtx, entry);
             }
+            {
+                std::string sNarrKey = strprintf("n%d", s.vout);
+                mapValue_t::const_iterator mi = wtx.mapValue.find(sNarrKey);
+                if (mi != wtx.mapValue.end() && !mi->second.empty()) {
+                    entry.pushKV("narration", mi->second);
+                }
+            }
             entry.pushKV("abandoned", wtx.isAbandoned());
             ret.push_back(entry);
         }
@@ -586,7 +599,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
 }
 
 static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransactionRecord &rtx,
-    const std::string &strAccount, int nMinDepth, bool fLong, UniValue &ret, const isminefilter &filter) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
+    const std::string &strAccount, int nMinDepth, bool with_tx_details, UniValue &ret, const isminefilter &filter) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
 {
     bool fAllAccounts = (strAccount == std::string("*"));
 
@@ -672,7 +685,7 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
                 : r.nType == OUTPUT_CT ? "blind" : r.nType == OUTPUT_RINGCT ? "anon" : "unknown");
 
         if (r.nFlags & ORF_OWNED && r.nFlags & ORF_FROM) {
-            entry.pushKV("fromself", "true");
+            entry.pushKV("fromself", true);
         }
 
         entry.pushKV("amount", ValueFromAmount(r.nValue * ((r.nFlags & ORF_OWN_ANY) ? 1 : -1)));
@@ -683,40 +696,40 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
 
         entry.pushKV("vout", r.n);
 
-        int confirms = phdw->GetDepthInMainChain(rtx);
-        entry.pushKV("confirmations", confirms);
-        if (confirms > 0) {
-            entry.pushKV("blockhash", rtx.blockHash.GetHex());
-            entry.pushKV("blockindex", rtx.nIndex);
-            PushTime(entry, "blocktime", rtx.nBlockTime);
-        } else {
-            entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
+        if (with_tx_details) {
+            int confirms = phdw->GetDepthInMainChain(rtx);
+            entry.pushKV("confirmations", confirms);
+            if (confirms > 0) {
+                entry.pushKV("blockhash", rtx.blockHash.GetHex());
+                entry.pushKV("blockindex", rtx.nIndex);
+                PushTime(entry, "blocktime", rtx.nBlockTime);
+            } else {
+                entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
+            }
+
+            entry.pushKV("txid", hash.ToString());
+
+            UniValue conflicts(UniValue::VARR);
+            std::set<uint256> setconflicts = phdw->GetConflicts(hash);
+            setconflicts.erase(hash);
+            for (const auto &conflict : setconflicts) {
+                conflicts.push_back(conflict.GetHex());
+            }
+            entry.pushKV("walletconflicts", conflicts);
+
+            PushTime(entry, "time", rtx.GetTxTime());
+            if (r.nFlags & ORF_FROM) {
+                entry.pushKV("abandoned", rtx.IsAbandoned());
+            }
         }
-
-        entry.pushKV("txid", hash.ToString());
-
-        UniValue conflicts(UniValue::VARR);
-        std::set<uint256> setconflicts = phdw->GetConflicts(hash);
-        setconflicts.erase(hash);
-        for (const auto &conflict : setconflicts) {
-            conflicts.push_back(conflict.GetHex());
-        }
-        entry.pushKV("walletconflicts", conflicts);
-
-        PushTime(entry, "time", rtx.GetTxTime());
 
         if (!r.sNarration.empty()) {
             entry.pushKV("narration", r.sNarration);
         }
 
-        if (r.nFlags & ORF_FROM) {
-            entry.pushKV("abandoned", rtx.IsAbandoned());
-        }
-
         ret.push_back(entry);
     }
 };
-
 
 static const std::vector<RPCResult> TransactionDescriptionString()
 {
@@ -730,7 +743,7 @@ static const std::vector<RPCResult> TransactionDescriptionString()
            {RPCResult::Type::NUM, "blockindex", /*optional=*/true, "The index of the transaction in the block that includes it."},
            {RPCResult::Type::NUM_TIME, "blocktime", /*optional=*/true, "The block time expressed in " + UNIX_EPOCH_TIME + "."},
            {RPCResult::Type::STR_HEX, "txid", "The transaction id."},
-           {RPCResult::Type::STR_HEX, "wtxid", "The hash of serialized transaction, including witness data."},
+           {RPCResult::Type::STR_HEX, "wtxid", /*optional=*/true, "The hash of serialized transaction, including witness data."},
            {RPCResult::Type::ARR, "walletconflicts", "Conflicting transaction ids.",
            {
                {RPCResult::Type::STR_HEX, "txid", "The transaction id."},
@@ -739,10 +752,14 @@ static const std::vector<RPCResult> TransactionDescriptionString()
            {RPCResult::Type::STR_HEX, "replaces_txid", /*optional=*/true, "The txid if the tx replaces one."},
            {RPCResult::Type::STR, "comment", /*optional=*/true, ""},
            {RPCResult::Type::STR, "to", /*optional=*/true, "If a comment to is associated with the transaction."},
+           {RPCResult::Type::STR, "time_local", /*optional=*/true, "Human readable time with local offset."},
+           {RPCResult::Type::STR, "time_utc", /*optional=*/true, "Human readable time in UTC."},
            {RPCResult::Type::NUM_TIME, "time", "The transaction time expressed in " + UNIX_EPOCH_TIME + "."},
-           {RPCResult::Type::NUM_TIME, "timereceived", "The time received expressed in " + UNIX_EPOCH_TIME + "."},
+           {RPCResult::Type::NUM_TIME, "timereceived", /*optional=*/true, "The time received expressed in " + UNIX_EPOCH_TIME + "."},
            {RPCResult::Type::STR, "comment", /*optional=*/true, "If a comment is associated with the transaction, only present if not empty."},
-           {RPCResult::Type::STR, "bip125-replaceable", "(\"yes|no|unknown\") Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
+           {RPCResult::Type::STR, "narration", /*optional=*/true, "If a narration is embedded in the transaction, only present if not empty."},
+           {RPCResult::Type::BOOL, "fromself", /*optional=*/true, "True if this wallet owned an input of the transaction."},
+           {RPCResult::Type::STR, "bip125-replaceable", /*optional=*/true, "(\"yes|no|unknown\") Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
                "may be unknown for unconfirmed transactions not in the mempool."}};
 }
 
@@ -765,6 +782,9 @@ RPCHelpMan listtransactions()
                         {
                             {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction."},
                             {RPCResult::Type::STR, "address", /*optional=*/true, "The particl address of the transaction."},
+                            {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
+                            {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
+                            {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
                             {RPCResult::Type::STR, "category", "The transaction category.\n"
                                 "\"send\"                  Transactions sent.\n"
                                 "\"receive\"               Non-coinbase transactions received.\n"
@@ -774,9 +794,11 @@ RPCHelpMan listtransactions()
                             {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and is positive\n"
                                 "for all other categories"},
                             {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
+                            {RPCResult::Type::STR, "account", /*optional=*/true, "Duplicate of \"label\", requested by exchanges."},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
                             {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                  "'send' category of transactions."},
+                            {RPCResult::Type::STR_AMOUNT, "reward", /*optional=*/true, "The reward if the transaction is a coinstake."},
                         },
                         TransactionDescriptionString()),
                         {
@@ -917,6 +939,9 @@ RPCHelpMan listsinceblock()
                             {
                                 {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction."},
                                 {RPCResult::Type::STR, "address", /*optional=*/true, "The particl address of the transaction."},
+                                {RPCResult::Type::STR, "account", /*optional=*/true, "Alias of label."},
+                                {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
+                                {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
@@ -1162,7 +1187,7 @@ RPCHelpMan gettransaction()
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
                     {
-                        {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
+                        {RPCResult::Type::STR_AMOUNT, "amount", /*optional=*/true, "The amount in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
                     },
@@ -1174,6 +1199,8 @@ RPCHelpMan gettransaction()
                             {
                                 {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction."},
                                 {RPCResult::Type::STR, "address", /*optional=*/true, "The particl address involved in the transaction."},
+                                {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
+                                {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
@@ -1182,11 +1209,17 @@ RPCHelpMan gettransaction()
                                     "\"orphan\"                Orphaned coinbase transactions received."},
                                 {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
                                 {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
+                                {RPCResult::Type::STR, "account", /*optional=*/true, "Duplicate of \"label\", requested by exchanges."},
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
                                 {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
                                     "'send' category of transactions."},
                                 {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
                                      "'send' category of transactions."},
+                                {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
+                                {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the output was received on."},
+                                {RPCResult::Type::STR, "narration", /*optional=*/true, "If a narration is embedded in the output, only present if not empty."},
+                                {RPCResult::Type::BOOL, "fromself", /*optional=*/true, "True if this wallet owned an input of the transaction."},
+                                {RPCResult::Type::BOOL, "requires_unlock", /*optional=*/true, "True if this wallet must be unlocked to decrypt output value."},
                             }},
                         }},
                         {RPCResult::Type::STR_HEX, "hex", "Raw data for transaction"},
@@ -1194,6 +1227,14 @@ RPCHelpMan gettransaction()
                         {
                             {RPCResult::Type::ELISION, "", "Equivalent to the RPC decoderawtransaction method, or the RPC getrawtransaction method when `verbose` is passed."},
                         }},
+                        {RPCResult::Type::ARR, "smsgs_funded", /*optional=*/true, "", {
+                            {RPCResult::Type::OBJ, "", "",
+                            {
+                                {RPCResult::Type::STR_HEX, "smsghash", "Hash of SMSG being funded"},
+                                {RPCResult::Type::STR_AMOUNT, "fee", "Funding fee."},
+                            }},
+                        }},
+                        {RPCResult::Type::STR_AMOUNT, "smsg_fees", /*optional=*/true, "Total SMSG fees"},
                     })
                 },
                 RPCExamples{

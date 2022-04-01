@@ -141,11 +141,24 @@ bool UniValue::erase(size_t from, size_t to)
     if (typ != VARR)
         return false;
 
-    if (from >= values.size() || to > values.size()
-        || from > to)
+    if (from >= values.size() || to > values.size() || from > to)
         return false;
 
     values.erase(values.begin() + from, values.begin() + to);
+    return true;
+}
+
+bool UniValue::erase_by_key(const std::string& key)
+{
+    if (typ != VOBJ)
+        return false;
+
+    size_t index{0};
+    if (!findKey(key, index))
+        return false;
+
+    keys.erase(keys.begin() + index);
+    values.erase(values.begin() + index);
     return true;
 }
 
