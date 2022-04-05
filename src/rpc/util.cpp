@@ -965,6 +965,7 @@ bool RPCResult::MatchesType(const UniValue& result) const
             const RPCResult& doc_inner{m_inner.at(0)}; // Assume all types are the same, randomly pick the first
             for (size_t i{0}; i < result.get_obj().size(); ++i) {
                 if (!doc_inner.MatchesType(result.get_obj()[i])) {
+                    LogPrintf("[rm] OBJ_DYN MatchesType %s\n", result.get_obj()[i].write(1));
                     return false;
                 }
             }
@@ -978,6 +979,7 @@ bool RPCResult::MatchesType(const UniValue& result) const
         result.getObjMap(result_obj);
         for (const auto& result_entry : result_obj) {
             if (doc_keys.find(result_entry.first) == doc_keys.end()) {
+                LogPrintf("[rm] missing documentation %s\n", result_entry.first);
                 return false; // missing documentation
             }
         }
@@ -986,11 +988,13 @@ bool RPCResult::MatchesType(const UniValue& result) const
             const auto result_it{result_obj.find(doc_entry.m_key_name)};
             if (result_it == result_obj.end()) {
                 if (!doc_entry.m_optional) {
+                    LogPrintf("[rm] result is missing a required key %s\n", doc_entry.m_key_name);
                     return false; // result is missing a required key
                 }
                 continue;
             }
             if (!doc_entry.MatchesType(result_it->second)) {
+                LogPrintf("[rm] wrong type %s\n", result_it->second.write(1));
                 return false; // wrong type
             }
         }

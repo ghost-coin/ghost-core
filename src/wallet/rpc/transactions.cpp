@@ -1165,7 +1165,7 @@ UniValue gettransaction_inner(JSONRPCRequest const &request)
 
     if (verbose) {
         UniValue decoded(UniValue::VOBJ);
-        TxToUniv(*wtx.tx, uint256(), decoded, false);
+        TxToUniv(*wtx.tx, /*block_hash=*/uint256(), /*entry=*/decoded, /*include_hex=*/false);
         entry.pushKV("decoded", decoded);
     }
     AddSmsgFundingInfo(*wtx.tx, entry);
