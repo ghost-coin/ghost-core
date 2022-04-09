@@ -30,7 +30,7 @@ from test_framework.script import (
     OP_CHECKSIG,
 )
 from test_framework.messages import sha256
-from test_framework.address import chars as __b58chars, script_to_p2sh
+from test_framework.address import b58chars, script_to_p2sh
 from test_framework.authproxy import JSONRPCException
 
 
@@ -41,7 +41,7 @@ def script_to_p2sh_part(b):
 def b58decode(v, length=None):
     long_value = 0
     for (i, c) in enumerate(v[::-1]):
-        ofs = __b58chars.find(c)
+        ofs = b58chars.find(c)
         if ofs < 0:
             return None
         long_value += ofs * (58**i)
@@ -53,7 +53,7 @@ def b58decode(v, length=None):
     result = bytes((long_value,)) + result
     nPad = 0
     for c in v:
-        if c == __b58chars[0]:
+        if c == b58chars[0]:
             nPad += 1
         else:
             break
