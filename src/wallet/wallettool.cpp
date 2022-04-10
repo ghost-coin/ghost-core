@@ -151,9 +151,12 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         ReadDatabaseArgs(args, options);
         options.require_create = true;
         // If -legacy is set, use it. Otherwise default to false.
-        bool make_legacy = args.GetBoolArg("-legacy", false);
+        bool make_legacy = args.GetBoolArg("-legacy", fParticlMode ? true : false);
         // If neither -legacy nor -descriptors is set, default to true. If -descriptors is set, use its value.
         bool make_descriptors = (!args.IsArgSet("-descriptors") && !args.IsArgSet("-legacy")) || (args.IsArgSet("-descriptors") && args.GetBoolArg("-descriptors", true));
+        if (fParticlMode) {
+            make_descriptors = false;
+        }
         if (make_legacy && make_descriptors) {
             tfm::format(std::cerr, "Only one of -legacy or -descriptors can be set to true, not both\n");
             return false;
