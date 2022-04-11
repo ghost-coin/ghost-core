@@ -2720,9 +2720,9 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal, bool avoid_reuse) const
         //bal.nPartWatchOnlyImmature += wtx.GetImmatureWatchOnlyCredit(*locked_chain);
 
         int depth;
-        if (wtx.IsCoinStake()
-            && (depth = wtx.GetDepthInMainChain()) > 0 // checks for hashunset
-            && wtx.GetBlocksToMaturity() > 0) {
+        if (wtx.IsCoinStake() &&
+            (depth = wtx.GetDepthInMainChain()) > 0 && // checks for hashunset
+             wtx.GetBlocksToMaturity() > 0) {
             CAmount nSpendable, nWatchOnly;
             CHDWallet::GetCredit(*wtx.tx, nSpendable, nWatchOnly);
             bal.nPartStaked += nSpendable;
@@ -10410,8 +10410,7 @@ bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, CWalletTx::
         bool fIsFromMe = false;
         MapWallet_t::const_iterator miw;
         MapRecords_t::const_iterator mir;
-        for (const auto &txin : tx.vin)
-        {
+        for (const auto &txin : tx.vin) {
             if (txin.IsAnonInput()) {
                 nRingCT++;
                 uint32_t nInputs, nRingSize;
@@ -10642,6 +10641,7 @@ int CHDWallet::OwnStandardOut(const CTxOutStandard *pout, const CTxOutData *pdat
     rout.nType = OUTPUT_STANDARD;
     if (mine & ISMINE_SPENDABLE) {
         rout.nFlags |= ORF_OWNED;
+        rout.nFlags &= ~(ORF_OWN_WATCH);
     } else
     if (mine & ISMINE_WATCH_COLDSTAKE) {
         rout.nFlags |= ORF_STAKEONLY;
@@ -10717,7 +10717,6 @@ int CHDWallet::OwnBlindOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOu
     };
     */
     rout.nType = OUTPUT_CT;
-
     CKeyID idk;
     const CEKAKey *pak = nullptr;
     const CEKASCKey *pasc = nullptr;
@@ -10732,6 +10731,7 @@ int CHDWallet::OwnBlindOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOu
     }
     if (mine & ISMINE_SPENDABLE) {
         rout.nFlags |= ORF_OWNED;
+        rout.nFlags &= ~(ORF_OWN_WATCH);
     } else {
         rout.nFlags |= ORF_WATCHONLY;
     }
@@ -10859,7 +10859,6 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
     CExtKeyAccount *pa = nullptr;
 
     rout.nType = OUTPUT_RINGCT;
-
     isminetype mine = HaveKey(idk, pak, pasc, pa);
     if (!(mine & ISMINE_ALL)) {
         return 0;
@@ -10869,6 +10868,7 @@ int CHDWallet::OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOut
     }
     if (mine & ISMINE_SPENDABLE) {
         rout.nFlags |= ORF_OWNED;
+        rout.nFlags &= ~(ORF_OWN_WATCH);
     } else {
         rout.nFlags |= ORF_WATCHONLY;
     }
