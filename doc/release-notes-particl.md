@@ -3,6 +3,9 @@
 ==============
 
 - wallet: Fix regression summing balances after fully importing watchonly stealthaddress.
+- rpc: Fix bug in filtertransactions hiding txns with watchonly inputs and spendable outputs.
+- qt: Fix missing anon outputs in coincontrol.
+- New checkpoints.
 
 
 0.21.2.7
