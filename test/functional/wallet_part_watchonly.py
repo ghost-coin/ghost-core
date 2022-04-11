@@ -94,12 +94,22 @@ class WalletParticlWatchOnlyTest(ParticlTestFramework):
         assert(isclose(w2['mine']['anon_immature'], 0.0))
         assert(isclose(w2['watchonly']['anon_immature'], 10.0))
 
+        self.log.info('Test fully importing the watchonly stealth address')
         nodes[2].importstealthaddress(scan_vk, spend_vk)
         ro = nodes[2].getaddressinfo(sxaddr0)
         assert(ro['ismine'] == True)
         assert(ro['iswatchonly'] == False)
 
         nodes[2].rescanblockchain(0)
+
+        w2_balances = nodes[2].getbalances()
+        w2_bm = w2_balances['mine']
+        assert(w2_bm['trusted'] == 1.0 or w2_bm['staked'] > 1.0)
+        assert(isclose(w2_bm['blind_trusted'], 10.0))
+        assert(isclose(w2_bm['anon_immature'], 10.0))
+        w2_bw = w2_balances['watchonly']
+        assert(w2_bw['anon_immature'] == 0.0)
+        assert(w2_bw['anon_immature'] == 0.0)
 
 
 if __name__ == '__main__':
