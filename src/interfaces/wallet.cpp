@@ -576,8 +576,8 @@ public:
     CoinsList listCoins(OutputTypes nType) override
     {
         CoinsList result;
-        if (m_wallet_part
-            && nType != OUTPUT_STANDARD) {
+        if (m_wallet_part &&
+            nType != OUTPUT_STANDARD) {
             LOCK(m_wallet_part->cs_wallet);
             for (const auto& entry : m_wallet_part->ListCoins(nType)) {
                 auto& group = result[entry.first];
