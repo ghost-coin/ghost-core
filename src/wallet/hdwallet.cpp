@@ -12193,24 +12193,104 @@ std::map<CTxDestination, std::vector<COutput>> CHDWallet::ListCoins() const
     return result;
 };
 
-bool GetAddress(const CHDWallet *pw, const COutputRecord *pout, CTxDestination &address)
+bool CHDWallet::GetAddressFromOutputRecord(const uint256 &txhash, const COutputRecord *pout, CTxDestination &address) const
 {
     if (ExtractDestination(pout->scriptPubKey, address)) {
         return true;
     }
     if (pout->vPath.size() > 0 && pout->vPath[0] == ORA_STEALTH) {
         if (pout->vPath.size() < 5) {
-            pw->WalletLogPrintf("%s: Warning, malformed vPath.\n", __func__);
+            WalletLogPrintf("%s: Warning, malformed vPath.\n", __func__);
         } else {
             uint32_t sidx;
             memcpy(&sidx, &pout->vPath[1], 4);
             CStealthAddress sx;
-            if (pw->GetStealthByIndex(sidx, sx)) {
+            if (GetStealthByIndex(sidx, sx)) {
                 address = sx;
             }
         }
         return true;
     }
+
+    // If an address can't be found for an RCT output, use the address of the output pubkey.
+    if (pout->nType == OUTPUT_RINGCT) {
+        CTransactionRef tx;
+        if (GetTransaction(txhash, tx)) {
+            if (tx->GetNumVOuts() > pout->n) {
+                CCmpPubKey pk;
+                if (tx->vpout[pout->n]->GetPubKey(pk)) {
+                    CKeyID idk = pk.GetID();
+                    address = PKHash(idk);
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+bool CHDWallet::GetFirstNonChangeAddress(const uint256 &hash, const CTransactionRecord &txr, const COutputRecord *pout, CTxDestination &address) const
+{
+    const COutputRecord *por = pout;
+    const uint256 *txhash = &hash;
+    const CTransactionRecord *txn_r = &txr;
+    int txo_n = -1;
+    const CWalletTx *prevwtx{nullptr};
+    bool is_record = true;
+
+    auto set_next = [&] (const COutPoint &prevout) {
+        MapWallet_t::const_iterator mwi;
+        MapRecords_t::const_iterator mri;
+        if ((mri = mapRecords.find(prevout.hash)) != mapRecords.end()) {
+            const CTransactionRecord &prevtx = mri->second;
+            const COutputRecord *txo = prevtx.GetOutput(prevout.n);
+            if (txo) {
+                is_record = true;
+                txhash = &prevout.hash;
+                txn_r = &prevtx;
+                por = txo;
+                return true;
+            }
+        } else
+        if ((mwi = mapWallet.find(prevout.hash)) != mapWallet.end()) {
+            prevwtx = &mwi->second;
+            if (prevwtx->tx->vpout.size() > prevout.n &&
+                IsMine(prevwtx->tx->vpout[prevout.n].get())) {
+                is_record = false;
+                txhash = &prevout.hash;
+                txo_n = prevout.n;
+                return true;
+            }
+        }
+        return false;
+    };
+
+    while (true) {
+        if (!is_record) {
+            const CTxOutBase *txo = prevwtx->tx->vpout[txo_n].get();
+            if (IsChange(txo)) {
+                const COutPoint &prevout = prevwtx->tx->vin[0].prevout;
+                if (set_next(prevout)) {
+                    continue;
+                }
+            }
+            return ExtractDestination(*(txo->GetPScriptPubKey()), address);
+        }
+
+        if (por->nType == OUTPUT_RINGCT) {
+            // No point grouping RCT outputs
+            return GetAddressFromOutputRecord(*txhash, por, address);
+        }
+        if (por->nFlags & ORF_CHANGE) {
+            const COutPoint &prevout = txn_r->vin[0];
+            if (set_next(prevout)) {
+                continue;
+            }
+        }
+        return GetAddressFromOutputRecord(*txhash, por, address);
+    }
+
     return false;
 }
 
@@ -12237,9 +12317,12 @@ std::map<CTxDestination, std::vector<COutputR>> CHDWallet::ListCoins(OutputTypes
         }
 
         const COutputRecord *oR = coin.rtx->second.GetOutput(coin.i);
-        GetAddress(this, oR, address);
-
-        result[address].emplace_back(std::move(coin));
+        if (GetFirstNonChangeAddress(coin.rtx->first, coin.rtx->second, oR, address)) {
+            result[address].emplace_back(std::move(coin));
+        } else {
+            // Using CNoDestination as the key corrupts the result map, warn instead
+            WalletLogPrintf("WARNING - Missing address for %s.%d\n", coin.rtx->first.ToString(), coin.i);
+        }
     }
 
     return result;

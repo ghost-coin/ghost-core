@@ -431,10 +431,12 @@ public:
 
     void AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t& nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
+    const CTxOutBase* FindNonChangeParentOutput(const CTransaction& tx, int output) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetAddressFromOutputRecord(const uint256 &txhash, const COutputRecord *pout, CTxDestination &address) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetFirstNonChangeAddress(const uint256 &hash, const CTransactionRecord &txr, const COutputRecord *pout, CTxDestination &address) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     /**
      * Return list of available coins and locked coins grouped by non-change output address.
      */
-    const CTxOutBase* FindNonChangeParentOutput(const CTransaction& tx, int output) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, std::vector<COutput>> ListCoins() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, std::vector<COutputR>> ListCoins(OutputTypes nType) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

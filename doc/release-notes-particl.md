@@ -129,6 +129,7 @@ Next Major Version
 - wallet, qt: Default ring size set to 12 to match Particl Desktop.
 - wallet: Fix BTC segwit address path and label in getaddressinfo.
 - rpc: Fix bug in filtertransactions hiding txns with watchonly inputs and spendable outputs.
+- qt: Fix missing anon outputs in coincontrol.
 
 
 0.19.2.19
