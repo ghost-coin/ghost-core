@@ -10219,9 +10219,12 @@ void CHDWallet::PostProcessUnloadSpent()
 
     for (const COutput& coin : availableCoins) {
         CTransactionRef tx;
+        {
+        LOCK(cs_wallet);
         if (!GetTransaction(coin.outpoint.hash, tx) ||
             tx->IsCoinBase()) {
             continue;
+        }
         }
         for (const CTxIn& txin : tx->vin) {
             try_unload.insert(std::make_pair(txin.prevout.hash, tx->GetHash()));
@@ -12232,6 +12235,8 @@ bool CHDWallet::GetAddressFromOutputRecord(const uint256 &txhash, const COutputR
 
 bool CHDWallet::GetFirstNonChangeAddress(const uint256 &hash, const CTransactionRecord &txr, const COutputRecord *pout, CTxDestination &address) const
 {
+    AssertLockHeld(cs_wallet);
+
     const COutputRecord *por = pout;
     const uint256 *txhash = &hash;
     const CTransactionRecord *txn_r = &txr;
@@ -12239,7 +12244,7 @@ bool CHDWallet::GetFirstNonChangeAddress(const uint256 &hash, const CTransaction
     const CWalletTx *prevwtx{nullptr};
     bool is_record = true;
 
-    auto set_next = [&] (const COutPoint &prevout) {
+    auto set_next = [&] (const COutPoint &prevout) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
         MapWallet_t::const_iterator mwi;
         MapRecords_t::const_iterator mri;
         if ((mri = mapRecords.find(prevout.hash)) != mapRecords.end()) {

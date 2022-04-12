@@ -18,8 +18,7 @@ struct HDWalletTestingSetup: public TestingSetup {
     explicit HDWalletTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     virtual ~HDWalletTestingSetup();
 
-    std::unique_ptr<interfaces::Chain> m_chain = interfaces::MakeChain(m_node);
-    std::unique_ptr<interfaces::WalletLoader> m_wallet_loader = interfaces::MakeWalletLoader(*m_chain, *Assert(m_node.args));
+    std::unique_ptr<interfaces::WalletLoader> m_wallet_loader;
     std::shared_ptr<CHDWallet> pwalletMain;
     std::unique_ptr<interfaces::Handler> m_chain_notifications_handler;
 };

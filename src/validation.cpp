@@ -2057,7 +2057,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
 
-        for (size_t k = tx.vpout.size(); k-- > 0;) {
+        for (int k = (int)tx.vpout.size(); k-- > 0;) {
             const CTxOutBase *out = tx.vpout[k].get();
 
             if (out->IsType(OUTPUT_RINGCT)) {

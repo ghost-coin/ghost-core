@@ -37,7 +37,7 @@ class WalletModelTransaction;
 class CKeyID;
 class COutPoint;
 namespace wallet {
-class COutput;
+struct COutput;
 } // namespace wallet
 class CCoinControlEntry;
 class CPubKey;

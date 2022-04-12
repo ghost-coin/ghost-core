@@ -20,16 +20,17 @@
 
 
 HDWalletTestingSetup::HDWalletTestingSetup(const std::string &chainName):
-    TestingSetup(chainName, { "-balancesindex" }, true /* fParticlMode */)
+    TestingSetup(chainName, { "-balancesindex" }, true /* fParticlMode */),
+    m_wallet_loader{interfaces::MakeWalletLoader(*m_node.chain, *Assert(m_node.args))}
 {
     ECC_Start_Stealth();
     ECC_Start_Blinding();
 
-    pwalletMain = std::make_shared<CHDWallet>(m_chain.get(), "", m_args, CreateMockWalletDatabaseBDB());
+    pwalletMain = std::make_shared<CHDWallet>(m_node.chain.get(), "", m_args, CreateMockWalletDatabaseBDB());
     WalletContext& wallet_context = *m_wallet_loader->context();
     AddWallet(wallet_context, pwalletMain);
     pwalletMain->LoadWallet();
-    m_chain_notifications_handler = m_chain->handleNotifications({ pwalletMain.get(), [](CHDWallet*) {} });
+    m_chain_notifications_handler = m_node.chain->handleNotifications({ pwalletMain.get(), [](CHDWallet*) {} });
     m_wallet_loader->registerRpcs();
 }
 
