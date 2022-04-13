@@ -3144,6 +3144,9 @@ int CSMSG::Receive(PeerManager *peerLogic, CNode *pfrom, std::vector<uint8_t> &v
             } else
             if (rv == SMSG_FUND_FAILED) { // Bad funding tx
                 peerLogic->Misbehaving(pfrom->GetId(), 10, "smsg-fundtx");
+            } else
+            if (rv == SMSG_FUND_DATA_NOT_FOUND) { // Missing funding tx
+                peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-fundtx-missing");
             } else {
                 peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-format");
             }
@@ -3647,7 +3650,9 @@ int CSMSG::PruneFundingTxData()
         }
         delete it;
     }
-    LogPrint(BCLog::SMSG, "%s Removed: %d\n", __func__, num_removed);
+    if (num_removed > 0) {
+        LogPrintf("%s Removed: %d, min_height_to_keep: %d\n", __func__, num_removed, min_height_to_keep);
+    }
 
     return 0;
 };
