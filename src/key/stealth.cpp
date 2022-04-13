@@ -274,8 +274,8 @@ int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, cons
     }
 
     secretOut = spendSecret;
-    if (!secp256k1_ec_privkey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), tmp32)) {
-        return errorN(1, "%s: secp256k1_ec_privkey_tweak_add failed.", __func__);
+    if (!secp256k1_ec_seckey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), tmp32)) {
+        return errorN(1, "%s: secp256k1_ec_seckey_tweak_add failed.", __func__);
     }
 
     return 0;
@@ -285,8 +285,8 @@ int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, cons
 int StealthSharedToSecretSpend(const CKey &sharedS, const CKey &spendSecret, CKey &secretOut)
 {
     secretOut = spendSecret;
-    if (!secp256k1_ec_privkey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), sharedS.begin())) {
-        return errorN(1, "%s: secp256k1_ec_privkey_tweak_add failed.", __func__);
+    if (!secp256k1_ec_seckey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), sharedS.begin())) {
+        return errorN(1, "%s: secp256k1_ec_seckey_tweak_add failed.", __func__);
     }
 
     if (!secp256k1_ec_seckey_verify(secp256k1_ctx_stealth, secretOut.begin())) { // necessary?

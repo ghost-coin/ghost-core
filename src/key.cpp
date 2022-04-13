@@ -210,7 +210,7 @@ uint256 CKey::ECDH(const CPubKey& pubkey) const {
 CKey CKey::Add(const uint8_t *p) const {
     assert(fValid);
     CKey result = *this;
-    if (!secp256k1_ec_privkey_tweak_add(secp256k1_context_sign, result.begin_nc(), p)) {
+    if (!secp256k1_ec_seckey_tweak_add(secp256k1_context_sign, result.begin_nc(), p)) {
         result.SetFlags(false, true);
     }
     return result;
@@ -307,7 +307,7 @@ bool CKey::SignSchnorr(const uint256& hash, Span<unsigned char> sig, const uint2
         uint256 tweak = XOnlyPubKey(pubkey_bytes).ComputeTapTweakHash(merkle_root->IsNull() ? nullptr : merkle_root);
         if (!secp256k1_keypair_xonly_tweak_add(GetVerifyContext(), &keypair, tweak.data())) return false;
     }
-    bool ret = secp256k1_schnorrsig_sign(secp256k1_context_sign, sig.data(), hash.data(), &keypair, aux.data());
+    bool ret = secp256k1_schnorrsig_sign32(secp256k1_context_sign, sig.data(), hash.data(), &keypair, aux.data());
     if (ret) {
         // Additional verification step to prevent using a potentially corrupted signature
         secp256k1_xonly_pubkey pubkey_verify;
@@ -370,7 +370,7 @@ bool CKey::Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild
     memcpy(ccChild, vout.data()+32, 32);
     //bool ret = TweakSecret((unsigned char*)keyChild.begin(), begin(), out);
     memcpy((unsigned char*)keyChild.begin(), begin(), 32);
-    bool ret = secp256k1_ec_privkey_tweak_add(secp256k1_context_sign, (unsigned char*)keyChild.begin(), vout.data());
+    bool ret = secp256k1_ec_seckey_tweak_add(secp256k1_context_sign, (unsigned char*)keyChild.begin(), vout.data());
     keyChild.fCompressed = true;
     keyChild.fValid = ret;
     return ret;
