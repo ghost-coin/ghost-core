@@ -487,6 +487,7 @@ struct Peer {
     int m_misbehavior_score GUARDED_BY(m_misbehavior_mutex){0};
     /** Whether this peer should be disconnected and marked as discouraged (unless it has the noban permission). */
     bool m_should_discourage GUARDED_BY(m_misbehavior_mutex){false};
+    bool m_should_ban GUARDED_BY(m_misbehavior_mutex){false};
 
     /** Set of txids to reconsider once their parent transactions have been accepted **/
     std::set<uint256> m_orphan_work_set GUARDED_BY(g_cs_orphans);
@@ -1126,6 +1127,11 @@ void PeerManager::Misbehaving(const NodeId pnode, const int howmuch, const std::
     LOCK(peer->m_misbehavior_mutex);
     peer->m_misbehavior_score += howmuch;
     std::string message_prefixed = message.empty() ? "" : (": " + message);
+
+    if (peer->m_misbehavior_score >= m_banscore * 2 && !peer->m_should_ban) {
+        LogPrint(BCLog::NET, "Misbehaving: peer=%d (%d -> %d) BAN THRESHOLD EXCEEDED%s\n", pnode, peer->m_misbehavior_score - howmuch, peer->m_misbehavior_score, message_prefixed);
+        peer->m_should_ban = true;
+    } else
     if (peer->m_misbehavior_score >= m_banscore && peer->m_misbehavior_score - howmuch < m_banscore) {
         LogPrint(BCLog::NET, "Misbehaving: peer=%d (%d -> %d) DISCOURAGE THRESHOLD EXCEEDED%s\n", pnode, peer->m_misbehavior_score - howmuch, peer->m_misbehavior_score, message_prefixed);
         peer->m_should_discourage = true;
@@ -1353,8 +1359,12 @@ void PassOnMisbehaviour(CNodeState *state, NodeId node_id, int howmuch)
     if (peer == nullptr) return;
     LOCK(peer->m_misbehavior_mutex);
     peer->m_misbehavior_score = howmuch;
-    if (peer->m_misbehavior_score >= gArgs.GetArg("-banscore", DISCOURAGEMENT_THRESHOLD)) {
+    int banscore = gArgs.GetArg("-banscore", DISCOURAGEMENT_THRESHOLD);
+    if (peer->m_misbehavior_score >= banscore) {
         peer->m_should_discourage = true;
+    }
+    if (peer->m_misbehavior_score >= banscore * 2) {
+        peer->m_should_ban = true;
     }
     LogPrint(BCLog::NET, "peer=%d Inherited misbehavior (%d)\n", node_id, peer->m_misbehavior_score);
 }
@@ -4199,13 +4209,16 @@ bool PeerManager::MaybeDiscourageAndDisconnect(CNode& pnode)
     PeerRef peer = GetPeerRef(peer_id);
     if (peer == nullptr) return false;
 
+    bool banning{false};
     {
         LOCK(peer->m_misbehavior_mutex);
 
         // There's nothing to do if the m_should_discourage flag isn't set
-        if (!peer->m_should_discourage) return false;
+        if (!peer->m_should_discourage && !peer->m_should_ban) return false;
 
+        banning = peer->m_should_ban;
         peer->m_should_discourage = false;
+        peer->m_should_ban = false;
     } // peer.m_misbehavior_mutex
 
     if (pnode.HasPermission(PF_NOBAN)) {
@@ -4228,9 +4241,14 @@ bool PeerManager::MaybeDiscourageAndDisconnect(CNode& pnode)
         return true;
     }
 
-    // Normal case: Disconnect the peer and discourage all nodes sharing the address
-    LogPrintf("Disconnecting and discouraging peer %d!\n", peer_id);
-    if (m_banman) m_banman->Discourage(pnode.addr);
+    if (m_banman && banning) {
+        LogPrintf("Disconnecting and banning peer %d!\n", peer_id);
+        m_banman->Ban(pnode.addr);
+    } else {
+        // Normal case: Disconnect the peer and discourage all nodes sharing the address
+        LogPrintf("Disconnecting and discouraging peer %d!\n", peer_id);
+        if (m_banman) m_banman->Discourage(pnode.addr);
+    }
     m_connman.DisconnectNode(pnode.addr);
     return true;
 }

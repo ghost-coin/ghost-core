@@ -6,6 +6,7 @@
 - rpc: Fix bug in filtertransactions hiding txns with watchonly inputs and spendable outputs.
 - qt: Fix missing anon outputs in coincontrol.
 - New checkpoints.
+- net: Restore automatic banning.  Ban peer if misbehaviour score is 2x limit.
 
 
 0.21.2.7
