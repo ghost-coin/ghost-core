@@ -37,6 +37,7 @@ Next Major Version
 ==============
 
 - wallet: Fix regression summing balances after fully importing watchonly stealthaddress.
+- net: Restore automatic banning.  Ban peer if misbehaviour score is 2x limit.
 
 
 0.21.2.7
