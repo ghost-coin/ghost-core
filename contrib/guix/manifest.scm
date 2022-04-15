@@ -163,9 +163,10 @@ desirable for building Bitcoin Core release binaries."
 (define (make-gcc-with-pthreads gcc)
   (package-with-extra-configure-variable gcc "--enable-threads" "posix"))
 
-(define (make-mingw-w64-cross-gcc-vmov-alignment cross-gcc)
+(define (make-mingw-w64-cross-gcc cross-gcc)
   (package-with-extra-patches cross-gcc
-    (search-our-patches "vmov-alignment.patch")))
+    (search-our-patches "vmov-alignment.patch"
+                        "gcc-broken-longjmp.patch")))
 
 (define (make-mingw-pthreads-cross-toolchain target)
   "Create a cross-compilation toolchain package for TARGET"
@@ -173,7 +174,7 @@ desirable for building Bitcoin Core release binaries."
          (pthreads-xlibc (cond ((string-contains target "x86_64") mingw-w64-x86_64-winpthreads) (else mingw-w64-i686-winpthreads)))
          (pthreads-xgcc (make-gcc-with-pthreads
                          (cross-gcc target
-                                    #:xgcc (make-ssp-fixed-gcc (make-mingw-w64-cross-gcc-vmov-alignment base-gcc))
+                                    #:xgcc (make-ssp-fixed-gcc (make-mingw-w64-cross-gcc base-gcc))
                                     #:xbinutils xbinutils
                                     #:libc pthreads-xlibc))))
     ;; Define a meta-package that propagates the resulting XBINUTILS, XLIBC, and

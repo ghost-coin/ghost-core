@@ -359,7 +359,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
             sCommand += "{\"address\":\"" + rcp.address + "\"";
         }
         sCommand += ",\"amount\":"
-            + BitcoinUnits::format(BitcoinUnits::BTC, rcp.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
+            + BitcoinUnits::format(BitcoinUnit::BTC, rcp.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
 
         if (rcp.fSubtractFeeFromAmount)
             sCommand += ",\"subfee\":true";
@@ -528,8 +528,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
         totalAmount += txFee;
 
     QStringList alternativeUnits;
-    for (const BitcoinUnits::Unit u : BitcoinUnits::availableUnits())
-    {
+    for (const BitcoinUnit u : BitcoinUnits::availableUnits()) {
         if(u != model->getOptionsModel()->getDisplayUnit())
             alternativeUnits.append(BitcoinUnits::formatHtmlWithUnit(u, totalAmount));
     }
