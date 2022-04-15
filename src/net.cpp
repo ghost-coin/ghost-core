@@ -2340,7 +2340,7 @@ void CConnman::ThreadMessageHandler()
             int64_t nTimeNow = GetTime();
             if (nTimeNextBanReduced < nTimeNow) {
                 LOCK(cs_main);
-                m_msgproc->CheckUnreceivedHeaders(nTimeNow);
+                m_msgproc->CheckUnreceivedHeaders(nTimeNow); // Also reduces persistent misbehaviour score
                 for (CNode* pnode : snap.Nodes()) {
                     m_msgproc->DecMisbehaving(pnode->id, 1);
                     pnode->smsgData.DecSmsgMisbehaving();
