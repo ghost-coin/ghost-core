@@ -165,7 +165,7 @@ static constexpr bool DEFAULT_SPENTINDEX = false;
 static constexpr bool DEFAULT_BALANCESINDEX = false;
 static constexpr unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
 static constexpr bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
-static constexpr unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
+static constexpr bool DEFAULT_AUTOMATIC_BANS = true;
 static constexpr bool DEFAULT_ACCEPT_ANON_TX = false;
 static constexpr bool DEFAULT_ACCEPT_BLIND_TX = false;
 

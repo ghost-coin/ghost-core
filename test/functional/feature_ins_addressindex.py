@@ -252,9 +252,9 @@ class AddressIndexTest(ParticlTestFramework):
         address3 = nodes[3].getnewaddress()
 
         txidsort1 = nodes[2].sendtoaddress(address3, 1)
-        self.wait_for_mempool(nodes[2], txidsort1)
+        self.wait_for_mempool(nodes[1], txidsort1)
         txidsort2 = nodes[2].sendtoaddress(address3, 1)
-        self.wait_for_mempool(nodes[2], txidsort2)
+        self.wait_for_mempool(nodes[1], txidsort2)
         txidsort3 = nodes[2].sendtoaddress(address3, 1)
 
         mempool = nodes[2].getaddressmempool({"addresses": [address3]})

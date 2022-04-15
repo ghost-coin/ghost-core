@@ -409,6 +409,8 @@ private:
     bool MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationState& state,
                                  bool via_compact_block, const std::string& message = "");
 
+    bool MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state);
+
     /**
      * Potentially disconnect and discourage a node based on the contents of a TxValidationState object
      *
@@ -1650,6 +1652,15 @@ bool PeerManagerImpl::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidati
     return false;
 }
 
+bool PeerManagerImpl::MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state)
+{
+    if (state.m_punish_for_duplicates) {
+        Misbehaving(nodeid, 5, "Too many duplicates");
+        return true;
+    }
+    return false;
+};
+
 size_t MAX_LOOSE_HEADERS = 1000;
 int MAX_DUPLICATE_HEADERS = 2000;
 int64_t MAX_LOOSE_HEADER_TIME = 120;
@@ -2072,6 +2083,7 @@ void PeerManagerImpl::BlockChecked(const CBlock& block, const BlockValidationSta
     const uint256 hash(block.GetHash());
     std::map<uint256, std::pair<NodeId, bool>>::iterator it = mapBlockSource.find(hash);
 
+    MaybePunishNodeForDuplicates(/*nodeid=*/ it->second.first, state);
     // If the block failed validation, we know where it came from and we're still connected
     // to that peer, maybe punish.
     if (state.IsInvalid() &&
@@ -2572,6 +2584,7 @@ void PeerManagerImpl::ProcessHeadersMessage(CNode& pfrom, const Peer& peer,
             return;
         }
     }
+    MaybePunishNodeForDuplicates(state.nodeId, state);
 
     {
         LOCK(cs_main);
@@ -3949,6 +3962,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                 return;
             }
         }
+        MaybePunishNodeForDuplicates(state.nodeId, state);
 
         // When we succeed in decoding a block's txids from a cmpctblock
         // message we typically jump to the BLOCKTXN handling code, with a
@@ -4575,7 +4589,8 @@ bool PeerManagerImpl::MaybeDiscourageAndDisconnect(CNode& pnode, Peer& peer)
         return true;
     }
 
-    if (m_banman && banning) {
+    if (m_banman && banning &&
+        gArgs.GetBoolArg("-automaticbans", particl::DEFAULT_AUTOMATIC_BANS)) {
         LogPrint(BCLog::NET, "Disconnecting and banning peer %d!\n", peer.m_id);
         m_banman->Ban(pnode.addr);
     } else {

@@ -4695,9 +4695,10 @@ bool ChainstateManager::AcceptBlockHeader(const CBlockHeader& block, BlockValida
             if (state.m_chainman && !state.m_peerman) {
                 state.m_peerman = state.m_chainman->m_peerman;
             }
-            if (fParticlMode && !fRequested && !state.m_chainman->ActiveChainstate().IsInitialBlockDownload() && state.nodeId >= 0
-                && !state.m_peerman->IncDuplicateHeaders(state.nodeId)) {
-                state.m_peerman->Misbehaving(state.nodeId, 5, "Too many duplicates");
+            if (fParticlMode && !fRequested &&
+                !state.m_chainman->ActiveChainstate().IsInitialBlockDownload() && state.nodeId >= 0 &&
+                !state.m_peerman->IncDuplicateHeaders(state.nodeId)) {
+                state.m_punish_for_duplicates = true;
             }
 
             if (ppindex)

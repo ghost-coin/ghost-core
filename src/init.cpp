@@ -567,13 +567,14 @@ void SetupServerArgs(ArgsManager& argsman)
     argsman.AddArg("-checkpeerheight", "Consider peer height for initial-block-download status (default: true)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-skiprangeproofverify", "Skip verifying rangeproofs when reindexing or importing (default: false)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-rpccorsdomain=<domain>", "Allow JSON-RPC connections from specified domain (e.g. http://localhost:4200 or \"*\"). This needs to be set if you are using the Particl GUI in a browser.", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-automaticbans", strprintf("Whether to automatically ban misbehaving nodes. (default: %u)", particl::DEFAULT_AUTOMATIC_BANS), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-banscore=<n>", strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DISCOURAGEMENT_THRESHOLD), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
 
     hidden_args.emplace_back("-btcmode");
     hidden_args.emplace_back("-debugdevice");  // Disable to allow usbdevices in regtest mode
     // end Particl specific
 
     argsman.AddArg("-addnode=<ip>", strprintf("Add a node to connect to and attempt to keep the connection open (see the addnode RPC help for more info). This option can be specified multiple times to add multiple nodes; connections are limited to %u at a time and are counted separately from the -maxconnections limit.", MAX_ADDNODE_CONNECTIONS), ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::CONNECTION);
-    argsman.AddArg("-banscore=<n>", strprintf("Threshold for disconnecting misbehaving peers (default: %u)", particl::DEFAULT_BANSCORE_THRESHOLD), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-asmap=<file>", strprintf("Specify asn mapping used for bucketing of the peers (default: %s). Relative paths will be prefixed by the net-specific datadir location.", DEFAULT_ASMAP_FILENAME), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-bantime=<n>", strprintf("Default duration (in seconds) of manually configured bans (default: %u)", DEFAULT_MISBEHAVING_BANTIME), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
     argsman.AddArg("-bind=<addr>[:<port>][=onion]", strprintf("Bind to given address and always listen on it (default: 0.0.0.0). Use [host]:port notation for IPv6. Append =onion to tag any incoming connections to that address and port as incoming Tor connections (default: 127.0.0.1:%u=onion, testnet: 127.0.0.1:%u=onion, signet: 127.0.0.1:%u=onion, regtest: 127.0.0.1:%u=onion)", defaultBaseParams->OnionServiceTargetPort(), testnetBaseParams->OnionServiceTargetPort(), signetBaseParams->OnionServiceTargetPort(), regtestBaseParams->OnionServiceTargetPort()), ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::CONNECTION);
