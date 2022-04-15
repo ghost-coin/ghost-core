@@ -170,6 +170,7 @@ public:
     bool m_exploit_fix_2 = false;
     bool m_in_block = false;
     bool m_check_equal_rct_txid = true;
+    bool m_punish_for_duplicates = false;
     CAmount tx_balances[6] = {0};
     std::set<CCmpPubKey> m_setHaveKI;
 
@@ -212,6 +213,7 @@ public:
         m_exploit_fix_1 = state_from.m_exploit_fix_1;
         m_exploit_fix_2 = state_from.m_exploit_fix_2;
         m_check_equal_rct_txid = state_from.m_check_equal_rct_txid;
+        m_punish_for_duplicates = state_from.m_punish_for_duplicates;
     }
 };
 

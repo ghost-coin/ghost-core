@@ -1302,6 +1302,7 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
     return false;
 }
 
+
 NodeId GetBlockSource(uint256 hash)
 {
     const auto it = mapBlockSource.find(hash);
@@ -1310,6 +1311,16 @@ NodeId GetBlockSource(uint256 hash)
     }
     return it->second.first;
 }
+
+bool PeerManager::MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state)
+{
+    if (state.m_punish_for_duplicates) {
+        Misbehaving(nodeid, 5, "Too many duplicates");
+        return true;
+    }
+    return false;
+};
+
 
 size_t MAX_LOOSE_HEADERS = 1000;
 int MAX_DUPLICATE_HEADERS = 2000;
@@ -1451,7 +1462,6 @@ bool IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         if (peer_misbehavior_score < it->second.m_misbehavior) {
             PassOnMisbehaviour(state, node_id, it->second.m_misbehavior);
         }
-        WITH_LOCK(peer->m_misbehavior_mutex, peer->m_misbehavior_score += 5);
         return false;
     }
     map_dos_state[state->address].m_duplicate_count = 1;
@@ -1718,6 +1728,7 @@ void PeerManager::BlockChecked(const CBlock& block, const BlockValidationState& 
     const uint256 hash(block.GetHash());
     std::map<uint256, std::pair<NodeId, bool>>::iterator it = mapBlockSource.find(hash);
 
+    MaybePunishNodeForDuplicates(/*nodeid=*/ it->second.first, state);
     // If the block failed validation, we know where it came from and we're still connected
     // to that peer, maybe punish.
     if (state.IsInvalid() &&
@@ -2209,6 +2220,7 @@ void PeerManager::ProcessHeadersMessage(CNode& pfrom, const std::vector<CBlockHe
             return;
         }
     }
+    MaybePunishNodeForDuplicates(state.nodeId, state);
 
     {
         LOCK(cs_main);
@@ -3609,6 +3621,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
                 return;
             }
         }
+        MaybePunishNodeForDuplicates(state.nodeId, state);
 
         // When we succeed in decoding a block's txids from a cmpctblock
         // message we typically jump to the BLOCKTXN handling code, with a
@@ -4241,7 +4254,8 @@ bool PeerManager::MaybeDiscourageAndDisconnect(CNode& pnode)
         return true;
     }
 
-    if (m_banman && banning) {
+    if (m_banman && banning &&
+        gArgs.GetBoolArg("-automaticbans", particl::DEFAULT_AUTOMATIC_BANS)) {
         LogPrintf("Disconnecting and banning peer %d!\n", peer_id);
         m_banman->Ban(pnode.addr);
     } else {

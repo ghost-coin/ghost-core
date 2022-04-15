@@ -5253,7 +5253,7 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
             // Block header is already known.
             if (fParticlMode && !fRequested && !::ChainstateActive().IsInitialBlockDownload() && state.nodeId >= 0
                 && !IncDuplicateHeaders(state.nodeId)) {
-                Misbehaving(state.nodeId, 5, "Too many duplicates");
+                state.m_punish_for_duplicates = true;
             }
 
             pindex = miSelf->second;

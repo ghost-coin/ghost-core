@@ -109,6 +109,8 @@ private:
     bool MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationState& state,
                                  bool via_compact_block, const std::string& message = "");
 
+    bool MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state);
+
     /**
      * Potentially disconnect and discourage a node based on the contents of a TxValidationState object
      *
