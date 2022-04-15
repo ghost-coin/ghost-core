@@ -169,6 +169,7 @@ void DecMisbehaving(NodeId nodeid, int howmuch);
 NodeId GetBlockSource(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool IncPersistentDiscouraged(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 int GetNumDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 void ClearDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 

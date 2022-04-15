@@ -2263,7 +2263,7 @@ void CConnman::ThreadMessageHandler()
         int64_t nTimeNow = GetTime();
         if (nTimeNextBanReduced < nTimeNow) {
             LOCK(cs_main);
-            CheckUnreceivedHeaders(nTimeNow);
+            CheckUnreceivedHeaders(nTimeNow); // Also reduces persistent misbehaviour score
             for (auto *pnode : vNodesCopy) {
                 DecMisbehaving(pnode->id, 1);
 

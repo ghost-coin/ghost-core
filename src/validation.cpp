@@ -5480,7 +5480,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
 
     if (state.nFlags & BLOCK_STAKE_KERNEL_SPENT && !(state.nFlags & BLOCK_FAILED_DUPLICATE_STAKE)) {
         if (state.nodeId > -1) {
-            IncPersistentMisbehaviour(state.nodeId, 20);
             Misbehaving(state.nodeId, 20, "Spent kernel");
         }
     }

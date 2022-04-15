@@ -452,6 +452,9 @@ public:
 
     //! Persistent misbehaving counter
     int m_misbehavior = 0;
+
+    //! Times node was discouraged
+    int m_discouraged_count = 0;
 };
 
 /** Map maintaining per-addr DOS state. */
@@ -1123,6 +1126,10 @@ void PeerManager::Misbehaving(const NodeId pnode, const int howmuch, const std::
 
     PeerRef peer = GetPeerRef(pnode);
     if (peer == nullptr) return;
+    if (fParticlMode) {
+        LOCK(cs_main);
+        IncPersistentMisbehaviour(pnode, howmuch);
+    }
 
     LOCK(peer->m_misbehavior_mutex);
     peer->m_misbehavior_score += howmuch;
@@ -1315,7 +1322,7 @@ NodeId GetBlockSource(uint256 hash)
 bool PeerManager::MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state)
 {
     if (state.m_punish_for_duplicates) {
-        Misbehaving(nodeid, 5, "Too many duplicates");
+        Misbehaving(nodeid, 10, "Too many duplicates");
         return true;
     }
     return false;
@@ -1390,11 +1397,6 @@ void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const s
         if (addr == (CNetAddr)it->second.address) {
             PeerRef peer = GetPeerRef(it->first);
             if (peer == nullptr) continue;
-
-            int misbehavior_score = WITH_LOCK(peer->m_misbehavior_mutex, return peer->m_misbehavior_score);
-            if (misbehavior_score < misbehavior_cfwd) {
-                PassOnMisbehaviour(&it->second, it->first, misbehavior_cfwd);
-            }
             Misbehaving(it->first, howmuch, message);
         }
     }
@@ -1458,10 +1460,6 @@ bool IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         if (it->second.m_duplicate_count < MAX_DUPLICATE_HEADERS) {
             return true;
         }
-        int peer_misbehavior_score = WITH_LOCK(peer->m_misbehavior_mutex, return peer->m_misbehavior_score);
-        if (peer_misbehavior_score < it->second.m_misbehavior) {
-            PassOnMisbehaviour(state, node_id, it->second.m_misbehavior);
-        }
         return false;
     }
     map_dos_state[state->address].m_duplicate_count = 1;
@@ -1488,6 +1486,32 @@ void IncPersistentMisbehaviour(NodeId node_id, int howmuch)
     }
     map_dos_state[state->address].m_misbehavior = howmuch;
     return;
+}
+
+bool IncPersistentDiscouraged(NodeId node_id)
+{
+    CNodeState *state = State(node_id);
+    if (state == nullptr) {
+        return false;
+    }
+    const CService &node_address = state->address;
+
+    PeerRef peer = GetPeerRef(node_id);
+    if (peer == nullptr) return false;
+    auto it = map_dos_state.find(node_address);
+    if (it != map_dos_state.end()) {
+        it->second.m_discouraged_count += 1;
+        if (it->second.m_discouraged_count > 5) {
+            WITH_LOCK(peer->m_misbehavior_mutex, peer->m_should_ban = true);
+            LogPrintf("Too often discouraged. Banning peer %d!\n", node_id);
+            it->second.m_discouraged_count = 0;
+            return true;
+        }
+        LogPrint(BCLog::NET, "peer=%d discouraged count (%d)\n", node_id, it->second.m_discouraged_count);
+        return false;
+    }
+    map_dos_state[node_address].m_discouraged_count = 1;
+    return false;
 }
 
 int GetNumDOSStates()
@@ -4233,6 +4257,13 @@ bool PeerManager::MaybeDiscourageAndDisconnect(CNode& pnode)
         peer->m_should_discourage = false;
         peer->m_should_ban = false;
     } // peer.m_misbehavior_mutex
+
+    if (fParticlMode && !banning) {
+        LOCK(cs_main);
+        if (IncPersistentDiscouraged(peer->m_id)) {
+            banning = true;
+        }
+    }
 
     if (pnode.HasPermission(PF_NOBAN)) {
         // We never disconnect or discourage peers for bad behavior if they have the NOBAN permission flag
