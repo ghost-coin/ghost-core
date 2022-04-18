@@ -36,8 +36,9 @@ class DisableTest(ParticlTestFramework):
         txids.append(nodes[1].sendtypeto('part', 'part', [{'address': sx0, 'amount': 10},]))
         txids.append(nodes[1].sendtypeto('part', 'blind', [{'address': sx0, 'amount': 12},]))
         txids.append(nodes[1].sendtypeto('part', 'blind', [{'address': sx1, 'amount': 13},]))
-        txids.append(nodes[1].sendtypeto('part', 'anon', [{'address': sx0, 'amount': 14},]))
+        txids.append(nodes[1].sendtypeto('part', 'blind', [{'address': sx0, 'amount': 14},]))
         txids.append(nodes[1].sendtypeto('part', 'anon', [{'address': sx0, 'amount': 15},]))
+        txids.append(nodes[1].sendtypeto('part', 'anon', [{'address': sx0, 'amount': 16},]))
         for i in range(20):
             txids.append(nodes[1].sendtypeto('part', 'anon', [{'address': sx1, 'amount': 1},]))
 
@@ -98,14 +99,25 @@ class DisableTest(ParticlTestFramework):
         except Exception:
             pass
 
+        def lock_outputs(txid):
+            rtx = nodes[0].getrawtransaction(txid, True)
+            for utxo in rtx['vout']:
+                if 'type' in utxo and utxo['type'] in ('anon', 'data'):
+                    continue
+                nodes[0].lockunspent(False, [{'txid': rtx['txid'], 'vout': utxo['n']}])
+
         txids = []
         txids.append(nodes[0].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},], '', '', 5))
         txids.append(nodes[0].sendtypeto('part', 'anon', [{'address': sx1, 'amount': 1},]))
         txids.append(nodes[0].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},], '', '', 5))
+        lock_outputs(txids[-1])
         txids.append(nodes[0].sendtypeto('part', 'blind', [{'address': sx1, 'amount': 1},]))
+        lock_outputs(txids[-1])
         txids.append(nodes[0].sendtypeto('blind', 'part', [{'address': sx1, 'amount': 1},]))
+        lock_outputs(txids[-1])
         txids.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sx1, 'amount': 1},]))
         txids.append(nodes[0].sendtypeto('anon', 'blind', [{'address': sx1, 'amount': 1},], '', '', 5))
+        lock_outputs(txids[-1])
 
         for txid in txids:
             rtx = nodes[0].getrawtransaction(txid)
