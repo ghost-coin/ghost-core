@@ -1,6 +1,9 @@
 bench
 bench_ecmult
 bench_internal
+bench_bulletproof
+bench_generator
+bench_rangeproof
 tests
 exhaustive_tests
 precompute_ecmult_gen
