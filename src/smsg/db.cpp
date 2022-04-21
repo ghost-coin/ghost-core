@@ -853,6 +853,11 @@ bool SecMsgDB::EraseBestBlock()
     return error("SecMsgDB erase failed: %s\n", s.ToString());
 };
 
+void SecMsgDB::Compact() const
+{
+    pdb->CompactRange(nullptr, nullptr);
+}
+
 bool PutBestBlock(leveldb::WriteBatch *batch, const uint256 &block_hash, int height)
 {
     CDataStream ssKey(SER_DISK, CLIENT_VERSION);

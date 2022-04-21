@@ -88,6 +88,11 @@ public:
     bool ReadBestBlock(uint256 &hash, int &height);
     bool EraseBestBlock();
 
+    /**
+     * Compact a certain range of keys in the database.
+     */
+    void Compact() const;
+
     leveldb::DB *pdb; // points to the global instance
     leveldb::WriteBatch *activeBatch;
 };
