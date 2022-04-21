@@ -33,6 +33,13 @@ Next Major Version
 - script: Remove timelocked script signing.
 
 
+0.21.2.9
+==============
+
+- smsg: The smsgdb is periodically compacted.
+- smsg: Added pagination to smsginbox and smsgoutbox
+
+
 0.21.2.8
 ==============
 

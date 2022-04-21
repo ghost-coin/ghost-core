@@ -3649,6 +3649,9 @@ int CSMSG::PruneFundingTxData()
             num_removed++;
         }
         delete it;
+
+        LogPrint(BCLog::SMSG, "Compacting DB\n");
+        db.Compact();
     }
     if (num_removed > 0) {
         LogPrintf("%s Removed: %d, min_height_to_keep: %d\n", __func__, num_removed, min_height_to_keep);

@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1297,12 +1297,15 @@ static RPCHelpMan smsginbox()
                 "\nDecrypt and display received messages.\n"
                 "Warning: clear will delete all messages.\n",
                 {
-                    {"mode", RPCArg::Type::STR, RPCArg::Default{"unread"}, "\"all|unread|clear\" List all messages, unread messages or clear all messages."},
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"unread"}, "\"all|unread|count|clear\" List all messages, unread messages, count or delete all messages."},
                     {"filter", RPCArg::Type::STR, RPCArg::Default{""}, "Filter messages when in list mode. Applied to from, to and text fields."},
                     {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
                             {"updatestatus", RPCArg::Type::BOOL, RPCArg::Default{true}, "Update read status if true."},
                             {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
+                            {"offset", RPCArg::Type::NUM, RPCArg::Default{""}, "Skip the first \"offset\" messages"},
+                            {"max_results", RPCArg::Type::NUM, RPCArg::Default{""}, "Return only \"max_results\" messages"},
+                            {"unread_only", RPCArg::Type::BOOL, RPCArg::Default{false}, "Count only unread messages"},
                         },
                         "options"},
                 },
@@ -1336,13 +1339,16 @@ static RPCHelpMan smsginbox()
                             }},
                         }},
                         {RPCResult::Type::STR, "expected", /*optional=*/true, "values understood"},
+                        {RPCResult::Type::NUM, "num_messages", /*optional=*/true, "Number of messages counted"},
                 }},
                 RPCExamples{
                     "Display unread received messages:"
                     + HelpExampleCli("smsginbox", "") +
                     "Display all received messages that match \"address\":"
                     + HelpExampleCli("smsginbox", "\"all\" \"address\"")
-                    + HelpExampleRpc("smsginbox", "")
+                    + HelpExampleRpc("smsginbox", "\"all\", \"address\"") +
+                    "Count unread messages:"
+                    + HelpExampleCli("smsginbox", "\"count\" \"\" \"{\\\"unread_only\\\":true}\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -1355,6 +1361,8 @@ static RPCHelpMan smsginbox()
 
     std::string sEnc = "text";
     bool update_status = true;
+    bool unread_only = false;
+    int offset = 0, max_results = -1;
     if (request.params[2].isObject()) {
         UniValue options = request.params[2].get_obj();
         if (options["updatestatus"].isBool()) {
@@ -1363,12 +1371,20 @@ static RPCHelpMan smsginbox()
         if (options["encoding"].isStr()) {
             sEnc = options["encoding"].get_str();
         }
+        if (options["unread_only"].isBool()) {
+            unread_only = options["unread_only"].get_bool();
+        }
+        if (options["offset"].isNum()) {
+            offset = options["offset"].get_int();
+        }
+        if (options["max_results"].isNum()) {
+            max_results = options["max_results"].get_int();
+        }
     }
 
     UniValue result(UniValue::VOBJ);
 
     {
-
         smsg::SecMsgDB dbInbox;
         if (!dbInbox.Open("cr+")) {
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not open DB");
@@ -1377,6 +1393,23 @@ static RPCHelpMan smsginbox()
         uint32_t nMessages = 0;
         uint8_t chKey[30];
 
+        if (mode == "count") {
+            LOCK(smsg::cs_smsgDB);
+
+            smsg::SecMsgStored smsgStored;
+            leveldb::Iterator *it = dbInbox.pdb->NewIterator(leveldb::ReadOptions());
+            while (dbInbox.NextSmesg(it, smsg::DBK_INBOX, chKey, smsgStored)) {
+                if (unread_only &&
+                    !(smsgStored.status & SMSG_MASK_UNREAD)) {
+                    continue;
+                }
+                nMessages++;
+            }
+            delete it;
+
+            result.pushKV("result", strprintf("Counted %s messages", unread_only ? "unread" : "all"));
+            result.pushKV("num_messages", (int)nMessages);
+        } else
         if (mode == "clear") {
             LOCK(smsg::cs_smsgDB);
             dbInbox.TxnBegin();
@@ -1404,9 +1437,16 @@ static RPCHelpMan smsginbox()
             UniValue messageList(UniValue::VARR);
 
             while (dbInbox.NextSmesg(it, smsg::DBK_INBOX, chKey, smsgStored)) {
-                if (fCheckReadStatus
-                    && !(smsgStored.status & SMSG_MASK_UNREAD)) {
+                if (fCheckReadStatus &&
+                    !(smsgStored.status & SMSG_MASK_UNREAD)) {
                     continue;
+                }
+                if (offset > 0) {
+                    offset--;
+                    continue;
+                }
+                if (max_results >= 0 && (int)nMessages >= max_results) {
+                    break;
                 }
                 const unsigned char *pHeader = smsgStored.vchMessage.data();
                 smsg::SecureMessage smsg(pHeader);
@@ -1421,10 +1461,10 @@ static RPCHelpMan smsginbox()
                 if (rv == 0) {
                     std::string sAddrTo = EncodeDestination(PKHash(smsgStored.addrTo));
                     std::string sText = std::string((char*)msg.vchMessage.data());
-                    if (filter.size() > 0
-                        && !(part::stringsMatchI(msg.sFromAddress, filter, 3) ||
-                            part::stringsMatchI(sAddrTo, filter, 3) ||
-                            part::stringsMatchI(sText, filter, 3))) {
+                    if (filter.size() > 0 &&
+                        !(part::stringsMatchI(msg.sFromAddress, filter, 3) ||
+                          part::stringsMatchI(sAddrTo, filter, 3) ||
+                          part::stringsMatchI(sText, filter, 3))) {
                         continue;
                     }
 
@@ -1493,13 +1533,15 @@ static RPCHelpMan smsgoutbox()
                 "\nDecrypt and display all sent messages.\n"
                 "Warning: \"mode\"=\"clear\" will delete all sent messages.\n",
                 {
-                    {"mode", RPCArg::Type::STR, RPCArg::Default{"all"}, "all|clear, List or clear messages."},
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"all"}, "\"all|count|clear\" List, count or clear messages."},
                     {"filter", RPCArg::Type::STR, RPCArg::Default{""}, "Filter messages when in list mode. Applied to from, to and text fields."},
                     {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
                             {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
                             {"sending", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display messages in sending queue."},
                             {"stashed", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display stashed messages."},
+                            {"offset", RPCArg::Type::NUM, RPCArg::Default{""}, "Skip the first \"offset\" messages"},
+                            {"max_results", RPCArg::Type::NUM, RPCArg::Default{""}, "Return only \"max_results\" messages"},
                         },
                         "options"},
                 },
@@ -1530,6 +1572,7 @@ static RPCHelpMan smsgoutbox()
                             }},
                         }},
                         {RPCResult::Type::STR, "expected", /*optional=*/true, "values understood"},
+                        {RPCResult::Type::NUM, "num_messages", /*optional=*/true, "Number of messages counted"},
                 }},
                 RPCExamples{
                     HelpExampleCli("smsgoutbox", "")
@@ -1547,6 +1590,7 @@ static RPCHelpMan smsgoutbox()
     bool show_sending = false;
     bool show_stashed = false;
     std::string sEnc = "text";
+    int offset = 0, max_results = -1;
     if (request.params[2].isObject()) {
         UniValue options = request.params[2].get_obj();
         if (options["encoding"].isStr()) {
@@ -1557,6 +1601,12 @@ static RPCHelpMan smsgoutbox()
         }
         if (options["stashed"].isBool()) {
             show_stashed = options["stashed"].get_bool();
+        }
+        if (options["offset"].isNum()) {
+            offset = options["offset"].get_int();
+        }
+        if (options["max_results"].isNum()) {
+            max_results = options["max_results"].get_int();
         }
     }
 
@@ -1580,6 +1630,16 @@ static RPCHelpMan smsgoutbox()
         uint32_t nMessages = 0;
 
         std::string db_prefix = show_sending ? smsg::DBK_QUEUED : show_stashed ? smsg::DBK_STASHED : smsg::DBK_OUTBOX;
+        if (mode == "count") {
+            leveldb::Iterator *it = dbOutbox.pdb->NewIterator(leveldb::ReadOptions());
+            while (dbOutbox.NextSmesgKey(it, db_prefix, chKey)) {
+                nMessages++;
+            }
+            delete it;
+
+            result.pushKV("result", "Counted sent messages");
+            result.pushKV("num_messages", (int)nMessages);
+        } else
         if (mode == "clear") {
             dbOutbox.TxnBegin();
 
@@ -1601,6 +1661,13 @@ static RPCHelpMan smsgoutbox()
             UniValue messageList(UniValue::VARR);
 
             while (dbOutbox.NextSmesg(it, db_prefix, chKey, smsgStored)) {
+                if (offset > 0) {
+                    offset--;
+                    continue;
+                }
+                if (max_results >= 0 && (int)nMessages >= max_results) {
+                    break;
+                }
                 const unsigned char *pHeader = smsgStored.vchMessage.data();
                 smsg::SecureMessage smsg(pHeader);
                 const smsg::SecureMessage *psmsg = &smsg;
@@ -1614,10 +1681,10 @@ static RPCHelpMan smsgoutbox()
                 if (rv == 0) {
                     std::string sAddrTo = EncodeDestination(PKHash(smsgStored.addrTo));
                     std::string sText = std::string((char*)msg.vchMessage.data());
-                    if (filter.size() > 0
-                        && !(part::stringsMatchI(msg.sFromAddress, filter, 3) ||
-                            part::stringsMatchI(sAddrTo, filter, 3) ||
-                            part::stringsMatchI(sText, filter, 3))) {
+                    if (filter.size() > 0 &&
+                        !(part::stringsMatchI(msg.sFromAddress, filter, 3) ||
+                          part::stringsMatchI(sAddrTo, filter, 3) ||
+                          part::stringsMatchI(sText, filter, 3))) {
                         continue;
                     }
 
