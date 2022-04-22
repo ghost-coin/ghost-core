@@ -31,7 +31,7 @@ static void Blind(benchmark::Bench& bench)
     CAmount nValue = 1 * COIN;
 
     std::vector<uint8_t> vBlind(32);
-    GetStrongRandBytes(&vBlind[0], 32);
+    GetStrongRandBytes2(&vBlind[0], 32);
 
     assert(secp256k1_pedersen_commit(secp256k1_ctx_blind, &commitment, &vBlind[0], (uint64_t)nValue, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
 

@@ -944,7 +944,7 @@ bool CSMSG::Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::s
     {
         // Pass in a random blinding seed to the secp256k1 context.
         std::vector<uint8_t, secure_allocator<uint8_t>> vseed(32);
-        GetRandBytes(vseed.data(), 32);
+        GetRandBytes(vseed);
         bool ret = secp256k1_context_randomize(secp256k1_context_smsg, vseed.data());
         assert(ret);
     }
@@ -3921,7 +3921,7 @@ int CSMSG::Encrypt(SecureMessage &smsg, const CKeyID &addressFrom, const CKeyID 
     }
 
     // Generate 16 random bytes as IV.
-    GetStrongRandBytes(&smsg.iv[0], 16);
+    GetStrongRandBytes2(&smsg.iv[0], 16);
 
     // Generate a new random EC key pair with private key called r and public key called R.
     CKey keyR;

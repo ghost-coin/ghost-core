@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     r.scriptPubKey = GetScriptForDestination(PKHash(r.pkTo));
     r.nStealthPrefix = FillStealthPrefix(sxAddr.prefix.number_bits, sxAddr.prefix.bitfield);
     r.vBlind.resize(32);
-    GetStrongRandBytes(&r.vBlind[0], 32);
+    GetStrongRandBytes2(&r.vBlind[0], 32);
     BOOST_CHECK_MESSAGE(r.pkTo.IsValid(), "pubkeyto is not valid");
 
     {

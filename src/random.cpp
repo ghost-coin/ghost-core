@@ -16,6 +16,7 @@
 #include <logging.h>
 #include <randomenv.h>
 #include <support/allocators/secure.h>
+#include <span.h>
 #include <sync.h>     // for Mutex
 #include <util/time.h> // for GetTimeMicros()
 
@@ -589,8 +590,8 @@ void GetStrongRandBytes2(unsigned char* out, int num)
     }
 }
 
-void GetRandBytes(unsigned char* buf, int num) noexcept { ProcRand(buf, num, RNGLevel::FAST); }
-void GetStrongRandBytes(unsigned char* buf, int num) noexcept { ProcRand(buf, num, RNGLevel::SLOW); }
+void GetRandBytes(Span<unsigned char> bytes) noexcept { ProcRand(bytes.data(), bytes.size(), RNGLevel::FAST); }
+void GetStrongRandBytes(Span<unsigned char> bytes) noexcept { ProcRand(bytes.data(), bytes.size(), RNGLevel::SLOW); }
 void RandAddPeriodic() noexcept { ProcRand(nullptr, 0, RNGLevel::PERIODIC); }
 void RandAddEvent(const uint32_t event_info) noexcept { GetRNGState().AddEvent(event_info); }
 
@@ -610,14 +611,14 @@ int GetRandInt(int nMax) noexcept
 uint256 GetRandHash() noexcept
 {
     uint256 hash;
-    GetRandBytes((unsigned char*)&hash, sizeof(hash));
+    GetRandBytes(hash);
     return hash;
 }
 
 double GetRandDoubleUnit()
 {
     uint64_t nRand;
-    GetRandBytes((unsigned char*)&nRand, sizeof(nRand));
+    GetRandBytes(Span<unsigned char>((unsigned char*)&nRand, sizeof(nRand)));
     return ((double) nRand) / (double) std::numeric_limits<uint64_t>::max();
 }
 

@@ -356,7 +356,7 @@ bool IsStealthAddress(const std::string &encodedAddress)
 uint32_t FillStealthPrefix(uint8_t nBits, uint32_t nBitfield)
 {
     uint32_t prefix, mask = SetStealthMask(nBits);
-    GetStrongRandBytes((uint8_t*) &prefix, 4);
+    GetStrongRandBytes2((uint8_t*) &prefix, 4);
 
     prefix &= (~mask);
     prefix |= nBitfield & mask;
@@ -466,7 +466,7 @@ void ECC_Start_Stealth()
     {
         // Pass in a random blinding seed to the secp256k1 context.
         std::vector<unsigned char, secure_allocator<unsigned char>> vseed(32);
-        GetRandBytes(vseed.data(), 32);
+        GetRandBytes(vseed);
         bool ret = secp256k1_context_randomize(ctx, vseed.data());
         assert(ret);
     }

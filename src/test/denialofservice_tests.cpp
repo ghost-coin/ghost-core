@@ -4,7 +4,6 @@
 
 // Unit tests for denial-of-service detection/prevention code
 
-#include <arith_uint256.h>
 #include <banman.h>
 #include <chainparams.h>
 #include <net.h>
@@ -52,7 +51,7 @@ BOOST_FIXTURE_TEST_SUITE(denialofservice_tests, TestingSetup)
 BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
 {
     const CChainParams& chainparams = Params();
-    auto connman = std::make_unique<CConnman>(0x1337, 0x1337, *m_node.addrman);
+    auto connman = std::make_unique<CConnman>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman);
     // Disable inactivity checks for this test to avoid interference
     static_cast<ConnmanTestMsg*>(connman.get())->SetPeerConnectTimeout(99999s);
     auto peerLogic = PeerManager::make(chainparams, *connman, *m_node.addrman, nullptr,
@@ -142,7 +141,7 @@ BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
 {
     NodeId id{0};
     const CChainParams& chainparams = Params();
-    auto connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman);
+    auto connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman);
     auto peerLogic = PeerManager::make(chainparams, *connman, *m_node.addrman, nullptr,
                                        *m_node.chainman, *m_node.mempool, false);
 
@@ -220,7 +219,7 @@ BOOST_AUTO_TEST_CASE(block_relay_only_eviction)
 {
     NodeId id{0};
     const CChainParams& chainparams = Params();
-    auto connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman);
+    auto connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman);
     auto peerLogic = PeerManager::make(chainparams, *connman, *m_node.addrman, nullptr,
                                        *m_node.chainman, *m_node.mempool, false);
 
@@ -283,7 +282,7 @@ BOOST_AUTO_TEST_CASE(peer_discouragement)
 {
     const CChainParams& chainparams = Params();
     auto banman = std::make_unique<BanMan>(m_args.GetDataDirBase() / "banlist", nullptr, DEFAULT_MISBEHAVING_BANTIME);
-    auto connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman);
+    auto connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman);
     auto peerLogic = PeerManager::make(chainparams, *connman, *m_node.addrman, banman.get(),
                                        *m_node.chainman, *m_node.mempool, false);
 
@@ -399,7 +398,7 @@ BOOST_AUTO_TEST_CASE(DoS_bantime)
 {
     const CChainParams& chainparams = Params();
     auto banman = std::make_unique<BanMan>(m_args.GetDataDirBase() / "banlist", nullptr, DEFAULT_MISBEHAVING_BANTIME);
-    auto connman = std::make_unique<CConnman>(0x1337, 0x1337, *m_node.addrman);
+    auto connman = std::make_unique<CConnman>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman);
     auto peerLogic = PeerManager::make(chainparams, *connman, *m_node.addrman, banman.get(),
                                        *m_node.chainman, *m_node.mempool, false);
 
@@ -467,7 +466,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
     // ecdsa_signature_parse_der_lax are executed during this test.
     // Specifically branches that run only when an ECDSA
     // signature's R and S values have leading zeros.
-    g_insecure_rand_ctx = FastRandomContext(ArithToUint256(arith_uint256(33)));
+    g_insecure_rand_ctx = FastRandomContext{uint256{33}};
 
     TxOrphanageTest orphanage;
     CKey key;

@@ -8309,7 +8309,7 @@ static RPCHelpMan createrawparttransaction()
                 memcpy(r.vBlind.data(), blind.begin(), 32);
             } else {
                 // Generate a random blinding factor if not provided
-                GetStrongRandBytes(r.vBlind.data(), 32);
+                GetStrongRandBytes2(r.vBlind.data(), 32);
             }
 
             if (o["rangeproof_params"].isObject())

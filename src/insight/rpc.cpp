@@ -832,7 +832,7 @@ return RPCHelpMan{"getblockdeltas",
     CBlock block;
     CBlockIndex *pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
 
-    if (node::fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
+    if (chainman.m_blockman.m_have_pruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Block not available (pruned data)");
     }
 

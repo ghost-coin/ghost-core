@@ -77,7 +77,6 @@ using node::CBlockIndexHeightOnlyComparator;
 using node::CBlockIndexWorkComparator;
 using node::CCoinsStats;
 using node::CoinStatsHashType;
-using node::fHavePruned;
 using node::fImporting;
 using node::fPruneMode;
 using node::fReindex;
@@ -128,7 +127,6 @@ const std::vector<std::string> CHECKLEVEL_DOC {
  */
 RecursiveMutex cs_main;
 
-CBlockIndex *pindexBestHeader = nullptr;
 Mutex g_best_block_mutex;
 std::condition_variable g_best_block_cv;
 uint256 g_best_block;
@@ -332,8 +330,9 @@ static bool IsCurrentForFeeEstimation(CChainState& active_chainstate) EXCLUSIVE_
         return false;
     if (active_chainstate.m_chain.Tip()->GetBlockTime() < count_seconds(GetTime<std::chrono::seconds>() - MAX_FEE_ESTIMATION_TIP_AGE))
         return false;
-    if (active_chainstate.m_chain.Height() < pindexBestHeader->nHeight - 1)
+    if (active_chainstate.m_chain.Height() < active_chainstate.m_chainman.m_best_header->nHeight - 1) {
         return false;
+    }
     return true;
 }
 
@@ -1736,8 +1735,8 @@ void CChainState::InvalidChainFound(CBlockIndex* pindexNew)
     if (!m_chainman.m_best_invalid || pindexNew->nChainWork > m_chainman.m_best_invalid->nChainWork) {
         m_chainman.m_best_invalid = pindexNew;
     }
-    if (pindexBestHeader != nullptr && pindexBestHeader->GetAncestor(pindexNew->nHeight) == pindexNew) {
-        pindexBestHeader = m_chain.Tip();
+    if (m_chainman.m_best_header != nullptr && m_chainman.m_best_header->GetAncestor(pindexNew->nHeight) == pindexNew) {
+        m_chainman.m_best_header = m_chain.Tip();
     }
 
     LogPrintf("%s: invalid block=%s  height=%d  log2_work=%f  date=%s\n", __func__,
@@ -2404,8 +2403,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         BlockMap::const_iterator  it = m_blockman.m_block_index.find(hashAssumeValid);
         if (it != m_blockman.m_block_index.end()) {
             if (it->second.GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestHeader->GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestHeader->nChainWork >= nMinimumChainWork) {
+                m_chainman.m_best_header->GetAncestor(pindex->nHeight) == pindex &&
+                m_chainman.m_best_header->nChainWork >= nMinimumChainWork) {
                 // This block is a member of the assumed verified chain and an ancestor of the best header.
                 // Script verification is skipped when connecting blocks under the
                 // assumevalid block. Assuming the assumevalid block is valid this
@@ -2420,7 +2419,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 //  artificially set the default assumed verified block further back.
                 // The test against nMinimumChainWork prevents the skipping when denied access to any chain at
                 //  least as good as the expected chain.
-                fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestHeader, *pindex, *pindexBestHeader, m_params.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
+                fScriptChecks = (GetBlockProofEquivalentTime(*m_chainman.m_best_header, *pindex, *m_chainman.m_best_header, m_params.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
             }
         }
     }
@@ -3115,9 +3114,9 @@ bool CChainState::FlushStateToDisk(
             }
             if (!setFilesToPrune.empty()) {
                 fFlushForPrune = true;
-                if (!fHavePruned) {
+                if (!m_blockman.m_have_pruned) {
                     m_blockman.m_block_tree_db->WriteFlag("prunedblockfiles", true);
-                    fHavePruned = true;
+                    m_blockman.m_have_pruned = true;
                 }
             }
         }
@@ -3787,7 +3786,7 @@ static bool NotifyHeaderTip(CChainState& chainstate) LOCKS_EXCLUDED(cs_main) {
     CBlockIndex* pindexHeader = nullptr;
     {
         LOCK(cs_main);
-        pindexHeader = pindexBestHeader;
+        pindexHeader = chainstate.m_chainman.m_best_header;
 
         if (pindexHeader != pindexHeaderOld) {
             fNotify = true;
@@ -4789,7 +4788,7 @@ bool ChainstateManager::AcceptBlockHeader(const CBlockHeader& block, BlockValida
         }
         force_accept = false;
     }
-    CBlockIndex* pindex{m_blockman.AddToBlockIndex(block)};
+    CBlockIndex* pindex{m_blockman.AddToBlockIndex(block, m_best_header)};
     if (force_accept) {
         pindex->nFlags |= BLOCK_ACCEPTED;
     }
@@ -5000,7 +4999,7 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
             if (fParticlMode && state.GetResult() != BlockValidationResult::BLOCK_MISSING_PREV) {
                 // Mark block as invalid to prevent re-requesting from peer.
                 // Block will have been added to the block index in AcceptBlockHeader
-                CBlockIndex *pindex = ActiveChainstate().m_blockman.AddToBlockIndex(*block);
+                CBlockIndex *pindex = ActiveChainstate().m_blockman.AddToBlockIndex(*block, m_best_header);
                 ActiveChainstate().InvalidBlockFound(pindex, state);
             }
             GetMainSignals().BlockChecked(*block, state);
@@ -5387,13 +5386,11 @@ void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman)
 {
     AssertLockHeld(::cs_main);
     chainman.Unload();
-    pindexBestHeader = nullptr;
     if (mempool) mempool->clear();
     g_versionbitscache.Clear();
     for (int b = 0; b < VERSIONBITS_NUM_BITS; b++) {
         warningcache[b].clear();
     }
-    fHavePruned = false;
 }
 
 bool ChainstateManager::LoadBlockIndex()
@@ -5469,6 +5466,8 @@ bool ChainstateManager::LoadBlockIndex()
             if (pindex->nStatus & BLOCK_FAILED_MASK && (!m_best_invalid || pindex->nChainWork > m_best_invalid->nChainWork)) {
                 m_best_invalid = pindex;
             }
+            if (pindex->IsValid(BLOCK_VALID_TREE) && (m_best_header == nullptr || CBlockIndexWorkComparator()(m_best_header, pindex)))
+                m_best_header = pindex;
         }
 
         needs_init = m_blockman.m_block_index.empty();
@@ -5519,7 +5518,7 @@ bool CChainState::LoadGenesisBlock()
         if (blockPos.IsNull()) {
             return error("%s: writing genesis block to disk failed", __func__);
         }
-        CBlockIndex *pindex = m_blockman.AddToBlockIndex(block);
+        CBlockIndex* pindex = m_blockman.AddToBlockIndex(block, m_chainman.m_best_header);
         pindex->nFlags |= BLOCK_ACCEPTED;
         ReceivedBlockTransactions(block, pindex, blockPos);
     } catch (const std::runtime_error& e) {
@@ -5740,7 +5739,7 @@ void CChainState::CheckBlockIndex()
         // HAVE_DATA is only equivalent to nTx > 0 (or VALID_TRANSACTIONS) if no pruning has occurred.
         // Unless these indexes are assumed valid and pending block download on a
         // background chainstate.
-        if (!fHavePruned && !pindex->IsAssumedValid()) {
+        if (!m_blockman.m_have_pruned && !pindex->IsAssumedValid()) {
             // If we've never pruned, then HAVE_DATA should be equivalent to nTx > 0
             assert(!(pindex->nStatus & BLOCK_HAVE_DATA) == (pindex->nTx == 0));
             assert(pindexFirstMissing == pindexFirstNeverProcessed);
@@ -5814,7 +5813,7 @@ void CChainState::CheckBlockIndex()
         if (pindexFirstMissing == nullptr) assert(!foundInUnlinked); // We aren't missing data for any parent -- cannot be in m_blocks_unlinked.
         if (pindex->pprev && (pindex->nStatus & BLOCK_HAVE_DATA) && pindexFirstNeverProcessed == nullptr && pindexFirstMissing != nullptr) {
             // We HAVE_DATA for this block, have received data for all parents at some point, but we're currently missing data for some parent.
-            assert(fHavePruned); // We must have pruned.
+            assert(m_blockman.m_have_pruned); // We must have pruned.
             // This block may have entered m_blocks_unlinked if:
             //  - it has a descendant that at some point had more work than the
             //    tip, and
@@ -6461,6 +6460,7 @@ void ChainstateManager::Unload()
 
     m_failed_blocks.clear();
     m_blockman.Unload();
+    m_best_header = nullptr;
     m_best_invalid = nullptr;
 }
 
@@ -6774,8 +6774,8 @@ bool RemoveUnreceivedHeader(ChainstateManager &chainman, const uint256 &hash) EX
         LogPrint(BCLog::NET, "Removing loose header %s.\n", entry->second.GetBlockHash().ToString());
         chainman.ActiveChainstate().m_blockman.m_dirty_blockindex.erase(&entry->second);
 
-        if (pindexBestHeader == &entry->second) {
-            pindexBestHeader = chainman.ActiveChain().Tip();
+        if (chainman.m_best_header == &entry->second) {
+            chainman.m_best_header = chainman.ActiveChain().Tip();
         }
         if (chainman.m_best_invalid == &entry->second) {
             chainman.m_best_invalid = nullptr;

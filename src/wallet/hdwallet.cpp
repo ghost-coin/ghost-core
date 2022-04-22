@@ -866,12 +866,12 @@ bool CHDWallet::EncryptWallet(const SecureString &strWalletPassphrase)
 
     CKeyingMaterial vMasterKey;
     vMasterKey.resize(WALLET_CRYPTO_KEY_SIZE);
-    GetStrongRandBytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
+    GetStrongRandBytes2(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
 
     CMasterKey kMasterKey;
 
     kMasterKey.vchSalt.resize(WALLET_CRYPTO_SALT_SIZE);
-    GetStrongRandBytes(&kMasterKey.vchSalt[0], WALLET_CRYPTO_SALT_SIZE);
+    GetStrongRandBytes2(&kMasterKey.vchSalt[0], WALLET_CRYPTO_SALT_SIZE);
 
     CCrypter crypter;
     int64_t nStartTime = GetTimeMillis();
@@ -4011,7 +4011,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     } else {
                         if (r.vBlind.size() != 32) {
                             r.vBlind.resize(32);
-                            GetStrongRandBytes(&r.vBlind[0], 32);
+                            GetStrongRandBytes2(&r.vBlind[0], 32);
                         } // else already prefilled
                         vpBlinds.push_back(&r.vBlind[0]);
                     }
@@ -4577,7 +4577,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     // Need to know the fee before calculating the blind sum
                     if (r.vBlind.size() != 32) {
                         r.vBlind.resize(32);
-                        GetStrongRandBytes(&r.vBlind[0], 32);
+                        GetStrongRandBytes2(&r.vBlind[0], 32);
                     } // else already prefilled
 
                     if (0 != AddCTData(coinControl, txbout.get(), r, sError)) {
@@ -5379,7 +5379,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
                     if (r.vBlind.size() != 32) {
                         r.vBlind.resize(32);
-                        GetStrongRandBytes(&r.vBlind[0], 32);
+                        GetStrongRandBytes2(&r.vBlind[0], 32);
                     } // else prefilled already
 
                     if (0 != AddCTData(coinControl, txbout.get(), r, sError)) {
@@ -5530,7 +5530,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 if (r.vBlind.size() != 32) {
                     r.vBlind.resize(32);
-                    GetStrongRandBytes(&r.vBlind[0], 32);
+                    GetStrongRandBytes2(&r.vBlind[0], 32);
                 }
 
                 if (0 != AddCTData(coinControl, txNew.vpout[r.n].get(), r, sError)) {
@@ -5601,7 +5601,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 size_t nRows = nSigInputs + 1;
 
                 uint8_t randSeed[32];
-                GetStrongRandBytes(randSeed, 32);
+                GetStrongRandBytes2(randSeed, 32);
 
                 std::vector<CKey> vsk(nSigInputs);
                 std::vector<const uint8_t*> vpsk(nRows), vpBlinds, vpInCommits(nCols * nSigInputs);
@@ -6042,7 +6042,7 @@ int CHDWallet::ExtKeyNew32(CExtKey &out)
     uint8_t data[32];
 
     for (uint32_t i = 0; i < MAX_DERIVE_TRIES; ++i) {
-        GetStrongRandBytes(data, 32);
+        GetStrongRandBytes2(data, 32);
         if (ExtKeyNew32(out, data, 32) == 0) {
             break;
         }

@@ -97,8 +97,8 @@ static void Mlsag(benchmark::Bench& bench)
         nOutputs, nBlinded, nCols, nRows,
         pcm_in, pcm_out, pblinds));
 
-    GetRandBytes(tmp32, 32);
-    GetRandBytes(preimage, 32);
+    GetRandBytes(Span<unsigned char>(tmp32, 32));
+    GetRandBytes(Span<unsigned char>(preimage, 32));
 
     assert(0 == secp256k1_generate_mlsag(secp256k1_ctx_blind, ki, pc, ss,
         tmp32, preimage, nCols, nRows, nRealCol,

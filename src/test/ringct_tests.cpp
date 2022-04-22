@@ -462,7 +462,7 @@ static int GetBytes(uint8_t *p, size_t len, bool fDeterministic)
     if (fDeterministic) {
         GetDeterministicBytes(p, len);
     } else {
-        GetStrongRandBytes(p, len);
+        GetStrongRandBytes2(p, len);
     }
     return 0;
 }

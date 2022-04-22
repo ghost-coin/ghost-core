@@ -58,7 +58,6 @@ using node::BlockManager;
 using node::CCoinsStats;
 using node::CoinStatsHashType;
 using node::GetUTXOStats;
-using node::IsBlockPruned;
 using node::NodeContext;
 using node::ReadBlockFromDisk;
 using node::SnapshotMetadata;
@@ -168,7 +167,7 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
     return result;
 }
 
-UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, TxVerbosity verbosity, bool coinstakeDetails)
+UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, TxVerbosity verbosity, bool coinstakeDetails)
 {
     UniValue result = blockheaderToJSON(tip, blockindex);
 
@@ -187,7 +186,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIn
         case TxVerbosity::SHOW_DETAILS:
         case TxVerbosity::SHOW_DETAILS_AND_PREVOUT:
             CBlockUndo blockUndo;
-            const bool have_undo{WITH_LOCK(::cs_main, return !IsBlockPruned(blockindex) && UndoReadFromDisk(blockUndo, blockindex))};
+            const bool have_undo{WITH_LOCK(::cs_main, return !blockman.IsBlockPruned(blockindex) && UndoReadFromDisk(blockUndo, blockindex))};
 
             for (size_t i = 0; i < block.vtx.size(); ++i) {
                 const CTransactionRef& tx = block.vtx.at(i);
@@ -635,11 +634,11 @@ static RPCHelpMan getblockheader()
     };
 }
 
-static CBlock GetBlockChecked(const CBlockIndex* pblockindex) EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex* pblockindex) EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
 {
     AssertLockHeld(::cs_main);
     CBlock block;
-    if (IsBlockPruned(pblockindex)) {
+    if (blockman.IsBlockPruned(pblockindex)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Block not available (pruned data)");
     }
 
@@ -653,11 +652,11 @@ static CBlock GetBlockChecked(const CBlockIndex* pblockindex) EXCLUSIVE_LOCKS_RE
     return block;
 }
 
-static CBlockUndo GetUndoChecked(const CBlockIndex* pblockindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex* pblockindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(::cs_main);
     CBlockUndo blockUndo;
-    if (IsBlockPruned(pblockindex)) {
+    if (blockman.IsBlockPruned(pblockindex)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Undo data not available (pruned data)");
     }
 
@@ -778,8 +777,8 @@ static RPCHelpMan getblock()
     CBlock block;
     const CBlockIndex* pblockindex;
     const CBlockIndex* tip;
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
     {
-        ChainstateManager& chainman = EnsureAnyChainman(request.context);
         LOCK(cs_main);
         pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
         tip = chainman.ActiveChain().Tip();
@@ -788,7 +787,7 @@ static RPCHelpMan getblock()
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
         }
 
-        block = GetBlockChecked(pblockindex);
+        block = GetBlockChecked(chainman.m_blockman, pblockindex);
     }
 
     if (verbosity <= 0)
@@ -808,7 +807,7 @@ static RPCHelpMan getblock()
         tx_verbosity = TxVerbosity::SHOW_DETAILS_AND_PREVOUT;
     }
 
-    return blockToJSON(block, tip, pblockindex, tx_verbosity, with_coinstakeinfo);
+    return blockToJSON(chainman.m_blockman, block, tip, pblockindex, tx_verbosity, with_coinstakeinfo);
 },
     };
 }
@@ -1290,23 +1289,23 @@ RPCHelpMan getblockchaininfo()
     CHECK_NONFATAL(tip);
     const int height = tip->nHeight;
     UniValue obj(UniValue::VOBJ);
-    obj.pushKV("chain",                 Params().NetworkIDString());
-    obj.pushKV("blocks",                height);
-    obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
-    obj.pushKV("bestblockhash",         tip->GetBlockHash().GetHex());
+    obj.pushKV("chain", Params().NetworkIDString());
+    obj.pushKV("blocks", height);
+    obj.pushKV("headers", chainman.m_best_header ? chainman.m_best_header->nHeight : -1);
+    obj.pushKV("bestblockhash", tip->GetBlockHash().GetHex());
     if (fParticlMode) {
-        obj.pushKV("moneysupply",           ValueFromAmount(tip->nMoneySupply));
-        obj.pushKV("blockindexsize",        (int)chainman.BlockIndex().size());
-        obj.pushKV("delayedblocks",         (int)particl::CountDelayedBlocks());
+        obj.pushKV("moneysupply", ValueFromAmount(tip->nMoneySupply));
+        obj.pushKV("blockindexsize", (int)chainman.BlockIndex().size());
+        obj.pushKV("delayedblocks", (int)particl::CountDelayedBlocks());
     }
-    obj.pushKV("difficulty",            (double)GetDifficulty(tip));
+    obj.pushKV("difficulty", (double)GetDifficulty(tip));
     PushTime(obj, "time", tip->nTime);
     PushTime(obj, "mediantime", tip->GetMedianTimePast());
-    obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), tip));
-    obj.pushKV("initialblockdownload",  active_chainstate.IsInitialBlockDownload());
-    obj.pushKV("chainwork",             tip->nChainWork.GetHex());
+    obj.pushKV("verificationprogress", GuessVerificationProgress(Params().TxData(), tip));
+    obj.pushKV("initialblockdownload", active_chainstate.IsInitialBlockDownload());
+    obj.pushKV("chainwork", tip->nChainWork.GetHex());
     obj.pushKV("size_on_disk", chainman.m_blockman.CalculateCurrentUsage());
-    obj.pushKV("pruned",                node::fPruneMode);
+    obj.pushKV("pruned", node::fPruneMode);
     if (node::fPruneMode) {
         const CBlockIndex* block = tip;
         CHECK_NONFATAL(block);
@@ -1871,8 +1870,8 @@ static RPCHelpMan getblockstats()
         }
     }
 
-    const CBlock block = GetBlockChecked(pindex);
-    const CBlockUndo blockUndo = GetUndoChecked(pindex);
+    const CBlock block = GetBlockChecked(chainman.m_blockman, pindex);
+    const CBlockUndo blockUndo = GetUndoChecked(chainman.m_blockman, pindex);
 
     const bool do_all = stats.size() == 0; // Calculate everything if nothing selected (default)
     const bool do_mediantxsize = do_all || stats.count("mediantxsize") != 0;

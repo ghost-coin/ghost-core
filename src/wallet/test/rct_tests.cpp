@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     auto &txin = mtx.vin[0];
     uint256 blinding_factor_prevout;
     uint8_t rand_seed[32];
-    GetStrongRandBytes(rand_seed, 32);
+    GetStrongRandBytes2(rand_seed, 32);
 
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);

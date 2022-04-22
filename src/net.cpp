@@ -1194,7 +1194,11 @@ void CConnman::CreateNodeFromAcceptedSocket(std::unique_ptr<Sock>&& sock,
 
     // According to the internet TCP_NODELAY is not carried into accepted sockets
     // on all platforms.  Set it again here just to be sure.
-    SetSocketNoDelay(sock->Get());
+    const int on{1};
+    if (sock->SetSockOpt(IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == SOCKET_ERROR) {
+        LogPrint(BCLog::NET, "connection from %s: unable to set TCP_NODELAY, continuing anyway\n",
+                 addr.ToString());
+    }
 
     // Don't accept connections from banned peers.
     bool banned = m_banman && m_banman->IsBanned(addr);
@@ -2007,7 +2011,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect)
                     case ConnectionType::BLOCK_RELAY:
                     case ConnectionType::ADDR_FETCH:
                     case ConnectionType::FEELER:
-                        setConnected.insert(pnode->addr.GetGroup(addrman.GetAsmap()));
+                        setConnected.insert(m_netgroupman.GetGroup(pnode->addr));
                 } // no default case, so the compiler can warn about missing cases
             }
         }
@@ -2081,7 +2085,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect)
                 m_anchors.pop_back();
                 if (!addr.IsValid() || IsLocal(addr) || !IsReachable(addr) ||
                     !HasAllDesirableServiceFlags(addr.nServices) ||
-                    setConnected.count(addr.GetGroup(addrman.GetAsmap()))) continue;
+                    setConnected.count(m_netgroupman.GetGroup(addr))) continue;
                 addrConnect = addr;
                 LogPrint(BCLog::NET, "Trying to make an anchor connection to %s\n", addrConnect.ToString());
                 break;
@@ -2122,7 +2126,7 @@ void CConnman::ThreadOpenConnections(const std::vector<std::string> connect)
             }
 
             // Require outbound connections, other than feelers, to be to distinct network groups
-            if (!fFeeler && setConnected.count(addr.GetGroup(addrman.GetAsmap()))) {
+            if (!fFeeler && setConnected.count(m_netgroupman.GetGroup(addr))) {
                 break;
             }
 
@@ -2422,17 +2426,26 @@ bool CConnman::BindListenPort(const CService& addrBind, bilingual_str& strError,
 
     // Allow binding if the port is still in TIME_WAIT state after
     // the program was closed and restarted.
-    setsockopt(sock->Get(), SOL_SOCKET, SO_REUSEADDR, (sockopt_arg_type)&nOne, sizeof(int));
+    if (sock->SetSockOpt(SOL_SOCKET, SO_REUSEADDR, (sockopt_arg_type)&nOne, sizeof(int)) == SOCKET_ERROR) {
+        strError = strprintf(Untranslated("Error setting SO_REUSEADDR on socket: %s, continuing anyway"), NetworkErrorString(WSAGetLastError()));
+        LogPrintf("%s\n", strError.original);
+    }
 
     // some systems don't have IPV6_V6ONLY but are always v6only; others do have the option
     // and enable it by default or not. Try to enable it, if possible.
     if (addrBind.IsIPv6()) {
 #ifdef IPV6_V6ONLY
-        setsockopt(sock->Get(), IPPROTO_IPV6, IPV6_V6ONLY, (sockopt_arg_type)&nOne, sizeof(int));
+        if (sock->SetSockOpt(IPPROTO_IPV6, IPV6_V6ONLY, (sockopt_arg_type)&nOne, sizeof(int)) == SOCKET_ERROR) {
+            strError = strprintf(Untranslated("Error setting IPV6_V6ONLY on socket: %s, continuing anyway"), NetworkErrorString(WSAGetLastError()));
+            LogPrintf("%s\n", strError.original);
+        }
 #endif
 #ifdef WIN32
         int nProtLevel = PROTECTION_LEVEL_UNRESTRICTED;
-        setsockopt(sock->Get(), IPPROTO_IPV6, IPV6_PROTECTION_LEVEL, (const char*)&nProtLevel, sizeof(int));
+        if (sock->SetSockOpt(IPPROTO_IPV6, IPV6_PROTECTION_LEVEL, (const char*)&nProtLevel, sizeof(int)) == SOCKET_ERROR) {
+            strError = strprintf(Untranslated("Error setting IPV6_PROTECTION_LEVEL on socket: %s, continuing anyway"), NetworkErrorString(WSAGetLastError()));
+            LogPrintf("%s\n", strError.original);
+        }
 #endif
     }
 
@@ -2526,8 +2539,12 @@ void CConnman::SetNetworkActive(bool active)
     }
 }
 
-CConnman::CConnman(uint64_t nSeed0In, uint64_t nSeed1In, AddrMan& addrman_in, bool network_active)
-    : addrman(addrman_in), nSeed0(nSeed0In), nSeed1(nSeed1In)
+CConnman::CConnman(uint64_t nSeed0In, uint64_t nSeed1In, AddrMan& addrman_in,
+                   const NetGroupManager& netgroupman, bool network_active)
+    : addrman(addrman_in)
+    , m_netgroupman{netgroupman}
+    , nSeed0(nSeed0In)
+    , nSeed1(nSeed1In)
 {
     SetTryNewOutboundPeer(false);
 
@@ -2888,7 +2905,7 @@ void CConnman::GetNodeStats(std::vector<CNodeStats>& vstats) const
     for (CNode* pnode : m_nodes) {
         vstats.emplace_back();
         pnode->CopyStats(vstats.back());
-        vstats.back().m_mapped_as = pnode->addr.GetMappedAS(addrman.GetAsmap());
+        vstats.back().m_mapped_as = m_netgroupman.GetMappedAS(pnode->addr);
     }
 }
 
@@ -3126,9 +3143,9 @@ CSipHasher CConnman::GetDeterministicRandomizer(uint64_t id) const
     return CSipHasher(nSeed0, nSeed1).Write(id);
 }
 
-uint64_t CConnman::CalculateKeyedNetGroup(const CAddress& ad) const
+uint64_t CConnman::CalculateKeyedNetGroup(const CAddress& address) const
 {
-    std::vector<unsigned char> vchNetGroup(ad.GetGroup(addrman.GetAsmap()));
+    std::vector<unsigned char> vchNetGroup(m_netgroupman.GetGroup(address));
 
     return GetDeterministicRandomizer(RANDOMIZER_ID_NETGROUP).Write(vchNetGroup.data(), vchNetGroup.size()).Finalize();
 }

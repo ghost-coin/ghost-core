@@ -575,8 +575,6 @@ inspecting signatures in Mach-O binaries.")
         gzip
         xz
         gperf
-        zlib
-        (list zlib "static")
         ;; Build tools
         gnu-make
         libtool
