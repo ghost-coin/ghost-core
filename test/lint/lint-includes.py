@@ -19,7 +19,9 @@ EXCLUDED_DIRS = ["src/leveldb/",
                  "src/crc32c/",
                  "src/secp256k1/",
                  "src/minisketch/",
-                 "src/univalue/"]
+                 "src/univalue/",
+                 "src/unilib/",
+                 "src/xxhash/"]
 
 EXPECTED_BOOST_INCLUDES = ["boost/algorithm/string.hpp",
                            "boost/algorithm/string/classification.hpp",

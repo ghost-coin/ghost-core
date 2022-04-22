@@ -181,7 +181,7 @@ class AnonTest(ParticlTestFramework):
         # Skip initial rescan by passing -1 as scan_chain_from
         w1_3.extkeyimportmaster('drip fog service village program equip minute dentist series hawk crop sphere olympic lazy garbage segment fox library good alley steak jazz force inmate',
             '', False, 'imported key', 'imported acc', -1)
-        sxaddr1_3 = w1_3.getnewstealthaddress('lblsx11')
+        w1_3.getnewstealthaddress('lblsx11')
         w1_3.walletsettings('other', {'onlyinstance': False})
         w1_3.walletlock()
         assert(w1_3.getwalletinfo()['encryptionstatus'] == 'Locked')

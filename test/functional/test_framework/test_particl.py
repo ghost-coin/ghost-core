@@ -102,7 +102,7 @@ class ParticlTestFramework(BitcoinTestFramework):
         for i in range(50):
             time.sleep(0.5)
             try:
-                rv = node.gettransaction(txid)
+                node.gettransaction(txid)
                 return True
             except:
                 continue
