@@ -41,7 +41,7 @@ class SegwitScriptsTest(ParticlTestFramework):
 
         self.log.info('Test Bitcoin embedded segwit')
         try:
-            addr_sw_p2sh = nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
+            nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
             assert(False)
         except Exception as e:
             assert('p2sh-segwit is disabled' in str(e))

@@ -700,7 +700,6 @@ class RPCOverloadWrapper():
         return cms
 
     def addmultisigaddress_part(self, nrequired, keys, label=None, bech32=False, large_key=False, address_type=None):
-        wallet_info = self.getwalletinfo()
         if self.is_cli:
             if label is None:
                 label = 'null'

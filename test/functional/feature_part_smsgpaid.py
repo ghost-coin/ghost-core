@@ -137,7 +137,7 @@ class SmsgPaidTest(ParticlTestFramework):
                 ro = nodes[1].smsg(msgid)
                 assert(ro['location'] == 'outbox')
                 break
-            except Exception as e:
+            except Exception:
                 time.sleep(1)
         assert(ro['text'] == text_3)
         assert(ro['from'] == address1)

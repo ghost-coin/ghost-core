@@ -83,6 +83,7 @@ class ForkTest(ParticlTestFramework):
 
         # Stop group1 from staking
         nodes[0].reservebalance(True, 10000000)
+        assert(nodes[0].getblockcount() == nBlocksShorterChain)
 
         self.wait_for_height(nodes[3], nBlocksLongerChain, 2000)
 
@@ -164,7 +165,7 @@ class ForkTest(ParticlTestFramework):
 
         n0_lt = nodes[0].listtransactions()
         num_orphaned = 0
-        for tx in n0_ft:
+        for tx in n0_lt:
             if tx['category'] == 'orphaned_stake':
                 num_orphaned += 1
         assert(num_orphaned == 2)

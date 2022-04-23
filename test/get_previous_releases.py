@@ -85,11 +85,11 @@ def download_binary(tag, args) -> int:
             return 0
         shutil.rmtree(tag)
     Path(tag).mkdir()
-    bin_path = 'bin/particl-core-{}'.format(tag[1:])
-    match = re.compile('v(.*)(rc[0-9]+)$').search(tag)
-    if match:
-        bin_path = 'bin/particl-core-{}/test.{}'.format(
-            match.group(1), match.group(2))
+    #bin_path = 'bin/particl-core-{}'.format(tag[1:])
+    #match = re.compile('v(.*)(rc[0-9]+)$').search(tag)
+    #if match:
+    #    bin_path = 'bin/particl-core-{}/test.{}'.format(
+    #        match.group(1), match.group(2))
     tarball = 'particl-{tag}-{platform}.tar.gz'.format(
         tag=tag[1:], platform=args.platform)
     #tarballUrl = 'https://bitcoincore.org/{bin_path}/{tarball}'.format(
