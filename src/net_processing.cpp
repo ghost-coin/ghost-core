@@ -1752,7 +1752,9 @@ void PeerManager::BlockChecked(const CBlock& block, const BlockValidationState& 
     const uint256 hash(block.GetHash());
     std::map<uint256, std::pair<NodeId, bool>>::iterator it = mapBlockSource.find(hash);
 
-    MaybePunishNodeForDuplicates(/*nodeid=*/ it->second.first, state);
+    if (it != mapBlockSource.end()) {
+        MaybePunishNodeForDuplicates(/*nodeid=*/ it->second.first, state);
+    }
     // If the block failed validation, we know where it came from and we're still connected
     // to that peer, maybe punish.
     if (state.IsInvalid() &&

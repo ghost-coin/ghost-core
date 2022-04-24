@@ -3,7 +3,8 @@
 ==============
 
 - smsg: The smsgdb is periodically compacted.
-- smsg: Added pagination to smsginbox and smsgoutbox
+- smsg: Added pagination to smsginbox and smsgoutbox.
+- smsg: Shutdown smsgdb even if smsg is not initialised.
 
 
 0.21.2.8

@@ -15,7 +15,9 @@
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <util/ui_change_type.h>
-#include <leveldb/write_batch.h>
+#include <smsg/db.h>
+#include <smsg/types.h>
+
 
 #include <atomic>
 #include <boost/signals2/signal.hpp>
@@ -440,6 +442,8 @@ public:
     int WriteIni();
 
     bool Start(std::shared_ptr<CWallet> pwalletIn, std::vector<std::shared_ptr<CWallet>> &vpwallets, bool fScanChain);
+    //! Finalise the database
+    void Finalise();
     bool Shutdown();
 
     bool Enable(std::shared_ptr<CWallet> pwallet, std::vector<std::shared_ptr<CWallet>> &vpwallets);
@@ -517,11 +521,11 @@ public:
     std::vector<uint8_t> GetMsgID(const SecureMessage *psmsg, const uint8_t *pPayload);
     std::vector<uint8_t> GetMsgID(const SecureMessage &smsg);
 
-    int StartConnectingBlock();
-    int StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    int StoreFundingTx(ChainSyncCache &cache, const CTransaction &tx, const CBlockIndex *pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     int CheckFundingTx(const Consensus::Params &consensus_params, const SecureMessage *psmsg, const uint8_t *pPayload);
     int PruneFundingTxData();
-    int SetBestBlock(const uint256 &block_hash, int height, int64_t time);
+    int SetBestBlock(ChainSyncCache &cache, const uint256 &block_hash, int height, int64_t time);
+    int WriteCache(ChainSyncCache &cache);
     int ReadBestBlock(uint256 &block_hash, int &height);
     int ClearBestBlock();
 
@@ -563,6 +567,7 @@ public:
 
     bool m_track_funding_txns{false};
     leveldb::WriteBatch *m_connect_block_batch{nullptr};
+    SecMsgDB m_chain_sync_db;
 
     NodeContext *m_node = nullptr;
 };
@@ -574,4 +579,3 @@ double GetDifficulty(uint32_t compact);
 extern smsg::CSMSG smsgModule;
 
 #endif // PARTICL_SMSG_SMESSAGE_H
-
