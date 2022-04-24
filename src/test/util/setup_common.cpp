@@ -44,6 +44,7 @@
 
 // Particl
 #include <insight/insight.h>
+#include <smsg/smessage.h>
 
 #include <functional>
 #include <stdexcept>
@@ -197,6 +198,7 @@ ChainTestingSetup::ChainTestingSetup(const std::string& chainName, const std::ve
 
 ChainTestingSetup::~ChainTestingSetup()
 {
+    smsgModule.Finalise();  // DB could have been initialised
     if (m_node.scheduler) m_node.scheduler->stop();
     StopScriptCheckWorkerThreads();
     GetMainSignals().FlushBackgroundCallbacks();

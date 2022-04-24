@@ -976,37 +976,36 @@ bool CSMSG::Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::s
     return true;
 };
 
-bool CSMSG::Shutdown()
+void CSMSG::Finalise()
 {
-    if (!fSecMsgEnabled) {
-        return false;
-    }
-
-    LogPrintf("Stopping secure messaging.\n");
-
-    if (m_connect_block_batch) {
-        LogPrintf("%s: Closing uncommitted batch.\n", __func__);
-        delete m_connect_block_batch;
-        m_connect_block_batch = nullptr;
-    }
-
-    if (WriteIni() != 0) {
-        LogPrintf("Failed to save smsg.ini\n");
-    }
-
-    fSecMsgEnabled = false;
-    m_node->connman->SetLocalServices(ServiceFlags(m_node->connman->GetLocalServices() & ~NODE_SMSG));
-
-    m_thread_interrupt();
-    thread_smsg.join();
-    thread_smsg_pow.join();
-
     if (smsgDB) {
         LOCK(cs_smsgDB);
         delete smsgDB;
         smsgDB = nullptr;
     }
+    m_chain_sync_db.Finalise();
+};
 
+bool CSMSG::Shutdown()
+{
+    LogPrintf("Stopping secure messaging.\n");
+    bool was_enabled = fSecMsgEnabled;
+
+    if (was_enabled && WriteIni() != 0) {
+        LogPrintf("Failed to save smsg.ini\n");
+    }
+
+    fSecMsgEnabled = false;
+
+    m_thread_interrupt();
+    if (thread_smsg.joinable()) {
+        thread_smsg.join();
+    }
+    if (thread_smsg_pow.joinable()) {
+        thread_smsg_pow.join();
+    }
+
+    Finalise();
     keyStore.Clear();
 
     if (secp256k1_context_smsg) {
@@ -1014,12 +1013,15 @@ bool CSMSG::Shutdown()
     }
     secp256k1_context_smsg = nullptr;
 
-    UnloadAllWallets();
+    if (was_enabled) {
+        m_node->connman->SetLocalServices(ServiceFlags(m_node->connman->GetLocalServices() & ~NODE_SMSG));
+        UnloadAllWallets();
 #ifdef ENABLE_WALLET
-    if (m_wallet_load_handler) {
-        m_wallet_load_handler->disconnect();
-    }
+        if (m_wallet_load_handler) {
+            m_wallet_load_handler->disconnect();
+        }
 #endif
+    }
     return true;
 };
 
@@ -3470,31 +3472,10 @@ int CSMSG::AdjustDifficulty(int64_t time)
     return rv;
 };
 
-int CSMSG::StartConnectingBlock()
+int CSMSG::StoreFundingTx(ChainSyncCache &cache, const CTransaction &tx, const CBlockIndex *pindex)
 {
     if (!m_track_funding_txns) {
         return SMSG_NO_ERROR;
-    }
-
-    if (m_connect_block_batch) {
-        LogPrintf("%s: Closing uncommitted batch.\n", __func__);
-        delete m_connect_block_batch;
-        m_connect_block_batch = nullptr;
-    }
-
-    m_connect_block_batch = new leveldb::WriteBatch();
-
-    return SMSG_NO_ERROR;
-}
-
-int CSMSG::StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex)
-{
-    if (!m_track_funding_txns) {
-        return SMSG_NO_ERROR;
-    }
-
-    if (!m_connect_block_batch) {
-        return errorN(SMSG_GENERAL_ERROR, "%s: db batch not initialised.\n", __func__);
     }
 
     const uint256 &block_hash = pindex->GetBlockHash();
@@ -3528,7 +3509,7 @@ int CSMSG::StoreFundingTx(const CTransaction &tx, const CBlockIndex *pindex)
 
     // TODO: Get current fee-rate, GetSmsgFeeRate
 
-    if (!PutFundingData(m_connect_block_batch, tx.GetHash(), pindex->nHeight, db_data)) {
+    if (!PutFundingData(&cache.m_connect_block_batch, tx.GetHash(), pindex->nHeight, db_data)) {
         return errorN(SMSG_GENERAL_ERROR, "%s - PutFundingData failed.", __func__);
     }
 
@@ -3660,32 +3641,43 @@ int CSMSG::PruneFundingTxData()
     return 0;
 };
 
-int CSMSG::SetBestBlock(const uint256 &block_hash, int height, int64_t time)
+int CSMSG::SetBestBlock(ChainSyncCache &cache, const uint256 &block_hash, int height, int64_t time)
 {
     if (!m_track_funding_txns) {
         return SMSG_NO_ERROR;
     }
     if (time < GetAdjustedTime() - KEEP_FUNDING_TX_DATA) {
         // Skip old blocks
+        cache.m_skip = true;
         return SMSG_NO_ERROR;
     }
-    if (!m_connect_block_batch) {
-        return SMSG_BATCH_NOT_INITIALISED;
-    }
 
-    LOCK(cs_smsgDB);
-    SecMsgDB db;
-    if (!db.Open("cw")) {
-        return SMSG_GENERAL_ERROR;
-    }
-
-    if (!PutBestBlock(m_connect_block_batch, block_hash, height)) {
+    if (!PutBestBlock(&cache.m_connect_block_batch, block_hash, height)) {
         return errorN(SMSG_GENERAL_ERROR, "%s - PutBestBlock failed.", __func__);
     }
 
-    db.CommitBatch(m_connect_block_batch);
-    delete m_connect_block_batch;
-    m_connect_block_batch = nullptr;
+    return SMSG_NO_ERROR;
+}
+
+int CSMSG::WriteCache(ChainSyncCache &cache)
+{
+    if (!m_track_funding_txns) {
+        return SMSG_NO_ERROR;
+    }
+    if (cache.m_skip) {
+        // Skip old blocks
+        return SMSG_NO_ERROR;
+    }
+
+    {
+        LOCK(cs_smsgDB);
+        if (!m_chain_sync_db.IsOpen()) {
+            if (!m_chain_sync_db.Open("cw")) {
+                return SMSG_GENERAL_ERROR;
+            }
+        }
+        m_chain_sync_db.CommitBatch(&cache.m_connect_block_batch);
+    }
 
     return SMSG_NO_ERROR;
 }

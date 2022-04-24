@@ -39,9 +39,9 @@ bool SecMsgDB::Open(const char *pszMode)
 
     fs::path fullpath = gArgs.GetDataDirNet() / "smsgdb";
 
-    if (!fCreate
-        && (!fs::exists(fullpath)
-            || !fs::is_directory(fullpath))) {
+    if (!fCreate &&
+        (!fs::exists(fullpath) ||
+         !fs::is_directory(fullpath))) {
         LogPrintf("%s: DB does not exist.\n", __func__);
         return false;
     }

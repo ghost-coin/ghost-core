@@ -2529,8 +2529,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     int64_t nTime2 = GetTimeMicros(); nTimeForks += nTime2 - nTime1;
     LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
 
-    smsgModule.StartConnectingBlock();
-
     CBlockUndo blockundo;
 
     // Precomputed transaction data pointers must not be invalidated
@@ -2660,7 +2658,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 }
 
                 if (tx_state.m_funds_smsg) {
-                    smsgModule.StoreFundingTx(tx, pindex);
+                    smsgModule.StoreFundingTx(view.smsg_cache, tx, pindex);
                 }
             }
         } else {
@@ -3020,7 +3018,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     assert(pindex->phashBlock);
 
-    smsgModule.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
+    smsgModule.SetBestBlock(view.smsg_cache, pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight);
@@ -3329,6 +3327,9 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &
         if (!pblocktree->WriteBatch(batch)) {
             return error("%s: Write index data failed.", __func__);
         }
+        if (0 != smsgModule.WriteCache(view->smsg_cache)) {
+            return error("%s: smsgModule WriteCache failed.", __func__);
+        }
     }
 
     view->nLastRCTOutput = 0;
@@ -3336,6 +3337,7 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &
     view->anonOutputLinks.clear();
     view->keyImages.clear();
     view->spent_cache.clear();
+    view->smsg_cache.Clear();
 
     return true;
 };
