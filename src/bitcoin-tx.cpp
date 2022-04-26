@@ -33,8 +33,6 @@
 #include <memory>
 #include <stdio.h>
 
-#include <boost/algorithm/string.hpp>
-
 static bool fCreateBlank;
 static std::map<std::string,UniValue> registers;
 static const int CONTINUE_EXECUTION=-1;
@@ -286,8 +284,7 @@ static T TrimAndParse(const std::string& int_str, const std::string& err)
 
 static void MutateTxAddInput(CMutableTransaction& tx, const std::string& strInput)
 {
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
 
     // separate TXID:VOUT in string
     if (vStrInputParts.size()<2)
@@ -321,8 +318,7 @@ static void MutateTxAddInput(CMutableTransaction& tx, const std::string& strInpu
 
 static void MutateTxAddWitness(CMutableTransaction& tx, const std::string& strInput)
 {
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
 
     if (vStrInputParts.size() < 2) {
         std::string strErr = "Bad input '" + strInput + "'";
@@ -362,8 +358,7 @@ static void MutateTxDelWitness(CMutableTransaction& tx, const std::string& strIn
 
 static void MutateTxAddScriptSig(CMutableTransaction& tx, const std::string& strInput)
 {
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
 
     if (vStrInputParts.size() < 2) {
         std::string strErr = "Bad input '" + strInput + "'";
@@ -394,8 +389,7 @@ static void MutateTxDelScriptSig(CMutableTransaction& tx, const std::string& str
 static void MutateTxAddOutAddr(CMutableTransaction& tx, const std::string& strInput)
 {
     // Separate into VALUE:ADDRESS
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
 
     if (vStrInputParts.size() != 2)
         throw std::runtime_error("TX output missing or too many separators");
@@ -436,8 +430,7 @@ static void MutateTxAddOutAddr(CMutableTransaction& tx, const std::string& strIn
 static void MutateTxAddOutPubKey(CMutableTransaction& tx, const std::string& strInput)
 {
     // Separate into VALUE:PUBKEY[:FLAGS]
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
 
     if (vStrInputParts.size() < 2 || vStrInputParts.size() > 3)
         throw std::runtime_error("TX output missing or too many separators");
@@ -485,8 +478,7 @@ static void MutateTxAddOutPubKey(CMutableTransaction& tx, const std::string& str
 static void MutateTxAddOutMultiSig(CMutableTransaction& tx, const std::string& strInput)
 {
     // Separate into VALUE:REQUIRED:NUMKEYS:PUBKEY1:PUBKEY2:....[:FLAGS]
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
 
     // Check that there are enough parameters
     if (vStrInputParts.size()<3)
@@ -598,8 +590,7 @@ static void MutateTxAddOutData(CMutableTransaction& tx, const std::string& strIn
 static void MutateTxAddOutScript(CMutableTransaction& tx, const std::string& strInput)
 {
     // separate VALUE:SCRIPT[:FLAGS]
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
     if (vStrInputParts.size() < 2)
         throw std::runtime_error("TX output missing separator");
 
@@ -845,8 +836,7 @@ static void MutateTxAddOutBlind(CMutableTransaction& tx, const std::string& strI
     if (!tx.IsParticlVersion())
         throw std::runtime_error("tx not particl version.");
     // separate COMMITMENT:SCRIPT:RANGEPROOF[:DATA]
-    std::vector<std::string> vStrInputParts;
-    boost::split(vStrInputParts, strInput, boost::is_any_of(":"));
+    std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
     if (vStrInputParts.size() < 3)
         throw std::runtime_error("TX output missing separator");
 

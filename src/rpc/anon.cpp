@@ -177,15 +177,11 @@ static RPCHelpMan rollbackrctindex()
 
 void RegisterAnonRPCCommands(CRPCTable &t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "anon",               &anonoutput                  },
-    { "anon",               &checkkeyimage               },
-    { "anon",               &rollbackrctindex,           },
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+        {"anon", &anonoutput},
+        {"anon", &checkkeyimage},
+        {"anon", &rollbackrctindex},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

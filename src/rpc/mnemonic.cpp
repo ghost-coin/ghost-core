@@ -257,13 +257,9 @@ static RPCHelpMan mnemonicrpc()
 
 void RegisterMnemonicRPCCommands(CRPCTable &t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "mnemonic",           &mnemonicrpc                },
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+        {"mnemonic", &mnemonicrpc},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

@@ -1490,28 +1490,24 @@ static RPCHelpMan getinsightinfo()
 
 void RegisterInsightRPCCommands(CRPCTable &t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "addressindex",       &getaddressmempool       },
-    { "addressindex",       &getaddressutxos         },
-    { "addressindex",       &getaddressdeltas        },
-    { "addressindex",       &getaddresstxids         },
-    { "addressindex",       &getaddressbalance       },
+    static const CRPCCommand commands[]{
+        {"addressindex", &getaddressmempool},
+        {"addressindex", &getaddressutxos},
+        {"addressindex", &getaddressdeltas},
+        {"addressindex", &getaddresstxids},
+        {"addressindex", &getaddressbalance},
 
-    { "blockchain",         &getspentinfo            },
-    { "blockchain",         &getblockdeltas          },
-    { "blockchain",         &getblockhashes          },
-    { "blockchain",         &gettxoutsetinfobyscript },
-    { "blockchain",         &getblockreward          },
-    { "blockchain",         &getblockbalances        },
+        {"blockchain", &getspentinfo},
+        {"blockchain", &getblockdeltas},
+        {"blockchain", &getblockhashes},
+        {"blockchain", &gettxoutsetinfobyscript},
+        {"blockchain", &getblockreward},
+        {"blockchain", &getblockbalances},
 
-    { "csindex",            &listcoldstakeunspent    },
+        {"csindex", &listcoldstakeunspent},
 
-    { "blockchain",         &getinsightinfo          },
-};
-// clang-format on
+        {"blockchain", &getinsightinfo},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

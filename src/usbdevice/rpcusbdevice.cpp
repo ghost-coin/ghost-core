@@ -1468,42 +1468,32 @@ static RPCHelpMan devicesignrawtransactionwithwallet()
 
 #endif
 
-
 Span<const CRPCCommand> GetDeviceWalletRPCCommands()
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-#ifdef ENABLE_WALLET
-    { "usbdevice",          &initaccountfromdevice                      },
-    { "usbdevice",          &devicegetnewstealthaddress                 },
-    { "usbdevice",          &devicesignrawtransactionwithwallet         },
-#endif
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+    #ifdef ENABLE_WALLET
+        {"usbdevice", &initaccountfromdevice},
+        {"usbdevice", &devicegetnewstealthaddress},
+        {"usbdevice", &devicesignrawtransactionwithwallet},
+    #endif
+    };
     return commands;
 }
 
-
 void RegisterUSBDeviceRPC(CRPCTable &t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "usbdevice",          &deviceloadmnemonic             },
-    { "usbdevice",          &devicebackup                   },
-    { "usbdevice",          &listdevices                    },
-    { "usbdevice",          &promptunlockdevice             },
-    { "usbdevice",          &unlockdevice                   },
-    { "usbdevice",          &getdeviceinfo                  },
-    { "usbdevice",          &getdevicepublickey             },
-    { "usbdevice",          &getdevicexpub                  },
-    { "usbdevice",          &devicesignmessage              },
-    { "usbdevice",          &devicesignrawtransaction       },
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+        {"usbdevice", &deviceloadmnemonic},
+        {"usbdevice", &devicebackup},
+        {"usbdevice", &listdevices},
+        {"usbdevice", &promptunlockdevice},
+        {"usbdevice", &unlockdevice},
+        {"usbdevice", &getdeviceinfo},
+        {"usbdevice", &getdevicepublickey},
+        {"usbdevice", &getdevicexpub},
+        {"usbdevice", &devicesignmessage},
+        {"usbdevice", &devicesignrawtransaction},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

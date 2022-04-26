@@ -9811,80 +9811,70 @@ static RPCHelpMan resendwallettransactions()
 
 Span<const CRPCCommand> GetHDWalletRPCCommands()
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "wallet",             &extkey                         },
-    { "wallet",             &extkeyimportmaster             },
-    { "wallet",             &extkeygenesisimport            },
-    { "wallet",             &extkeyaltversion               },
-    { "wallet",             &getnewextaddress               },
-    { "wallet",             &getnewstealthaddress           },
-    { "wallet",             &importstealthaddress           },
-    { "wallet",             &liststealthaddresses           },
+    static const CRPCCommand commands[]{
+        {"wallet", &extkey},
+        {"wallet", &extkeyimportmaster},
+        {"wallet", &extkeygenesisimport},
+        {"wallet", &extkeyaltversion},
+        {"wallet", &getnewextaddress},
+        {"wallet", &getnewstealthaddress},
+        {"wallet", &importstealthaddress},
+        {"wallet", &liststealthaddresses},
 
-    { "wallet",             &reservebalance                 },
-    { "wallet",             &deriverangekeys                },
-    { "wallet",             &clearwallettransactions        },
+        {"wallet", &reservebalance},
+        {"wallet", &deriverangekeys},
+        {"wallet", &clearwallettransactions},
 
-    { "wallet",             &filtertransactions             },
-    { "wallet",             &filteraddresses                },
-    { "wallet",             &manageaddressbook              },
+        {"wallet", &filtertransactions},
+        {"wallet", &filteraddresses},
+        {"wallet", &manageaddressbook},
 
-    { "wallet",             &getstakinginfo                 },
-    { "wallet",             &getcoldstakinginfo             },
+        {"wallet", &getstakinginfo},
+        {"wallet", &getcoldstakinginfo},
 
-    { "wallet",             &listunspentanon                },
-    { "wallet",             &listunspentblind               },
+        {"wallet", &listunspentanon},
+        {"wallet", &listunspentblind},
 
-    { "wallet",             &getlockedbalances,             },
+        {"wallet", &getlockedbalances},
 
-    { "wallet",             &sendtypeto                     },
+        {"wallet", &sendtypeto},
 
-    { "wallet",             &createsignaturewithwallet      },
+        {"wallet", &createsignaturewithwallet},
 
-    { "wallet",             &debugwallet                    },
-    { "wallet",             &walletsettings                 },
+        {"wallet", &debugwallet},
+        {"wallet", &walletsettings},
 
-    { "wallet",             &transactionblinds              },
-    { "wallet",             &derivefromstealthaddress       },
+        {"wallet", &transactionblinds},
+        {"wallet", &derivefromstealthaddress},
 
-    { "wallet",             &getkeyimage                    },
+        {"wallet", &getkeyimage},
 
+        {"governance", &setvote},
+        {"governance", &votehistory},
 
-    { "governance",         &setvote                        },
-    { "governance",         &votehistory                    },
+        {"rawtransactions", &createrawparttransaction},
+        {"rawtransactions", &fundrawtransactionfrom},
 
-    { "rawtransactions",    &createrawparttransaction       },
-    { "rawtransactions",    &fundrawtransactionfrom         },
+        {"wallet", &rehashblock},
 
-    { "wallet",             &rehashblock                    },
-
-    { "hidden",             &resendwallettransactions,       },
-};
-// clang-format on
+        {"hidden", &resendwallettransactions},
+    };
     return commands;
 }
 
 void RegisterNonWalletRPCCommands(CRPCTable &t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "governance",         &tallyvotes                     },
-
-    { "rawtransactions",    &rewindrangeproof               },
-    { "rawtransactions",    &generatematchingblindfactor    },
-    { "rawtransactions",    &buildscript                    },
-    { "rawtransactions",    &verifycommitment               },
-    { "rawtransactions",    &createsignaturewithkey         },
-    { "rawtransactions",    &verifyrawtransaction           },
-    { "blockchain",         &pruneorphanedblocks            },
-    { "blockchain",         &rewindchain                    },
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+        {"governance",         &tallyvotes},
+        {"rawtransactions", &rewindrangeproof},
+        {"rawtransactions", &generatematchingblindfactor},
+        {"rawtransactions", &buildscript},
+        {"rawtransactions", &verifycommitment},
+        {"rawtransactions", &createsignaturewithkey},
+        {"rawtransactions", &verifyrawtransaction},
+        {"blockchain", &pruneorphanedblocks},
+        {"blockchain", &rewindchain},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

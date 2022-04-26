@@ -2868,40 +2868,36 @@ static RPCHelpMan smsgdebug()
 
 void RegisterSmsgRPCCommands(CRPCTable &t)
 {
-// clang-format off
-static const CRPCCommand commands[] =
-{ //  category              actor (function)
-  //  --------------------- -----------------------
-    { "smsg",               &smsgenable                 },
-    { "smsg",               &smsgsetwallet              },
-    { "smsg",               &smsgdisable                },
-    { "smsg",               &smsgoptions                },
-    { "smsg",               &smsglocalkeys              },
-    { "smsg",               &smsgscanchain              },
-    { "smsg",               &smsgscanbuckets            },
-    { "smsg",               &smsgaddaddress             },
-    { "smsg",               &smsgaddlocaladdress        },
-    { "smsg",               &smsgimportprivkey          },
-    { "smsg",               &smsgdumpprivkey            },
-    { "smsg",               &smsggetpubkey              },
-    { "smsg",               &smsgsend                   },
-    { "smsg",               &smsgfund                   },
-    { "smsg",               &smsgsendanon               },
-    { "smsg",               &smsginbox                  },
-    { "smsg",               &smsgoutbox                 },
-    { "smsg",               &smsgbuckets                },
-    { "smsg",               &smsgview                   },
-    { "smsg",               &smsgone                    },
-    { "smsg",               &smsgimport                 },
-    { "smsg",               &smsgpurge                  },
-    { "smsg",               &smsggetfeerate             },
-    { "smsg",               &smsggetdifficulty          },
-    { "smsg",               &smsggetinfo                },
-    { "smsg",               &smsgpeers                  },
-    { "smsg",               &smsgzmqpush                },
-    { "smsg",               &smsgdebug                  },
-};
-// clang-format on
+    static const CRPCCommand commands[]{
+        {"smsg", &smsgenable},
+        {"smsg", &smsgsetwallet},
+        {"smsg", &smsgdisable},
+        {"smsg", &smsgoptions},
+        {"smsg", &smsglocalkeys},
+        {"smsg", &smsgscanchain},
+        {"smsg", &smsgscanbuckets},
+        {"smsg", &smsgaddaddress },
+        {"smsg", &smsgaddlocaladdress},
+        {"smsg", &smsgimportprivkey},
+        {"smsg", &smsgdumpprivkey},
+        {"smsg", &smsggetpubkey},
+        {"smsg", &smsgsend},
+        {"smsg", &smsgfund},
+        {"smsg", &smsgsendanon},
+        {"smsg", &smsginbox},
+        {"smsg", &smsgoutbox},
+        {"smsg", &smsgbuckets},
+        {"smsg", &smsgview},
+        {"smsg", &smsgone},
+        {"smsg", &smsgimport},
+        {"smsg", &smsgpurge},
+        {"smsg", &smsggetfeerate},
+        {"smsg", &smsggetdifficulty},
+        {"smsg", &smsggetinfo},
+        {"smsg", &smsgpeers},
+        {"smsg", &smsgzmqpush},
+        {"smsg", &smsgdebug},
+    };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }

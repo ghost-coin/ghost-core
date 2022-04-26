@@ -1572,6 +1572,8 @@ void CConnman::SocketEvents(const std::vector<CNode*>& nodes,
 
 void CConnman::SocketHandler()
 {
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+
     std::set<SOCKET> recv_set;
     std::set<SOCKET> send_set;
     std::set<SOCKET> error_set;
@@ -1598,6 +1600,8 @@ void CConnman::SocketHandlerConnected(const std::vector<CNode*>& nodes,
                                       const std::set<SOCKET>& send_set,
                                       const std::set<SOCKET>& error_set)
 {
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+
     for (CNode* pnode : nodes) {
         if (interruptNet)
             return;
@@ -1699,6 +1703,8 @@ void CConnman::SocketHandlerListening(const std::set<SOCKET>& recv_set)
 
 void CConnman::ThreadSocketHandler()
 {
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+
     SetSyscallSandboxPolicy(SyscallSandboxPolicy::NET);
     while (!interruptNet)
     {
@@ -2607,6 +2613,7 @@ bool CConnman::InitBinds(const Options& options)
 
 bool CConnman::Start(CScheduler& scheduler, const Options& connOptions)
 {
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
     Init(connOptions);
 
     if (fListen && !InitBinds(connOptions)) {
@@ -2959,7 +2966,9 @@ void CConnman::RecordBytesRecv(uint64_t bytes)
 
 void CConnman::RecordBytesSent(uint64_t bytes)
 {
-    LOCK(cs_totalBytesSent);
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+    LOCK(m_total_bytes_sent_mutex);
+
     nTotalBytesSent += bytes;
 
     const auto now = GetTime<std::chrono::seconds>();
@@ -2975,7 +2984,8 @@ void CConnman::RecordBytesSent(uint64_t bytes)
 
 uint64_t CConnman::GetMaxOutboundTarget() const
 {
-    LOCK(cs_totalBytesSent);
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+    LOCK(m_total_bytes_sent_mutex);
     return nMaxOutboundLimit;
 }
 
@@ -2986,7 +2996,15 @@ std::chrono::seconds CConnman::GetMaxOutboundTimeframe() const
 
 std::chrono::seconds CConnman::GetMaxOutboundTimeLeftInCycle() const
 {
-    LOCK(cs_totalBytesSent);
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+    LOCK(m_total_bytes_sent_mutex);
+    return GetMaxOutboundTimeLeftInCycle_();
+}
+
+std::chrono::seconds CConnman::GetMaxOutboundTimeLeftInCycle_() const
+{
+    AssertLockHeld(m_total_bytes_sent_mutex);
+
     if (nMaxOutboundLimit == 0)
         return 0s;
 
@@ -3000,14 +3018,15 @@ std::chrono::seconds CConnman::GetMaxOutboundTimeLeftInCycle() const
 
 bool CConnman::OutboundTargetReached(bool historicalBlockServingLimit) const
 {
-    LOCK(cs_totalBytesSent);
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+    LOCK(m_total_bytes_sent_mutex);
     if (nMaxOutboundLimit == 0)
         return false;
 
     if (historicalBlockServingLimit)
     {
         // keep a large enough buffer to at least relay each block once
-        const std::chrono::seconds timeLeftInCycle = GetMaxOutboundTimeLeftInCycle();
+        const std::chrono::seconds timeLeftInCycle = GetMaxOutboundTimeLeftInCycle_();
         const uint64_t buffer = timeLeftInCycle / std::chrono::minutes{10} * MAX_BLOCK_SERIALIZED_SIZE;
         if (buffer >= nMaxOutboundLimit || nMaxOutboundTotalBytesSentInCycle >= nMaxOutboundLimit - buffer)
             return true;
@@ -3020,7 +3039,8 @@ bool CConnman::OutboundTargetReached(bool historicalBlockServingLimit) const
 
 uint64_t CConnman::GetOutboundTargetBytesLeft() const
 {
-    LOCK(cs_totalBytesSent);
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+    LOCK(m_total_bytes_sent_mutex);
     if (nMaxOutboundLimit == 0)
         return 0;
 
@@ -3034,7 +3054,8 @@ uint64_t CConnman::GetTotalBytesRecv() const
 
 uint64_t CConnman::GetTotalBytesSent() const
 {
-    LOCK(cs_totalBytesSent);
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
+    LOCK(m_total_bytes_sent_mutex);
     return nTotalBytesSent;
 }
 
@@ -3086,6 +3107,7 @@ bool CConnman::NodeFullyConnected(const CNode* pnode)
 
 void CConnman::PushMessage(CNode* pnode, CSerializedNetMsg&& msg)
 {
+    AssertLockNotHeld(m_total_bytes_sent_mutex);
     size_t nMessageSize = msg.data.size();
     LogPrint(BCLog::NET, "sending %s (%d bytes) peer=%d\n", msg.m_type, nMessageSize, pnode->GetId());
     if (gArgs.GetBoolArg("-capturemessages", false)) {

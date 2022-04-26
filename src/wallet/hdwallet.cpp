@@ -11597,7 +11597,6 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
 
     // coin control -> return all selected outputs (we want all selected to go into the transaction for sure)
     if (coin_control.HasSelected() && !coin_control.fAllowOtherInputs) {
-        SelectionResult result(nTargetValue);
         for (const auto &out : vCoins) {
             if (!coin_control.IsSelected(out.outpoint)) {
                 continue;
@@ -11610,6 +11609,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
              */
             preset_inputs.Insert(out, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
         }
+        SelectionResult result(nTargetValue, SelectionAlgorithm::MANUAL);
         result.AddInput(preset_inputs);
         if (result.GetSelectedValue() < nTargetValue) return std::nullopt;
         return result;
@@ -11695,7 +11695,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     // permissive CoinEligibilityFilter.
     std::optional<SelectionResult> res = [&] {
         // Pre-selected inputs already cover the target amount.
-        if (value_to_select <= 0) return std::make_optional(SelectionResult(nTargetValue));
+        if (value_to_select <= 0) return std::make_optional(SelectionResult(nTargetValue, SelectionAlgorithm::MANUAL));
 
         // If possible, fund the transaction with confirmed UTXOs only. Prefer at least six
         // confirmations on outputs received from other wallets and only spend confirmed change.

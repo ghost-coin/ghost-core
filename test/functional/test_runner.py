@@ -82,10 +82,7 @@ EXTENDED_SCRIPTS = [
     # Longest test should go first, to favor running tests in parallel
     'feature_pruning.py',
     'feature_dbcrash.py',
-
-    'wallet_part_unloadspent.py',
-    'p2p_part_dos.py',
-    'feature_part_smsgpaidfee_ext.py',
+    'feature_index_prune.py',
 ]
 
 BASE_SCRIPTS = [
@@ -174,6 +171,7 @@ BASE_SCRIPTS = [
     'wallet_reorgsrestore.py',
     'interface_http.py',
     'interface_rpc.py',
+    'interface_usdt_coinselection.py',
     'interface_usdt_net.py',
     'interface_usdt_utxocache.py',
     'interface_usdt_validation.py',
@@ -336,7 +334,6 @@ BASE_SCRIPTS = [
     'feature_help.py',
     'feature_shutdown.py',
     'p2p_ibd_txrelay.py',
-    'feature_blockfilterindex_prune.py'
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
 ]
@@ -376,6 +373,9 @@ PARTICL_SCRIPTS_EXT = [
     'feature_part_treasury_fund.py',
     'rpc_part_tracefrozenoutputs.py',
     'feature_part_vote_extra.py',
+    'wallet_part_unloadspent.py',
+    'p2p_part_dos.py',
+    'feature_part_smsgpaidfee_ext.py',
 ]
 
 INSIGHT_SCRIPTS = [
