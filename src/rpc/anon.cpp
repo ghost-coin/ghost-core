@@ -14,7 +14,7 @@
 
 static bool IsDigits(const std::string &str)
 {
-    return str.length() && std::all_of(str.begin(), str.end(), ::isdigit);
+    return str.length() && std::all_of(str.begin(), str.end(), IsDigit);
 };
 
 static RPCHelpMan anonoutput()

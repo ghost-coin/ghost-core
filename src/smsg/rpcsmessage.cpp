@@ -276,7 +276,7 @@ static RPCHelpMan smsgoptions()
         std::string optname = request.params[1].get_str();
         bool fValue = GetBool(request.params[2]);
 
-        std::transform(optname.begin(), optname.end(), optname.begin(), ::tolower);
+        optname = ToLower(optname);
         if (optname == "newaddressrecv") {
             smsgModule.options.fNewAddressRecv = fValue;
             result.pushKV("set option", std::string("newAddressRecv = ") + (smsgModule.options.fNewAddressRecv ? "true" : "false"));

@@ -124,7 +124,7 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
     while (fgets(cLine, 512, fp)) {
         cLine[511] = '\0'; // safety
         size_t len = strlen(cLine);
-        while (isspace(cLine[len-1]) && len>0) {
+        while (IsSpace(cLine[len-1]) && len>0) {
             cLine[len-1] = '\0', len--;
         }
 

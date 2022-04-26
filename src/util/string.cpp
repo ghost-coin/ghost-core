@@ -7,12 +7,16 @@
 #include <cstring>
 #include <tinyformat.h>
 
+#include <util/strencodings.h>
+
 namespace part
 {
+
 static bool icompare_pred(unsigned char a, unsigned char b)
 {
-    return std::tolower(a) == std::tolower(b);
+    return ToLower(a) == ToLower(b);
 };
+
 static bool icompare_str(const std::string &a, const std::string &b)
 {
     return a.length() == b.length()
@@ -152,22 +156,28 @@ std::string &TrimWhitespace(std::string &s)
 std::string &LTrimWhitespace(std::string &s)
 {
     std::string::iterator i;
-    for (i = s.begin(); i != s.end(); ++i)
-        if (!std::isspace(*i))
+    for (i = s.begin(); i != s.end(); ++i) {
+        if (!IsSpace(*i)) {
             break;
-    if (i != s.begin())
+        }
+    }
+    if (i != s.begin()) {
         s.erase(s.begin(), i);
+    }
     return s;
 };
 
 std::string &RTrimWhitespace(std::string &s)
 {
     std::string::reverse_iterator i;
-    for (i = s.rbegin(); i != s.rend(); ++i)
-        if (!std::isspace(*i))
+    for (i = s.rbegin(); i != s.rend(); ++i) {
+        if (!IsSpace(*i)) {
             break;
-    if (i != s.rbegin())
+        }
+    }
+    if (i != s.rbegin()) {
         s.erase(i.base(), s.end());
+    }
     return s;
 };
 

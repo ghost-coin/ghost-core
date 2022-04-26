@@ -18,6 +18,7 @@
 
 #include <util/system.h>
 #include <util/string.h>
+#include <util/strencodings.h>
 #include <crypto/hmac_sha512.h>
 #include <crypto/sha256.h>
 
@@ -214,7 +215,7 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
 int GetLanguageOffset(std::string sIn)
 {
     int nLanguage = -1;
-    std::transform(sIn.begin(), sIn.end(), sIn.begin(), ::tolower);
+    sIn = ToLower(sIn);
 
     for (size_t k = 1; k < WLL_MAX; ++k) {
         if (sIn != mnLanguagesTag[k]) {

@@ -120,7 +120,7 @@ static uint32_t strtou32max(const char *nptr, int base)
     s = nptr;
     do {
         c = *s++;
-    } while (isspace((unsigned char)c));
+    } while (IsSpace((unsigned char)c));
 
     if (c == '-') {
         neg = 1;
@@ -203,7 +203,7 @@ int ExtractExtKeyPath(const std::string &sPath, std::vector<uint32_t> &vPath)
 
     size_t nStart = 0;
     size_t nLen = sPath.length();
-    if (tolower(sPath[0]) == 'm') {
+    if (ToLower(sPath[0]) == 'm') {
         nStart+=2;
         nLen-=2;
     }
@@ -244,7 +244,7 @@ int ExtractExtKeyPath(const std::string &sPath, std::vector<uint32_t> &vPath)
         char *ps = p;
         for (; *p; ++p) {
             // Last char can be (h, H ,')
-            if (!*(p+1) && (tolower(*p) == 'h' || *p == '\'')) {
+            if (!*(p+1) && (ToLower(*p) == 'h' || *p == '\'')) {
                 fHarden = true;
                 *p = '\0';
             } else

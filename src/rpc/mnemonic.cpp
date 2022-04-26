@@ -59,7 +59,7 @@ static RPCHelpMan mnemonicrpc()
     if (request.params.size() > 0) {
         std::string s = request.params[0].get_str();
         std::string st = " " + s + " "; // Note the spaces
-        std::transform(st.begin(), st.end(), st.begin(), ::tolower);
+        st = ToLower(st);
         static const char *pmodes = " new decode addchecksum dumpwords listlanguages ";
         if (strstr(pmodes, st.c_str()) != nullptr) {
             st.erase(std::remove(st.begin(), st.end(), ' '), st.end());
