@@ -837,8 +837,9 @@ static RPCHelpMan pruneblockchain()
     CChain& active_chain = active_chainstate.m_chain;
 
     int heightParam = request.params[0].get_int();
-    if (heightParam < 0)
+    if (heightParam < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative block height.");
+    }
 
     // Height value more than a billion is too high to be a block height, and
     // too low to be a block time (corresponds to timestamp from Sep 2001).
@@ -863,8 +864,8 @@ static RPCHelpMan pruneblockchain()
     }
 
     PruneBlockFilesManual(active_chainstate, height);
-    const CBlockIndex* block = CHECK_NONFATAL(active_chain.Tip());
-    const CBlockIndex* last_block = node::GetFirstStoredBlock(block);
+    const CBlockIndex& block{*CHECK_NONFATAL(active_chain.Tip())};
+    const CBlockIndex* last_block{active_chainstate.m_blockman.GetFirstStoredBlock(block)};
 
     return static_cast<uint64_t>(last_block->nHeight);
 },
@@ -1284,29 +1285,28 @@ RPCHelpMan getblockchaininfo()
     LOCK(cs_main);
     CChainState& active_chainstate = chainman.ActiveChainstate();
 
-    const CBlockIndex* tip = CHECK_NONFATAL(active_chainstate.m_chain.Tip());
-    const int height = tip->nHeight;
+    const CBlockIndex& tip{*CHECK_NONFATAL(active_chainstate.m_chain.Tip())};
+    const int height{tip.nHeight};
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain", Params().NetworkIDString());
     obj.pushKV("blocks", height);
     obj.pushKV("headers", chainman.m_best_header ? chainman.m_best_header->nHeight : -1);
-    obj.pushKV("bestblockhash", tip->GetBlockHash().GetHex());
+    obj.pushKV("bestblockhash", tip.GetBlockHash().GetHex());
     if (fParticlMode) {
-        obj.pushKV("moneysupply", ValueFromAmount(tip->nMoneySupply));
+        obj.pushKV("moneysupply", ValueFromAmount(tip.nMoneySupply));
         obj.pushKV("blockindexsize", (int)chainman.BlockIndex().size());
         obj.pushKV("delayedblocks", (int)particl::CountDelayedBlocks());
     }
-    obj.pushKV("difficulty", (double)GetDifficulty(tip));
-    PushTime(obj, "time", tip->nTime);
-    PushTime(obj, "mediantime", tip->GetMedianTimePast());
-    obj.pushKV("verificationprogress", GuessVerificationProgress(Params().TxData(), tip));
+    obj.pushKV("difficulty", (double)GetDifficulty(&tip));
+    PushTime(obj, "time", tip.GetBlockTime());
+    PushTime(obj, "mediantime", tip.GetMedianTimePast());
+    obj.pushKV("verificationprogress", GuessVerificationProgress(Params().TxData(), &tip));
     obj.pushKV("initialblockdownload", active_chainstate.IsInitialBlockDownload());
-    obj.pushKV("chainwork", tip->nChainWork.GetHex());
+    obj.pushKV("chainwork", tip.nChainWork.GetHex());
     obj.pushKV("size_on_disk", chainman.m_blockman.CalculateCurrentUsage());
     obj.pushKV("pruned", node::fPruneMode);
     if (node::fPruneMode) {
-        const CBlockIndex* block = CHECK_NONFATAL(tip);
-        obj.pushKV("pruneheight", node::GetFirstStoredBlock(block)->nHeight);
+        obj.pushKV("pruneheight", chainman.m_blockman.GetFirstStoredBlock(tip)->nHeight);
 
         // if 0, execution bypasses the whole if block.
         bool automatic_pruning{args.GetIntArg("-prune", 0) != 1};
@@ -1318,7 +1318,7 @@ RPCHelpMan getblockchaininfo()
 
     if (!fParticlMode && IsDeprecatedRPCEnabled("softforks")) {
         const Consensus::Params& consensusParams = Params().GetConsensus();
-        obj.pushKV("softforks", DeploymentInfo(tip, consensusParams));
+        obj.pushKV("softforks", DeploymentInfo(&tip, consensusParams));
     }
 
     obj.pushKV("warnings", GetWarnings(false).original);

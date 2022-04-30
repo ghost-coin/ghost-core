@@ -302,20 +302,6 @@ bool BlockManager::LoadBlockIndex(const Consensus::Params& consensus_params)
     return true;
 }
 
-void BlockManager::Unload()
-{
-    m_blocks_unlinked.clear();
-
-    m_block_index.clear();
-
-    m_blockfile_info.clear();
-    m_last_blockfile = 0;
-    m_dirty_blockindex.clear();
-    m_dirty_fileinfo.clear();
-
-    m_have_pruned = false;
-}
-
 bool BlockManager::WriteBlockIndexDB()
 {
     AssertLockHeld(::cs_main);
@@ -421,10 +407,10 @@ bool BlockManager::IsBlockPruned(const CBlockIndex* pblockindex)
     return (m_have_pruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0);
 }
 
-const CBlockIndex* GetFirstStoredBlock(const CBlockIndex* start_block) {
+const CBlockIndex* BlockManager::GetFirstStoredBlock(const CBlockIndex& start_block)
+{
     AssertLockHeld(::cs_main);
-    assert(start_block);
-    const CBlockIndex* last_block = start_block;
+    const CBlockIndex* last_block = &start_block;
     while (last_block->pprev && (last_block->pprev->nStatus & BLOCK_HAVE_DATA)) {
         last_block = last_block->pprev;
     }
@@ -763,9 +749,9 @@ bool ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos, const Consensus::P
 
     // Check the header
     if (fParticlMode) {
-        // only CheckProofOfWork for genesis blocks
-        if (block.hashPrevBlock.IsNull()
-            && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, 0, Params().GetLastImportHeight())) {
+        // Only run CheckProofOfWork for genesis blocks
+        if (block.hashPrevBlock.IsNull() &&
+            !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, 0, Params().GetLastImportHeight())) {
             return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
         }
     } else {

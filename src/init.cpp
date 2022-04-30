@@ -90,6 +90,7 @@
 
 #include <walletinitinterface.h>
 
+#include <algorithm>
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
@@ -954,8 +955,9 @@ bool AppInitParameterInteraction(const ArgsManager& args, bool use_syscall_sandb
     fParticlMode = !args.GetBoolArg("-btcmode", false); // qa tests
     if (!fParticlMode) {
         WITNESS_SCALE_FACTOR = WITNESS_SCALE_FACTOR_BTC;
-        if (args.GetChainName() == CBaseChainParams::REGTEST) {
-            ResetParams(CBaseChainParams::REGTEST, fParticlMode);
+        if (args.GetChainName() == CBaseChainParams::REGTEST ||
+            args.GetChainName() == CBaseChainParams::TESTNET) {
+            ResetParams(args.GetChainName(), fParticlMode);
         }
     } else {
         MIN_BLOCKS_TO_KEEP = 1024;
@@ -1481,21 +1483,6 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     // as they would never get updated.
     if (!ignores_incoming_txs) node.fee_estimator = std::make_unique<CBlockPolicyEstimator>();
 
-    assert(!node.mempool);
-    int check_ratio = std::min<int>(std::max<int>(args.GetIntArg("-checkmempool", chainparams.DefaultConsistencyChecks() ? 1 : 0), 0), 1000000);
-    node.mempool = std::make_unique<CTxMemPool>(node.fee_estimator.get(), check_ratio);
-
-    assert(!node.chainman);
-    node.chainman = std::make_unique<ChainstateManager>();
-    ChainstateManager& chainman = *node.chainman;
-
-    assert(!node.peerman);
-    node.peerman = PeerManager::make(chainparams, *node.connman, *node.addrman, node.banman.get(),
-                                     chainman, *node.mempool, ignores_incoming_txs);
-    RegisterValidationInterface(node.peerman.get());
-    chainman.m_peerman = node.peerman.get();
-
-
     // sanitize comments per BIP-0014, format user agent and check total size
     std::vector<std::string> uacomments;
     for (const std::string& cmt : args.GetArgs("-uacomment")) {
@@ -1637,9 +1624,16 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     LogPrintf("* Using %.1f MiB for chain state database\n", cache_sizes.coins_db * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1f MiB for in-memory UTXO set (plus up to %.1f MiB of unused mempool space)\n", cache_sizes.coins * (1.0 / 1024 / 1024), nMempoolSizeMax * (1.0 / 1024 / 1024));
 
+    assert(!node.mempool);
+    assert(!node.chainman);
+    const int mempool_check_ratio = std::clamp<int>(args.GetIntArg("-checkmempool", chainparams.DefaultConsistencyChecks() ? 1 : 0), 0, 1000000);
 
-    bool fLoaded = false;
-    while (!fLoaded && !ShutdownRequestedMainThread()) {
+    for (bool fLoaded = false; !fLoaded && !ShutdownRequestedMainThread();) {
+        node.mempool = std::make_unique<CTxMemPool>(node.fee_estimator.get(), mempool_check_ratio);
+
+        node.chainman = std::make_unique<ChainstateManager>();
+        ChainstateManager& chainman = *node.chainman;
+
         const bool fReset = fReindex;
         bilingual_str strLoadError;
 
@@ -1785,6 +1779,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         LogPrintf("Shutdown requested. Exiting.\n");
         return false;
     }
+
+    ChainstateManager& chainman = *Assert(node.chainman);
+
+    assert(!node.peerman);
+    node.peerman = PeerManager::make(chainparams, *node.connman, *node.addrman, node.banman.get(),
+                                     chainman, *node.mempool, ignores_incoming_txs);
+    RegisterValidationInterface(node.peerman.get());
+    chainman.m_peerman = node.peerman.get();
 
     // ********************************************************* Step 8: start indexers
     if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {

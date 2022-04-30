@@ -16,14 +16,23 @@ AM_LIBTOOLFLAGS = --preserve-dup-deps
 PTHREAD_FLAGS = $(PTHREAD_CFLAGS) $(PTHREAD_LIBS)
 EXTRA_LIBRARIES =
 
+lib_LTLIBRARIES =
+noinst_LTLIBRARIES =
+
+bin_PROGRAMS =
+noinst_PROGRAMS =
+TESTS =
+BENCHMARKS =
+
 BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
 
 LIBPARTICL_NODE=libparticl_node.a
 LIBPARTICL_COMMON=libparticl_common.a
 LIBPARTICL_CONSENSUS=libparticl_consensus.a
 LIBPARTICL_CLI=libparticl_cli.a
+LIBPARTICL_KERNEL=libparticl_kernel.a
 LIBPARTICL_UTIL=libparticl_util.a
-LIBPARTICL_CRYPTO_BASE=crypto/libparticl_crypto_base.a
+LIBPARTICL_CRYPTO_BASE=crypto/libparticl_crypto_base.la
 LIBPARTICLQT=qt/libparticlqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 LIBPARTICL_SMSG=libparticl_smsg.a
@@ -35,6 +44,9 @@ endif
 if BUILD_BITCOIN_LIBS
 LIBPARTICLCONSENSUS=libparticlconsensus.la
 endif
+if BUILD_BITCOIN_KERNEL_LIB
+LIBPARTICLKERNEL=libparticlkernel.la
+endif
 if ENABLE_WALLET
 LIBPARTICL_WALLET=libparticl_wallet.a
 LIBPARTICL_WALLET_TOOL=libparticl_wallet_tool.a
@@ -43,23 +55,24 @@ if ENABLE_USBDEVICE
 LIBPARTICL_USBDEVICE=libparticl_usbdevice.a
 endif
 
-LIBPARTICL_CRYPTO= $(LIBPARTICL_CRYPTO_BASE)
+LIBPARTICL_CRYPTO = $(LIBPARTICL_CRYPTO_BASE)
 if ENABLE_SSE41
-LIBPARTICL_CRYPTO_SSE41 = crypto/libparticl_crypto_sse41.a
+LIBPARTICL_CRYPTO_SSE41 = crypto/libparticl_crypto_sse41.la
 LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_SSE41)
 endif
 if ENABLE_AVX2
-LIBPARTICL_CRYPTO_AVX2 = crypto/libparticl_crypto_avx2.a
+LIBPARTICL_CRYPTO_AVX2 = crypto/libparticl_crypto_avx2.la
 LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_AVX2)
 endif
 if ENABLE_X86_SHANI
-LIBPARTICL_CRYPTO_X86_SHANI = crypto/libparticl_crypto_x86_shani.a
+LIBPARTICL_CRYPTO_X86_SHANI = crypto/libparticl_crypto_x86_shani.la
 LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_X86_SHANI)
 endif
 if ENABLE_ARM_SHANI
-LIBPARTICL_CRYPTO_ARM_SHANI = crypto/libparticl_crypto_arm_shani.a
+LIBPARTICL_CRYPTO_ARM_SHANI = crypto/libparticl_crypto_arm_shani.la
 LIBPARTICL_CRYPTO += $(LIBPARTICL_CRYPTO_ARM_SHANI)
 endif
+noinst_LTLIBRARIES += $(LIBPARTICL_CRYPTO)
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
@@ -67,7 +80,6 @@ $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(w
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
 EXTRA_LIBRARIES += \
-  $(LIBPARTICL_CRYPTO) \
   $(LIBPARTICL_UTIL) \
   $(LIBPARTICL_COMMON) \
   $(LIBPARTICL_CONSENSUS) \
@@ -80,14 +92,6 @@ EXTRA_LIBRARIES += \
   $(LIBPARTICL_SMSG) \
   $(LIBPARTICL_MNEMONIC) \
   $(LIBPARTICL_ZMQ)
-
-lib_LTLIBRARIES = $(LIBPARTICLCONSENSUS)
-noinst_LTLIBRARIES =
-
-bin_PROGRAMS =
-noinst_PROGRAMS =
-TESTS =
-BENCHMARKS =
 
 if BUILD_BITCOIND
   bin_PROGRAMS += particld
@@ -363,8 +367,8 @@ BITCOIN_CORE_H = \
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
-	@$(top_srcdir)/share/genbuild.sh $(abs_top_builddir)/src/obj/build.h \
-	  $(abs_top_srcdir)
+	@$(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
+	  "$(abs_top_srcdir)"
 libparticl_util_a-clientversion.$(OBJEXT): obj/build.h
 
 ipc/capnp/libparticl_ipc_a-ipc.$(OBJEXT): $(libparticl_ipc_mpgen_input:=.h)
@@ -430,6 +434,7 @@ libparticl_node_a_SOURCES = \
   rpc/rpcutil.cpp \
   rpc/util.cpp \
   rpc/server_util.cpp \
+  rpc/signmessage.cpp \
   rpc/txoutproof.cpp \
   script/sigcache.cpp \
   shutdown.cpp \
@@ -506,7 +511,6 @@ endif
 libparticl_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(SQLITE_CFLAGS)
 libparticl_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_wallet_a_SOURCES = \
-  wallet/interfaces.cpp \
   wallet/rpchdwallet.cpp \
   wallet/hdwallet.cpp \
   wallet/hdwallettypes.cpp \
@@ -559,9 +563,16 @@ libparticl_wallet_tool_a_SOURCES = \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
-crypto_libparticl_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libparticl_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libparticl_crypto_base_a_SOURCES = \
+crypto_libparticl_crypto_base_la_CPPFLAGS = $(AM_CPPFLAGS)
+
+# Specify -static in both CXXFLAGS and LDFLAGS so libtool will only build a
+# static version of this library. We don't need a dynamic version, and a dynamic
+# version can't be used on windows anyway because the library doesn't currently
+# export DLL symbols.
+crypto_libparticl_crypto_base_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libparticl_crypto_base_la_LDFLAGS = $(AM_LDFLAGS) -static
+
+crypto_libparticl_crypto_base_la_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
   crypto/chacha_poly_aead.h \
@@ -593,32 +604,44 @@ crypto_libparticl_crypto_base_a_SOURCES = \
   crypto/siphash.h
 
 if USE_ASM
-crypto_libparticl_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
+crypto_libparticl_crypto_base_la_SOURCES += crypto/sha256_sse4.cpp
 endif
 
-crypto_libparticl_crypto_sse41_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libparticl_crypto_sse41_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libparticl_crypto_sse41_a_CXXFLAGS += $(SSE41_CXXFLAGS)
-crypto_libparticl_crypto_sse41_a_CPPFLAGS += -DENABLE_SSE41
-crypto_libparticl_crypto_sse41_a_SOURCES = crypto/sha256_sse41.cpp
+# See explanation for -static in crypto_libparticl_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libparticl_crypto_sse41_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libparticl_crypto_sse41_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libparticl_crypto_sse41_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libparticl_crypto_sse41_la_CXXFLAGS += $(SSE41_CXXFLAGS)
+crypto_libparticl_crypto_sse41_la_CPPFLAGS += -DENABLE_SSE41
+crypto_libparticl_crypto_sse41_la_SOURCES = crypto/sha256_sse41.cpp
 
-crypto_libparticl_crypto_avx2_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libparticl_crypto_avx2_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libparticl_crypto_avx2_a_CXXFLAGS += $(AVX2_CXXFLAGS)
-crypto_libparticl_crypto_avx2_a_CPPFLAGS += -DENABLE_AVX2
-crypto_libparticl_crypto_avx2_a_SOURCES = crypto/sha256_avx2.cpp
+# See explanation for -static in crypto_libparticl_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libparticl_crypto_avx2_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libparticl_crypto_avx2_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libparticl_crypto_avx2_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libparticl_crypto_avx2_la_CXXFLAGS += $(AVX2_CXXFLAGS)
+crypto_libparticl_crypto_avx2_la_CPPFLAGS += -DENABLE_AVX2
+crypto_libparticl_crypto_avx2_la_SOURCES = crypto/sha256_avx2.cpp
 
-crypto_libparticl_crypto_x86_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libparticl_crypto_x86_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libparticl_crypto_x86_shani_a_CXXFLAGS += $(X86_SHANI_CXXFLAGS)
-crypto_libparticl_crypto_x86_shani_a_CPPFLAGS += -DENABLE_X86_SHANI
-crypto_libparticl_crypto_x86_shani_a_SOURCES = crypto/sha256_x86_shani.cpp
+# See explanation for -static in crypto_libparticl_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libparticl_crypto_x86_shani_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libparticl_crypto_x86_shani_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libparticl_crypto_x86_shani_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libparticl_crypto_x86_shani_la_CXXFLAGS += $(X86_SHANI_CXXFLAGS)
+crypto_libparticl_crypto_x86_shani_la_CPPFLAGS += -DENABLE_X86_SHANI
+crypto_libparticl_crypto_x86_shani_la_SOURCES = crypto/sha256_x86_shani.cpp
 
-crypto_libparticl_crypto_arm_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libparticl_crypto_arm_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libparticl_crypto_arm_shani_a_CXXFLAGS += $(ARM_SHANI_CXXFLAGS)
-crypto_libparticl_crypto_arm_shani_a_CPPFLAGS += -DENABLE_ARM_SHANI
-crypto_libparticl_crypto_arm_shani_a_SOURCES = crypto/sha256_arm_shani.cpp
+# See explanation for -static in crypto_libparticl_crypto_base_la's LDFLAGS and
+# CXXFLAGS above
+crypto_libparticl_crypto_arm_shani_la_LDFLAGS = $(AM_LDFLAGS) -static
+crypto_libparticl_crypto_arm_shani_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -static
+crypto_libparticl_crypto_arm_shani_la_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libparticl_crypto_arm_shani_la_CXXFLAGS += $(ARM_SHANI_CXXFLAGS)
+crypto_libparticl_crypto_arm_shani_la_CPPFLAGS += -DENABLE_ARM_SHANI
+crypto_libparticl_crypto_arm_shani_la_SOURCES = crypto/sha256_arm_shani.cpp
 
 # consensus: shared between all executables that validate any consensus rules.
 libparticl_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
@@ -823,7 +846,6 @@ particl_bin_ldadd = \
   $(LIBPARTICL_CONSENSUS) \
   $(LIBPARTICL_CRYPTO) \
   $(LIBLEVELDB) \
-  $(LIBLEVELDB_SSE42) \
   $(LIBMEMENV) \
   $(LIBSECP256K1) \
   $(LIBPARTICL_SMSG) \
@@ -897,14 +919,14 @@ particl_wallet_LDFLAGS = $(particl_bin_ldflags)
 particl_wallet_LDADD = \
   $(LIBPARTICL_WALLET_TOOL) \
   $(LIBPARTICL_WALLET) \
+  $(LIBPARTICL_SMSG) \
+  $(LIBPARTICL_MNEMONIC) \
+  $(LIBPARTICL_USBDEVICE) \
   $(LIBPARTICL_NODE) \
   $(LIBPARTICL_COMMON) \
   $(LIBPARTICL_CONSENSUS) \
   $(LIBPARTICL_UTIL) \
   $(LIBPARTICL_CRYPTO) \
-  $(LIBPARTICL_SMSG) \
-  $(LIBPARTICL_MNEMONIC) \
-  $(LIBPARTICL_USBDEVICE) \
   $(LIBPARTICL_ZMQ) \
   $(LIBLEVELDB) \
   $(LIBLEVELDB_SSE42) \
@@ -941,8 +963,59 @@ particl_util_LDADD = \
 #
 
 # bitcoin-chainstate binary #
-particl_chainstate_SOURCES = \
-  bitcoin-chainstate.cpp \
+particl_chainstate_SOURCES = bitcoin-chainstate.cpp
+particl_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+particl_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+
+# $(LIBTOOL_APP_LDFLAGS) deliberately omitted here so that we can test linking
+# bitcoin-chainstate against libbitcoinkernel as a shared or static library by
+# setting --{en,dis}able-shared.
+particl_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(PTHREAD_FLAGS)
+particl_chainstate_LDADD = \
+  $(LIBPARTICLKERNEL) \
+  $(LIBPARTICL_SMSG) \
+  $(LIBPARTICL_NODE) \
+  $(LIBPARTICL_COMMON) \
+  $(LIBPARTICL_UTIL) \
+  $(LIBPARTICL_CRYPTO) \
+  $(LIBUNIVALUE) \
+  $(LIBSECP256K1) \
+  $(LIBLEVELDB) \
+  $(LIBLEVELDB_SSE42) \
+  $(LIBMEMENV)
+#
+
+# bitcoinkernel library #
+if BUILD_BITCOIN_KERNEL_LIB
+lib_LTLIBRARIES += $(LIBPARTICLKERNEL)
+
+libparticlkernel_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS) $(PTHREAD_FLAGS)
+libparticlkernel_la_LIBADD = $(LIBPARTICL_CRYPTO) $(LIBUNIVALUE) $(LIBLEVELDB) $(LIBMEMENV) $(LIBSECP256K1)
+libparticlkernel_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT)
+
+# libbitcoinkernel requires default symbol visibility, explicitly specify that
+# here so that things still work even when user configures with
+#   --enable-reduce-exports
+#
+# Note this is a quick hack that will be removed as we incrementally define what
+# to export from the library.
+libparticlkernel_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) -fvisibility=default
+
+# TODO: For now, Specify -static in both CXXFLAGS and LDFLAGS when building for
+#       windows targets so libtool will only build a static version of this
+#       library. There are unresolved problems when building dll's for mingw-w64
+#       and attempting to statically embed libstdc++, libpthread, etc.
+if TARGET_WINDOWS
+libparticlkernel_la_LDFLAGS += -static
+libparticlkernel_la_CXXFLAGS += -static
+endif
+
+# TODO: libbitcoinkernel is a work in progress consensus engine library, as more
+#       and more modules are decoupled from the consensus engine, this list will
+#       shrink to only those which are absolutely necessary. For example, things
+#       like index/*.cpp will be removed.
+libparticlkernel_la_SOURCES = \
+  kernel/bitcoinkernel.cpp \
   arith_uint256.cpp \
   blockfilter.cpp \
   chain.cpp \
@@ -1022,28 +1095,17 @@ particl_chainstate_SOURCES = \
   versionbits.cpp \
   warnings.cpp \
   insight/insight.cpp
-particl_chainstate_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-particl_chainstate_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-particl_chainstate_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
-particl_chainstate_LDADD = \
-  $(LIBPARTICL_SMSG) \
-  $(LIBPARTICL_NODE) \
-  $(LIBPARTICL_COMMON) \
-  $(LIBPARTICL_UTIL) \
-  $(LIBPARTICL_CRYPTO) \
-  $(LIBUNIVALUE) \
-  $(LIBSECP256K1) \
-  $(LIBLEVELDB) \
-  $(LIBLEVELDB_SSE42) \
-  $(LIBMEMENV)
 
 # Required for obj/build.h to be generated first.
 # More details: https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html
-bitcoin_chainstate-clientversion.$(OBJEXT): obj/build.h
+libparticlkernel_la-clientversion.l$(OBJEXT): obj/build.h
+endif # BUILD_BITCOIN_KERNEL_LIB
 #
 
 # bitcoinconsensus library #
 if BUILD_BITCOIN_LIBS
+lib_LTLIBRARIES += $(LIBPARTICLCONSENSUS)
+
 include_HEADERS = script/particlconsensus.h
 libparticlconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libparticl_crypto_base_a_SOURCES) $(libparticl_consensus_a_SOURCES)
 

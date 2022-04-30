@@ -809,6 +809,22 @@ public:
             /* dTxRate  */ 0.005
         };
     }
+
+    void SetOld()
+    {
+        consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+        genesis = CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 50 * COIN);
+        consensus.hashGenesisBlock = genesis.GetHash();
+
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
+        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+
+        bech32_hrp = "tb";
+    }
 };
 
 /**
@@ -1071,6 +1087,17 @@ public:
         };
     }
 
+    /**
+     * Allows modifying the Version Bits regtest parameters.
+     */
+    void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout, int min_activation_height)
+    {
+        consensus.vDeployments[d].nStartTime = nStartTime;
+        consensus.vDeployments[d].nTimeout = nTimeout;
+        consensus.vDeployments[d].min_activation_height = min_activation_height;
+    }
+    void UpdateActivationParametersFromArgs(const ArgsManager& args);
+
     void SetOld()
     {
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
@@ -1090,17 +1117,6 @@ public:
 
         bech32_hrp = "bcrt";
     }
-
-    /**
-     * Allows modifying the Version Bits regtest parameters.
-     */
-    void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout, int min_activation_height)
-    {
-        consensus.vDeployments[d].nStartTime = nStartTime;
-        consensus.vDeployments[d].nTimeout = nTimeout;
-        consensus.vDeployments[d].min_activation_height = min_activation_height;
-    }
-    void UpdateActivationParametersFromArgs(const ArgsManager& args);
 };
 
 static void MaybeUpdateHeights(const ArgsManager& args, Consensus::Params& consensus)
@@ -1208,6 +1224,9 @@ void SetOldParams(std::unique_ptr<CChainParams> &params)
 {
     if (params->NetworkID() == CBaseChainParams::MAIN) {
         return ((CMainParams*)params.get())->SetOld();
+    }
+    if (params->NetworkID() == CBaseChainParams::TESTNET) {
+        return ((CTestNetParams*)params.get())->SetOld();
     }
     if (params->NetworkID() == CBaseChainParams::REGTEST) {
         return ((CRegTestParams*)params.get())->SetOld();

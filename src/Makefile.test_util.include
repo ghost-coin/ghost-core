@@ -34,8 +34,3 @@ libtest_util_a_SOURCES = \
   test/util/validation.cpp \
   test/util/wallet.cpp \
   $(TEST_UTIL_H)
-
-LIBTEST_UTIL += $(LIBPARTICL_NODE)
-LIBTEST_UTIL += $(LIBPARTICL_COMMON)
-LIBTEST_UTIL += $(LIBPARTICL_UTIL)
-LIBTEST_UTIL += $(LIBPARTICL_CRYPTO_BASE)

@@ -125,8 +125,8 @@ bool CZMQAbstractPublishNotifier::Initialize(void *pcontext)
                 return false;
             };
 
-            std::vector<uint8_t> vServerKey = DecodeBase64(sServerKey64.c_str());
-            if (vServerKey.size() != 40)
+            auto server_key = DecodeBase64(sServerKey64.c_str());
+            if (server_key->size() != 40)
             {
                 zmqError("Failed to decode server key");
                 zmq_close(psocket);
@@ -135,7 +135,7 @@ bool CZMQAbstractPublishNotifier::Initialize(void *pcontext)
 
             const int curve_server_enable = 1;
             zmq_setsockopt(psocket, ZMQ_CURVE_SERVER, &curve_server_enable, sizeof(curve_server_enable));
-            zmq_setsockopt(psocket, ZMQ_CURVE_SECRETKEY, vServerKey.data(), 40);
+            zmq_setsockopt(psocket, ZMQ_CURVE_SECRETKEY, server_key->data(), 40);
         };
 
         LogPrint(BCLog::ZMQ, "zmq: Outbound message high water mark for %s at %s is %d\n", type, address, outbound_message_high_water_mark);

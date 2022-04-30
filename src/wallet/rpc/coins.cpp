@@ -639,7 +639,7 @@ RPCHelpMan listunspent()
                             {RPCResult::Type::BOOL, "spendable", "Whether we have the private keys to spend this output"},
                             {RPCResult::Type::BOOL, "solvable", "Whether we know how to spend this output, ignoring the lack of keys"},
                             {RPCResult::Type::BOOL, "stakeable", /*optional=*/true, "Whether we have the private keys to stake this output"},
-                            {RPCResult::Type::BOOL, "mature", /*optional=*/true, "True if outout is mature"},
+                            {RPCResult::Type::BOOL, "mature", /*optional=*/true, "True if output is mature"},
                             {RPCResult::Type::BOOL, "ondevice", /*optional=*/true, "True if hardware device is required to sign for the output"},
                             {RPCResult::Type::BOOL, "reused", /*optional=*/true, "(only present if avoid_reuse is set) Whether this output is reused/dirty (sent to an address that was previously spent from)"},
                             {RPCResult::Type::STR, "desc", /*optional=*/true, "(only when solvable) A descriptor for spending this output"},

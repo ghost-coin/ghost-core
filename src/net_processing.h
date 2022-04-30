@@ -8,6 +8,7 @@
 
 #include <net.h>
 #include <validationinterface.h>
+#include <node/blockstorage.h>
 
 class AddrMan;
 class CChainParams;
@@ -95,12 +96,18 @@ public:
     virtual void ProcessMessage(CNode& pfrom, const std::string& msg_type, CDataStream& vRecv,
                                 const std::chrono::microseconds time_received, const std::atomic<bool>& interruptMsgProc) = 0;
 
+    /** This function is used for testing the stale tip eviction logic, see denialofservice_tests.cpp */
+    virtual void UpdateLastBlockAnnounceTime(NodeId node, int64_t time_in_seconds) = 0;
+
     /** Particl */
     virtual NodeId GetBlockSource(const uint256 &hash) = 0;
     virtual void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
     virtual bool IncPersistentDiscouraged(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
     virtual void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const std::string& message="") = 0;
     virtual bool IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
+    virtual bool AddNodeHeader(NodeId node_id, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
+    virtual void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
+    virtual void RemoveNonReceivedHeaderFromNodes(node::BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main) = 0;
 };
 
 NodeId GetBlockSource(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);

@@ -199,9 +199,6 @@ public:
 };
 std::list<DelayedBlock> list_delayed_blocks;
 } // namespace particl
-extern bool AddNodeHeader(NodeId node_id, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern void RemoveNodeHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-extern void RemoveNonReceivedHeaderFromNodes(node::BlockMap::iterator mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 
 bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
@@ -1242,6 +1239,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
         if (!ConsensusScriptChecks(args, ws)) {
             results.emplace(ws.m_ptx->GetWitnessHash(), MempoolAcceptResult::Failure(ws.m_state));
             // Since PolicyScriptChecks() passed, this should never fail.
+            Assume(false);
             all_submitted = false;
             package_state.Invalid(PackageValidationResult::PCKG_MEMPOOL_ERROR,
                                   strprintf("BUG! PolicyScriptChecks succeeded but ConsensusScriptChecks failed: %s",
@@ -1256,6 +1254,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
                                              m_limit_descendant_size, unused_err_string)) {
             results.emplace(ws.m_ptx->GetWitnessHash(), MempoolAcceptResult::Failure(ws.m_state));
             // Since PreChecks() and PackageMempoolChecks() both enforce limits, this should never fail.
+            Assume(false);
             all_submitted = false;
             package_state.Invalid(PackageValidationResult::PCKG_MEMPOOL_ERROR,
                                   strprintf("BUG! Mempool ancestors or descendants were underestimated: %s",
@@ -1269,6 +1268,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
         if (!Finalize(args, ws)) {
             results.emplace(ws.m_ptx->GetWitnessHash(), MempoolAcceptResult::Failure(ws.m_state));
             // Since LimitMempoolSize() won't be called, this should never fail.
+            Assume(false);
             all_submitted = false;
             package_state.Invalid(PackageValidationResult::PCKG_MEMPOOL_ERROR,
                                   strprintf("BUG! Adding to mempool failed: %s", ws.m_ptx->GetHash().ToString()));
@@ -2265,7 +2265,7 @@ public:
     }
 };
 
-static ThresholdConditionCache warningcache[VERSIONBITS_NUM_BITS] GUARDED_BY(cs_main);
+static std::array<ThresholdConditionCache, VERSIONBITS_NUM_BITS> warningcache GUARDED_BY(cs_main);
 
 static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Consensus::Params& consensusparams)
 {
@@ -3419,7 +3419,7 @@ void CChainState::UpdateTip(const CBlockIndex* pindexNew)
         const CBlockIndex* pindex = pindexNew;
         for (int bit = 0; bit < VERSIONBITS_NUM_BITS; bit++) {
             WarningBitsConditionChecker checker(bit);
-            ThresholdState state = checker.GetStateFor(pindex, m_params.GetConsensus(), warningcache[bit]);
+            ThresholdState state = checker.GetStateFor(pindex, m_params.GetConsensus(), warningcache.at(bit));
             if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN) {
                 const bilingual_str warning = strprintf(_("Unknown new rules activated (versionbit %i)"), bit);
                 if (state == ThresholdState::ACTIVE) {
@@ -4813,7 +4813,7 @@ bool ChainstateManager::AcceptBlockHeader(const CBlockHeader& block, BlockValida
         state.nodeId >= 0 &&
         state.m_chainman->HaveActiveChainstate() &&
         !state.m_chainman->ActiveChainstate().IsInitialBlockDownload()) {
-        if (!AddNodeHeader(state.nodeId, hash)) {
+        if (!state.m_peerman->AddNodeHeader(state.nodeId, hash)) {
             LogPrintf("ERROR: %s: DoS limits\n", __func__);
             return state.Invalid(BlockValidationResult::DOS_20, "dos-limits");
         }
@@ -4952,7 +4952,10 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
         }
     }
 
-    RemoveNodeHeader(pindex->GetBlockHash());
+    // m_peerman is not set in unit tests
+    if (m_chainman.m_peerman) {
+        m_chainman.m_peerman->RemoveNodeHeader(pindex->GetBlockHash());
+    }
     pindex->nFlags |= BLOCK_ACCEPTED;
     m_blockman.m_dirty_blockindex.insert(pindex);
 
@@ -5408,20 +5411,6 @@ void CChainState::UnloadBlockIndex()
     AssertLockHeld(::cs_main);
     nBlockSequenceId = 1;
     setBlockIndexCandidates.clear();
-}
-
-// May NOT be used after any connections are up as much
-// of the peer-processing logic assumes a consistent
-// block index state
-void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman)
-{
-    AssertLockHeld(::cs_main);
-    chainman.Unload();
-    if (mempool) mempool->clear();
-    g_versionbitscache.Clear();
-    for (int b = 0; b < VERSIONBITS_NUM_BITS; b++) {
-        warningcache[b].clear();
-    }
 }
 
 bool ChainstateManager::LoadBlockIndex()
@@ -6481,20 +6470,6 @@ bool ChainstateManager::IsSnapshotActive() const
     return m_snapshot_chainstate && m_active_chainstate == m_snapshot_chainstate.get();
 }
 
-void ChainstateManager::Unload()
-{
-    AssertLockHeld(::cs_main);
-    for (CChainState* chainstate : this->GetAll()) {
-        chainstate->m_chain.SetTip(nullptr);
-        chainstate->UnloadBlockIndex();
-    }
-
-    m_failed_blocks.clear();
-    m_blockman.Unload();
-    m_best_header = nullptr;
-    m_best_invalid = nullptr;
-}
-
 void ChainstateManager::MaybeRebalanceCaches()
 {
     AssertLockHeld(::cs_main);
@@ -6523,6 +6498,18 @@ void ChainstateManager::MaybeRebalanceCaches()
             m_ibd_chainstate->ResizeCoinsCaches(
                 m_total_coinstip_cache * 0.95, m_total_coinsdb_cache * 0.95);
         }
+    }
+}
+
+ChainstateManager::~ChainstateManager()
+{
+    LOCK(::cs_main);
+
+    // TODO: The version bits cache and warning cache should probably become
+    // non-globals
+    g_versionbitscache.Clear();
+    for (auto& i : warningcache) {
+        i.clear();
     }
 }
 
@@ -6811,7 +6798,9 @@ bool RemoveUnreceivedHeader(ChainstateManager &chainman, const uint256 &hash) EX
         if (chainman.m_best_invalid == &entry->second) {
             chainman.m_best_invalid = nullptr;
         }
-        RemoveNonReceivedHeaderFromNodes(entry);
+        if (chainman.m_peerman) {
+            chainman.m_peerman->RemoveNonReceivedHeaderFromNodes(entry);
+        }
         chainman.BlockIndex().erase(entry);
     }
 
