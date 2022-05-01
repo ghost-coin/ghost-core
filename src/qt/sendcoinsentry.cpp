@@ -225,7 +225,7 @@ bool SendCoinsEntry::validate(interfaces::Node& node)
         }
 
         // Sending a zero amount is invalid
-        if (ui->payAmount_cs->value(0) <= 0)
+        if (ui->payAmount_cs->value(nullptr) <= 0)
         {
             ui->payAmount_cs->setValid(false);
             retval = false;

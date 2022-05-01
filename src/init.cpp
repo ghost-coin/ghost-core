@@ -178,7 +178,7 @@ int CreateMessageWindow()
         tfm::format(std::cerr, "RegisterClassEx failed: %d.\n", GetLastError());
         return 1;
     }
-    winHwnd = CreateWindowEx(0, lpcszClassName, NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, nullptr, NULL);
+    winHwnd = CreateWindowEx(0, lpcszClassName, nullptr, 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
     if (!winHwnd) {
         tfm::format(std::cerr, "CreateWindowEx failed: %d.\n", GetLastError());
         return 1;

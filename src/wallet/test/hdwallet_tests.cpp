@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     r.address = sx;
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_CHECK(34 == vecSend[1].vData.size());
 
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     sNarr = "test narration";
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_REQUIRE(51 == vecSend[1].vData.size());
     BOOST_REQUIRE(vecSend[1].vData[34] == DO_NARR_CRYPT);
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     r.address = sx;
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_REQUIRE(39 == vecSend[1].vData.size());
     BOOST_CHECK(vecSend[1].vData[34] == DO_STEALTH_PREFIX);
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     r.address = sx;
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_REQUIRE(72 == vecSend[1].vData.size());
 

@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(sighash_from_data)
             char strHex[2];
             strHex[0] = raw_tx[0];
             strHex[1] = raw_tx[1];
-            if (std::strtoul(strHex, 0, 16) >= PARTICL_TXN_VERSION)
+            if (std::strtoul(strHex, nullptr, 16) >= PARTICL_TXN_VERSION)
             {
                 raw_tx[0] = '0';
                 raw_tx[1] = '0';

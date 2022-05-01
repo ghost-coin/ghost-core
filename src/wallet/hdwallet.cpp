@@ -13048,7 +13048,7 @@ bool CHDWallet::GetScriptForDest(CScript &script, const CTxDestination &dest, bo
         r.address = sx;
         vecSend.push_back(r);
 
-        if (0 != ExpandTempRecipients(vecSend, NULL, strError) || vecSend.size() != 2) {
+        if (0 != ExpandTempRecipients(vecSend, nullptr, strError) || vecSend.size() != 2) {
             return werror("%s: ExpandTempRecipients failed, %s.", __func__, strError);
         }
 

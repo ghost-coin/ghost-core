@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(ct_test_bulletproofs)
 
         uint8_t *proof = &txout.vchRangeproof[0];
         const uint8_t *blindptrs_[] = {blindptrs.back()};
-        BOOST_CHECK(secp256k1_bulletproof_rangeproof_prove(ctx, scratch, gens, proof, &nRangeProofLen, (const uint64_t*)&amount_outs[k], NULL, blindptrs_, 1, &secp256k1_generator_const_h, 64, nonce.begin(), NULL, 0) == 1);
+        BOOST_CHECK(secp256k1_bulletproof_rangeproof_prove(ctx, scratch, gens, proof, &nRangeProofLen, (const uint64_t*)&amount_outs[k], nullptr, blindptrs_, 1, &secp256k1_generator_const_h, 64, nonce.begin(), nullptr, 0) == 1);
 
         txout.vchRangeproof.resize(nRangeProofLen);
     }
@@ -260,14 +260,14 @@ BOOST_AUTO_TEST_CASE(ct_test_bulletproofs)
 
         uint8_t *proof = &txout.vchRangeproof[0];
         size_t nRangeProofLen = txout.vchRangeproof.size();
-        BOOST_CHECK(secp256k1_bulletproof_rangeproof_verify(ctx, scratch, gens, proof, nRangeProofLen, NULL, &txout.commitment, 1, 64, &secp256k1_generator_const_h, NULL, 0) == 1);
+        BOOST_CHECK(secp256k1_bulletproof_rangeproof_verify(ctx, scratch, gens, proof, nRangeProofLen, nullptr, &txout.commitment, 1, 64, &secp256k1_generator_const_h, nullptr, 0) == 1);
 
         CPubKey ephemeral_key(txout.vchNonceCommitment);
         BOOST_CHECK(ephemeral_key.IsValid());
         uint256 nonce = kto_outs[k].ECDH(ephemeral_key);
         CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
         uint8_t blind_out[32];
-        BOOST_CHECK(secp256k1_bulletproof_rangeproof_rewind(ctx, gens, &value_out, blind_out, proof, nRangeProofLen, 0, &txout.commitment, &secp256k1_generator_const_h, nonce.begin(), NULL, 0));
+        BOOST_CHECK(secp256k1_bulletproof_rangeproof_rewind(ctx, gens, &value_out, blind_out, proof, nRangeProofLen, 0, &txout.commitment, &secp256k1_generator_const_h, nonce.begin(), nullptr, 0));
         BOOST_CHECK((int64_t)value_out == amount_outs[k]);
     }
 

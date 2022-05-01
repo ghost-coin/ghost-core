@@ -74,9 +74,9 @@ void CZMQNotificationInterface::ThreadZAP()
         zmq_send(sock, buf[0], nb[0], ZMQ_SNDMORE);                 // version "1.0"
         zmq_send(sock, buf[1], nb[1], ZMQ_SNDMORE);                 // request id
         zmq_send(sock, fAccept ? "200" : "400", 3, ZMQ_SNDMORE);    // status code
-        zmq_send(sock, NULL, 0, ZMQ_SNDMORE);                       // status text
-        zmq_send(sock, NULL, 0, ZMQ_SNDMORE);                       // user id
-        zmq_send(sock, NULL, 0, 0);                                 // metadata
+        zmq_send(sock, nullptr, 0, ZMQ_SNDMORE);                    // status text
+        zmq_send(sock, nullptr, 0, ZMQ_SNDMORE);                    // user id
+        zmq_send(sock, nullptr, 0, 0);                              // metadata
     }
 
     zmq_close(sock);

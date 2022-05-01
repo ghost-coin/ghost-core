@@ -8726,7 +8726,7 @@ static RPCHelpMan fundrawtransactionfrom()
             if (txout->GetPRangeproof()->size() < 1000) {
                 if (1 != secp256k1_bulletproof_rangeproof_rewind(secp256k1_ctx_blind, blind_gens,
                     &amountOut, blindOut, txout->GetPRangeproof()->data(), txout->GetPRangeproof()->size(),
-                    0, txout->GetPCommitment(), &secp256k1_generator_const_h, r.nonce.begin(), NULL, 0)) {
+                    0, txout->GetPCommitment(), &secp256k1_generator_const_h, r.nonce.begin(), nullptr, 0)) {
                     throw JSONRPCError(RPC_MISC_ERROR, strprintf("secp256k1_bulletproof_rangeproof_rewind failed, output %d.", n));
                 }
 
