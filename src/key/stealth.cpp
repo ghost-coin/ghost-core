@@ -7,10 +7,10 @@
 
 #include <key_io.h>
 #include <key/keyutil.h>
+#include <key/crypter.h>
 #include <pubkey.h>
 #include <random.h>
 #include <script/script.h>
-#include <smsg/crypter.h>
 #include <serialize.h>
 
 #include <support/allocators/secure.h>
@@ -394,7 +394,7 @@ int MakeStealthData(const std::string &sNarration, stealth_prefix prefix, const 
 {
     std::vector<uint8_t> vchNarr;
     if (sNarration.length() > 0) {
-        SecMsgCrypter crypter;
+        NarrationCrypter crypter;
         crypter.SetKey(sShared.begin(), pkEphem.begin());
 
         if (!crypter.Encrypt((uint8_t*)sNarration.data(), sNarration.length(), vchNarr)) {
@@ -440,8 +440,9 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
     int k, nTries = 24;
     for (k = 0; k < nTries; ++k) { // if StealthSecret fails try again with new ephem key
         sEphem.MakeNewKey(true);
-        if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0)
+        if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0) {
             break;
+        }
     }
     if (k >= nTries) {
         return errorN(1, sError, __func__, "Could not generate receiving public key.");

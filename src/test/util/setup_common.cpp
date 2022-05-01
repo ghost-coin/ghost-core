@@ -45,6 +45,7 @@
 // Particl
 #include <insight/insight.h>
 #include <smsg/smessage.h>
+#include <smsg/manager.h>
 
 #include <functional>
 #include <stdexcept>
@@ -190,6 +191,9 @@ ChainTestingSetup::ChainTestingSetup(const std::string& chainName, const std::ve
     m_node.chainman = std::make_unique<ChainstateManager>();
     m_node.chainman->m_blockman.m_block_tree_db = std::make_unique<CBlockTreeDB>(m_cache_sizes.block_tree_db, true);
 
+    m_node.smsgman = SmsgManager::make();
+    m_node.chainman->m_smsgman = m_node.smsgman.get();
+
     // Start script-checking threads. Set g_parallel_script_checks to true so they are used.
     constexpr int script_check_threads = 2;
     StartScriptCheckWorkerThreads(script_check_threads);
@@ -211,6 +215,7 @@ ChainTestingSetup::~ChainTestingSetup()
     m_node.mempool.reset();
     m_node.scheduler.reset();
     m_node.chainman.reset();
+    m_node.smsgman.reset();
 }
 
 TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const char*>& extra_args, bool fParticlModeIn)

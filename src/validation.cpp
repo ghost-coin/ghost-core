@@ -54,7 +54,9 @@
 #include <util/translation.h>
 #include <validationinterface.h>
 #include <warnings.h>
-#include <smsg/smessage.h>
+#include <smsg/manager.h>
+#include <script/standard.h>
+#include <key_io.h>
 #include <net.h>
 #include <pos/kernel.h>
 #include <anon.h>
@@ -2663,7 +2665,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 }
 
                 if (tx_state.m_funds_smsg) {
-                    smsgModule.StoreFundingTx(view.smsg_cache, tx, pindex);
+                    m_chainman.m_smsgman->StoreFundingTx(view.smsg_cache, tx, pindex);
                 }
             }
         } else {
@@ -2888,8 +2890,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 }
 
                 if (pindex->pprev->nHeight > 0) { // Genesis block is pow
-                    if (!txPrevCoinstake
-                        && !particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                    if (!txPrevCoinstake &&
+                        !particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
                         LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
                     }
@@ -2909,7 +2911,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
                     }
 
-                    CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
+                    CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
                     if (std::get_if<CNoDestination>(&dfDest)) {
                         return error("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
                     }
@@ -3023,7 +3025,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     assert(pindex->phashBlock);
 
-    smsgModule.SetBestBlock(view.smsg_cache, pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
+    m_chainman.m_smsgman->SetBestBlock(view.smsg_cache, pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight);
@@ -3344,7 +3346,7 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, CChainState &
         if (!pblocktree->WriteBatch(batch)) {
             return error("%s: Write index data failed.", __func__);
         }
-        if (0 != smsgModule.WriteCache(view->smsg_cache)) {
+        if (0 != chainstate.m_chainman.m_smsgman->WriteCache(view->smsg_cache)) {
             return error("%s: smsgModule WriteCache failed.", __func__);
         }
     }
@@ -5061,8 +5063,8 @@ bool ChainstateManager::ProcessNewBlock(const CChainParams& chainparams, const s
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
     }
 
-    if (smsg::fSecMsgEnabled && gArgs.GetBoolArg("-smsgscanincoming", false)) {
-        smsgModule.ScanBlock(*block);
+    if (m_smsgman->IsEnabled() && gArgs.GetBoolArg("-smsgscanincoming", false)) {
+        m_smsgman->ScanBlock(*block);
     }
 
     {
@@ -6959,7 +6961,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
     CBlockIndex *pindex_tip{nullptr};
     uint256 best_smsg_block_hash;
     int best_smsg_block_height{0}, last_known_height{0};
-    smsgModule.ReadBestBlock(best_smsg_block_hash, best_smsg_block_height);
+    chainman.m_smsgman->ReadBestBlock(best_smsg_block_hash, best_smsg_block_height);
 
     {
         LOCK(cs_main);
@@ -6972,7 +6974,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
         LogPrintf("%s: Manual override, attempting to rewind chain.\n", __func__);
     } else
     if (pindex_tip &&
-        smsgModule.m_track_funding_txns &&
+        chainman.m_smsgman->TrackFundingTxns() &&
         !best_smsg_block_hash.IsNull() &&
         best_smsg_block_hash != pindex_tip->GetBlockHash() &&
         pindex_tip->nHeight > best_smsg_block_height) {

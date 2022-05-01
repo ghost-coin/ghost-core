@@ -8,7 +8,7 @@
 #include <base58.h>
 #include <chainparams.h>
 #include <smsg/smessage.h>
-#include <smsg/crypter.h>
+#include <key/crypter.h>
 #include <blind.h>
 #include <primitives/transaction.h>
 #include <consensus/tx_verify.h>
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(stealth)
 
     BOOST_REQUIRE(StealthSecret(sScan, vchEphemPK, sx.spend_pubkey, sShared, pkExtracted) == 0);
 
-    SecMsgCrypter crypter;
+    NarrationCrypter crypter;
     crypter.SetKey(sShared.begin(), &vchEphemPK[0]);
     std::vector<uint8_t> vchNarr;
     BOOST_REQUIRE(crypter.Decrypt(&vchENarr[0], vchENarr.size(), vchNarr));

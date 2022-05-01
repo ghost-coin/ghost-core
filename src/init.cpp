@@ -74,6 +74,7 @@
 #include <validationinterface.h>
 #include <blind.h>
 #include <smsg/smessage.h>
+#include <smsg/manager.h>
 #include <smsg/rpcsmessage.h>
 #include <insight/rpc.h>
 #include <pos/miner.h>
@@ -1633,6 +1634,9 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
         node.chainman = std::make_unique<ChainstateManager>();
         ChainstateManager& chainman = *node.chainman;
+
+        node.smsgman = SmsgManager::make();
+        chainman.m_smsgman = node.smsgman.get();
 
         const bool fReset = fReindex;
         bilingual_str strLoadError;

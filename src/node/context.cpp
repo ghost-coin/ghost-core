@@ -14,6 +14,7 @@
 #include <scheduler.h>
 #include <txmempool.h>
 #include <validation.h>
+#include <smsg/manager.h>
 
 namespace node {
 NodeContext::NodeContext() {}

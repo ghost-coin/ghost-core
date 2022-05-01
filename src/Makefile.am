@@ -192,6 +192,7 @@ BITCOIN_CORE_H = \
   key/extkey.h \
   key/types.h \
   key/keyutil.h \
+  key/crypter.h \
   key_io.h \
   logging.h \
   logging/timer.h \
@@ -264,6 +265,7 @@ BITCOIN_CORE_H = \
   smsg/types.h \
   smsg/crypter.h \
   smsg/smessage.h \
+  smsg/manager.h \
   smsg/rpcsmessage.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -541,7 +543,6 @@ libparticl_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   blind.cpp \
-  key/stealth.cpp \
   pos/kernel.cpp \
   pos/miner.cpp \
   policy/rbf.cpp \
@@ -698,11 +699,11 @@ libparticl_common_a_SOURCES = \
   key.cpp \
   anon.cpp \
   blind.cpp \
+  key_io.cpp \
+  key/crypter.cpp \
   key/keyutil.cpp \
   key/extkey.cpp \
   key/stealth.cpp \
-  smsg/crypter.cpp \
-  key_io.cpp \
   merkleblock.cpp \
   net_types.cpp \
   netaddress.cpp \
@@ -790,6 +791,7 @@ libparticl_smsg_a_SOURCES = \
   smsg/keystore.cpp \
   smsg/db.cpp \
   smsg/smessage.cpp \
+  smsg/manager.cpp \
   smsg/rpcsmessage.cpp
 
 
@@ -1040,6 +1042,19 @@ libparticlkernel_la_SOURCES = \
   index/coinstatsindex.cpp \
   init/common.cpp \
   key.cpp \
+  anon.cpp \
+  blind.cpp \
+  key_io.cpp \
+  bech32.cpp \
+  base58.cpp \
+  common/bloom.cpp \
+  node/transaction.cpp \
+  index/txindex.cpp \
+  pos/kernel.cpp \
+  key/stealth.cpp \
+  key/keyutil.cpp \
+  key/extkey.cpp \
+  key/crypter.cpp \
   logging.cpp \
   netaddress.cpp \
   node/blockstorage.cpp \

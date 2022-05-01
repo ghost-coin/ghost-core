@@ -16,6 +16,7 @@
 class PeerManager;
 class ChainstateManager;
 class CChainState;
+class SmsgManager;
 
 /** Index marker for when no witness commitment is present in a coinbase transaction. */
 static constexpr int NO_WITNESS_COMMITMENT{-1};
@@ -154,6 +155,7 @@ public:
     }
 
     PeerManager *m_peerman{nullptr};
+    SmsgManager *m_smsgman{nullptr};
     ChainstateManager *m_chainman{nullptr};
     CChainState *m_chainstate{nullptr};
     int nodeId = -1;

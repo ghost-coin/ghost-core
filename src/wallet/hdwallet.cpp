@@ -13,7 +13,7 @@
 #include <consensus/validation.h>
 #include <consensus/merkle.h>
 #include <smsg/smessage.h>
-#include <smsg/crypter.h>
+#include <key/crypter.h>
 #include <timedata.h>
 #include <node/miner.h>
 #include <pos/kernel.h>
@@ -3354,7 +3354,7 @@ int CHDWallet::AddCTData(const CCoinControl *coinControl, CTxOutBase *txout, CTe
         if (r.sNarration.size() > 0) {
             std::vector<uint8_t> vchNarr, &vData = *txout->GetPData();
             CPubKey pkEphem = r.sEphem.GetPubKey();
-            SecMsgCrypter crypter;
+            NarrationCrypter crypter;
             crypter.SetKey(r.nonce.begin(), pkEphem.begin());
 
             if (!crypter.Encrypt((uint8_t*)r.sNarration.data(), r.sNarration.length(), vchNarr)) {
@@ -9960,7 +9960,7 @@ int CHDWallet::CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutDat
                 return 2; // still found
             }
 
-            SecMsgCrypter crypter;
+            NarrationCrypter crypter;
             crypter.SetKey(sShared.begin(), &vchEphemPK[0]);
 
             std::vector<uint8_t> vchNarr;
@@ -10569,7 +10569,7 @@ void ExtractNarration(const uint256 &nonce, const std::vector<uint8_t> &vData, s
         return;
     }
 
-    SecMsgCrypter crypter;
+    NarrationCrypter crypter;
     crypter.SetKey(nonce.begin(), pkEphem.begin());
 
     std::vector<uint8_t> vchNarr;

@@ -931,6 +931,7 @@ public:
     //! chainstate to avoid duplicating block metadata.
     node::BlockManager m_blockman;
     PeerManager *m_peerman{nullptr};
+    SmsgManager *m_smsgman{nullptr};
 
     /**
      * In order to efficiently track invalidity of headers, we keep the set of
