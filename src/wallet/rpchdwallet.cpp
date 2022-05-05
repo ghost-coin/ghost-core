@@ -9481,7 +9481,7 @@ static RPCHelpMan verifyrawtransaction()
 
 static bool PruneBlockFile(ChainstateManager &chainman, FILE *fp, bool test_only, size_t &num_blocks_in_file, size_t &num_blocks_removed) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
-    fs::path tmp_filepath = gArgs.GetBlocksDirPath() / strprintf("tmp.dat");
+    fs::path tmp_filepath = gArgs.GetBlocksDirPath() / "tmp.dat";
 
     FILE *fpt = fopen(fs::PathToString(tmp_filepath).c_str(), "w");
     if (!fpt) {
@@ -9631,7 +9631,7 @@ static RPCHelpMan pruneorphanedblocks()
             PruneBlockFile(chainman, fp, test_only, num_blocks_in_file, num_blocks_removed);
 
             if (!test_only) {
-                fs::path tmp_filepath = gArgs.GetBlocksDirPath() / strprintf("tmp.dat");
+                fs::path tmp_filepath = gArgs.GetBlocksDirPath() / "tmp.dat";
                 if (!RenameOver(tmp_filepath, blk_filepath)) {
                     LogPrintf("Unable to rename file %s to %s\n", fs::PathToString(tmp_filepath), fs::PathToString(blk_filepath));
                     return false;

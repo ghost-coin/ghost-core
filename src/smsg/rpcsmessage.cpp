@@ -26,8 +26,9 @@
 #include <validationinterface.h>
 #include <node/context.h>
 #include <interfaces/wallet.h>
-#include <util/string.h>
 #include <util/time.h>
+#include <util/string.h>
+#include <util/syserror.h>
 
 #include <leveldb/db.h>
 
@@ -1795,7 +1796,7 @@ static RPCHelpMan smsgbuckets()
                     objM.pushKV("last changed", part::GetTimeString(it->second.timeChanged, cbuf, sizeof(cbuf)));
                 }
 
-                fs::path fullPath = gArgs.GetDataDirNet() / smsg::STORE_DIR / sFile;
+                fs::path fullPath = gArgs.GetDataDirNet() / fs::PathFromString(smsg::STORE_DIR) / fs::PathFromString(sFile);
                 if (!fs::exists(fullPath)) {
                     if (tokenSet.size() == 0) {
                         objM.pushKV("file size", "Empty bucket.");
@@ -1838,7 +1839,7 @@ static RPCHelpMan smsgbuckets()
                 std::string sFile = ToString(it->first) + "_01.dat";
 
                 try {
-                    fs::path fullPath = gArgs.GetDataDirNet() / smsg::STORE_DIR / sFile;
+                    fs::path fullPath = gArgs.GetDataDirNet() / fs::PathFromString(smsg::STORE_DIR) / fs::PathFromString(sFile);
                     fs::remove(fullPath);
                 } catch (const fs::filesystem_error& ex) {
                     //objM.push_back(Pair("file size, error", ex.what()));
@@ -1973,7 +1974,7 @@ static RPCHelpMan smsgview()
             sTemp = request.params[i].get_str();
             tFrom = part::strToEpoch(sTemp.c_str());
             if (tFrom < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "from format error: " + std::string(strerror(errno)));
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "from format error: " + SysErrorString(errno));
             }
         } else
         if (sTemp == "-to") {
@@ -1984,7 +1985,7 @@ static RPCHelpMan smsgview()
             sTemp = request.params[i].get_str();
             tTo = part::strToEpoch(sTemp.c_str());
             if (tTo < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "to format error: " + std::string(strerror(errno)));
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "to format error: " + SysErrorString(errno));
             }
         } else
         if (sTemp == "asc") {

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +8,7 @@
 #include <node/miner.h>
 #include <chainparams.h>
 #include <util/thread.h>
+#include <util/syserror.h>
 #include <util/moneystr.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -104,7 +105,7 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fPath).c_str(), "rb"))) {
-        return error("%s - Can't open file, strerror: %s.", __func__, strerror(errno));
+        return error("%s - Can't open file, error: %s.", __func__, SysErrorString(errno));
     }
 
     CMutableTransaction txn;
@@ -140,7 +141,7 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
 
         uint64_t amount;
         if (!ParseUInt64(std::string(pAmount), &amount) || !MoneyRange(amount)) {
-            LogPrintf("Warning: %s - Skipping invalid amount: %s, %s\n", __func__, pAmount, strerror(errno));
+            LogPrintf("Warning: %s - Skipping invalid amount: %s, %s\n", __func__, pAmount, SysErrorString(errno));
             continue;
         }
 

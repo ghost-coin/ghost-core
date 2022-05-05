@@ -14,7 +14,6 @@
 
 #include <wallet/test/hdwallet_test_fixture.h>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include <univalue.h>

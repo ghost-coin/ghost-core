@@ -48,6 +48,7 @@ Notes:
 #include <node/blockstorage.h>
 #include <util/string.h>
 #include <util/system.h>
+#include <util/syserror.h>
 #include <timedata.h>
 
 #ifdef ENABLE_WALLET
@@ -221,7 +222,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
 
                     std::string fileName = ToString(it->first);
 
-                    fs::path fullPath = gArgs.GetDataDirNet() / STORE_DIR / (fileName + "_01.dat");
+                    fs::path fullPath = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR) / fs::PathFromString(fileName + "_01.dat");
                     if (fs::exists(fullPath)) {
                         try { fs::remove(fullPath);
                         } catch (const fs::filesystem_error &ex) {
@@ -232,7 +233,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
                     }
 
                     // Look for a wl file, it stores incoming messages when wallet is locked
-                    fullPath = gArgs.GetDataDirNet() / STORE_DIR / (fileName + "_01_wl.dat");
+                    fullPath = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR) / fs::PathFromString(fileName + "_01_wl.dat");
                     if (fs::exists(fullPath)) {
                         try { fs::remove(fullPath);
                         } catch (const fs::filesystem_error &ex) {
@@ -514,7 +515,7 @@ int CSMSG::BuildBucketSet()
     uint32_t nMessages      = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
     fs::directory_iterator itend;
 
     if (!fs::exists(pathSmsgDir)
@@ -578,7 +579,7 @@ int CSMSG::BuildBucketSet()
 
             FILE *fp;
             if (!(fp = fopen(itd->path().string().c_str(), "rb"))) {
-                LogPrintf("Error opening file: %s\n", strerror(errno));
+                LogPrintf("Error opening file: %s\n", SysErrorString(errno));
                 continue;
             }
 
@@ -589,7 +590,7 @@ int CSMSG::BuildBucketSet()
                 errno = 0;
                 if (fread(header_buffer, sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN) {
                     if (errno != 0) {
-                        LogPrintf("fread header failed: %s\n", strerror(errno));
+                        LogPrintf("fread header failed: %s\n", SysErrorString(errno));
                     } else {
                         //LogPrintf("End of file.\n");
                     }
@@ -607,11 +608,11 @@ int CSMSG::BuildBucketSet()
                     continue;
                 }
                 if (fread(token.sample, sizeof(uint8_t), 8, fp) != 8) {
-                    LogPrintf("fread failed: %s\n", strerror(errno));
+                    LogPrintf("fread failed: %s\n", SysErrorString(errno));
                     break;
                 }
                 if (fseek(fp, smsg.nPayload-8, SEEK_CUR) != 0) {
-                    LogPrintf("fseek failed: %s.\n", strerror(errno));
+                    LogPrintf("fseek failed: %s.\n", SysErrorString(errno));
                     break;
                 }
                 tokenSet.insert(token);
@@ -757,7 +758,7 @@ int CSMSG::ReadIni()
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "r"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s: Error opening file: %s", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s: Error opening file: %s", __func__, SysErrorString(errno));
     }
 
     char cLine[512];
@@ -827,11 +828,11 @@ int CSMSG::WriteIni()
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "w"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s: Error opening file: %s", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s: Error opening file: %s", __func__, SysErrorString(errno));
     }
 
     if (fwrite("[Options]\n", sizeof(char), 10, fp) != 10) {
-        LogPrintf("fwrite error: %s\n", strerror(errno));
+        LogPrintf("fwrite error: %s\n", SysErrorString(errno));
         fclose(fp);
         return SMSG_GENERAL_ERROR;
     }
@@ -839,13 +840,13 @@ int CSMSG::WriteIni()
     if (fprintf(fp, "newAddressRecv=%s\n", options.fNewAddressRecv ? "true" : "false") < 0
         || fprintf(fp, "newAddressAnon=%s\n", options.fNewAddressAnon ? "true" : "false") < 0
         || fprintf(fp, "scanIncoming=%s\n", options.fScanIncoming ? "true" : "false") < 0) {
-        LogPrintf("fprintf error: %s\n", strerror(errno));
+        LogPrintf("fprintf error: %s\n", SysErrorString(errno));
         fclose(fp);
         return SMSG_GENERAL_ERROR;
     }
 
     if (fwrite("\n[Keys]\n", sizeof(char), 8, fp) != 8) {
-        LogPrintf("fwrite error: %s\n", strerror(errno));
+        LogPrintf("fwrite error: %s\n", SysErrorString(errno));
         fclose(fp);
         return SMSG_GENERAL_ERROR;
     }
@@ -861,7 +862,7 @@ int CSMSG::WriteIni()
         }
 
         if (fprintf(fp, "key=%s|%d|%d\n", cAddress.ToString().c_str(), it->fReceiveEnabled, it->fReceiveAnon) < 0) {
-            LogPrintf("fprintf error: %s\n", strerror(errno));
+            LogPrintf("fprintf error: %s\n", SysErrorString(errno));
             continue;
         }
     }
@@ -1729,9 +1730,9 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
             // Init counters
             size_t num_types = std::size(SMSGMsgType::allTypes);
             for (size_t t = 0; t < num_types; ++t) {
-                mapMsgCmdSize::iterator i = pfrom->mapRecvBytesPerMsgCmd.find(SMSGMsgType::allTypes[t]);
-                if (i == pfrom->mapRecvBytesPerMsgCmd.end()) {
-                    pfrom->mapRecvBytesPerMsgCmd[SMSGMsgType::allTypes[t]] = 0;
+                mapMsgTypeSize::iterator i = pfrom->mapRecvBytesPerMsgType.find(SMSGMsgType::allTypes[t]);
+                if (i == pfrom->mapRecvBytesPerMsgType.end()) {
+                    pfrom->mapRecvBytesPerMsgType[SMSGMsgType::allTypes[t]] = 0;
                 }
             }
         }
@@ -2152,7 +2153,7 @@ bool CSMSG::ScanBuckets(bool scan_all)
     uint32_t nFoundMessages = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
     fs::directory_iterator itend;
 
     if (!fs::exists(pathSmsgDir)
@@ -2219,7 +2220,7 @@ bool CSMSG::ScanBuckets(bool scan_all)
             FILE *fp;
             errno = 0;
             if (!(fp = fopen(itd->path().string().c_str(), "rb"))) {
-                LogPrintf("Error opening file: %s\n", strerror(errno));
+                LogPrintf("Error opening file: %s\n", SysErrorString(errno));
                 continue;
             }
 
@@ -2227,7 +2228,7 @@ bool CSMSG::ScanBuckets(bool scan_all)
                 errno = 0;
                 if (fread(header_buffer, sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN) {
                     if (errno != 0) {
-                        LogPrintf("fread header failed: %s\n", strerror(errno));
+                        LogPrintf("fread header failed: %s\n", SysErrorString(errno));
                     } else {
                         //LogPrintf("End of file.\n");
                     }
@@ -2242,7 +2243,7 @@ bool CSMSG::ScanBuckets(bool scan_all)
                 }
 
                 if (fread(vchData.data(), sizeof(uint8_t), smsg.nPayload, fp) != smsg.nPayload) {
-                    LogPrintf("fread data failed: %s\n", strerror(errno));
+                    LogPrintf("fread data failed: %s\n", SysErrorString(errno));
                     break;
                 }
 
@@ -2332,7 +2333,7 @@ int CSMSG::WalletUnlocked(wallet::CWallet *pwallet)
     uint32_t nFoundMessages = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
     fs::directory_iterator itend;
 
     if (!fs::exists(pathSmsgDir)
@@ -2389,7 +2390,7 @@ int CSMSG::WalletUnlocked(wallet::CWallet *pwallet)
             FILE *fp;
             errno = 0;
             if (!(fp = fopen(itd->path().string().c_str(), "rb"))) {
-                LogPrintf("Error opening file: %s\n", strerror(errno));
+                LogPrintf("Error opening file: %s\n", SysErrorString(errno));
                 continue;
             }
 
@@ -2397,7 +2398,7 @@ int CSMSG::WalletUnlocked(wallet::CWallet *pwallet)
                 errno = 0;
                 if (fread(header_buffer, sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN) {
                     if (errno != 0) {
-                        LogPrintf("fread header failed: %s\n", strerror(errno));
+                        LogPrintf("fread header failed: %s\n", SysErrorString(errno));
                     } else {
                         //LogPrintf("End of file.\n");
                     }
@@ -2412,7 +2413,7 @@ int CSMSG::WalletUnlocked(wallet::CWallet *pwallet)
                 }
 
                 if (fread(&vchData[0], sizeof(uint8_t), smsg.nPayload, fp) != smsg.nPayload) {
-                    LogPrintf("fread data failed: %s\n", strerror(errno));
+                    LogPrintf("fread data failed: %s\n", SysErrorString(errno));
                     break;
                 }
 
@@ -2940,22 +2941,22 @@ int CSMSG::Retrieve(const SecMsgToken &token, std::vector<uint8_t> &vchData)
     LogPrint(BCLog::SMSG, "%s: %d.\n", __func__, token.timestamp);
     AssertLockHeld(cs_smsg);
 
-    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
 
     int64_t bucket = token.timestamp - (token.timestamp % SMSG_BUCKET_LEN);
     std::string fileName = ToString(bucket) + "_01.dat";
-    fs::path fullpath = pathSmsgDir / fileName;
+    fs::path fullpath = pathSmsgDir / fs::PathFromString(fileName);
 
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "rb"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, strerror(errno), fs::PathToString(fullpath));
+        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, SysErrorString(errno), fs::PathToString(fullpath));
     }
 
     errno = 0;
     if (fseek(fp, token.offset, SEEK_SET) != 0) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - fseek, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - fseek, error: %s.", __func__, SysErrorString(errno));
     }
 
 
@@ -2966,7 +2967,7 @@ int CSMSG::Retrieve(const SecMsgToken &token, std::vector<uint8_t> &vchData)
     errno = 0;
     if (fread(vchData.data(), sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - read header failed, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - read header failed, error: %s.", __func__, SysErrorString(errno));
     }
     SecureMessage smsg(vchData.data());
 
@@ -2978,7 +2979,7 @@ int CSMSG::Retrieve(const SecMsgToken &token, std::vector<uint8_t> &vchData)
     errno = 0;
     if (fread(&vchData[SMSG_HDR_LEN], sizeof(uint8_t), smsg.nPayload, fp) != smsg.nPayload) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - fread data failed: %s. Wanted %u bytes.", __func__, strerror(errno), smsg.nPayload);
+        return errorN(SMSG_GENERAL_ERROR, "%s - fread data failed: %s. Wanted %u bytes.", __func__, SysErrorString(errno), smsg.nPayload);
     }
 
     fclose(fp);
@@ -2992,28 +2993,28 @@ int CSMSG::Remove(const SecMsgToken &token)
 
     unsigned char header_buffer[SMSG_HDR_LEN];
 
-    fs::path pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+    fs::path pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
 
     int64_t bucket = token.timestamp - (token.timestamp % SMSG_BUCKET_LEN);
     std::string fileName = ToString(bucket) + "_01.dat";
-    fs::path fullpath = pathSmsgDir / fileName;
+    fs::path fullpath = pathSmsgDir / fs::PathFromString(fileName);
 
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "rb+"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, strerror(errno), fs::PathToString(fullpath));
+        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file: %s\nPath %s.", __func__, SysErrorString(errno), fs::PathToString(fullpath));
     }
 
     errno = 0;
     if (fseek(fp, token.offset, SEEK_SET) != 0) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - fseek, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - fseek, error: %s.", __func__, SysErrorString(errno));
     }
 
     errno = 0;
     if (fread(header_buffer, sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - read header failed, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - read header failed, error: %s.", __func__, SysErrorString(errno));
     }
     SecureMessage smsg(header_buffer);
 
@@ -3021,12 +3022,12 @@ int CSMSG::Remove(const SecMsgToken &token)
     if (0 != fseek(fp, token.offset + 4, SEEK_SET)
         || 2 != fwrite(&z, 1, 2, fp)) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - zero version strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - zero version error: %s.", __func__, SysErrorString(errno));
     }
 
     if (fseek(fp, token.offset + SMSG_HDR_LEN + 8, SEEK_SET) != 0) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - fseek, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - fseek, error: %s.", __func__, SysErrorString(errno));
     }
 
     size_t zlen = smsg.nPayload - 8;
@@ -3035,7 +3036,7 @@ int CSMSG::Remove(const SecMsgToken &token)
     memset(zbuf.data(), 0, zlen);
     if (smsg.nPayload <= 8 ||  zlen != fwrite(zbuf.data(), 1, zlen, fp)) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - fwrite, zlen %d, strerror: %s.", __func__, zlen, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - fwrite, zlen %d, error: %s.", __func__, zlen, SysErrorString(errno));
     }
 
     fclose(fp);
@@ -3244,7 +3245,7 @@ int CSMSG::StoreUnscanned(const uint8_t *pHeader, const uint8_t *pPayload, uint3
 
     fs::path pathSmsgDir;
     try {
-        pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+        pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
         fs::create_directory(pathSmsgDir);
     } catch (const fs::filesystem_error &ex) {
         return errorN(SMSG_GENERAL_ERROR, "%s - Failed to create directory %s - %s.", __func__, fs::PathToString(pathSmsgDir), ex.what());
@@ -3261,18 +3262,18 @@ int CSMSG::StoreUnscanned(const uint8_t *pHeader, const uint8_t *pPayload, uint3
     int64_t bucket = smsg.timestamp - (smsg.timestamp % SMSG_BUCKET_LEN);
 
     std::string fileName = ToString(bucket) + "_01_wl.dat";
-    fs::path fullpath = pathSmsgDir / fileName;
+    fs::path fullpath = pathSmsgDir / fs::PathFromString(fileName);
 
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "ab"))) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - Can't open file, error: %s.", __func__, SysErrorString(errno));
     }
 
     if (fwrite(pHeader, sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN
         || fwrite(pPayload, sizeof(uint8_t), nPayload, fp) != nPayload) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "%s - fwrite failed, strerror: %s.", __func__, strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "%s - fwrite failed, error: %s.", __func__, SysErrorString(errno));
     }
 
     fclose(fp);
@@ -3298,7 +3299,7 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
     long int ofs;
     fs::path pathSmsgDir;
     try {
-        pathSmsgDir = gArgs.GetDataDirNet() / STORE_DIR;
+        pathSmsgDir = gArgs.GetDataDirNet() / fs::PathFromString(STORE_DIR);
         fs::create_directory(pathSmsgDir);
     } catch (const fs::filesystem_error &ex) {
         return errorN(SMSG_GENERAL_ERROR, "Failed to create directory %s - %s.", fs::PathToString(pathSmsgDir), ex.what());
@@ -3329,26 +3330,26 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
     }
 
     std::string fileName = ToString(bucketTime) + "_01.dat";
-    fs::path fullpath = pathSmsgDir / fileName;
+    fs::path fullpath = pathSmsgDir / fs::PathFromString(fileName);
 
     FILE *fp;
     errno = 0;
     if (!(fp = fopen(fs::PathToString(fullpath).c_str(), "ab"))) {
-        return errorN(SMSG_GENERAL_ERROR, "fopen failed: %s.", strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "fopen failed: %s.", SysErrorString(errno));
     }
 
     // On windows ftell will always return 0 after fopen(ab), call fseek to set.
     errno = 0;
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "fseek failed: %s.", strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "fseek failed: %s.", SysErrorString(errno));
     }
 
     ofs = ftell(fp);
     if (fwrite(pHeader,  sizeof(uint8_t), SMSG_HDR_LEN, fp) != (size_t)SMSG_HDR_LEN
         || fwrite(pPayload, sizeof(uint8_t), nPayload, fp) != nPayload) {
         fclose(fp);
-        return errorN(SMSG_GENERAL_ERROR, "fwrite failed: %s.", strerror(errno));
+        return errorN(SMSG_GENERAL_ERROR, "fwrite failed: %s.", SysErrorString(errno));
     }
 
     fclose(fp);
@@ -4112,12 +4113,12 @@ int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
         FILE *fp;
         errno = 0;
         if (!(fp = fopen(message.c_str(), "rb"))) {
-            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "fopen failed: %s", strerror(errno));
+            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "fopen failed: %s", SysErrorString(errno));
         }
 
         if (fseek(fp, 0, SEEK_END) != 0) {
             fclose(fp);
-            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "fseek failed: %s", strerror(errno));
+            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "fseek failed: %s", SysErrorString(errno));
         }
 
         int64_t ofs = ftell(fp);
@@ -4132,7 +4133,7 @@ int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
         int64_t nRead = fread(&sFromFile[0], 1, ofs, fp);
         fclose(fp);
         if (ofs != nRead) {
-            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "fread failed: %s", strerror(errno));
+            return errorN(SMSG_GENERAL_ERROR, sError, __func__, "fread failed: %s", SysErrorString(errno));
         }
     }
 

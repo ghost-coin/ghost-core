@@ -307,6 +307,7 @@ BITCOIN_CORE_H = \
   util/spanparsing.h \
   util/string.h \
   util/syscall_sandbox.h \
+  util/syserror.h \
   util/system.h \
   util/thread.h \
   util/threadnames.h \
@@ -426,10 +427,12 @@ libparticl_node_a_SOURCES = \
   rest.cpp \
   rpc/anon.cpp \
   rpc/blockchain.cpp \
+  rpc/fees.cpp \
   rpc/mempool.cpp \
   rpc/mining.cpp \
-  rpc/misc.cpp \
+  rpc/node.cpp \
   rpc/net.cpp \
+  rpc/output_script.cpp \
   rpc/rawtransaction.cpp \
   rpc/server.cpp \
   rpc/client.cpp \
@@ -756,6 +759,7 @@ libparticl_util_a_SOURCES = \
   util/getuniquepath.cpp \
   util/hasher.cpp \
   util/sock.cpp \
+  util/syserror.cpp \
   util/system.cpp \
   util/message.cpp \
   util/moneystr.cpp \
@@ -1100,6 +1104,7 @@ libparticlkernel_la_SOURCES = \
   util/settings.cpp \
   util/strencodings.cpp \
   util/syscall_sandbox.cpp \
+  util/syserror.cpp \
   util/system.cpp \
   util/thread.cpp \
   util/threadnames.cpp \
