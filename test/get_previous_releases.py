@@ -72,6 +72,15 @@ SHA256_SUMS = {
     "9cc3a62c469fe57e11485fdd32c916f10ce7a2899299855a2e479256ff49ff3c": "bitcoin-22.0-riscv64-linux-gnu.tar.gz",
     "59ebd25dd82a51638b7a6bb914586201e67db67b919b2a1ff08925a7936d1b16": "bitcoin-22.0-x86_64-linux-gnu.tar.gz",
 
+    "06f4c78271a77752ba5990d60d81b1751507f77efda1e5981b4e92fd4d9969fb":  "bitcoin-23.0-aarch64-linux-gnu.tar.gz",
+    "952c574366aff76f6d6ad1c9ee45a361d64fa04155e973e926dfe7e26f9703a3":  "bitcoin-23.0-arm-linux-gnueabihf.tar.gz",
+    "7c8bc63731aa872b7b334a8a7d96e33536ad77d49029bad179b09dca32cd77ac":  "bitcoin-23.0-arm64-apple-darwin.tar.gz",
+    "2caa5898399e415f61d9af80a366a3008e5856efa15aaff74b88acf429674c99":  "bitcoin-23.0-powerpc64-linux-gnu.tar.gz",
+    "217dd0469d0f4962d22818c368358575f6a0abcba8804807bb75325eb2f28b19":  "bitcoin-23.0-powerpc64le-linux-gnu.tar.gz",
+    "078f96b1e92895009c798ab827fb3fde5f6719eee886bd0c0e93acab18ea4865":  "bitcoin-23.0-riscv64-linux-gnu.tar.gz",
+    "c816780583009a9dad426dc0c183c89be9da98906e1e2c7ebae91041c1aaaaf3":  "bitcoin-23.0-x86_64-apple-darwin.tar.gz",
+    "2cca490c1f2842884a3c5b0606f179f9f937177da4eadd628e3f7fd7e25d26d0":  "bitcoin-23.0-x86_64-linux-gnu.tar.gz",
+
     # Particl
     "fc649cb46d9f4ea4919bb87be8b685474f95f89ae82996dd1e36f2089b69f90d": "particl-0.18.1.7-aarch64-linux-gnu.tar.gz",
     "779e57c7e4d680736f972de07276a1037de6c2aa8a2c95c8087c43c56927dc60": "particl-0.18.1.7-arm-linux-gnueabihf.tar.gz",
@@ -80,18 +89,18 @@ SHA256_SUMS = {
     "e758db39812dd2edf2c4aec215dfce4802c37e3a881d81233d24afff9d61af32": "particl-0.18.1.7-x86_64-linux-gnu.tar.gz",
     "44c9f60a1f5fc8377cc1cef278a99b401a67ef0ff64429ce1aa21ca71bf73c04": "particl-0.18.1.7-osx64.tar.gz",
 
-    "6b240634cbf589cfc26266bdb73a546bb35449b23fdb5ae052005f9ae9335b1e": "particl-0.19.2.19-aarch64-linux-gnu.tar.gz",
-    "34daa533252016194762695c05f5e3e44813a92b25a85846f908869ec5630816": "particl-0.19.2.19-arm-linux-gnueabihf.tar.gz",
-    "b776e16d32674e98fb8ace0c731f59524ebc209ece4088c97486fd52b06cabfb": "particl-0.19.2.19-i686-pc-linux-gnu.tar.gz",
-    "66d131968f4b81cb7647492e4e6158f2a09acdd4b7c19d14f6495d3da33af4cc": "particl-0.19.2.19-riscv64-linux-gnu.tar.gz",
-    "853421893c0cfc6d6baf204bc15b5dfb2ba61be08b87868e86b76891f7d85bbc": "particl-0.19.2.19-x86_64-linux-gnu.tar.gz",
-    "f5670b245048eb6aebe787589b6f7bc9167a9741cd8ab3e4bdcbda7134808b43": "particl-0.19.2.19-osx64.tar.gz",
+    "94b0d872dc13e985428d12acf3969fb0ca9e5d0a99454929daf60cb9ef573f31": "particl-0.19.2.20-aarch64-linux-gnu.tar.gz",
+    "78f79e629c96ba909797cfd1d16ec9ac67e05fe29cacce5b03c07b34cb562bf4": "particl-0.19.2.20-arm-linux-gnueabihf.tar.gz",
+    "d4c3f7c2c0e8a767986082edb9df085a235468e354b0add546180aa8df6d4994": "particl-0.19.2.20-i686-pc-linux-gnu.tar.gz",
+    "a8d6c1b4090f24de6b0255a3c34cff54ec339bb132b05a71f1a3424560ee2664": "particl-0.19.2.20-riscv64-linux-gnu.tar.gz",
+    "6ac6fee114cdb1e8914e6d43ae3c5f227542a30772000fe202796eb8710c48cf": "particl-0.19.2.20-x86_64-linux-gnu.tar.gz",
+    "960a69830a22bad28f7251cd014ff2a4f1a6dc049aa93852aa6bdd920fcf6dd3": "particl-0.19.2.20-osx64.tar.gz",
 
-    "074ea147fa3535f29c6cec34d57d491d6a6431fa01a8bbd7df53a10523b661b3": "particl-0.21.2.7-aarch64-linux-gnu.tar.gz",
-    "2f153b59fd37ede6d274c48fd4c82b5cd8f7065132231936a461ee135fa133a1": "particl-0.21.2.7-arm-linux-gnueabihf.tar.gz",
-    "f2dba69aed3902c8c958b1c2ff64c1ecb8ca6d79a9ef983d72e732b28e0af2e5": "particl-0.21.2.7-osx64.tar.gz",
-    "bdcd3c520f196d27a0d2fbfeb22f51b8e01be83556d764e15d836cca3b90a20c": "particl-0.21.2.7-riscv64-linux-gnu.tar.gz",
-    "973e3594820e74d6ce0d11d6090a5395d81d7018a56d2c074933ec73f98e25e9": "particl-0.21.2.7-x86_64-linux-gnu.tar.gz",
+    "56c899c09cb11948c9b81e92ff2599fbcf8cd18b10fd3e708064d37b1b1c4bbd": "particl-0.21.2.9-aarch64-linux-gnu.tar.gz",
+    "731a8c7623974b0581d494e89097e42ddd42a19f5567e32d2c5bedbdd6c9d42c": "particl-0.21.2.9-arm-linux-gnueabihf.tar.gz",
+    "c9eb68dc0557b9ebbee5aec36f54e91855d6adc54e415a975ad2b58669ff1a44": "particl-0.21.2.9-osx64.tar.gz",
+    "ca8dcbd078ac9bc5d358aa0a38f2284b707be926ae87d1eff0ea97e36f0934f4": "particl-0.21.2.9-riscv64-linux-gnu.tar.gz",
+    "137b80d47add5cb1847219d9fa929e7ac9ee4c7f72d1703c6012a7c57802b568": "particl-0.21.2.9-x86_64-linux-gnu.tar.gz",
 }
 
 
@@ -117,8 +126,11 @@ def download_binary(tag, args) -> int:
     #if match:
     #    bin_path = 'bin/particl-core-{}/test.{}'.format(
     #        match.group(1), match.group(2))
+    platform = args.platform
+    if tag < "v23" and platform in ["x86_64-apple-darwin", "aarch64-apple-darwin"]:
+        platform = "osx64"
     tarball = 'particl-{tag}-{platform}.tar.gz'.format(
-        tag=tag[1:], platform=args.platform)
+        tag=tag[1:], platform=platform)
     #tarballUrl = 'https://bitcoincore.org/{bin_path}/{tarball}'.format(
     #    bin_path=bin_path, tarball=tarball)
     tarballUrl = 'https://github.com/particl/particl-core/releases/download/v{tag}/{tarball}'.format(
@@ -224,8 +236,8 @@ def check_host(args) -> int:
         platforms = {
             'aarch64-*-linux*': 'aarch64-linux-gnu',
             'x86_64-*-linux*': 'x86_64-linux-gnu',
-            'x86_64-apple-darwin*': 'osx64',
-            'aarch64-apple-darwin*': 'osx64',
+            'x86_64-apple-darwin*': 'x86_64-apple-darwin',
+            'aarch64-apple-darwin*': 'aarch64-apple-darwin',
         }
         args.platform = ''
         for pattern, target in platforms.items():

@@ -6,6 +6,7 @@
 #ifndef BITCOIN_SCRIPT_SIGN_H
 #define BITCOIN_SCRIPT_SIGN_H
 
+#include <attributes.h>
 #include <coins.h>
 #include <hash.h>
 #include <pubkey.h>
@@ -37,8 +38,9 @@ public:
 };
 
 /** A signature creator for transactions. */
-class MutableTransactionSignatureCreator : public BaseSignatureCreator {
-    const CMutableTransaction* txTo;
+class MutableTransactionSignatureCreator : public BaseSignatureCreator
+{
+    const CMutableTransaction& m_txto;
     unsigned int nIn;
     int nHashType;
     std::vector<uint8_t> amount;
@@ -46,16 +48,16 @@ class MutableTransactionSignatureCreator : public BaseSignatureCreator {
     const PrecomputedTransactionData* m_txdata;
 
 public:
-    MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const std::vector<uint8_t>& amountIn, int hash_type = SIGHASH_ALL);
-    MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const std::vector<uint8_t>& amountIn, const PrecomputedTransactionData* txdata, int hash_type);
-    MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const CAmount& amountIn, int hash_type);
-    MutableTransactionSignatureCreator(const CMutableTransaction* tx, unsigned int input_idx, const CAmount& amountIn, const PrecomputedTransactionData* txdata, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const std::vector<uint8_t>& amountIn, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const std::vector<uint8_t>& amountIn, const PrecomputedTransactionData* txdata, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmount& amountIn, int hash_type);
+    MutableTransactionSignatureCreator(const CMutableTransaction& tx LIFETIMEBOUND, unsigned int input_idx, const CAmount& amountIn, const PrecomputedTransactionData* txdata, int hash_type);
     const BaseSignatureChecker& Checker() const override { return checker; }
     bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const override;
 
-    bool IsParticlVersion() const override { return txTo && txTo->IsParticlVersion(); }
-    bool IsCoinStake() const override { return txTo && txTo->IsCoinStake(); }
+    bool IsParticlVersion() const override { return m_txto.IsParticlVersion(); }
+    bool IsCoinStake() const override { return m_txto.IsCoinStake(); }
 };
 
 /** A signature creator that just produces 71-byte empty signatures. */

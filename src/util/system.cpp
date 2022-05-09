@@ -77,7 +77,6 @@
 #include <malloc.h>
 #endif
 
-#include <boost/algorithm/string/replace.hpp>
 #include <univalue.h>
 
 #include <fstream>
@@ -1269,7 +1268,7 @@ fs::path GetSpecialFolderPath(int nFolder, bool fCreate)
 std::string ShellEscape(const std::string& arg)
 {
     std::string escaped = arg;
-    boost::replace_all(escaped, "'", "'\"'\"'");
+    ReplaceAll(escaped, "'", "'\"'\"'");
     return "'" + escaped + "'";
 }
 #endif

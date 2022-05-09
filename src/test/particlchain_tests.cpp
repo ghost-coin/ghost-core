@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(signature_test)
     part::SetAmount(vchAmount, out1->nValue);
 
     SignatureData sigdata;
-    BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(&txn2, 0, vchAmount, SIGHASH_ALL), script, sigdata));
+    BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(txn2, 0, vchAmount, SIGHASH_ALL), script, sigdata));
 
     ScriptError serror = SCRIPT_ERR_OK;
     BOOST_CHECK(VerifyScript(txn2.vin[0].scriptSig, out1->scriptPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txn2, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
@@ -556,7 +556,7 @@ BOOST_AUTO_TEST_CASE(taproot)
     spent_outputs.emplace_back(vchAmount, tr_scriptPubKey_out);
     txdata.Init_vec(txn, std::move(spent_outputs), true);
 
-    MutableTransactionSignatureCreator sig_creator(&txn, 0, vchAmount, &txdata, SIGHASH_ALL);
+    MutableTransactionSignatureCreator sig_creator(txn, 0, vchAmount, &txdata, SIGHASH_ALL);
 
     FlatSigningProvider keystore;
     keystore.keys[k1.GetPubKey().GetID()] = k1;
@@ -624,7 +624,7 @@ BOOST_AUTO_TEST_CASE(taproot)
     part::SetAmount(vchAmount, 1 * COIN);
     spent_outputs.emplace_back(vchAmount, tr_scriptPubKey);
     txdata.Init_vec(txn, std::move(spent_outputs), true);
-    MutableTransactionSignatureCreator sig_creator(&txn, 0, vchAmount, &txdata, SIGHASH_ALL);
+    MutableTransactionSignatureCreator sig_creator(txn, 0, vchAmount, &txdata, SIGHASH_ALL);
 
     FlatSigningProvider keystore;
     keystore.keys[k2.GetPubKey().GetID()] = k2;
@@ -725,7 +725,7 @@ BOOST_AUTO_TEST_CASE(taproot)
         part::SetAmount(vchAmount, 1 * COIN);
         spent_outputs.emplace_back(vchAmount, tr_scriptPubKey);
         txdata.Init_vec(txn, std::move(spent_outputs), true);
-        MutableTransactionSignatureCreator sig_creator(&txn, 0, vchAmount, &txdata, SIGHASH_ALL);
+        MutableTransactionSignatureCreator sig_creator(txn, 0, vchAmount, &txdata, SIGHASH_ALL);
 
         FlatSigningProvider keystore;
         keystore.keys[k1.GetPubKey().GetID()] = k1;

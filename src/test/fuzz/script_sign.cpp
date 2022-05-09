@@ -116,7 +116,7 @@ FUZZ_TARGET_INIT(script_sign, initialize_script_sign)
                 CAmount value = ConsumeMoney(fuzzed_data_provider);
                 std::vector<uint8_t> vchAmount(8);
                 part::SetAmount(vchAmount, value);
-                MutableTransactionSignatureCreator signature_creator{&tx_to, n_in, vchAmount, fuzzed_data_provider.ConsumeIntegral<int>()};
+                MutableTransactionSignatureCreator signature_creator{tx_to, n_in, vchAmount, fuzzed_data_provider.ConsumeIntegral<int>()};
                 std::vector<unsigned char> vch_sig;
                 CKeyID address;
                 if (fuzzed_data_provider.ConsumeBool()) {

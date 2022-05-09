@@ -39,8 +39,8 @@ class BackwardsCompatibilityTest(ParticlTestFramework):
         self.extra_args = [
             ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=noban@127.0.0.1"], # Pre-release: use to mine blocks
             ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=noban@127.0.0.1"], # Pre-release: use to receive coins, swap wallets, etc
-            ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=noban@127.0.0.1"], # v0.21.2.7
-            ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=noban@127.0.0.1"], # v0.19.2.19
+            ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=noban@127.0.0.1"], # v0.21.2.9
+            ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=noban@127.0.0.1"], # v0.19.2.20
             ["-reservebalance=10000000", "-nowallet", "-addresstype=bech32", "-whitelist=127.0.0.1"], # v0.18.1.7
         ]
         self.wallet_names = [self.default_wallet_name]
@@ -53,9 +53,9 @@ class BackwardsCompatibilityTest(ParticlTestFramework):
         self.add_nodes(self.num_nodes, extra_args=self.extra_args, versions=[
             None,
             None,
-            210207,
-            190219,
-            190219,
+            210209,
+            190220,
+            190220,
             # 180107, # TODO, build with raised minproto
         ])
 

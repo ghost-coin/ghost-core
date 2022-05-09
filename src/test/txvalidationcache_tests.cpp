@@ -341,10 +341,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
 
         // Sign
         SignatureData sigdata;
-        CAmount amount = 11*CENT;
-        std::vector<uint8_t> vchAmount(8);
-        part::SetAmount(vchAmount, amount);
-        BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, vchAmount, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata));
+        BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(valid_with_witness_tx, 0, 11 * CENT, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata));
         UpdateInput(valid_with_witness_tx.vin[0], sigdata);
 
         // This should be valid under all script flags.
@@ -370,12 +367,9 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
         tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
 
         // Sign
-        for (int i=0; i<2; ++i) {
+        for (int i = 0; i < 2; ++i) {
             SignatureData sigdata;
-            CAmount amount = 11*CENT;
-            std::vector<uint8_t> vchAmount(8);
-            part::SetAmount(vchAmount, amount);
-            BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(&tx, i, vchAmount, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata));
+            BOOST_CHECK(ProduceSignature(keystore, MutableTransactionSignatureCreator(tx, i, 11 * CENT, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata));
             UpdateInput(tx.vin[i], sigdata);
         }
 

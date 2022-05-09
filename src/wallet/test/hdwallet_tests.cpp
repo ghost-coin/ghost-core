@@ -582,8 +582,8 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     part::SetAmount(vchAmount, nValue);
 
 
-    BOOST_CHECK(ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataA));
-    BOOST_CHECK(!ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
+    BOOST_CHECK(ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataA));
+    BOOST_CHECK(!ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
 
 
     ScriptError serror = SCRIPT_ERR_OK;
@@ -599,8 +599,8 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     // This should fail anyway as the txn changed
     BOOST_CHECK(!VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
-    BOOST_CHECK(!ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataC));
-    BOOST_CHECK(ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
+    BOOST_CHECK(!ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataC));
+    BOOST_CHECK(ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
 
     BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataB.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 

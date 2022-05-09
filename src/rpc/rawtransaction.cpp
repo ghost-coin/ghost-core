@@ -782,7 +782,7 @@ static RPCHelpMan combinerawtransaction()
                 sigdata.MergeSignatureData(DataFromTransaction(txv, i, vchAmount, prevPubKey));
             }
         }
-        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, vchAmount, 1), prevPubKey, sigdata);
+        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(mergedTx, i, vchAmount, 1), prevPubKey, sigdata);
 
         UpdateInput(txin, sigdata);
     }

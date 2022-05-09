@@ -5980,7 +5980,7 @@ static UniValue createsignatureinner(const JSONRPCRequest &request, ChainstateMa
         CTxIn& txin = mtx.vin[i];
 
         if (txin.prevout == prev_out) {
-            MutableTransactionSignatureCreator creator(&mtx, i, vchAmount, nHashType);
+            MutableTransactionSignatureCreator creator(mtx, i, vchAmount, nHashType);
             CScript &scriptSig = (sigversion == SigVersion::WITNESS_V0
                                   || scriptPubKey.IsPayToScriptHashAny(mtx.IsCoinStake()))
                                  ? scriptRedeem : scriptPubKey;

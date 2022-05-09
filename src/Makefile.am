@@ -1103,6 +1103,7 @@ libparticlkernel_la_SOURCES = \
   util/serfloat.cpp \
   util/settings.cpp \
   util/strencodings.cpp \
+  util/string.cpp \
   util/syscall_sandbox.cpp \
   util/syserror.cpp \
   util/system.cpp \

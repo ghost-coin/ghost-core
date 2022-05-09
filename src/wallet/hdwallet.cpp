@@ -4170,7 +4170,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 if (!provider) {
                     return wserrorN(1, sError, __func__, _("GetLegacyScriptPubKeyMan failed").translated);
                 }
-                if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+                if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
                     return wserrorN(1, sError, __func__, _("Signing transaction failed").translated);
                 }
                 UpdateInput(txNew.vin[nIn], sigdata);
@@ -4829,7 +4829,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 if (!provider) {
                     return wserrorN(1, sError, __func__, _("GetLegacyScriptPubKeyMan failed").translated);
                 }
-                if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+                if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
                     return wserrorN(1, sError, __func__, _("Signing transaction failed").translated);
                 }
                 UpdateInput(txNew.vin[nIn], sigdata);
@@ -8839,7 +8839,7 @@ bool CHDWallet::SignTransaction(CMutableTransaction &tx) const
         if (!provider) {
             return false;
         }
-        if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(&tx, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+        if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(tx, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
             return false;
         }
         UpdateInput(input, sigdata);
@@ -13753,7 +13753,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         part::SetAmount(vchAmount, pcoin.txout.nValue);
 
         SignatureData sigdata;
-        if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), pcoin.txout.scriptPubKey, sigdata)) {
+        if (!ProduceSignature(*provider, MutableTransactionSignatureCreator(txNew, nIn, vchAmount, SIGHASH_ALL), pcoin.txout.scriptPubKey, sigdata)) {
             return werror("%s: ProduceSignature failed.", __func__);
         }
 
