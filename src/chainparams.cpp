@@ -521,8 +521,8 @@ public:
         pchMessageStart[2] = 0xe1;
         pchMessageStart[3] = 0xb4;
         nDefaultPort = 51728;
-        nBIP44IDLegacy = 0x8000002C;
-        nBIP44IDCurrent = 0x80000213;
+        nBIP44IDLegacy = (int)WithHardenedBit(44);;
+        nBIP44IDCurrent = (int)WithHardenedBit(44);;
 
         nModifierInterval = 10 * 60;    // 10 minutes
         nStakeMinConfirmations = 225;   // 225 * 2 minutes
@@ -555,10 +555,10 @@ public:
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
-        vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66.67, 5040));
-        vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66.67, 5040));
-        vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66.67, 5040)); //Approx each week to GVR Funds addr
-        vTreasuryFundSettings.emplace_back(0,      TreasuryFundSettings("GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV", 33.00, 360));  //Approx each 12 hr payment to dev fund
+        vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 60, 5040));
+        vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 61, 5040));
+        vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 64, 5040)); //Approx each week to GVR Funds addr
+        vTreasuryFundSettings.emplace_back(0,      TreasuryFundSettings("GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV", 36, 360));  //Approx each 12 hr payment to dev fund
 
         base58Prefixes[PUBKEY_ADDRESS]     = {0x26}; // G
         base58Prefixes[SCRIPT_ADDRESS]     = {0x61}; // g
@@ -1015,8 +1015,8 @@ public:
         pchMessageStart[2] = 0x06;
         pchMessageStart[3] = 0x0c;
         nDefaultPort = 11928;
-        nBIP44IDCurrent = 0x80000001;
-        nBIP44IDLegacy = nBIP44IDCurrent;
+        nBIP44IDCurrent = 0x8000002C;
+        nBIP44IDLegacy = 0x8000002C;
 
         nModifierInterval = 2 * 60;    // 10 minutes
         nStakeMinConfirmations = 12;   // 12 * 2 minutes
