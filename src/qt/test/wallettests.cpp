@@ -145,8 +145,7 @@ void BumpFee(TransactionView& view, const uint256& txid, bool expectDisabled, st
 //     QT_QPA_PLATFORM=cocoa   src/qt/test/test_bitcoin-qt  # macOS
 void TestGUI(interfaces::Node& node)
 {
-    // TODO: convert to CHDWallet or modify gui code to allow CWallet again
-    return;
+    return; // Particl TODO: convert to CHDWallet or modify gui code to allow CWallet again
 
     // Set up wallet and chain with 105 blocks (5 mature blocks for spending).
     TestChain100Setup test;

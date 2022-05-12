@@ -133,8 +133,6 @@ void TestAddAddressesToSendBook(interfaces::Node& node)
     EditAddressDialog editAddressDialog(EditAddressDialog::NewSendingAddress);
     editAddressDialog.setModel(walletModel.getAddressTableModel());
 
-    return; // Particl TODO, fix segfault?
-
     AddressBookPage address_book{platformStyle.get(), AddressBookPage::ForEditing, AddressBookPage::SendingTab};
     address_book.setModel(walletModel.getAddressTableModel());
     auto table_view = address_book.findChild<QTableView*>("tableView");

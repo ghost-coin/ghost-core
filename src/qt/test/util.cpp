@@ -18,6 +18,7 @@ void ConfirmMessage(QString* text, std::chrono::milliseconds msec)
             if (widget->inherits("QMessageBox")) {
                 QMessageBox* messageBox = qobject_cast<QMessageBox*>(widget);
                 if (text) *text = messageBox->text();
+                if (messageBox->defaultButton()) // TestAddAddressesToSendBook creates a messagebox with no default button
                 messageBox->defaultButton()->click();
             }
         }
