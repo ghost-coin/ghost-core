@@ -87,9 +87,9 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
     // TODO: drop low value bits to fee
 
     if (nValueIn == 0) {
-        exponent = GetRandInt(5);
-        if (GetRandInt(10) == 0) { // sometimes raise the exponent
-            nBits += GetRandInt(5);
+        exponent = GetRand<int>(5);
+        if (GetRand<int>(10) == 0) { // sometimes raise the exponent
+            nBits += GetRand<int>(5);
         }
         return 0;
     }
@@ -105,7 +105,7 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
     int eMin = nDiv10 / 2;
     exponent = eMin;
     if (nDiv10-eMin > 0) {
-        exponent += GetRandInt(nDiv10-eMin);
+        exponent += GetRand<int>(nDiv10-eMin);
     }
 
     nTest = nValueIn / ipow(10, exponent);

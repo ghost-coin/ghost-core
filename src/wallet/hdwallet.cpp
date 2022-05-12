@@ -3726,7 +3726,7 @@ static bool InsertChangeAddress(CTempRecipient &r, std::vector<CTempRecipient> &
 {
     r.fChange = true;
     if (nChangePosInOut < 0) {
-        nChangePosInOut = GetRandInt(vecSend.size() + 1);
+        nChangePosInOut = GetRand<int>(vecSend.size() + 1);
     } else {
         nChangePosInOut = std::min(nChangePosInOut, (int)vecSend.size());
     }
@@ -3797,8 +3797,8 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     txNew.nLockTime = chain().getHeightInt();
 
     // 1/10 chance of random time further back to increase privacy
-    if (GetRandInt(10) == 0) {
-        txNew.nLockTime = std::max(0, (int)txNew.nLockTime - GetRandInt(100));
+    if (GetRand<int>(10) == 0) {
+        txNew.nLockTime = std::max(0, (int)txNew.nLockTime - GetRand<int>(100));
     }
 
     assert(txNew.nLockTime <= (unsigned int)chain().getHeightInt());
@@ -4333,7 +4333,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         CTempRecipient &r0 = vecSend[0];
         CTempRecipient rN;
         rN.nType = r0.nType;
-        rN.nAmount = r0.nAmount * ((float)GetRandInt(100) / 100.0);
+        rN.nAmount = r0.nAmount * ((float)GetRand<int>(100) / 100.0);
         rN.nAmountSelected = rN.nAmount;
         rN.address = r0.address;
         rN.fSubtractFeeFromAmount = r0.fSubtractFeeFromAmount;
@@ -4424,8 +4424,8 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     txNew.nLockTime = chain().getHeightInt();
 
     // 1/10 chance of random time further back to increase privacy
-    if (GetRandInt(10) == 0) {
-        txNew.nLockTime = std::max(0, (int)txNew.nLockTime - GetRandInt(100));
+    if (GetRand<int>(10) == 0) {
+        txNew.nLockTime = std::max(0, (int)txNew.nLockTime - GetRand<int>(100));
     }
 
     assert(txNew.nLockTime <= (unsigned int)chain().getHeightInt());
@@ -4502,7 +4502,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     if (!SetChangeDest(coinControl, r2, sError)) {
                         return wserrorN(1, sError, __func__, ("SetChangeDest failed: " + sError));
                     }
-                    CAmount value_split = value_change * ((float)GetRandInt(100) / 100.0);
+                    CAmount value_split = value_change * ((float)GetRand<int>(100) / 100.0);
                     value_change -= value_split;
                     r2.SetAmount(value_split);
                     InsertChangeAddress(r2, vecSend, nChangePosInOut);
@@ -4938,7 +4938,7 @@ int CHDWallet::PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t 
         return wserrorN(1, sError, __func__, _("Ring size out of range [%d, %d]").translated, MIN_RINGSIZE, MAX_RINGSIZE);
     }
 
-    nSecretColumn = GetRandInt(nRingSize);
+    nSecretColumn = GetRand<int>(nRingSize);
 
     CHDWalletDB wdb(*m_database);
     vMI.resize(vCoins.size());
@@ -5125,7 +5125,7 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
 
             if (coinControl->m_mixin_selection_mode == MIXIN_SEL_RECENT) {
                 static const int max_r = 1000;
-                int g_r = GetRandInt(max_r);
+                int g_r = GetRand<int>(max_r);
                 for (int j = 0; j < max_groups; j++) {
                     if (g_r <= max_r * distribution[j]) {
                         select_min = nLastRCTOutIndex - ranges[j];
@@ -5142,13 +5142,13 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI,
             if (coinControl->m_mixin_selection_mode == MIXIN_SEL_NEARBY) {
                 int64_t select_range = 0;
                 int64_t select_near = 0;
-                if (GetRandInt(100) < 50) { // 50% chance of selecting within 5000 places of a random input
+                if (GetRand<int>(100) < 50) { // 50% chance of selecting within 5000 places of a random input
                     select_range = nRCTOutSelectionGroup1;
-                    select_near = real_inputs[GetRandInt(real_inputs.size())];
+                    select_near = real_inputs[GetRand<int>(real_inputs.size())];
                 } else
-                if (GetRandInt(100) < 40) { // Further 40% chance of selecting within 50000 places of a random input
+                if (GetRand<int>(100) < 40) { // Further 40% chance of selecting within 50000 places of a random input
                     select_range = nRCTOutSelectionGroup2;
-                    select_near = real_inputs[GetRandInt(real_inputs.size())];
+                    select_near = real_inputs[GetRand<int>(real_inputs.size())];
                 }
 
                 if (select_near) {

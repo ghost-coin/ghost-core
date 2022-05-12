@@ -1934,7 +1934,7 @@ bool CSMSG::SendData(CNode *pto, bool fSendTrickle)
 
     {
         LOCK(pto->smsgData.cs_smsg_net);
-        pto->smsgData.lastSeen = now + GetRandInt(1);
+        pto->smsgData.lastSeen = now + GetRand<int>(1);
     }
 
     return true;
