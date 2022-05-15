@@ -16,7 +16,6 @@
 #include <util/translation.h>
 #include <util/vector.h>
 
-extern bool fParticlMode;
 typedef std::vector<unsigned char> valtype;
 
 MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction& tx, unsigned int input_idx, const std::vector<uint8_t>& amountIn, int hash_type)

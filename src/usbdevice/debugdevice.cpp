@@ -8,8 +8,7 @@
 #include <univalue.h>
 #include <validation.h>
 #include <hash.h>
-
-extern const std::string MESSAGE_MAGIC;
+#include <util/message.h>
 
 namespace usb_device {
 

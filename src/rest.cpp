@@ -38,8 +38,6 @@ using node::GetTransaction;
 using node::NodeContext;
 using node::ReadBlockFromDisk;
 
-extern bool fParticlMode;
-
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
 static constexpr unsigned int MAX_REST_HEADERS_RESULTS = 2000;
 

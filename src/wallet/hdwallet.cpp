@@ -52,8 +52,6 @@
 
 using interfaces::FoundBlock;
 
-extern const std::string MESSAGE_MAGIC;
-
 static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
 
 static uint8_t GetOutputType(ChainstateManager *pchainman, const COutPoint &prevout)

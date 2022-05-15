@@ -85,8 +85,6 @@ void Seed(FastRandomContext& ctx)
     ctx = FastRandomContext(seed);
 }
 
-extern bool fParticlMode;
-
 std::ostream& operator<<(std::ostream& os, const uint256& num)
 {
     os << num.ToString();
