@@ -13786,13 +13786,14 @@ bool CHDWallet::SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int
     if (pblock->vtx.size() < 1) {
         return werror("%s: Malformed block.", __func__);
     }
+    const Consensus::Params &consensusParams = Params().GetConsensus();
 
     int64_t nFees = -pblocktemplate->vTxFees[0];
     CBlockIndex *pindexPrev = chain().getTip();
 
     CKey key;
     pblock->nVersion = PARTICL_BLOCK_VERSION;
-    pblock->nBits = GetNextTargetRequired(pindexPrev);
+    pblock->nBits = GetNextTargetRequired(pindexPrev, consensusParams);
     if (LogAcceptCategory(BCLog::POS)) {
         WalletLogPrintf("%s, nBits %d\n", __func__, pblock->nBits);
     }

@@ -37,14 +37,14 @@
 BOOST_FIXTURE_TEST_SUITE(rct_tests, StakeTestingSetup)
 
 
-bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, BlockValidationState &state)
+bool ProcessNewBlock(const std::shared_ptr<const CBlock> pblock, BlockValidationState &state)
 {
     // Copy of ChainstateManager::ProcessNewBlock with state passthrough
     CBlockIndex *pindex = nullptr;
     bool fForceProcessing = true;
     {
         LOCK(cs_main);
-        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
+        bool ret = CheckBlock(*pblock, state, state.m_chainman->ActiveChainstate().m_params.GetConsensus());
         if (ret) {
             ret = state.m_chainman->ActiveChainstate().AcceptBlock(pblock, state, &pindex, fForceProcessing, nullptr, nullptr);
         }
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     state.m_chainman = m_node.chainman.get();
     state.m_peerman = m_node.peerman.get();
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    BOOST_REQUIRE(!ProcessNewBlock(Params(), shared_pblock, state));
+    BOOST_REQUIRE(!ProcessNewBlock(shared_pblock, state));
     BOOST_REQUIRE(state.GetRejectReason() == "bad-anonin-dup-ki");
     }
 
@@ -441,7 +441,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     state.m_chainman = m_node.chainman.get();
     state.m_peerman = m_node.peerman.get();
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    BOOST_REQUIRE(ProcessNewBlock(Params(), shared_pblock, state));
+    BOOST_REQUIRE(ProcessNewBlock(shared_pblock, state));
     }
     BOOST_REQUIRE(WITH_LOCK(cs_main, return chain_active.Height()) > nBestHeight);
 

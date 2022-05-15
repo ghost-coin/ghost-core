@@ -34,7 +34,7 @@ struct bilingual_str;
 namespace wallet {
 
 struct WalletDatabaseFileId {
-    u_int8_t value[DB_FILE_ID_LEN];
+    uint8_t value[DB_FILE_ID_LEN];
     bool operator==(const WalletDatabaseFileId& rhs) const;
 };
 
@@ -183,7 +183,7 @@ public:
 
         // delegate to Dbt
         const void* get_data() const;
-        u_int32_t get_size() const;
+        uint32_t get_size() const;
 
         // conversion operator to access the underlying Dbt
         operator Dbt*();
