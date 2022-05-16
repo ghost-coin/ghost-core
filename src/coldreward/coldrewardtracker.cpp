@@ -50,6 +50,13 @@ void ColdRewardTracker::updateAddressRangesCache(const AddressType& addr, std::v
     addressesRanges[addr] = ranges;
 }
 
+void ColdRewardTracker::AssertTrue(bool valueShouldBeTrue, const std::string& functionName, const std::string &msg)
+{
+    if(!valueShouldBeTrue) {
+        throw std::invalid_argument(functionName + ": " + msg);
+    }
+}
+
 void ColdRewardTracker::startPersistedTransaction()
 {
     transactionStarter();
@@ -77,7 +84,8 @@ void ColdRewardTracker::revertPersistedTransaction()
 
 std::vector<ColdRewardTracker::AddressType> ColdRewardTracker::getEligibleAddresses(int currentBlockHeight)
 {
-    assert(currentBlockHeight % MinimumRewardRangeSpan == 0);
+    AssertTrue(currentBlockHeight % MinimumRewardRangeSpan == 0, std::string(__func__),
+        "Block height should be a multiple of the reward range span");
     std::map<AddressType, std::vector<BlockHeightRange>> ranges = allRangesGetter();
     std::vector<AddressType> result;
 
@@ -85,7 +93,7 @@ std::vector<ColdRewardTracker::AddressType> ColdRewardTracker::getEligibleAddres
         const std::vector<BlockHeightRange>& ar = r.second;
         if(!ar.empty())
         {
-            assert(ar.back().getEnd() <= currentBlockHeight);
+            AssertTrue(ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
             if(currentBlockHeight - ar.back().getStart() >= MinimumRewardRangeSpan && ar.back().isOverThreshold())
             {
                 result.push_back(r.first);
@@ -98,7 +106,7 @@ std::vector<ColdRewardTracker::AddressType> ColdRewardTracker::getEligibleAddres
 void ColdRewardTracker::addAddressTransaction(int blockHeight, const AddressType& address, const CAmount& balanceChange)
 {
     CAmount balance = getBalance(address) + balanceChange;
-    assert(balance >= 0); // balance should always be >= 0
+    AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
     balances[address] = balance;
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
     if (balance >= GVRThreshold) {
@@ -124,7 +132,7 @@ void ColdRewardTracker::addAddressTransaction(int blockHeight, const AddressType
 void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressType& address, const CAmount& balanceChangeInBlock)
 {
     CAmount balance = balanceGetter(address) - balanceChangeInBlock;
-    assert(balance >= 0); // balance should always be >= 0
+    AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
     balances[address] = balance;
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
     if (ranges.size() > 0) {
