@@ -1075,8 +1075,7 @@ static RPCHelpMan gettxout()
     UniValue ret(UniValue::VOBJ);
 
     uint256 hash(ParseHashV(request.params[0], "txid"));
-    int n = request.params[1].get_int();
-    COutPoint out(hash, n);
+    COutPoint out{hash, request.params[1].getInt<uint32_t>()};
     bool fMempool = true;
     if (!request.params[2].isNull())
         fMempool = request.params[2].get_bool();
@@ -1232,16 +1231,9 @@ static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softfo
     softforks.pushKV(DeploymentName(id), rv);
 }
 
-namespace {
-/* TODO: when -deprecatedrpc=softforks is removed, drop these */
-UniValue DeploymentInfo(const CBlockIndex* tip, const ChainstateManager& chainman);
-extern const std::vector<RPCResult> RPCHelpForDeployment;
-}
-
 // used by rest.cpp:rest_chaininfo, so cannot be static
 RPCHelpMan getblockchaininfo()
 {
-    /* TODO: from v24, remove -deprecatedrpc=softforks */
     return RPCHelpMan{"getblockchaininfo",
         "Returns an object containing various state info regarding blockchain processing.\n",
         {},
@@ -1263,15 +1255,9 @@ RPCHelpMan getblockchaininfo()
                 {RPCResult::Type::STR_HEX, "chainwork", "total amount of work in active chain, in hexadecimal"},
                 {RPCResult::Type::NUM, "size_on_disk", "the estimated size of the block and undo files on disk"},
                 {RPCResult::Type::BOOL, "pruned", "if the blocks are subject to pruning"},
-                {RPCResult::Type::NUM, "pruneheight", /*optional=*/true, "lowest-height complete block stored (only present if pruning is enabled)"},
+                {RPCResult::Type::NUM, "pruneheight", /*optional=*/true, "height of the last block pruned, plus one (only present if pruning is enabled)"},
                 {RPCResult::Type::BOOL, "automatic_pruning", /*optional=*/true, "whether automatic pruning is enabled (only present if pruning is enabled)"},
                 {RPCResult::Type::NUM, "prune_target_size", /*optional=*/true, "the target size used by pruning (only present if automatic pruning is enabled)"},
-                {RPCResult::Type::OBJ_DYN, "softforks", /*optional=*/true, "(DEPRECATED, returned only if config option -deprecatedrpc=softforks is passed) status of softforks",
-                {
-                    {RPCResult::Type::OBJ, "xxxx", "name of the softfork",
-                        RPCHelpForDeployment
-                    },
-                }},
                 {RPCResult::Type::STR, "warnings", "any network and blockchain warnings"},
             }},
         RPCExamples{
@@ -1314,10 +1300,6 @@ RPCHelpMan getblockchaininfo()
         if (automatic_pruning) {
             obj.pushKV("prune_target_size",  node::nPruneTarget);
         }
-    }
-
-    if (!fParticlMode && IsDeprecatedRPCEnabled("softforks")) {
-        obj.pushKV("softforks", DeploymentInfo(&tip, chainman));
     }
 
     obj.pushKV("warnings", GetWarnings(false).original);

@@ -17,6 +17,7 @@ using interfaces::FoundBlock;
 
 namespace wallet {
 void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry, bool fFilterMode=false)
+    EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     interfaces::Chain& chain = wallet.chain();
     int confirms = wallet.GetTxDepthInMainChain(wtx);
