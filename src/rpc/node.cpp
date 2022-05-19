@@ -58,7 +58,7 @@ static RPCHelpMan setmocktime()
 
     RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VBOOL}, true);
     bool isOffset = request.params.size() > 1 ? GetBool(request.params[1]) : false;
-    int64_t time = request.params[0].get_int64();
+    const int64_t time{request.params[0].getInt<int64_t>()};
     if (time < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Mocktime cannot be negative: %s.", time));
     }
@@ -162,7 +162,7 @@ static RPCHelpMan mockscheduler()
 
     // check params are valid values
     RPCTypeCheck(request.params, {UniValue::VNUM});
-    int64_t delta_seconds = request.params[0].get_int64();
+    int64_t delta_seconds = request.params[0].getInt<int64_t>();
     if (delta_seconds <= 0 || delta_seconds > 3600) {
         throw std::runtime_error("delta_time must be between 1 and 3600 seconds (1 hr)");
     }

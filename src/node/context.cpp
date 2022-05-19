@@ -17,6 +17,6 @@
 #include <smsg/manager.h>
 
 namespace node {
-NodeContext::NodeContext() {}
-NodeContext::~NodeContext() {}
+NodeContext::NodeContext() = default;
+NodeContext::~NodeContext() = default;
 } // namespace node

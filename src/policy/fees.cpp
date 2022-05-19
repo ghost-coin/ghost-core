@@ -538,9 +538,7 @@ CBlockPolicyEstimator::CBlockPolicyEstimator()
     }
 }
 
-CBlockPolicyEstimator::~CBlockPolicyEstimator()
-{
-}
+CBlockPolicyEstimator::~CBlockPolicyEstimator() = default;
 
 bool GetFeeRate(const CTxMemPoolEntry *entry, CFeeRate &feeRate)
 {
