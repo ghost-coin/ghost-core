@@ -396,6 +396,7 @@ public:
         m_notifications->updatedBlockTip();
     }
     void ChainStateFlushed(const CBlockLocator& locator) override { m_notifications->chainStateFlushed(locator); }
+    void LeavingIBD() override { m_notifications->leavingIBD(); }
     std::shared_ptr<Chain::Notifications> m_notifications;
 };
 

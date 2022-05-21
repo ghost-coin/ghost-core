@@ -16,9 +16,9 @@
 #include <sync.h>
 #include <net.h>
 #include <timedata.h>
-#include <validation.h>
 #include <consensus/validation.h>
 #include <node/blockstorage.h>
+#include <validation.h>
 
 #include <wallet/hdwallet.h>
 #include <wallet/spend.h>
@@ -85,7 +85,7 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
     }
 
     return true;
-};
+}
 
 bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
 {
@@ -177,7 +177,7 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
     pblock->vtx.insert(pblock->vtx.begin()+1, MakeTransactionRef(txn));
 
     return true;
-};
+}
 
 void StartThreadStakeMiner(wallet::WalletContext &wallet_context, ChainstateManager &chainman)
 {
@@ -208,12 +208,12 @@ void StartThreadStakeMiner(wallet::WalletContext &wallet_context, ChainstateMana
     }
 
     fStopMinerProc = false;
-};
+}
 
 void StopThreadStakeMiner()
 {
-    if (vStakeThreads.size() < 1 // no thread created
-        || fStopMinerProc) {
+    if (vStakeThreads.size() < 1 || // no thread created
+        fStopMinerProc) {
         return;
     }
     LogPrint(BCLog::POS, "StopThreadStakeMiner\n");
@@ -225,11 +225,10 @@ void StopThreadStakeMiner()
         delete t;
     }
     vStakeThreads.clear();
-};
+}
 
 void WakeThreadStakeMiner(CHDWallet *pwallet)
 {
-    // Call when chain is synced, wallet unlocked or balance changed
     size_t nStakeThread = 0;
     {
     LOCK(pwallet->cs_wallet);
@@ -242,7 +241,15 @@ void WakeThreadStakeMiner(CHDWallet *pwallet)
     }
     StakeThread *t = vStakeThreads[nStakeThread];
     t->m_thread_interrupt();
-};
+}
+
+void WakeAllThreadStakeMiner()
+{
+    LogPrint(BCLog::POS, "WakeAllThreadStakeMiner\n");
+    for (auto t : vStakeThreads) {
+        t->m_thread_interrupt();
+    }
+}
 
 bool ThreadStakeMinerStopped()
 {
@@ -255,7 +262,7 @@ static inline void condWaitFor(size_t nThreadID, int ms)
     StakeThread *t = vStakeThreads[nThreadID];
     t->m_thread_interrupt.reset();
     t->m_thread_interrupt.sleep_for(std::chrono::milliseconds(ms));
-};
+}
 
 void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWallet>> &vpwallets, size_t nStart, size_t nEnd, ChainstateManager *chainman)
 {
@@ -324,7 +331,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
         }
 
         int64_t nTime = GetAdjustedTime();
-        int64_t nMask = Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nMask = Params().GetStakeTimestampMask(nBestHeight + 1);
         int64_t nSearchTime = nTime & ~nMask;
         if (nSearchTime <= nBestTime) {
             if (nTime < nBestTime) {
@@ -391,8 +398,8 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
                     continue;
                 }
 
-                if (nBestHeight + 1 <= nLastImportHeight
-                    && !ImportOutputs(pblocktemplate.get(), nBestHeight + 1)) {
+                if (nBestHeight + 1 <= nLastImportHeight &&
+                    !ImportOutputs(pblocktemplate.get(), nBestHeight + 1)) {
                     fIsStaking = false;
                     nWaitFor = std::min(nWaitFor, (size_t)30000);
                     LogPrint(BCLog::POS, "%s: ImportOutputs failed.\n", __func__);
@@ -425,4 +432,4 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
 
         condWaitFor(nThreadID, nWaitFor);
     }
-};
+}

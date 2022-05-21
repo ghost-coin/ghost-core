@@ -178,6 +178,7 @@ protected:
 
     virtual void TransactionAddedToWallet(const std::string &sWalletName, const CTransactionRef& tx) {};
     virtual void NewSecureMessage(const smsg::SecureMessage *psmsg, const uint160 &hash) {};
+    virtual void LeavingIBD() {};
 
     friend class CMainSignals;
     friend class ValidationInterfaceTest;
@@ -213,8 +214,10 @@ public:
     void BlockChecked(const CBlock&, const BlockValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
 
+    /** Particl */
     void TransactionAddedToWallet(const std::string &sWalletName, const CTransactionRef& tx);
     void NewSecureMessage(const smsg::SecureMessage *psmsg, const uint160 &hash);
+    void LeavingIBD();
 };
 
 CMainSignals& GetMainSignals();

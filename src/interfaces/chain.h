@@ -252,6 +252,7 @@ public:
         virtual void blockDisconnected(const CBlock& block, int height) {}
         virtual void updatedBlockTip() {}
         virtual void chainStateFlushed(const CBlockLocator& locator) {}
+        virtual void leavingIBD() {}
     };
 
     //! Register handler for notifications.

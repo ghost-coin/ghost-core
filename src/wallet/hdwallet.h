@@ -228,6 +228,7 @@ public:
     void ClearCachedBalances() override;
     bool LoadToWallet(const uint256& hash, const UpdateWalletTxFn& fill_wtx) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void LoadToWallet(const uint256 &hash, CTransactionRecord &rtx) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void leavingIBD() override;
 
     /** Remove txn from mapwallet and TxSpends */
     void RemoveFromTxSpends(const uint256 &hash, const CTransactionRef pt) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

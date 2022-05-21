@@ -1,13 +1,23 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef PARTICL_POS_KERNEL_H
 #define PARTICL_POS_KERNEL_H
 
-#include <validation.h>
+#include <consensus/amount.h>
+#include <sync.h>
+
+class CScript;
+class uint256;
+class COutPoint;
+class CBlockIndex;
+class CChainState;
+class CTransaction;
+class BlockValidationState;
+
 
 static const int MAX_REORG_DEPTH = 1024;
 
