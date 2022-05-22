@@ -852,7 +852,7 @@ RPCHelpMan dumpwallet()
         CKey seed;
         if (spk_man.GetKey(seed_id, seed)) {
             CExtKey masterKey;
-            masterKey.SetSeed(seed);
+            masterKey.SetSeed(Span<const std::byte>(seed.data(), 32));
 
             file << "# extended private masterkey: " << EncodeExtKey(masterKey) << "\n\n";
         }

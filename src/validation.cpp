@@ -37,7 +37,6 @@
 #include <script/sigcache.h>
 #include <shutdown.h>
 #include <signet.h>
-#include <timedata.h>
 #include <tinyformat.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -2373,7 +2372,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     // Also, currently the rule against blocks more than 2 hours in the future
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
-    // GetAdjustedTime() to go backward).
+    // m_adjusted_time_callback() to go backward).
     if (!CheckBlock(block, state, m_params.GetConsensus(), !fJustCheck, !fJustCheck)) {
         if (state.GetResult() == BlockValidationResult::BLOCK_MUTATED) {
             // We don't write down blocks to disk if they may have been
@@ -2829,7 +2828,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             CTransactionRef txCoinstake = block.vtx[0];
             CTransactionRef txPrevCoinstake = nullptr;
             const TreasuryFundSettings *pTreasuryFundSettings = m_params.GetTreasuryFundSettings(block.nTime);
-            const CAmount nCalculatedStakeReward = Params().GetProofOfStakeReward(pindex->pprev, nFees); // stake_test
+            const CAmount nCalculatedStakeReward = m_params.GetProofOfStakeReward(pindex->pprev, nFees);
 
             if (block.nTime >= consensus.smsg_fee_time) {
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
@@ -3265,7 +3264,7 @@ static void ClearSpentCache(CChainState &chainstate, CDBBatch &batch, int height
         return;
     }
     CBlock block;
-    if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+    if (!ReadBlockFromDisk(block, pblockindex, chainstate.m_params.GetConsensus())) {
         LogPrintf("%s: failed read block from disk (%d, %s)\n", __func__, height, pblockindex->GetBlockHash().ToString());
         return;
     }
@@ -4217,19 +4216,13 @@ void CChainState::ReceivedBlockTransactions(const CBlock& block, CBlockIndex* pi
 
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-    if (fParticlMode
-        && !block.IsParticlVersion())
+    if (fParticlMode &&
+        !block.IsParticlVersion())
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "block-version", "bad block version");
 
-    // Check timestamp
-    if (fParticlMode
-        && !block.hashPrevBlock.IsNull() // allow genesis block to be created in the future
-        && block.GetBlockTime() > particl::FutureDrift(GetAdjustedTime()))
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "block-timestamp", "block timestamp too far in the future");
-
     // Check proof of work matches claimed amount
-    if (!fParticlMode
-        && fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
+    if (!fParticlMode &&
+        fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     return true;
@@ -4504,8 +4497,8 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "time-too-old", "block's timestamp is too early");
 
     // Check timestamp
-    if (nHeight > 0 &&
-        block.GetBlockTime() > nAdjustedTime + MAX_FUTURE_BLOCK_TIME)
+    if (!block.hashPrevBlock.IsNull() && // allow genesis block to be created in the future
+        block.GetBlockTime() > (fParticlMode ? particl::FutureDrift(nAdjustedTime) : nAdjustedTime + MAX_FUTURE_BLOCK_TIME))
         return state.Invalid(BlockValidationResult::BLOCK_TIME_FUTURE, "time-too-new", "block timestamp too far in the future");
 
     // Reject blocks with outdated version
@@ -4642,8 +4635,8 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-missing", "first tx is not coinstake");
         }
 
-        if (nHeight > 0 // skip genesis
-            && Params().GetLastImportHeight() >= (uint32_t)nHeight) {
+        if (nHeight > 0 &&  // skip genesis
+            chainman.ActiveChainstate().m_params.GetLastImportHeight() >= (uint32_t)nHeight) {
             // 2nd txn must be coinbase
             if (block.vtx.size() < 2 || !block.vtx[1]->IsCoinBase()) {
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb", "Second txn of import block must be coinbase");
@@ -4651,7 +4644,7 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
 
             // Check hash of genesis import txn matches expected hash.
             uint256 txnHash = block.vtx[1]->GetHash();
-            if (!Params().CheckImportCoinbase(nHeight, txnHash)) {
+            if (!chainman.ActiveChainstate().m_params.CheckImportCoinbase(nHeight, txnHash)) {
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb", "Incorrect outputs hash.");
             }
         } else {
@@ -4773,7 +4766,7 @@ bool ChainstateManager::AcceptBlockHeader(const CBlockHeader& block, BlockValida
             LogPrint(BCLog::VALIDATION, "%s: %s prev block invalid\n", __func__, hash.ToString());
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
         }
-        if (!ContextualCheckBlockHeader(block, state, m_blockman, *this, pindexPrev, GetAdjustedTime())) {
+        if (!ContextualCheckBlockHeader(block, state, m_blockman, *this, pindexPrev, m_adjusted_time_callback())) {
             LogPrint(BCLog::VALIDATION, "%s: Consensus::ContextualCheckBlockHeader: %s, %s\n", __func__, hash.ToString(), state.ToString());
             return false;
         }
@@ -5107,6 +5100,7 @@ bool TestBlockValidity(BlockValidationState& state,
                        CChainState& chainstate,
                        const CBlock& block,
                        CBlockIndex* pindexPrev,
+                       const std::function<int64_t()>& adjusted_time_callback,
                        bool fCheckPOW,
                        bool fCheckMerkleRoot)
 {
@@ -5120,7 +5114,7 @@ bool TestBlockValidity(BlockValidationState& state,
     indexDummy.phashBlock = &block_hash;
 
     // NOTE: CheckBlockHeader is called by CheckBlock
-    if (!ContextualCheckBlockHeader(block, state, chainstate.m_blockman, chainstate.m_chainman, pindexPrev, GetAdjustedTime()))
+    if (!ContextualCheckBlockHeader(block, state, chainstate.m_blockman, chainstate.m_chainman, pindexPrev, adjusted_time_callback()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, state.ToString());
     if (!CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot))
         return error("%s: Consensus::CheckBlock: %s", __func__, state.ToString());
@@ -6644,7 +6638,7 @@ void SetNumBlocksOfPeers(int num_blocks)
 
 int StakeConflict::Add(NodeId id)
 {
-    nLastUpdated = GetAdjustedTime();
+    nLastUpdated = GetTime();
     std::pair<std::map<NodeId, int>::iterator,bool> ret;
     ret = peerCount.insert(std::pair<NodeId, int>(id, 1));
     if (ret.second == false) { // existing element
@@ -7008,7 +7002,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)
         return false;
     }
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = chainman.m_adjusted_time_callback();
     int rewound_tip_height;
 
     {
@@ -7060,8 +7054,8 @@ int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, b
 {
     const Consensus::Params &consensusParams = Params().GetConsensus();
 
-    if ((pindex && pindex->nTime < consensusParams.smsg_fee_time)
-        || (!pindex && GetTime() < consensusParams.smsg_fee_time)) {
+    if ((pindex && pindex->nTime < consensusParams.smsg_fee_time) ||
+        (!pindex && GetTime() < consensusParams.smsg_fee_time)) {
         return consensusParams.smsg_fee_msg_per_day_per_k;
     }
 
@@ -7078,8 +7072,8 @@ int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, b
 
     int64_t smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
     CTransactionRef coinstake = nullptr;
-    if (!smsgFeeCoinstakeCache.GetCoinStake(chainman.ActiveChainstate(), fee_block->GetBlockHash(), coinstake)
-        || !coinstake->GetSmsgFeeRate(smsg_fee_rate)) {
+    if (!smsgFeeCoinstakeCache.GetCoinStake(chainman.ActiveChainstate(), fee_block->GetBlockHash(), coinstake) ||
+        !coinstake->GetSmsgFeeRate(smsg_fee_rate)) {
         return consensusParams.smsg_fee_msg_per_day_per_k;
     }
 
@@ -7098,8 +7092,8 @@ uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool veri
         if (time >= pindex->nTime) {
             uint32_t smsg_difficulty = 0;
             CTransactionRef coinstake = nullptr;
-            if (smsgDifficultyCoinstakeCache.GetCoinStake(chainman.ActiveChainstate(), pindex->GetBlockHash(), coinstake)
-                && coinstake->GetSmsgDifficulty(smsg_difficulty)) {
+            if (smsgDifficultyCoinstakeCache.GetCoinStake(chainman.ActiveChainstate(), pindex->GetBlockHash(), coinstake) &&
+                coinstake->GetSmsgDifficulty(smsg_difficulty)) {
 
                 if (verify && smsg_difficulty != consensusParams.smsg_min_difficulty) {
                     return smsg_difficulty + consensusParams.smsg_difficulty_max_delta;

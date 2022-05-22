@@ -187,6 +187,7 @@ BITCOIN_CORE_H = \
   interfaces/ipc.h \
   interfaces/node.h \
   interfaces/wallet.h \
+  kernel/chainstatemanager_opts.h \
   key.h \
   key/stealth.h \
   key/extkey.h \
@@ -1060,7 +1061,6 @@ libparticlkernel_la_SOURCES = \
   key/extkey.cpp \
   key/crypter.cpp \
   logging.cpp \
-  netaddress.cpp \
   node/blockstorage.cpp \
   node/chainstate.cpp \
   node/coinstats.cpp \
@@ -1089,11 +1089,9 @@ libparticlkernel_la_SOURCES = \
   support/lockedpool.cpp \
   sync.cpp \
   threadinterrupt.cpp \
-  timedata.cpp \
   txdb.cpp \
   txmempool.cpp \
   uint256.cpp \
-  util/asmap.cpp \
   util/bytevectorhash.cpp \
   util/check.cpp \
   util/getuniquepath.cpp \

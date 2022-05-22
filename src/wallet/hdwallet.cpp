@@ -5870,9 +5870,7 @@ int CHDWallet::UnloadTransaction(const uint256 &hash)
         CWalletTx *pcoin = &itw->second;
 
         RemoveFromTxSpends(hash, pcoin->tx);
-
         wtxOrdered.erase(pcoin->m_it_wtxOrdered);
-
         mapWallet.erase(itw);
     } else
     if ((itr = mapRecords.find(hash)) != mapRecords.end()) {
@@ -5929,7 +5927,6 @@ int CHDWallet::GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&s
     }
 
     size_t nConfidential = sea->vExtKeys.size();
-
     CStoredExtKey *sekAccount = sea->ChainAccount();
     if (!sekAccount) {
         return werrorN(1, "%s: %s.", __func__, "Account chain not found");
@@ -13422,8 +13419,8 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
                 // If the wallet has a coldstaking-change-address loaded, send the output to a coldstaking-script.
                 UniValue jsonSettings;
-                if (GetSetting("changeaddress", jsonSettings)
-                    && jsonSettings["coldstakingaddress"].isStr()) {
+                if (GetSetting("changeaddress", jsonSettings) &&
+                    jsonSettings["coldstakingaddress"].isStr()) {
                     std::string sAddress;
                     try { sAddress = jsonSettings["coldstakingaddress"].get_str();
                     } catch (std::exception &e) {
@@ -13596,7 +13593,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             OUTPUT_PTR<CTxOutStandard> outTreasurySplit = MAKE_OUTPUT<CTxOutStandard>();
             outTreasurySplit->nValue = nTreasuryCfwd;
 
-            CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
+            CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
             if (dfDest.index() == DI::_CNoDestination) {
                 return werror("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
             }

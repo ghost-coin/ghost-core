@@ -10,6 +10,8 @@
 #include <consensus/amount.h>
 #include <sync.h>
 
+extern RecursiveMutex cs_main;
+
 class CScript;
 class uint256;
 class COutPoint;

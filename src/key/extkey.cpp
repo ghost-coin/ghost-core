@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -339,6 +339,18 @@ void CExtKey::SetSeed(Span<const uint8_t> seed)
     static const unsigned char hashkey[] = {'B','i','t','c','o','i','n',' ','s','e','e','d'};
     std::vector<unsigned char, secure_allocator<unsigned char>> vout(64);
     CHMAC_SHA512{hashkey, sizeof(hashkey)}.Write(seed.data(), seed.size()).Finalize(vout.data());
+    key.Set(vout.data(), vout.data() + 32, true);
+    memcpy(chaincode, vout.data() + 32, 32);
+    nDepth = 0;
+    nChild = 0;
+    memset(vchFingerprint, 0, sizeof(vchFingerprint));
+}
+
+void CExtKey::SetSeed(Span<const std::byte> seed)
+{
+    static const unsigned char hashkey[] = {'B','i','t','c','o','i','n',' ','s','e','e','d'};
+    std::vector<unsigned char, secure_allocator<unsigned char>> vout(64);
+    CHMAC_SHA512{hashkey, sizeof(hashkey)}.Write(UCharCast(seed.data()), seed.size()).Finalize(vout.data());
     key.Set(vout.data(), vout.data() + 32, true);
     memcpy(chaincode, vout.data() + 32, 32);
     nDepth = 0;

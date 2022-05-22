@@ -216,7 +216,6 @@ protected:
 
     std::vector<std::pair<int64_t, TreasuryFundSettings> > vTreasuryFundSettings;
 
-
     uint64_t nPruneAfterHeight;
     uint64_t m_assumed_blockchain_size;
     uint64_t m_assumed_chain_state_size;
