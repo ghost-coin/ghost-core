@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -255,13 +255,57 @@ BOOST_AUTO_TEST_CASE(stake_test)
     BOOST_REQUIRE(blockLast.vtx.size() == 2);
     BOOST_REQUIRE(blockLast.vtx[1]->GetHash() == tx_new->GetHash());
 
+    // Mutate the block time
     {
-        uint256 tipHash = chain_active.Tip()->GetBlockHash();
-        uint256 prevTipHash = chain_active.Tip()->pprev->GetBlockHash();
+        CBlockIndex *pindexPrev = chain_active.Tip();
+        BOOST_REQUIRE(pindexPrev);
 
+        CBlock bad_block;
+        BOOST_REQUIRE(CreateValidBlock(pwallet, bad_block));
+        {
+        LOCK(cs_main);
+        bad_block.nTime = pindexPrev->nTime - 1;
+
+        CBlockIndex* new_block_index = nullptr;
+        BlockValidationState state;
+        state.m_chainman = m_node.chainman.get();
+
+        BOOST_REQUIRE(false == CheckBlock(bad_block, state, Params().GetConsensus()));
+        BOOST_CHECK(state.IsInvalid());
+        BOOST_CHECK(state.GetRejectReason() == "bad-block-signature");
+
+        std::shared_ptr<const CBlock> bad_block_shared = std::make_shared<CBlock>(bad_block);
+        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr));
+        BOOST_CHECK(state.IsInvalid());
+        BOOST_CHECK(state.GetRejectReason() == "time-too-old");
+
+        // Time should pass (unless GetTime changes before AcceptBlock)
+        bad_block.nTime = GetTime() + 15;
+        bad_block_shared.reset();
+        bad_block_shared = std::make_shared<CBlock>(bad_block);
+        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr));
+        BOOST_CHECK(state.IsInvalid());
+        BOOST_CHECK(state.GetRejectReason() == "bad-block-signature");
+
+        // Should fail
+        bad_block.nTime = GetTime() + 16;
+        bad_block_shared.reset();
+        bad_block_shared = std::make_shared<CBlock>(bad_block);
+        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr));
+        BOOST_CHECK(state.IsInvalid());
+        BOOST_CHECK(state.GetRejectReason() == "time-too-new");
+        }
+    }
+
+    {
         // Disconnect last block
         CBlockIndex *pindexDelete = chain_active.Tip();
         BOOST_REQUIRE(pindexDelete);
+        CBlockIndex *pindexPrev = chain_active.Tip()->pprev;
+        BOOST_REQUIRE(pindexPrev);
+
+        uint256 tipHash = pindexDelete->GetBlockHash();
+        uint256 prevTipHash = pindexPrev->GetBlockHash();
 
         CBlock block;
         BOOST_REQUIRE(node::ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()));
@@ -273,9 +317,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         DisconnectTip(chainstate_active, m_node.mempool.get(), block, pindexDelete, view, chainparams);
         }
 
-
         BOOST_CHECK(prevTipHash == chain_active.Tip()->GetBlockHash());
-
 
         {
             LOCK(cs_main);

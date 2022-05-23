@@ -90,6 +90,39 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
     SyncWithValidationInterfaceQueue();
 }
 
+bool CreateValidBlock(CHDWallet *pwallet, CBlock &block_out)
+{
+    ChainstateManager *pchainman{nullptr};
+    if (pwallet->HaveChain()) {
+        pchainman = pwallet->chain().getChainman();
+    }
+    if (!pchainman) {
+        LogPrintf("Error: Chainstate manager not found.\n");
+        return false;
+    }
+
+    size_t k, nTries = 10000;
+    for (k = 0; k < nTries; ++k) {
+        int nBestHeight = WITH_LOCK(cs_main, return pchainman->ActiveChain().Height());
+
+        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        if (nSearchTime <= pwallet->nLastCoinStakeSearchTime) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+            continue;
+        }
+
+        std::unique_ptr<node::CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
+        BOOST_REQUIRE(pblocktemplate.get());
+
+        if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight + 1, nSearchTime)) {
+            block_out = pblocktemplate->block;
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
+    return false;
+}
+
 uint256 AddTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes input_type, OutputTypes output_type, CAmount amount, CAmount exploit_amount, std::string expect_error)
 {
     uint256 txid;
