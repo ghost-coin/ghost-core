@@ -1922,7 +1922,7 @@ static RPCHelpMan getblockstats()
                 if (out->IsStandardOutput()) {
                     tx_total_out += out->GetValue();
                 }
-                utxo_size_inc += (int64_t) GetSerializeSize(*out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD + 1;
+                utxo_size_inc += (int64_t) (GetSerializeSize(*out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD + 1);
             }
         }
 
@@ -1964,7 +1964,7 @@ static RPCHelpMan getblockstats()
                 const CTxOut& prevoutput = coin.out;
 
                 tx_total_in += prevoutput.nValue;
-                utxo_size_inc -= (int64_t) GetSerializeSize(prevoutput, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+                utxo_size_inc -= (int64_t) (GetSerializeSize(prevoutput, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD);
             }
 
             CAmount txfee;

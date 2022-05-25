@@ -566,7 +566,7 @@ private:
      * @param[in]   peer      The peer object to check.
      * @return                True if the peer was marked for disconnection in this function
      */
-    bool MaybeDiscourageAndDisconnect(CNode& pnode, Peer& peer);
+    bool MaybeDiscourageAndDisconnect(CNode& pnode, Peer& peer) EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
 
     void ProcessOrphanTx(std::set<uint256>& orphan_work_set) EXCLUSIVE_LOCKS_REQUIRED(cs_main, g_cs_orphans)
         EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
@@ -896,16 +896,16 @@ private:
 
     /** Particl */
     int m_banscore = DISCOURAGEMENT_THRESHOLD;
-    void PassOnMisbehaviour(NodeId node_id, int howmuch);
+    void PassOnMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
 public:
     NodeId GetBlockSource(const uint256 &hash) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    void IncPersistentMisbehaviour(NodeId node_id, int howmuch) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    bool IncPersistentDiscouraged(NodeId node_id) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    void DecMisbehaving(NodeId nodeid, int howmuch) override;
-    void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const std::string& message) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    bool IncDuplicateHeaders(NodeId node_id) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    void CheckUnreceivedHeaders(int64_t now) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    bool MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state);
+    void IncPersistentMisbehaviour(NodeId node_id, int howmuch) override EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex);
+    bool IncPersistentDiscouraged(NodeId node_id) override EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex);
+    void DecMisbehaving(NodeId nodeid, int howmuch) override EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
+    void MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int howmuch, const std::string& message) override EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex);
+    bool IncDuplicateHeaders(NodeId node_id) override EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex);
+    void CheckUnreceivedHeaders(int64_t now) override EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex);
+    bool MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex);
     bool AddNodeHeader(NodeId node_id, const uint256 &hash) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     void RemoveNodeHeader(const uint256 &hash) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     void RemoveNonReceivedHeaderFromNodes(node::BlockMap::iterator mi) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);
@@ -1746,7 +1746,7 @@ void PeerManagerImpl::MisbehavingByAddr(CNetAddr addr, int misbehavior_cfwd, int
     }
 }
 
-bool PeerManagerImpl::IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+bool PeerManagerImpl::IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex)
 {
     CNodeState *state = State(node_id);
     if (state == nullptr) {
@@ -1828,7 +1828,7 @@ bool PeerManagerImpl::IncPersistentDiscouraged(NodeId node_id)
     return false;
 }
 
-void PeerManagerImpl::CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+void PeerManagerImpl::CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIRED(cs_main, !m_peer_mutex)
 {
     auto it = map_dos_state.begin();
     for (; it != map_dos_state.end();) {

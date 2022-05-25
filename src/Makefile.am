@@ -1053,6 +1053,7 @@ libparticlkernel_la_SOURCES = \
   node/transaction.cpp \
   index/txindex.cpp \
   pos/kernel.cpp \
+  pos/miner.cpp \
   key/stealth.cpp \
   key/keyutil.cpp \
   key/extkey.cpp \
