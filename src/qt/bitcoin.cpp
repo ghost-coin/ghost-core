@@ -267,7 +267,7 @@ void BitcoinApplication::createPaymentServer()
 
 void BitcoinApplication::createOptionsModel(bool resetSettings)
 {
-    optionsModel = new OptionsModel(this, resetSettings);
+    optionsModel = new OptionsModel(node(), this, resetSettings);
 }
 
 void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
@@ -298,7 +298,6 @@ void BitcoinApplication::createNode(interfaces::Init& init)
 {
     assert(!m_node);
     m_node = init.makeNode();
-    if (optionsModel) optionsModel->setNode(*m_node);
     if (m_splash) m_splash->setNode(*m_node);
 }
 
@@ -314,7 +313,9 @@ void BitcoinApplication::startThread()
 
     /*  communication to and from thread */
     connect(&m_executor.value(), &InitExecutor::initializeResult, this, &BitcoinApplication::initializeResult);
-    connect(&m_executor.value(), &InitExecutor::shutdownResult, this, &QCoreApplication::quit);
+    connect(&m_executor.value(), &InitExecutor::shutdownResult, this, [] {
+        QCoreApplication::exit(0);
+    });
     connect(&m_executor.value(), &InitExecutor::runawayException, this, &BitcoinApplication::handleRunawayException);
     connect(this, &BitcoinApplication::requestedInitialize, &m_executor.value(), &InitExecutor::initialize);
     connect(this, &BitcoinApplication::requestedShutdown, &m_executor.value(), &InitExecutor::shutdown);
@@ -639,6 +640,12 @@ int GuiMain(int argc, char* argv[])
     // Allow parameter interaction before we create the options model
     app.parameterSetup();
     GUIUtil::LogQtInfo();
+
+    if (gArgs.GetBoolArg("-splash", DEFAULT_SPLASHSCREEN) && !gArgs.GetBoolArg("-min", false))
+        app.createSplashScreen(networkStyle.data());
+
+    app.createNode(*init);
+
     // Load GUI settings from QSettings
     app.createOptionsModel(gArgs.GetBoolArg("-resetguisettings", false));
 
@@ -646,11 +653,6 @@ int GuiMain(int argc, char* argv[])
         // Store intro dialog settings other than datadir (network specific)
         app.InitPruneSetting(prune_MiB);
     }
-
-    if (gArgs.GetBoolArg("-splash", DEFAULT_SPLASHSCREEN) && !gArgs.GetBoolArg("-min", false))
-        app.createSplashScreen(networkStyle.data());
-
-    app.createNode(*init);
 
     int rv = EXIT_SUCCESS;
     try

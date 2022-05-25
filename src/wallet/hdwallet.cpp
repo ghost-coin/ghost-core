@@ -3810,8 +3810,6 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     {
         LOCK(cs_wallet);
 
-        std::vector<COutput> vAvailableCoins, selected_coins;
-        AvailableCoins(vAvailableCoins, coinControl, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
         FastRandomContext rng_fast;
         CoinSelectionParams coin_selection_params{rng_fast}; // Parameters for coin selection, init with dummy
 
@@ -3847,6 +3845,9 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         coin_selection_params.m_cost_of_change = coin_selection_params.m_discard_feerate.GetFee(coin_selection_params.change_spend_size) + coin_selection_params.m_change_fee;
 
         coin_selection_params.m_subtract_fee_outputs = nSubtractFeeFromAmount != 0; // If we are doing subtract fee from recipient, don't use effective values
+
+        std::vector<COutput> vAvailableCoins, selected_coins;
+        AvailableCoins(vAvailableCoins, coinControl, coin_selection_params.m_effective_feerate, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
 
 
         nFeeRet = 0;
@@ -11358,7 +11359,7 @@ void CHDWallet::ResendWalletTransactions()
     }
 };
 
-void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl *coinControl, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount) const
+void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl *coinControl, std::optional<CFeeRate> feerate, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount) const
 {
     AssertLockHeld(cs_wallet);
 
@@ -11383,8 +11384,8 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
         }
 
         bool fMature = !(GetTxBlocksToMaturity(wtx) > 0);
-        if (!fIncludeImmature
-            && !fMature) {
+        if (!fIncludeImmature &&
+            !fMature) {
             continue;
         }
 
@@ -11475,7 +11476,7 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
                 continue;
             }
             int input_bytes = GetTxSpendSize(*this, wtx, i, (coinControl && coinControl->fAllowWatchOnly));
-            vCoins.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, fMature, fNeedHardwareKey);
+            vCoins.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
@@ -11566,7 +11567,7 @@ void CHDWallet::AvailableCoins(std::vector<COutput> &vCoins, const CCoinControl 
             bool from_me = rtx.vin.size() > 0;
             int64_t time = rtx.GetTxTime();
             int input_bytes = CalculateMaximumSignedInputSize(txout, this, (coinControl && coinControl->fAllowWatchOnly));
-            vCoins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, /*mature*/true, fNeedHardwareKey);
+            vCoins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
 
             if (nMinimumSumAmount != MAX_MONEY) {
                 nTotal += r.nValue;
@@ -11610,6 +11611,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
         SelectionResult result(nTargetValue, SelectionAlgorithm::MANUAL);
         result.AddInput(preset_inputs);
         if (result.GetSelectedValue() < nTargetValue) return std::nullopt;
+        //result.ComputeAndSetWaste(coin_selection_params.m_cost_of_change);
         return result;
     }
 
@@ -11648,12 +11650,11 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
                 }
             }
         }
-        COutput output(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
-        output.effective_value = output.txout.nValue - coin_selection_params.m_effective_feerate.GetFee(output.input_bytes);
+        COutput output(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false, coin_selection_params.m_effective_feerate);
         if (coin_selection_params.m_subtract_fee_outputs) {
             value_to_select -= txout.nValue;
         } else {
-            value_to_select -= output.effective_value;
+            value_to_select -= output.GetEffectiveValue();
         }
         preset_coins.insert(outpoint);
         /* Set depth, from_me, ancestors, and descendants to 0 or false as don't matter for preset inputs as no actual selection is being done.
@@ -13014,7 +13015,7 @@ size_t CHDWallet::CountColdstakeOutputs()
     CCoinControl coinControl;
     coinControl.m_include_immature = true;
     coinControl.m_include_unsafe_inputs = true;
-    AvailableCoins(vAvailableCoins, &coinControl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
+    AvailableCoins(vAvailableCoins, &coinControl, std::nullopt, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     for (const auto &coin : vAvailableCoins) {
         if (HasIsCoinstakeOp(coin.txout.scriptPubKey)) {
             nColdstakeOutputs++;
@@ -13210,7 +13211,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
                 int input_bytes = 0; // unnecessary
-                vCoins.emplace_back(COutPoint(wtxid, i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, /*safe*/true, /*time, unneeded*/0, /*from_me, unneeded*/false, /*mature*/true, fNeedHardwareKey);
+                vCoins.emplace_back(COutPoint(wtxid, i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, /*safe*/true, /*time, unneeded*/0, /*from_me, unneeded*/false, /*feerate*/std::nullopt, /*mature*/true, fNeedHardwareKey);
             }
         }
 
@@ -13271,7 +13272,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                 bool fNeedHardwareKey = false;
                 CTxOut txout(r.nValue, r.scriptPubKey);
                 int input_bytes = 0; // unnecessary
-                vCoins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, /*safe*/true, /*time, unneeded*/0, /*from_me, unneeded*/false, /*mature*/true, fNeedHardwareKey);
+                vCoins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, /*safe*/true, /*time, unneeded*/0, /*from_me, unneeded*/false, /*feerate*/std::nullopt, /*mature*/true, fNeedHardwareKey);
             }
         }
     }

@@ -423,7 +423,7 @@ public:
     /**
      * populate vCoins with vector of available COutputs.
      */
-    void AvailableCoins(std::vector<COutput>& vCoins, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void AvailableCoins(std::vector<COutput>& vCoins, const CCoinControl *coinControl = nullptr, std::optional<CFeeRate> feerate = std::nullopt, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::optional<SelectionResult> SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
         const CCoinControl& coin_control, const CoinSelectionParams& coin_selection_params) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
