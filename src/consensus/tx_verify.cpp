@@ -258,7 +258,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             for (size_t k = 0; k < nInputs; ++k) {
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
                 if (!state.m_setHaveKI.insert(ki).second) {
-                    if (LogAcceptCategory(BCLog::RINGCT)) {
+                    if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
                         LogPrintf("%s: Duplicate keyimage detected in txn %s.\n", __func__,
                             HexStr(ki));
                     }
@@ -586,7 +586,7 @@ static bool CheckBlindOutput(TxValidationState &state, const CTxOutCT *p)
             secp256k1_generator_h);
     }
 
-    if (LogAcceptCategory(BCLog::RINGCT)) {
+    if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
         LogPrintf("%s: rv, min_value, max_value %d, %s, %s\n", __func__,
             rv, FormatMoney((CAmount)min_value), FormatMoney((CAmount)max_value));
     }
@@ -630,7 +630,7 @@ bool CheckAnonOutput(TxValidationState &state, const CTxOutRingCT *p)
             secp256k1_generator_h);
     }
 
-    if (LogAcceptCategory(BCLog::RINGCT)) {
+    if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
         LogPrintf("%s: rv, min_value, max_value %d, %s, %s\n", __func__,
             rv, FormatMoney((CAmount)min_value), FormatMoney((CAmount)max_value));
     }

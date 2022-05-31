@@ -2131,7 +2131,7 @@ static RPCHelpMan smsgview()
 
     result.pushKV("messages", messageList);
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         result.pushKV("debug empty sent", (int)debugEmptySent);
     }
 

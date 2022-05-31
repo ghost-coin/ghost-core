@@ -889,7 +889,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
             msg_tx->set_outputs_cnt(prev_tx.vpout.size());
             msg_tx->set_particl_tx(true);
         } else if (req.request_type() == tzr_proto::TxRequest::TXFINISHED) {
-            if (LogAcceptCategory(BCLog::HDWALLET)) {
+            if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                 LogPrintf("%s: Debug, serialised_tx %s.\n", __func__, HexStr(serialised_tx));
             }
             break;

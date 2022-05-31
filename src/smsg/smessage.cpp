@@ -1312,7 +1312,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         + smsgPong = pong response
     */
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrintf("%s: %s %s.\n", __func__, pfrom->m_addr_name, strCommand);
     }
 
@@ -1373,7 +1373,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         uint32_t nLocked = 0;           // no. of locked buckets on this node
         uint32_t nInvBuckets;           // no. of bucket headers sent by peer in smsgInv
         nInvBuckets = memget_uint32_le(&vchData[0]);
-        if (LogAcceptCategory(BCLog::SMSG)) {
+        if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
             LOCK(cs_smsg);
             LogPrintf("Peer %d sent %d bucket headers, this has %d.\n", pfrom->GetId(), nInvBuckets, buckets.size());
         }
@@ -1427,7 +1427,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
             {
                 LOCK(cs_smsg);
                 const auto it_lb = buckets.find(time);
-                if (LogAcceptCategory(BCLog::SMSG)) {
+                if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                     LogPrintf("Peer bucket %d %u %u.\n", time, ncontent, hash);
                     if (it_lb != buckets.end()) {
                         LogPrintf("This bucket %d %u %u.\n", time, it_lb->second.setTokens.size(), it_lb->second.hash);
@@ -1622,7 +1622,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
             if (vchDataOut.size() > 8) {
                 size_t n_messages = (vchDataOut.size() - 8) / 16;
                 pfrom->smsgData.m_num_want_sent += n_messages;
-                if (LogAcceptCategory(BCLog::SMSG)) {
+                if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                     LogPrintf("Asking peer for %u messages.\n", n_messages);
                     LogPrintf("Locking bucket %u for peer %d.\n", time, pfrom->GetId());
                 }
@@ -1848,7 +1848,7 @@ bool CSMSG::SendData(CNode *pto, bool fSendTrickle)
 
                 uint32_t hash = bkt.hash;
 
-                if (LogAcceptCategory(BCLog::SMSG)) {
+                if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                     LogPrintf("Preparing bucket with hash %d for transfer to node %d. timeChanged=%d > lastMatched=%d\n", hash, pto->GetId(), bkt.timeChanged, pto->smsgData.lastMatched);
                 }
 
@@ -2504,7 +2504,7 @@ int CSMSG::ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t
         if (!(key.nFlags & SMK_RECEIVE_ANON)) {
             // Have to do full decrypt to see address from
             if (Decrypt(false, key.key, address, pHeader, pPayload, nPayload, msg) == 0) {
-                if (LogAcceptCategory(BCLog::SMSG)) {
+                if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                     LogPrintf("Decrypted message with %s.\n", EncodeDestination(PKHash(addressTo)));
                 }
                 if (msg.sFromAddress.compare("anon") != 0) {
@@ -2515,7 +2515,7 @@ int CSMSG::ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t
             }
         } else {
             if (Decrypt(true, key.key, address, pHeader, pPayload, nPayload, msg) == 0) {
-                if (LogAcceptCategory(BCLog::SMSG)) {
+                if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                     LogPrintf("Decrypted message with %s.\n", EncodeDestination(PKHash(addressTo)));
                 }
                 fOwnMessage = true;
@@ -2555,7 +2555,7 @@ int CSMSG::ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t
             if (!it->fReceiveAnon) {
                 // Have to do full decrypt to see address from
                 if (Decrypt(false, keyDest, addressTo, pHeader, pPayload, nPayload, msg) == 0) {
-                    if (LogAcceptCategory(BCLog::SMSG)) {
+                    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                         LogPrintf("Decrypted message with %s.\n", EncodeDestination(PKHash(addressTo)));
                     }
                     if (msg.sFromAddress.compare("anon") != 0) {
@@ -2565,7 +2565,7 @@ int CSMSG::ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t
                 }
             } else {
                 if (Decrypt(true, keyDest, addressTo, pHeader, pPayload, nPayload, msg) == 0) {
-                    if (LogAcceptCategory(BCLog::SMSG)) {
+                    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                         LogPrintf("Decrypted message with %s.\n", EncodeDestination(PKHash(addressTo)));
                     }
                     fOwnMessage = true;
@@ -3322,7 +3322,7 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
     std::set<SecMsgToken> &tokenSet = bucket.setTokens;
     if (tokenSet.find(token) != tokenSet.end()) {
         LogPrint(BCLog::SMSG, "Already have message.\n");
-        if (LogAcceptCategory(BCLog::SMSG)) {
+        if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
             LogPrintf("bucketTime: %d\n", bucketTime);
             LogPrintf("Message token: %s, nPayload %u\n", token.ToString(), nPayload);
         }
@@ -3480,7 +3480,7 @@ int CSMSG::StoreFundingTx(ChainSyncCache &cache, const CTransaction &tx, const C
     }
 
     const uint256 &block_hash = pindex->GetBlockHash();
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrintf("%s Tx: %s, block: %s, height %d, time %d.\n", __func__, tx.GetHash().ToString(), block_hash.ToString(), pindex->nHeight, pindex->nTime);
     }
     if (pindex->nTime < GetAdjustedTime() - KEEP_FUNDING_TX_DATA) {
@@ -3753,7 +3753,7 @@ int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_
         int rv_funded = CheckFundingTx(consensusParams, psmsg, pPayload);
         if (rv_funded != SMSG_NO_ERROR) {
             if (rv_funded == SMSG_FUND_DATA_NOT_FOUND &&
-                !LogAcceptCategory(BCLog::SMSG)) {
+                !LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
                 uint256 txid;
                 if (GetFundingTxid(pPayload, nPayload, txid)) {
                     LogPrintf("%s: ReadFundingData failed for txn: %s.\n", __func__, txid.ToString());
@@ -3882,7 +3882,7 @@ int CSMSG::Encrypt(SecureMessage &smsg, const CKeyID &addressFrom, const CKeyID 
 {
     bool fSendAnonymous = addressFrom.IsNull();
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrint(BCLog::SMSG, "SecureMsgEncrypt(%s, %s, ...)\n",
             fSendAnonymous ? "anon" : EncodeDestination(PKHash(addressFrom)),
             EncodeDestination(PKHash(addressTo)));
@@ -4098,7 +4098,7 @@ int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
 {
     bool fSendAnonymous = (addressFrom.IsNull());
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrintf("SecureMsgSend(%s, %s, ...)\n",
             fSendAnonymous ? "anon" : EncodeDestination(PKHash(addressFrom)), EncodeDestination(PKHash(addressTo)));
     }
@@ -4216,7 +4216,7 @@ int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
     if (addressOutbox.IsNull()) {
         LogPrintf("%s: Warning, could not find an address to encrypt outbox message with.\n", __func__);
     } else {
-        if (LogAcceptCategory(BCLog::SMSG)) {
+        if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
             LogPrintf("Encrypting a copy for outbox, using address %s\n", EncodeDestination(PKHash(addressOutbox)));
         }
 
@@ -4469,7 +4469,7 @@ int CSMSG::SubmitMsg(const SecureMessage &smsg, const CKeyID &addressTo, bool st
         }
     }
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         if (stash) {
             LogPrintf("Secure message stashed: %s.\n", HexStr(GetMsgID(smsg)));
         } else {
@@ -4508,7 +4508,7 @@ std::vector<uint8_t> CSMSG::GetMsgID(const SecureMessage &smsg)
   */
 int CSMSG::Decrypt(bool fTestOnly, const CKey &keyDest, const CKeyID &address, const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayload, MessageData &msg)
 {
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrintf("%s: using %s, testonly %d.\n", __func__, EncodeDestination(PKHash(address)), fTestOnly);
     }
 
@@ -4664,7 +4664,7 @@ int CSMSG::Decrypt(bool fTestOnly, const CKey &keyDest, const CKeyID &address, c
         msg.sFromAddress = coinAddrFrom.ToString();
     }
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrintf("Decrypted message for %s.\n", EncodeDestination(PKHash(address)));
     }
 

@@ -47,7 +47,7 @@ bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTx
 
         if (pmempool->HaveKeyImage(ki, txhashKI)
             && txhashKI != txhash) {
-            if (LogAcceptCategory(BCLog::RINGCT)) {
+            if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
                 LogPrintf("%s: Duplicate keyimage detected in mempool %s, used in %s.\n", __func__,
                     HexStr(ki), txhashKI.ToString());
             }
@@ -191,7 +191,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
             if (!setHaveKI.insert(ki).second) {
-                if (LogAcceptCategory(BCLog::RINGCT)) {
+                if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
                     LogPrintf("%s: Duplicate keyimage detected in txn %s.\n", __func__, HexStr(ki));
                 }
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-dup-ki");
@@ -199,7 +199,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
 
             CAnonKeyImageInfo ki_data;
             if (pblocktree->ReadRCTKeyImage(ki, ki_data)) {
-                if (LogAcceptCategory(BCLog::RINGCT)) {
+                if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
                     LogPrintf("%s: Duplicate keyimage detected %s, used in %s.\n", __func__,
                               HexStr(ki), ki_data.txid.ToString());
                 }

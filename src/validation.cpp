@@ -2007,7 +2007,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 {
     AssertLockHeld(::cs_main);
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("%s: hash %s, height %d\n", __func__, block.GetHash().ToString(), pindex->nHeight);
     }
 

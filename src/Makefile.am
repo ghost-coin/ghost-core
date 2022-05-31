@@ -375,8 +375,6 @@ obj/build.h: FORCE
 	  "$(abs_top_srcdir)"
 libparticl_util_a-clientversion.$(OBJEXT): obj/build.h
 
-ipc/capnp/libparticl_ipc_a-ipc.$(OBJEXT): $(libparticl_ipc_mpgen_input:=.h)
-
 # server: shared between bitcoind and bitcoin-qt
 # Contains code accessing mempool and chain state that is meant to be separated
 # from wallet and gui code (see node/README.md). Shared code should go in
@@ -1203,6 +1201,10 @@ libparticl_ipc_mpgen_input = \
   ipc/capnp/init.capnp
 EXTRA_DIST += $(libparticl_ipc_mpgen_input)
 %.capnp:
+
+# Explicitly list dependencies on generated headers as described in
+# https://www.gnu.org/software/automake/manual/html_node/Built-Sources-Example.html#Recording-Dependencies-manually
+ipc/capnp/libparticl_ipc_a-protocol.$(OBJEXT): $(libparticl_ipc_mpgen_input:=.h)
 
 if BUILD_MULTIPROCESS
 LIBPARTICL_IPC=libparticl_ipc.a

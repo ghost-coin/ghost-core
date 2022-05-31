@@ -656,7 +656,7 @@ int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak,
     if (mi != mapLookAhead.end()) {
         pak = &mi->second;
         ismine = IsMine(pak->nParent);
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
+        if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
             LogPrintf("HaveKey in lookAhead %s\n", EncodeDestination(PKHash(mi->first)));
         }
         return fUpdate ? HK_LOOKAHEAD_DO_UPDATE : HK_LOOKAHEAD;
@@ -749,7 +749,7 @@ int CExtKeyAccount::GetKey(const CKeyID &id, CKey &keyOut, CEKAKey &ak, CKeyID &
         return KS_NONE;
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET) && keyOut.GetPubKey().GetID() != id) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug) && keyOut.GetPubKey().GetID() != id) {
         return error("Stored key mismatch.");
     }
     return rv;
@@ -773,7 +773,7 @@ bool CExtKeyAccount::GetPubKey(const CKeyID &id, CPubKey &pkOut) const
         return false;
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         if (pkOut.GetID() != id) {
             return errorN(1, "%s: Extracted public key mismatch.", __func__);
         }
@@ -865,7 +865,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKAKey &keyIn)
         }
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("Saved key %s %d, %s.\n", GetIDString58(), keyIn.nParent, EncodeDestination(PKHash(id)));
 
         // Check match
@@ -909,7 +909,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKASCKey &keyIn)
 
     mapStealthChildKeys[id] = keyIn;
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("SaveKey(): CEKASCKey %s, %s.\n", GetIDString58(), EncodeDestination(PKHash(id)));
     }
 
@@ -934,7 +934,7 @@ int CExtKeyAccount::AddLookBehind(uint32_t nChain, uint32_t nKeys)
         return errorN(1, "%s: Unknown chain, %d.", __func__, nChain);
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("%s: chain %s, keys %d.\n", __func__, pc->GetIDString58(), nKeys);
     }
 
@@ -965,7 +965,7 @@ int CExtKeyAccount::AddLookBehind(uint32_t nChain, uint32_t nKeys)
 
             keyId = pk.GetID();
             if ((mi = mapKeys.find(keyId)) != mapKeys.end()) {
-                if (LogAcceptCategory(BCLog::HDWALLET)) {
+                if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                     LogPrintf("%s: key exists in map skipping %s.\n", __func__, EncodeDestination(PKHash(keyId)));
                 }
                 continue;
@@ -986,7 +986,7 @@ int CExtKeyAccount::AddLookBehind(uint32_t nChain, uint32_t nKeys)
 
         mapLookAhead[keyId] = CEKAKey(nChain, nChildOut);
 
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
+        if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
             LogPrintf("%s: Added %s, look-ahead size %u.\n", __func__, EncodeDestination(PKHash(keyId)), mapLookAhead.size());
         }
     }
@@ -1006,7 +1006,7 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
     uint32_t nChild = std::max(pc->nGenerated, pc->nLastLookAhead);
     uint32_t nChildOut = nChild;
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("%s: chain %s, keys %d, from %d.\n", __func__, pc->GetIDString58(), nKeys, nChildOut);
     }
 
@@ -1026,7 +1026,7 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
 
             keyId = pk.GetID();
             if ((mi = mapKeys.find(keyId)) != mapKeys.end()) {
-                if (LogAcceptCategory(BCLog::HDWALLET)) {
+                if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                     LogPrintf("%s: key exists in map skipping %s.\n", __func__, EncodeDestination(PKHash(keyId)));
                 }
                 continue;
@@ -1048,7 +1048,7 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
         mapLookAhead[keyId] = CEKAKey(nChain, nChildOut);
         pc->nLastLookAhead = nChildOut;
 
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
+        if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
             LogPrintf("%s: Added %s, look-ahead size %u.\n", __func__, EncodeDestination(PKHash(keyId)), mapLookAhead.size());
         }
     }

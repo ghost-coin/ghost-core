@@ -173,7 +173,7 @@ bool CheckStakeKernelHash(const CBlockIndex *pindexPrev,
         return false;
     }
 
-    if (LogAcceptCategory(BCLog::POS) && !fPrintProofOfStake) {
+    if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug) && !fPrintProofOfStake) {
         LogPrintf("%s: using modifier=%s at height=%d timestamp=%s\n",
             __func__, bnStakeModifier.ToString(), nStakeModifierHeight,
             FormatISO8601DateTime(nStakeModifierTime));
@@ -295,7 +295,7 @@ bool CheckProofOfStake(CChainState &chain_state, BlockValidationState &state, co
     }
 
     if (!CheckStakeKernelHash(pindexPrev, nBits, nBlockFromTime,
-        amount, txin.prevout, nTime, hashProofOfStake, targetProofOfStake, LogAcceptCategory(BCLog::POS))) {
+        amount, txin.prevout, nTime, hashProofOfStake, targetProofOfStake, LogAcceptCategory(BCLog::POS, BCLog::Level::Debug))) {
         LogPrintf("WARNING: %s: Check kernel failed on coinstake %s, hashProof=%s\n", __func__, tx.GetHash().ToString(), hashProofOfStake.ToString());
         return state.Invalid(BlockValidationResult::DOS_1, "check-kernel-failed");
     }

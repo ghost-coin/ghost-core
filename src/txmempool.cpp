@@ -851,7 +851,7 @@ void CTxMemPool::removeConflicts(const CTransaction &tx)
                     if (origit != mapTx.end()) {
                         const CTransaction& txConflict = origit->GetTx();
                         if (txConflict != tx) {
-                            if (LogAcceptCategory(BCLog::RINGCT)) {
+                            if (LogAcceptCategory(BCLog::RINGCT, BCLog::Level::Debug)) {
                                 LogPrintf("Clearing conflicting anon tx from mempool, removed:%s, tx:%s\n", txhashKI.ToString(), tx.GetHash().ToString());
                             }
                             ClearPrioritisation(txConflict.GetHash());

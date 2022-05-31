@@ -74,7 +74,7 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
 
     // debug print
     LogPrintf("CheckStake(): New proof-of-stake block found  \n  hash: %s \nproofhash: %s  \ntarget: %s\n", hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
-    if (LogAcceptCategory(BCLog::POS)) {
+    if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug)) {
         LogPrintf("block %s\n", pblock->ToString());
         LogPrintf("out %s\n", FormatMoney(pblock->vtx[0]->GetValueOut()));
     }
