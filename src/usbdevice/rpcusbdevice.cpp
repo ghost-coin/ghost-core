@@ -45,7 +45,7 @@ static std::vector<uint32_t> GetPath(std::vector<uint32_t> &vPath, const UniValu
         sPath = path.get_str();
     } else
     if (path.isNum()) {
-        sPath = strprintf("%d", path.get_int());
+        sPath = strprintf("%d", path.getInt<int>());
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown \"path\" type.");
     }
@@ -54,7 +54,7 @@ static std::vector<uint32_t> GetPath(std::vector<uint32_t> &vPath, const UniValu
         sPath = GetDefaultAccountPath() + "/" + sPath;
     } else
     if (path.isNum()) {
-        sPath = strprintf("%d", defaultpath.get_int()) + "/" + sPath;
+        sPath = strprintf("%d", defaultpath.getInt<int>()) + "/" + sPath;
     } else
     if (defaultpath.isStr()) {
         if (!defaultpath.get_str().empty()) {
@@ -597,7 +597,7 @@ static RPCHelpMan devicesignrawtransaction()
 
             uint256 txid = ParseHashO(prevOut, "txid");
 
-            int nOut = find_value(prevOut, "vout").get_int();
+            int nOut = find_value(prevOut, "vout").getInt<int>();
             if (nOut < 0) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "vout must be positive");
             }
@@ -820,7 +820,7 @@ static RPCHelpMan initaccountfromdevice()
     }
 
     bool fMakeDefault = request.params[2].isBool() ? request.params[2].get_bool() : true;
-    int64_t nScanFrom = request.params[3].isNum() ? request.params[3].get_int64() : 0;
+    int64_t nScanFrom = request.params[3].isNum() ? request.params[3].getInt<int64_t>() : 0;
     bool fInitStealth = request.params[4].isBool() ? request.params[4].get_bool() : true;
 
     WalletRescanReserver reserver(*pwallet);
@@ -1304,7 +1304,7 @@ static RPCHelpMan devicesignrawtransactionwithwallet()
 
             uint256 txid = ParseHashO(prevOut, "txid");
 
-            int nOut = find_value(prevOut, "vout").get_int();
+            int nOut = find_value(prevOut, "vout").getInt<int>();
             if (nOut < 0) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "vout must be positive");
             }

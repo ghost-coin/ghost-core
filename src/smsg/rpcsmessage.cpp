@@ -892,7 +892,7 @@ static RPCHelpMan smsgsend()
     std::string msg       = request.params[2].get_str();
 
     bool fPaid = request.params[3].isNull() ? false : request.params[3].get_bool();
-    int nRetention = request.params[4].isNull() ? 1 : request.params[4].get_int();
+    int nRetention = request.params[4].isNull() ? 1 : request.params[4].getInt<int>();
     bool fTestFee = request.params[5].isNull() ? false : request.params[5].get_bool();
 
     bool fFromFile = false;
@@ -936,7 +936,7 @@ static RPCHelpMan smsgsend()
             fund_from_rct = options["fund_from_rct"].get_bool();
         }
         if (!options["rct_ring_size"].isNull()) {
-            rct_ring_size = options["rct_ring_size"].get_int();
+            rct_ring_size = options["rct_ring_size"].getInt<int>();
         }
         if (!options["fundmsg"].isNull()) {
             fund_paid_msg = options["fundmsg"].get_bool();
@@ -1178,7 +1178,7 @@ static RPCHelpMan smsgfund()
             test_fee = options["testfee"].get_bool();
         }
         if (!options["rct_ring_size"].isNull()) {
-            rct_ring_size = options["rct_ring_size"].get_int();
+            rct_ring_size = options["rct_ring_size"].getInt<int>();
         }
     }
 
@@ -1376,10 +1376,10 @@ static RPCHelpMan smsginbox()
             unread_only = options["unread_only"].get_bool();
         }
         if (options["offset"].isNum()) {
-            offset = options["offset"].get_int();
+            offset = options["offset"].getInt<int>();
         }
         if (options["max_results"].isNum()) {
-            max_results = options["max_results"].get_int();
+            max_results = options["max_results"].getInt<int>();
         }
     }
 
@@ -1604,10 +1604,10 @@ static RPCHelpMan smsgoutbox()
             show_stashed = options["stashed"].get_bool();
         }
         if (options["offset"].isNum()) {
-            offset = options["offset"].get_int();
+            offset = options["offset"].getInt<int>();
         }
         if (options["max_results"].isNum()) {
-            max_results = options["max_results"].get_int();
+            max_results = options["max_results"].getInt<int>();
         }
     }
 
@@ -2476,7 +2476,7 @@ static RPCHelpMan smsggetfeerate()
 
     CBlockIndex *pblockindex = nullptr;
     if (!request.params[0].isNull()) {
-        int nHeight = request.params[0].get_int();
+        int nHeight = request.params[0].getInt<int>();
 
         if (nHeight < 0) {
             UniValue result(UniValue::VOBJ);
@@ -2538,7 +2538,7 @@ static RPCHelpMan smsggetdifficulty()
 
     int64_t chain_time = chainman.ActiveChain().Tip()->nTime;
     if (!request.params[0].isNull()) {
-        chain_time = request.params[0].get_int64();
+        chain_time = request.params[0].getInt<int64_t>();
         if (chain_time > chainman.ActiveChain().Tip()->nTime) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Time out of range");
         }
@@ -2575,7 +2575,7 @@ static RPCHelpMan smsggetinfo()
 {
     UniValue obj(UniValue::VOBJ);
 
-    obj.pushKV("enabled", smsg::fSecMsgEnabled);
+    obj.pushKV("enabled", smsg::fSecMsgEnabled.load());
     if (smsg::fSecMsgEnabled) {
         obj.pushKV("active_wallet", smsgModule.GetWalletName());
 #ifdef ENABLE_WALLET
@@ -2634,7 +2634,7 @@ static RPCHelpMan smsgpeers()
 {
     EnsureSMSGIsEnabled();
 
-    int index = request.params[0].isNull() ? -1 : request.params[0].get_int();
+    int index = request.params[0].isNull() ? -1 : request.params[0].getInt<int>();
 
     UniValue result(UniValue::VARR);
 
@@ -2687,10 +2687,10 @@ static RPCHelpMan smsgzmqpush()
             {"unreadonly",      UniValueType(UniValue::VBOOL)},
         }, true, true);
         if (options["timefrom"].isNum()) {
-            timefrom = options["timefrom"].get_int64();
+            timefrom = options["timefrom"].getInt<int64_t>();
         }
         if (options["timeto"].isNum()) {
-            timeto = options["timeto"].get_int64();
+            timeto = options["timeto"].getInt<int64_t>();
         }
         if (options["unreadonly"].isBool()) {
             unreadonly = options["unreadonly"].get_bool();

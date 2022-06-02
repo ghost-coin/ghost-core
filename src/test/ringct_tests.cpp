@@ -726,9 +726,9 @@ BOOST_AUTO_TEST_CASE(ringct_test_deterministic)
 
     for (unsigned int idx = 0; idx < tests_vectors.size(); idx++) {
         const UniValue &test = tests_vectors[idx];
-        size_t rows = test[0].get_int();
-        size_t cols = test[1].get_int();
-        size_t real_column = test[2].get_int();
+        size_t rows = test[0].getInt<int>();
+        size_t cols = test[1].getInt<int>();
+        size_t real_column = test[2].getInt<int>();
 
         std::vector<uint8_t> nonce = ParseHex(test[3].get_str());
         std::vector<uint8_t> preimage = ParseHex(test[4].get_str());

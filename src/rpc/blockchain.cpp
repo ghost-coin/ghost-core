@@ -535,7 +535,7 @@ static RPCHelpMan getblockhashafter()
 
     int64_t unix_time = 0;
     if (request.params[0].isNum()) {
-        unix_time = request.params[0].get_int64();
+        unix_time = request.params[0].getInt<int64_t>();
     } else {
         std::string str_time = request.params[0].get_str();
          if (part::IsStrOnlyDigits(str_time)) {
@@ -2190,7 +2190,7 @@ static RPCHelpMan scantxoutset()
             // no scan in progress
             return NullUniValue;
         }
-        result.pushKV("progress", g_scan_progress);
+        result.pushKV("progress", g_scan_progress.load());
         return result;
     } else if (request.params[0].get_str() == "abort") {
         CoinsViewScanReserver reserver;
@@ -2382,7 +2382,7 @@ static RPCHelpMan getposdifficulty()
     CChain &active_chain = chainman.ActiveChain();
     CBlockIndex *pblockindex = active_chain.Tip();
     if (!request.params[0].isNull()) {
-        int height = request.params[0].get_int();
+        int height = request.params[0].getInt<int>();
         if (height < 0 || height > active_chain.Height()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
         }

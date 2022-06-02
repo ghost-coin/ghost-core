@@ -367,8 +367,8 @@ static RPCHelpMan getaddressdeltas()
     int end = 0;
 
     if (startValue.isNum() && endValue.isNum()) {
-        start = startValue.get_int();
-        end = endValue.get_int();
+        start = startValue.getInt<int>();
+        end = endValue.getInt<int>();
         if (start <= 0 || end <= 0) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Start and end is expected to be greater than zero");
         }
@@ -552,8 +552,8 @@ static RPCHelpMan getaddresstxids()
         UniValue startValue = find_value(request.params[0].get_obj(), "start");
         UniValue endValue = find_value(request.params[0].get_obj(), "end");
         if (startValue.isNum() && endValue.isNum()) {
-            start = startValue.get_int();
-            end = endValue.get_int();
+            start = startValue.getInt<int>();
+            end = endValue.getInt<int>();
         }
     }
 
@@ -636,7 +636,7 @@ static RPCHelpMan getspentinfo()
     }
 
     uint256 txid = ParseHashV(txidValue, "txid");
-    int outputIndex = indexValue.get_int();
+    int outputIndex = indexValue.getInt<int>();
 
     CSpentIndexKey key(txid, outputIndex);
     CSpentIndexValue value;
@@ -880,8 +880,8 @@ static RPCHelpMan getblockhashes()
 {
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
 
-    unsigned int high = request.params[0].get_int();
-    unsigned int low = request.params[1].get_int();
+    unsigned int high = request.params[0].getInt<int>();
+    unsigned int low = request.params[1].getInt<int>();
     bool fActiveOnly = false;
     bool fLogicalTS = false;
 
@@ -1119,7 +1119,7 @@ static RPCHelpMan getblockreward()
         throw JSONRPCError(RPC_MISC_ERROR, "Requires -txindex enabled");
     }
 
-    int nHeight = request.params[0].get_int();
+    int nHeight = request.params[0].getInt<int>();
     if (nHeight < 0 || nHeight > chainman.ActiveChain().Height()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
     }
@@ -1342,7 +1342,7 @@ static RPCHelpMan listcoldstakeunspent()
 
     LOCK(cs_main);
 
-    int height = !request.params[1].isNull() ? request.params[1].get_int() : -1;
+    int height = !request.params[1].isNull() ? request.params[1].getInt<int>() : -1;
     if (height == -1) {
         height = chainman.ActiveChain().Tip()->nHeight;
     }

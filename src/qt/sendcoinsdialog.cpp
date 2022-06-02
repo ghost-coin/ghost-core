@@ -417,7 +417,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
 
     bool fSubbedFee = rv["outputs_fee"].size() > 0 ? true : false;
 
-    size_t nBytes = rv["bytes"].get_int64();
+    size_t nBytes = rv["bytes"].getInt<int64_t>();
     bool fNeedHWDevice = rv["need_hwdevice"].get_bool();
 
     CAmount txFee = rFee * COIN;
@@ -429,7 +429,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
         CAmount nValue = rcp.amount;
         const UniValue &uv = rv["outputs_fee"][rcp.address.toStdString().c_str()];
         if (uv.isNum()) {
-            nValue = uv.get_int64();
+            nValue = uv.getInt<int64_t>();
         }
         // generate amount string with wallet name in case of multiwallet
         QString amount = BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), nValue);

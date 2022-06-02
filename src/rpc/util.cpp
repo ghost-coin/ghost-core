@@ -392,7 +392,7 @@ bool GetBool(const UniValue &uv)
 uint32_t GetUInt32(const UniValue &uv)
 {
     if (uv.isNum()) {
-        return (uint32_t) uv.get_int();
+        return (uint32_t) uv.getInt<int>();
     }
     if (!uv.isStr()) {
         throw std::runtime_error("Not a number or string value.");

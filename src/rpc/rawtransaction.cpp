@@ -937,7 +937,7 @@ static RPCHelpMan signrawtransactionwithkey()
                 TaprootSpendData trs;
 
                 if (taproot_key_info.exists("internal_key_index")) {
-                    int xk_offset = taproot_key_info["internal_key_index"].get_int();
+                    int xk_offset = taproot_key_info["internal_key_index"].getInt<int>();
                     if (xk_offset < 0 || xk_offset >= (int) keys.size()) {
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "internal_key_index out of range.");
                     }
@@ -976,7 +976,7 @@ static RPCHelpMan signrawtransactionwithkey()
                         if (!script.exists("depth")) {
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "script depth is required.");
                         }
-                        int depth = script["depth"].get_int();
+                        int depth = script["depth"].getInt<int>();
 
                         if (script.exists("script") && script.exists("merkle_hash")) {
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "script is incompatible with merkle_hash.");

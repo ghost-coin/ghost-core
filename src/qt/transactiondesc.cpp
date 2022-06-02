@@ -130,12 +130,12 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             strHTML += "<b>" + tr("Transaction total size") + ":</b> " + QString::number(rv["hex"].get_str().length() / 2) + " bytes<br>";
         }
 
-        strHTML += "<b>" + tr("Confirmations") + ":</b> " + QString::number(rv["confirmations"].get_int()) + "<br>";
+        strHTML += "<b>" + tr("Confirmations") + ":</b> " + QString::number(rv["confirmations"].getInt<int>()) + "<br>";
 
         if (!rv["blockhash"].isNull()) {
             strHTML += "<b>" + tr("Block hash") + ":</b> " + QString::fromStdString(rv["blockhash"].get_str()) + "<br>";
-            strHTML += "<b>" + tr("Block index") + ":</b> " + QString::number(rv["blockindex"].get_int()) + "<br>";
-            strHTML += "<b>" + tr("Block time") + ":</b> " + GUIUtil::dateTimeStr(rv["blocktime"].get_int()) + "<br>";
+            strHTML += "<b>" + tr("Block index") + ":</b> " + QString::number(rv["blockindex"].getInt<int>()) + "<br>";
+            strHTML += "<b>" + tr("Block time") + ":</b> " + GUIUtil::dateTimeStr(rv["blocktime"].getInt<int>()) + "<br>";
         }
 
         strHTML += "<b>Details:</b><br>";

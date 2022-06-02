@@ -563,7 +563,7 @@ bool WalletModel::tryCallRpc(const QString &sCommand, UniValue &rv, bool returnE
             return false;
         }
         try { // Nice formatting for standard-format error
-            int code = find_value(objError, "code").get_int();
+            int code = find_value(objError, "code").getInt<int>();
             std::string message = find_value(objError, "message").get_str();
             warningBox(tr("Wallet Model"), QString::fromStdString(message) + " (code " + QString::number(code) + ")");
             return false;

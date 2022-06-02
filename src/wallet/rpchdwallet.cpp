@@ -848,7 +848,7 @@ void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoi
                 {"n", UniValueType(UniValue::VNUM)},
             });
 
-            COutPoint op(ParseHashO(uvi, "tx"), uvi["n"].get_int());
+            COutPoint op(ParseHashO(uvi, "tx"), uvi["n"].getInt<int>());
             coin_control.setSelected.insert(op);
 
             bool have_attribute = false;
@@ -1657,7 +1657,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
         }
     } else
     if (request.params[5].isNum()) {
-        nScanFrom = request.params[5].get_int64();
+        nScanFrom = request.params[5].getInt<int64_t>();
     }
     if (!request.params[6].isNull()) {
         LOCK(pwallet->cs_wallet);
@@ -1673,13 +1673,13 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             true, true);
 
         if (options.exists("createextkeys")) {
-            create_extkeys = options["createextkeys"].get_int();
+            create_extkeys = options["createextkeys"].getInt<int>();
             if (create_extkeys < 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "createextkeys must be positive.");
             }
         }
         if (options.exists("lookaheadsize")) {
-            int override_lookaheadsize = options["lookaheadsize"].get_int();
+            int override_lookaheadsize = options["lookaheadsize"].getInt<int>();
             if (override_lookaheadsize < 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "lookaheadsize must be positive.");
             }
@@ -1687,14 +1687,14 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             pwallet->PrepareLookahead();
         }
         if (options.exists("stealthv1lookaheadsize")) {
-            int override_stealthv1lookaheadsize = options["stealthv1lookaheadsize"].get_int();
+            int override_stealthv1lookaheadsize = options["stealthv1lookaheadsize"].getInt<int>();
             if (override_stealthv1lookaheadsize < 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "stealthv1lookaheadsize must be positive.");
             }
             pwallet->m_rescan_stealth_v1_lookahead = override_stealthv1lookaheadsize;
         }
         if (options.exists("stealthv2lookaheadsize")) {
-            int override_stealthv2lookaheadsize = options["stealthv2lookaheadsize"].get_int();
+            int override_stealthv2lookaheadsize = options["stealthv2lookaheadsize"].getInt<int>();
             if (override_stealthv2lookaheadsize < 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "stealthv2lookaheadsize must be positive.");
             }
@@ -2659,12 +2659,12 @@ static RPCHelpMan deriverangekeys()
 
     // TODO: manage nGenerated, nHGenerated properly
 
-    int nStart = request.params[0].get_int();
+    int nStart = request.params[0].getInt<int>();
     int nEnd = nStart;
     std::string sInKey;
 
     if (request.params.size() > 1) {
-        nEnd = request.params[1].get_int();
+        nEnd = request.params[1].getInt<int>();
     }
     if (nEnd < nStart) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "\"end\" can not be before start.");
@@ -3205,7 +3205,7 @@ static void ParseOutputs(
                 bool fExists = false;
                 for (size_t i = 0; i < outputs.size(); ++i) {
                     auto &o = outputs.get(i);
-                    if (o["vout"].get_int() == r.vout) {
+                    if (o["vout"].getInt<int>() == r.vout) {
                         o.get("amount").setStr(FormatMoney(r.amount));
                         fExists = true;
                     }
@@ -3751,7 +3751,7 @@ static RPCHelpMan filtertransactions()
             false // strict
         );
         if (options.exists("count")) {
-            int _count = options["count"].get_int();
+            int _count = options["count"].getInt<int>();
             if (_count < 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER,
                     strprintf("Invalid count: %i.", _count));
@@ -3759,7 +3759,7 @@ static RPCHelpMan filtertransactions()
             count = _count;
         }
         if (options.exists("skip")) {
-            skip = options["skip"].get_int();
+            skip = options["skip"].getInt<int>();
             if (skip < 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER,
                     strprintf("Invalid skip number: %i.", skip));
@@ -3827,13 +3827,13 @@ static RPCHelpMan filtertransactions()
             timeFrom = part::strToEpoch(options["from"].get_str().c_str());
         } else
         if (options["from"].isNum()) {
-            timeFrom = options["from"].get_int64();
+            timeFrom = options["from"].getInt<int64_t>();
         }
         if (options["to"].isStr()) {
             timeTo = part::strToEpoch(options["to"].get_str().c_str(), true);
         } else
         if (options["to"].isNum()) {
-            timeTo = options["to"].get_int64();
+            timeTo = options["to"].getInt<int64_t>();
         }
         if (options["collate"].isBool()) {
             fCollate = options["collate"].get_bool();
@@ -4054,7 +4054,7 @@ static RPCHelpMan filteraddresses()
 
     int nOffset = 0, nCount = 0x7FFFFFFF;
     if (request.params.size() > 0)
-        nOffset = request.params[0].get_int();
+        nOffset = request.params[0].getInt<int>();
 
     std::map<CTxDestination, CAddressBookData>::iterator it;
     if (request.params.size() == 1 && nOffset == -1) {
@@ -4082,7 +4082,7 @@ static RPCHelpMan filteraddresses()
     }
 
     if (request.params.size() > 1) {
-        nCount = request.params[1].get_int();
+        nCount = request.params[1].getInt<int>();
     }
     if (nOffset < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "offset must be 0 or greater.");
@@ -4733,13 +4733,13 @@ static RPCHelpMan listunspentanon()
     int nMinDepth = 1;
     if (request.params.size() > 0 && !request.params[0].isNull()) {
         RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
-        nMinDepth = request.params[0].get_int();
+        nMinDepth = request.params[0].getInt<int>();
     }
 
     int nMaxDepth = 0x7FFFFFFF;
     if (request.params.size() > 1 && !request.params[1].isNull()) {
         RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
-        nMaxDepth = request.params[1].get_int();
+        nMaxDepth = request.params[1].getInt<int>();
     }
 
     std::set<CBitcoinAddress> setAddress;
@@ -4796,7 +4796,7 @@ static RPCHelpMan listunspentanon()
             nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
         }
         if (options.exists("maximumCount")) {
-            nMaximumCount = options["maximumCount"].get_int64();
+            nMaximumCount = options["maximumCount"].getInt<int64_t>();
         }
         if (options.exists("cc_format")) {
             fCCFormat = options["cc_format"].get_bool();
@@ -4984,13 +4984,13 @@ static RPCHelpMan listunspentblind()
     int nMinDepth = 1;
     if (request.params.size() > 0 && !request.params[0].isNull()) {
         RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
-        nMinDepth = request.params[0].get_int();
+        nMinDepth = request.params[0].getInt<int>();
     }
 
     int nMaxDepth = 0x7FFFFFFF;
     if (request.params.size() > 1 && !request.params[1].isNull()) {
         RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
-        nMaxDepth = request.params[1].get_int();
+        nMaxDepth = request.params[1].getInt<int>();
     }
 
     CCoinControl cctl;
@@ -5022,7 +5022,7 @@ static RPCHelpMan listunspentblind()
             nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
         }
         if (options.exists("maximumCount")) {
-            nMaximumCount = options["maximumCount"].get_int64();
+            nMaximumCount = options["maximumCount"].getInt<int64_t>();
         }
         if (options.exists("cc_format")) {
             fCCFormat = options["cc_format"].get_bool();
@@ -5467,12 +5467,12 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     nv = nRingSizeOfs;
     size_t nRingSize = DEFAULT_RING_SIZE;
     if (request.params.size() > nv) {
-        nRingSize = request.params[nv].get_int();
+        nRingSize = request.params[nv].getInt<int>();
     }
     nv++;
     size_t nInputsPerSig = DEFAULT_INPUTS_PER_SIG;
     if (request.params.size() > nv) {
-        nInputsPerSig = request.params[nv].get_int();
+        nInputsPerSig = request.params[nv].getInt<int>();
     }
 
     bool fShowHex = false;
@@ -5530,11 +5530,11 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
                 if (!uvi.isNum()) {
                     JSONRPCError(RPC_INVALID_PARAMETER, "Mixin index must be an integer.");
                 }
-                coincontrol.m_use_mixins.push_back(uvi.get_int64());
+                coincontrol.m_use_mixins.push_back(uvi.getInt<int64_t>());
             }
         }
         if (uvCoinControl["mixin_selection_mode"].isNum()) {
-            coincontrol.m_mixin_selection_mode = uvCoinControl["mixin_selection_mode"].get_int();
+            coincontrol.m_mixin_selection_mode = uvCoinControl["mixin_selection_mode"].getInt<int>();
         } else {
             coincontrol.m_mixin_selection_mode = pwallet->m_mixin_selection_mode_default;
         }
@@ -5818,7 +5818,7 @@ static UniValue createsignatureinner(const JSONRPCRequest &request, ChainstateMa
 
     uint256 txid = ParseHashO(prevOut, "txid");
 
-    int nOut = find_value(prevOut, "vout").get_int();
+    int nOut = find_value(prevOut, "vout").getInt<int>();
     if (nOut < 0) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "vout must be positive");
     }
@@ -6313,7 +6313,7 @@ static void traceFrozenOutputs(WalletContext& context, UniValue &rv, CAmount min
                 {"tx", UniValueType(UniValue::VSTR)},
                 {"n", UniValueType(UniValue::VNUM)},
             });
-            COutPoint op(ParseHashO(uvi, "tx"), uvi["n"].get_int());
+            COutPoint op(ParseHashO(uvi, "tx"), uvi["n"].getInt<int>());
             extra_txouts.insert(op);
         }
     }
@@ -6764,7 +6764,7 @@ static RPCHelpMan debugwallet()
             }
 
             uint256 input_txid = ParseHashO(v, "txid");
-            int rv, input_n = v["n"].get_int();
+            int rv, input_n = v["n"].getInt<int>();
             CCoinControl cctl;
             cctl.m_spend_frozen_blinded = true;
             cctl.m_addChangeOutput = false;
@@ -7188,7 +7188,7 @@ static RPCHelpMan walletsettings()
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "height must be a number.");
                     }
 
-                    int stake_limit = json["height"].get_int();
+                    int stake_limit = json["height"].getInt<int>();
                     pwallet->SetStakeLimitHeight(stake_limit);
                     result.pushKV(sSetting, stake_limit);
                 } else {
@@ -7670,8 +7670,8 @@ static RPCHelpMan setvote()
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    uint32_t issue = request.params[0].get_int();
-    uint32_t option = request.params[1].get_int();
+    uint32_t issue = request.params[0].getInt<int>();
+    uint32_t option = request.params[1].getInt<int>();
 
     if (issue > 0xFFFF) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Proposal out of range.");
@@ -7680,8 +7680,8 @@ static RPCHelpMan setvote()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Option out of range.");
     }
 
-    int nStartHeight = request.params[2].get_int();
-    int nEndHeight = request.params[3].get_int();
+    int nStartHeight = request.params[2].getInt<int>();
+    int nEndHeight = request.params[3].getInt<int>();
 
     if (nEndHeight < nStartHeight && !(nEndHeight + nStartHeight + issue + option)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "height_end must be after height_start.");
@@ -7794,8 +7794,8 @@ static RPCHelpMan votehistory()
 
                 // Check if occluded, result is ordered by start_height ASC
                 for (size_t ir = 0; ir < result.size(); ++ir) {
-                    int rs = result[ir]["from_height"].get_int();
-                    int re = result[ir]["to_height"].get_int();
+                    int rs = result[ir]["from_height"].getInt<int>();
+                    int re = result[ir]["to_height"].getInt<int>();
 
                     if (rs <= vote_start && vote_end >= re) {
                         vote_start = re;
@@ -7823,7 +7823,7 @@ static RPCHelpMan votehistory()
 
             size_t k = 0;
             for (k = 0; k < result.size(); k++) {
-                if (v.nStart < result[k]["from_height"].get_int()) {
+                if (v.nStart < result[k]["from_height"].getInt<int>()) {
                     result.insert(k, vote);
                     break;
                 }
@@ -7884,12 +7884,12 @@ static RPCHelpMan tallyvotes()
 {
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
-    int issue = request.params[0].get_int();
+    int issue = request.params[0].getInt<int>();
     if (issue < 1 || issue >= (1 << 16))
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Proposal out of range.");
 
-    int nStartHeight = request.params[1].get_int();
-    int nEndHeight = request.params[2].get_int();
+    int nStartHeight = request.params[1].getInt<int>();
+    int nEndHeight = request.params[2].getInt<int>();
 
     CBlock block;
     const Consensus::Params& consensusParams = Params().GetConsensus();
@@ -8137,7 +8137,7 @@ static RPCHelpMan createrawparttransaction()
 
 
     if (!request.params[2].isNull()) {
-        int64_t nLockTime = request.params[2].get_int64();
+        int64_t nLockTime = request.params[2].getInt<int64_t>();
         if (nLockTime < 0 || nLockTime > std::numeric_limits<uint32_t>::max()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, locktime out of range");
         }
@@ -8158,7 +8158,7 @@ static RPCHelpMan createrawparttransaction()
         if (!vout_v.isNum()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing vout key");
         }
-        int nOutput = vout_v.get_int();
+        int nOutput = vout_v.getInt<int>();
         if (nOutput < 0) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
         }
@@ -8175,7 +8175,7 @@ static RPCHelpMan createrawparttransaction()
         // set the sequence number if passed in the parameters object
         const UniValue& sequenceObj = find_value(o, "sequence");
         if (sequenceObj.isNum()) {
-            int64_t seqNr64 = sequenceObj.get_int64();
+            int64_t seqNr64 = sequenceObj.getInt<int64_t>();
             if (seqNr64 < 0 || seqNr64 > std::numeric_limits<uint32_t>::max()) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, sequence number is out of range");
             } else {
@@ -8321,9 +8321,9 @@ static RPCHelpMan createrawparttransaction()
                 }
 
                 r.fOverwriteRangeProofParams = true;
-                r.min_value = rangeproofParams["min_value"].get_int64();
-                r.ct_exponent = rangeproofParams["ct_exponent"].get_int();
-                r.ct_bits = rangeproofParams["ct_bits"].get_int();
+                r.min_value = rangeproofParams["min_value"].getInt<int64_t>();
+                r.ct_exponent = rangeproofParams["ct_exponent"].getInt<int>();
+                r.ct_bits = rangeproofParams["ct_bits"].getInt<int>();
             }
         }
 
@@ -8573,7 +8573,7 @@ static RPCHelpMan fundrawtransactionfrom()
         ParseCoinControlOptions(options, pwallet, coinControl);
 
         if (options.exists("changePosition")) {
-            changePosition = options["changePosition"].get_int();
+            changePosition = options["changePosition"].getInt<int>();
         }
         if (options.exists("lockUnspents")) {
             lockUnspents = options["lockUnspents"].get_bool();
@@ -8592,10 +8592,10 @@ static RPCHelpMan fundrawtransactionfrom()
             sign_tx = options["sign_tx"].get_bool();
         }
         if (options.exists("anon_ring_size")) {
-            rct_ring_size = options["anon_ring_size"].get_int();
+            rct_ring_size = options["anon_ring_size"].getInt<int>();
         }
         if (options.exists("anon_inputs_per_sig")) {
-            rct_inputs_per_sig = options["anon_inputs_per_sig"].get_int();
+            rct_inputs_per_sig = options["anon_inputs_per_sig"].getInt<int>();
         }
         if (options["blind_watchonly_visible"].isBool() && options["blind_watchonly_visible"].get_bool() == true) {
             coinControl.m_blind_watchonly_visible = true;
@@ -8621,7 +8621,7 @@ static RPCHelpMan fundrawtransactionfrom()
     coinControl.nChangePos = changePosition;
 
     for (unsigned int idx = 0; idx < subtractFeeFromOutputs.size(); idx++) {
-        int pos = subtractFeeFromOutputs[idx].get_int();
+        int pos = subtractFeeFromOutputs[idx].getInt<int>();
         if (setSubtractFeeFromOutputs.count(pos)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, duplicated position: %d", pos));
         }
@@ -9270,7 +9270,7 @@ static RPCHelpMan verifyrawtransaction()
             particl_mode = options["particlmode"].get_bool();
         }
         if (options.exists("spendheight")) {
-            nSpendHeight = options["spendheight"].get_int();
+            nSpendHeight = options["spendheight"].getInt<int>();
         }
     }
 
@@ -9319,7 +9319,7 @@ static RPCHelpMan verifyrawtransaction()
 
             uint256 txid = ParseHashO(prevOut, "txid");
 
-            int nOut = find_value(prevOut, "vout").get_int();
+            int nOut = find_value(prevOut, "vout").getInt<int>();
             if (nOut < 0) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "vout must be positive");
             }
@@ -9367,7 +9367,7 @@ static RPCHelpMan verifyrawtransaction()
                 newcoin.nHeight = coin.nHeight;
             } else {
                 if (prevOut.exists("chainheight")) {
-                    newcoin.nHeight = prevOut["chainheight"].get_int();
+                    newcoin.nHeight = prevOut["chainheight"].getInt<int>();
                     if (newcoin.nHeight < 1) {
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "\"chainheight\" Must be >= 1");
                     }
@@ -9577,7 +9577,7 @@ static RPCHelpMan rewindchain()
 
     int nBlocks = 0;
 
-    int nToHeight = request.params[0].isNum() ? request.params[0].get_int() : pindexState->nHeight - 1;
+    int nToHeight = request.params[0].isNum() ? request.params[0].getInt<int>() : pindexState->nHeight - 1;
     result.pushKV("to_height", nToHeight);
 
     std::string sError;
@@ -9719,7 +9719,7 @@ static RPCHelpMan rehashblock()
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
             }
 
-            int pos = !o["pos"].isNull() ? o["pos"].get_int() : -1;
+            int pos = !o["pos"].isNull() ? o["pos"].getInt<int>() : -1;
             bool replace = !o["replace"].isNull() ? o["replace"].get_bool() : false;
 
             if (pos == -1 || pos >= (int)block.vtx.size()) {

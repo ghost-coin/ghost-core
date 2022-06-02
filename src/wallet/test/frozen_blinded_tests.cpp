@@ -177,8 +177,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     RegtestParams().GetConsensus_nc().m_frozen_blinded_height = tip->nHeight;
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    size_t num_spendable = rv["num_spendable"].get_int();
-    size_t num_unspendable = rv["num_unspendable"].get_int();
+    size_t num_spendable = rv["num_spendable"].getInt<int>();
+    size_t num_unspendable = rv["num_unspendable"].getInt<int>();
     BOOST_CHECK(num_spendable > 0);
     BOOST_CHECK(num_unspendable > 0);
     BOOST_CHECK(AmountFromValue(rv["frozen_outputs"][0]["amount"]) > AmountFromValue(rv["frozen_outputs"][num_spendable + num_unspendable - 1]["amount"]));
@@ -198,20 +198,20 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     // Test spend_frozen_output with num_spendable == 0
     RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 100;
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    BOOST_CHECK(rv["num_spendable"].get_int() == 0);
+    BOOST_CHECK(rv["num_spendable"].getInt<int>() == 0);
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
     BOOST_CHECK(rv["error"].get_str() == "No spendable outputs.");
     RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 500 * COIN;
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    BOOST_CHECK(rv["num_spendable"].get_int() > 0);
+    BOOST_CHECK(rv["num_spendable"].getInt<int>() > 0);
     CAmount unspendable_value = AmountFromValue(rv["total_unspendable"]);
     // Find a spendable prevout
     COutPoint prevout_spendable;
     for (size_t i = 0; i < rv["frozen_outputs"].size(); ++i) {
         const UniValue &uvo = rv["frozen_outputs"][i];
         if (uvo["spendable"].get_bool() == true) {
-            prevout_spendable = COutPoint(ParseHashO(uvo, "txid"), uvo["n"].get_int());
+            prevout_spendable = COutPoint(ParseHashO(uvo, "txid"), uvo["n"].getInt<int>());
             break;
         }
     }
@@ -219,12 +219,12 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Test trace_frozen_outputs
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"trace_frozen_outputs\":true}", context));
-    BOOST_CHECK(rv["total_traced"].get_int64() == unspendable_value);
-    int last_num_traced = rv["num_traced"].get_int();
+    BOOST_CHECK(rv["total_traced"].getInt<int64_t>() == unspendable_value);
+    int last_num_traced = rv["num_traced"].getInt<int>();
 
     BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_extra\":[{\"tx\":\"%s\",\"n\":%d}]}",
         prevout_spendable.hash.ToString(), prevout_spendable.n), context));
-    BOOST_CHECK(rv["num_traced"].get_int() == last_num_traced + 1);
+    BOOST_CHECK(rv["num_traced"].getInt<int>() == last_num_traced + 1);
     std::string str_rv_check = rv.write();
     BOOST_CHECK(str_rv_check.find("anon_spend_key") == std::string::npos);
 
@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         // Txn should pass now
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         BOOST_REQUIRE(rv["txid"].isStr());
-        CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
@@ -386,7 +386,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
@@ -421,7 +421,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("gettransaction %s true true", spend_txid.ToString()), context));
         std::string str_ao_pubkey = rv["decoded"]["vout"][output_n]["pubkey"].get_str();
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("anonoutput %s", str_ao_pubkey), context));
-        int64_t ao_index = rv["index"].get_int64();
+        int64_t ao_index = rv["index"].getInt<int64_t>();
 
         // Whitelist index
         int64_t aoi_whitelist[] = {
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         // Transaction should send
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         BOOST_REQUIRE(rv["txid"].isStr());
-        CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
@@ -601,7 +601,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Test debugwallet spend_frozen_output
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    num_spendable = rv["num_spendable"].get_int();
+    num_spendable = rv["num_spendable"].getInt<int>();
     BOOST_CHECK(num_spendable > 0);
 
     for (size_t i = 0; i < num_spendable; i++) {
@@ -610,8 +610,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     }
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    BOOST_CHECK(rv["num_spendable"].get_int() == 0);
-    BOOST_CHECK(rv["num_unspendable"].get_int() > 0);
+    BOOST_CHECK(rv["num_spendable"].getInt<int>() == 0);
+    BOOST_CHECK(rv["num_unspendable"].getInt<int>() > 0);
 
     // balancesindex tracks the amount of plain coin sent to and from blind to anon.
     // Coins can move between anon and blind but the sums should match

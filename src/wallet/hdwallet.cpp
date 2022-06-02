@@ -206,7 +206,7 @@ bool CHDWallet::ProcessStakingSettings(std::string &sError)
         }
 
         if (!json["treasurydonationpercent"].isNull()) {
-            try { nWalletTreasuryFundCedePercent = json["treasurydonationpercent"].get_int();
+            try { nWalletTreasuryFundCedePercent = json["treasurydonationpercent"].getInt<int>();
             } catch (std::exception &e) {
                 AppendError(sError, "\"treasurydonationpercent\" not an integer.");
             }
@@ -276,13 +276,13 @@ bool CHDWallet::ProcessWalletSettings(std::string &sError)
     UniValue json;
     if (GetSetting("unloadspent", json)) {
         if (!json["mode"].isNull()) {
-            try { m_collapse_spent_mode = json["mode"].get_int();
+            try { m_collapse_spent_mode = json["mode"].getInt<int>();
             } catch (std::exception &e) {
                 AppendError(sError, "\"mode\" not integer.");
             }
         }
         if (!json["mindepth"].isNull()) {
-            try { m_min_collapse_depth = json["mindepth"].get_int();
+            try { m_min_collapse_depth = json["mindepth"].getInt<int>();
             } catch (std::exception &e) {
                 AppendError(sError, "\"mode\" not integer.");
             }
@@ -291,7 +291,7 @@ bool CHDWallet::ProcessWalletSettings(std::string &sError)
 
     if (GetSetting("anonoptions", json)) {
         if (!json["mixinselection"].isNull()) {
-            try { m_mixin_selection_mode_default = json["mixinselection"].get_int();
+            try { m_mixin_selection_mode_default = json["mixinselection"].getInt<int>();
             } catch (std::exception &e) {
                 AppendError(sError, "\"mixinselection\" not integer.");
             }
@@ -503,10 +503,10 @@ bool CHDWallet::DumpJson(UniValue &rv, std::string &sError)
         size_t nPackStealthKeys = 0;
 
         if (acc["stealth_address_pack"].isNum()) {
-            nPackStealthAddrs = acc["stealth_address_pack"].get_int();
+            nPackStealthAddrs = acc["stealth_address_pack"].getInt<int>();
         }
         if (acc["stealth_keys_received_pack"].isNum()) {
-            nPackStealthKeys = acc["stealth_keys_received_pack"].get_int();
+            nPackStealthKeys = acc["stealth_keys_received_pack"].getInt<int>();
         }
 
         CKeyID idAcc;
