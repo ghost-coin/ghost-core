@@ -173,7 +173,10 @@ class PosTest(ParticlTestFramework):
         assert(fFound)
 
         self.log.info('Test clearing rewardaddress')
-        ro = nodes[0].walletsettings('stakingoptions', {})
+        # Set minstakeablevalue above 1.0
+        nodes[0].walletsettings('stakingoptions', {'minstakeablevalue': 2.0})
+        stake_info = nodes[0].getstakinginfo()
+        assert(stake_info['minstakeablevalue'] == 2.0)
 
         self.stakeBlocks(1)
         coinstakehash = nodes[0].getblock(nodes[0].getblockhash(7))['tx'][0]
@@ -231,6 +234,11 @@ class PosTest(ParticlTestFramework):
         stakereward = nodes[0].getblockreward(8)['stakereward']
         header_after = nodes[0].getblockheader(nodes[0].getbestblockhash())
         assert(abs(header_before['moneysupply'] - (header_after['moneysupply'] + decimal.Decimal(100.0) - stakereward)) < 0.00000002 )
+
+        self.log.info('Test that getcoldstakinginfo coin_in_stakeable_script == currently_staking + pending_depth')
+        cs_info = nodes[0].getcoldstakinginfo()
+        assert(cs_info['pending_depth'] > 0.0)
+        assert(cs_info['coin_in_stakeable_script'] == cs_info['currently_staking'] + cs_info['pending_depth'])
 
 
 if __name__ == '__main__':
