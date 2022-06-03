@@ -1,4 +1,13 @@
 
+0.21.2.10
+==============
+
+- rpc: Added pending_depth to getcoldstakinginfo
+  - getbalances staked shows immature coins unspendable before maturing after 100 blocks (COINBASE_MATURITY)
+  - getcoldstakinginfo pending_depth shows coins unstakable until after 225 blocks (nStakeMinConfirmations)
+- rpc: Added minstakeabledepth to getstakinginfo
+
+
 0.21.2.9
 ==============
 

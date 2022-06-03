@@ -91,7 +91,9 @@ class ColdStakingTest(ParticlTestFramework):
         txid1 = nodes[0].sendtoaddress(addr2_1, 100)
         tx = nodes[0].getrawtransaction(txid1, True)
 
-        assert_equal(nodes[0].getcoldstakinginfo()['coin_in_coldstakeable_script'], Decimal('9899.999572'))
+        cs_info = nodes[0].getcoldstakinginfo()
+        assert_equal(cs_info['coin_in_coldstakeable_script'], Decimal('9899.999572'))
+        assert_equal(cs_info['coin_in_stakeable_script'], cs_info['currently_staking'] + cs_info['pending_depth'])
 
         hashCoinstake = ''
         hashOther = ''
@@ -233,7 +235,6 @@ class ColdStakingTest(ParticlTestFramework):
         assert(fFound)
 
         assert(self.wait_for_mempool(nodes[1], txid3))
-
         assert(nodes[1].extkey('key', 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB', 'true')['num_derives'] == '3')
 
         # Test stake to coldstakingchangeaddress
