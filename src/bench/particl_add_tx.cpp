@@ -142,9 +142,6 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
     wallet_loader->registerRpcs();
     WalletContext& wallet_context = *wallet_loader->context();
 
-    ECC_Start_Stealth();
-    ECC_Start_Blinding();
-
     std::unique_ptr<interfaces::Chain> m_chain = interfaces::MakeChain(test_setup.m_node);
     std::unique_ptr<interfaces::ChainClient> m_chain_client = interfaces::MakeWalletLoader(*m_chain, *Assert(test_setup.m_node.args));
     m_chain_client->registerRpcs();
@@ -232,9 +229,6 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
 
     RemoveWallet(wallet_context, pwallet_b, std::nullopt);
     pwallet_b.reset();
-
-    ECC_Stop_Stealth();
-    ECC_Stop_Blinding();
 }
 
 static void ParticlAddTxPlainPlainNotOwned(benchmark::Bench& bench) { AddTx(bench, "plain", "plain", false); }

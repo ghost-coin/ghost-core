@@ -20,8 +20,6 @@ static void Mlsag(benchmark::Bench& bench)
 {
     TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
 
-    ECC_Start_Blinding();
-
     const size_t nInputs = 2;
     const size_t nCols = 4;
     const size_t nRows = nInputs+1;
@@ -110,8 +108,6 @@ static void Mlsag(benchmark::Bench& bench)
             preimage, nCols, nRows,
             m, ki, pc, ss));
     });
-
-    ECC_Stop_Blinding();
 }
 
 BENCHMARK(Mlsag);

@@ -1186,6 +1186,6 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool);
 int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-} // particl
+} // namespace particl
 
 #endif // BITCOIN_VALIDATION_H

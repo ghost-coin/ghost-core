@@ -213,6 +213,7 @@ bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::
     return rct_whitelist.count(anon_index);
 }
 
+namespace particl {
 void ECC_Start_Blinding()
 {
     assert(secp256k1_ctx_blind == nullptr);
@@ -248,3 +249,4 @@ void ECC_Stop_Blinding()
         secp256k1_context_destroy(ctx);
     }
 }
+} // namespace particl

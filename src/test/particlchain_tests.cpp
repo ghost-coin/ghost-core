@@ -252,8 +252,6 @@ BOOST_AUTO_TEST_CASE(mixed_input_types)
 BOOST_AUTO_TEST_CASE(mixed_output_types)
 {
     // When sending from plain only CT or RCT outputs are valid
-    ECC_Start_Blinding();
-
     CAmount txfee = 2000;
     int nSpendHeight = 1;
     CCoinsView viewDummy;
@@ -297,8 +295,6 @@ BOOST_AUTO_TEST_CASE(mixed_output_types)
     CTransaction tx_c2(txn);
     BOOST_CHECK(!Consensus::CheckTxInputs(tx_c2, state, inputs, nSpendHeight, txfee));
     BOOST_CHECK(state.GetRejectReason() != "bad-txns-plain-in-mixed-out");
-
-    ECC_Stop_Blinding();
 }
 
 BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)

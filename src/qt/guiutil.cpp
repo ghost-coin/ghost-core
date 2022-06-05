@@ -994,8 +994,7 @@ void ShowModalDialogAsynchronously(QDialog* dialog)
     dialog->show();
 }
 
-namespace particl
-{
+namespace particl {
     QString escapeQString(const QString& si)
     {
         QString sr;
@@ -1007,6 +1006,6 @@ namespace particl
         }
         return sr;
     }
-}
+} // namespace particl
 
 } // namespace GUIUtil

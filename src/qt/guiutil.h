@@ -428,10 +428,9 @@ namespace GUIUtil
         return false;
     }
 
-namespace particl
-{
+namespace particl {
     QString escapeQString(const QString& si);
-}
+} // namespace particl
 
 } // namespace GUIUtil
 

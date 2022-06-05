@@ -373,6 +373,6 @@ namespace particl {
 TxoutType ToTxoutType(uint8_t type_byte);
 uint8_t FromTxoutType(TxoutType type_class);
 bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
-}
+} // namespace particl
 
 #endif // BITCOIN_SCRIPT_STANDARD_H

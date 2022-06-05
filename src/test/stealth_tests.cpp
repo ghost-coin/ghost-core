@@ -148,7 +148,6 @@ BOOST_AUTO_TEST_CASE(stealth_key_address)
 {
     SeedInsecureRand();
     FillableSigningProvider keystore;
-    ECC_Start_Stealth();
 
     for (size_t k = 0; k < 32; ++k) {
         CStealthAddress sxAddr;
@@ -171,16 +170,12 @@ BOOST_AUTO_TEST_CASE(stealth_key_address)
         CBitcoinAddress addrC2(dest);
         BOOST_CHECK(addrC.ToString() == addrC2.ToString());
     }
-
-    ECC_Stop_Stealth();
 }
 
 BOOST_AUTO_TEST_CASE(stealth_key)
 {
     SeedInsecureRand();
     FillableSigningProvider keystore;
-
-    ECC_Start_Stealth();
 
     for (size_t i = 0; i < 16; ++i) {
         CStealthAddress sxAddr;
@@ -231,8 +226,6 @@ BOOST_AUTO_TEST_CASE(stealth_key)
         pkTemp = kSpendOut_test2.GetPubKey();
         BOOST_CHECK(CPubKey(pkSendTo) == pkTemp);
     }
-
-    ECC_Stop_Stealth();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

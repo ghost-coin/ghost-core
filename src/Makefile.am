@@ -187,7 +187,9 @@ BITCOIN_CORE_H = \
   interfaces/node.h \
   interfaces/wallet.h \
   kernel/chainstatemanager_opts.h \
+  kernel/checks.h \
   kernel/coinstats.h \
+  kernel/context.h \
   key.h \
   key/stealth.h \
   key/extkey.h \
@@ -286,6 +288,7 @@ BITCOIN_CORE_H = \
   util/bip32.h \
   util/bytevectorhash.h \
   util/check.h \
+  util/designator.h \
   util/epochguard.h \
   util/error.h \
   util/fastrange.h \
@@ -400,7 +403,9 @@ libparticl_node_a_SOURCES = \
   index/coinstatsindex.cpp \
   index/txindex.cpp \
   init.cpp \
+  kernel/checks.cpp \
   kernel/coinstats.cpp \
+  kernel/context.cpp \
   mapport.cpp \
   net.cpp \
   netgroup.cpp \
@@ -1036,8 +1041,9 @@ libparticlkernel_la_SOURCES = \
   flatfile.cpp \
   fs.cpp \
   hash.cpp \
-  init/common.cpp \
+  kernel/checks.cpp \
   kernel/coinstats.cpp \
+  kernel/context.cpp \
   key.cpp \
   anon.cpp \
   blind.cpp \
