@@ -13477,52 +13477,123 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     if (!pTreasuryFundSettings || pTreasuryFundSettings->nMinTreasuryStakePercent <= 0) {
         nRewardOut = nReward;
     } else {
-        int64_t nStakeSplit = std::max(pTreasuryFundSettings->nMinTreasuryStakePercent, nWalletTreasuryFundCedePercent);
 
-        CAmount nTreasuryPart = (nReward * nStakeSplit) / 100;
-        nRewardOut = nReward - nTreasuryPart;
+        if (nBlockHeight < consensusParams.automatedGvrActivationHeight) {
+            
+            int64_t nStakeSplit = std::max(pTreasuryFundSettings->nMinTreasuryStakePercent, nWalletTreasuryFundCedePercent);
 
-        CAmount nTreasuryBfwd = 0;
-        if (nBlockHeight > 1) { // genesis block is pow
-            LOCK(cs_main);
-            if (!coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
-                return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
+            CAmount nTreasuryPart = (nReward * nStakeSplit) / 100;
+            nRewardOut = nReward - nTreasuryPart;
+
+            CAmount nTreasuryBfwd = 0;
+            if (nBlockHeight > 1) { // genesis block is pow
+                LOCK(cs_main);
+                if (!coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+                    return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
+                }
+
+                if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
+                    nTreasuryBfwd = 0;
+                }
             }
 
-            if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
-                nTreasuryBfwd = 0;
+            CAmount nTreasuryCfwd = nTreasuryBfwd + nTreasuryPart;
+            if (nBlockHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
+                // Place treasury fund output
+                OUTPUT_PTR<CTxOutStandard> outTreasurySplit = MAKE_OUTPUT<CTxOutStandard>();
+                outTreasurySplit->nValue = nTreasuryCfwd;
+
+                CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
+                if (dfDest.type() == typeid(CNoDestination)) {
+                    return werror("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
+                }
+                outTreasurySplit->scriptPubKey = GetScriptForDestination(dfDest);
+
+                txNew.vpout.insert(txNew.vpout.begin() + 1, outTreasurySplit);
+            } else {
+                // Add to carried forward
+                std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
+                vCfwd[0] = DO_TREASURY_FUND_CFWD;
+                if (0 != part::PutVarInt(vCfwd, nTreasuryCfwd)) {
+                    return werror("%s: PutVarInt failed: %d.", __func__, nTreasuryCfwd);
+                }
+                vData.insert(vData.end(), vCfwd.begin(), vCfwd.end());
+                CAmount test_cfwd = 0;
+                assert(ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, test_cfwd));
+                assert(test_cfwd == nTreasuryCfwd);
+            }
+
+            if (LogAcceptCategory(BCLog::POS)) {
+                WalletLogPrintf("%s: Coinstake reward split %d%%, treasury %s, reward %s.\n",
+                    __func__, nStakeSplit, FormatMoney(nTreasuryPart), FormatMoney(nRewardOut));
+            }
+
+        } else { 
+            const auto& eligibleAddresses = Params().GetRewardTracker().getEligibleAddresses(nBlockHeight);
+            auto isStakerGvrEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
+                                                    [this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                const CTxDestination& trackedAddr = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
+                return trackedAddr == m_reward_address;
+            });
+
+            // Place devfunds
+            CAmount devFundOut = nReward * 0.16; // @TODO update the 0.16 (16%)
+            OUTPUT_PTR<CTxOutStandard> devFundOutTx = MAKE_OUTPUT<CTxOutStandard>();
+            devFundOutTx->nValue = devFundOut;
+
+            CScript scriptDevFund;
+            std::vector<uint8_t> vData;
+
+            const CTxDestination devAddr = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
+            if (IsValidDestination(devAddr)) {
+                if (!GetScriptForDest(scriptDevFund, m_reward_address, true, &vData)) {
+                    return werror("%s: Could not get script for reward address.", __func__);
+                }
+            }
+            devFundOutTx->scriptPubKey = scriptDevFund;
+            txNew.vpout.push_back(devFundOutTx);
+
+            CAmount nGVRfwd = 0;
+
+            if (!txPrevCoinstake->GetTreasuryFundCfwd(nGVRfwd)) {
+                nGVRfwd = 0;
+            }
+
+            if (isStakerGvrEligible != eligibleAddresses.end()) {
+
+                CAmount gvrOut = nGVRfwd + (nReward * 0.5); // @TODO update the 0.5 (50%)
+
+                OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
+                gvrOutTx->nValue = gvrOut;
+
+                CScript scriptGvr;
+                std::vector<uint8_t> vData;
+
+                if (IsValidDestination(m_reward_address))  {
+                    if (!GetScriptForDest(scriptGvr, m_reward_address, true, &vData)) {
+                        return werror("%s: Could not get script for reward address.", __func__);
+                    }
+                }
+                gvrOutTx->scriptPubKey = scriptGvr;
+                txNew.vpout.push_back(gvrOutTx);
+                
+            } else {
+                // Add the GVR to carried forward. We will pay it when the staker is veteran
+                std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
+
+                CAmount gvrOutCfwd = nGVRfwd + (nReward * 0.5); // @TODO update the 0.5 (50%)
+
+                vCfwd[0] = DO_TREASURY_FUND_CFWD;
+                if (0 != part::PutVarInt(vCfwd, gvrOutCfwd)) {
+                    return werror("%s: PutVarInt failed: %d.", __func__, gvrOutCfwd);
+                }
+                vData.insert(vData.end(), vCfwd.begin(), vCfwd.end());
+                CAmount test_cfwd = 0;
+                assert(ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, test_cfwd));
+                assert(test_cfwd == gvrOutCfwd);
             }
         }
 
-        CAmount nTreasuryCfwd = nTreasuryBfwd + nTreasuryPart;
-        if (nBlockHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
-            // Place treasury fund output
-            OUTPUT_PTR<CTxOutStandard> outTreasurySplit = MAKE_OUTPUT<CTxOutStandard>();
-            outTreasurySplit->nValue = nTreasuryCfwd;
-
-            CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
-            if (dfDest.type() == typeid(CNoDestination)) {
-                return werror("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
-            }
-            outTreasurySplit->scriptPubKey = GetScriptForDestination(dfDest);
-
-            txNew.vpout.insert(txNew.vpout.begin() + 1, outTreasurySplit);
-        } else {
-            // Add to carried forward
-            std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
-            vCfwd[0] = DO_TREASURY_FUND_CFWD;
-            if (0 != part::PutVarInt(vCfwd, nTreasuryCfwd)) {
-                return werror("%s: PutVarInt failed: %d.", __func__, nTreasuryCfwd);
-            }
-            vData.insert(vData.end(), vCfwd.begin(), vCfwd.end());
-            CAmount test_cfwd = 0;
-            assert(ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, test_cfwd));
-            assert(test_cfwd == nTreasuryCfwd);
-        }
-        if (LogAcceptCategory(BCLog::POS)) {
-            WalletLogPrintf("%s: Coinstake reward split %d%%, treasury %s, reward %s.\n",
-                __func__, nStakeSplit, FormatMoney(nTreasuryPart), FormatMoney(nRewardOut));
-        }
     }
 
     // Place SMSG fee rate

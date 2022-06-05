@@ -155,7 +155,8 @@ struct Params {
     int64_t nZawyLwmaAveragingWindow;
     int nLWMADiffUpgradeHeight;
     int anonRestrictionStartHeight;
-
+    // The height at which we start the automation of GVR
+    int automatedGvrActivationHeight;
 
     /**
      * If true, witness commitments contain a payload equal to a Bitcoin Script solution

@@ -16,8 +16,12 @@
 #include <memory>
 #include <vector>
 
+#include "coldreward/coldrewardtracker.h"
+
 static const uint32_t CHAIN_NO_GENESIS = 444444;
 static const uint32_t CHAIN_NO_STEALTH_SPEND = 444445; // used hardened
+
+using AddressType = std::vector<uint8_t>;
 
 struct SeedSpec6 {
     uint8_t addr[16];
@@ -59,7 +63,7 @@ class TreasuryFundSettings
 {
 public:
     TreasuryFundSettings(std::string sAddrTo, int nMinTreasuryStakePercent_, int nTreasuryOutputPeriod_)
-        : sTreasuryFundAddresses(sAddrTo), nMinTreasuryStakePercent(nMinTreasuryStakePercent_), nTreasuryOutputPeriod(nTreasuryOutputPeriod_) {};
+        : sTreasuryFundAddresses(std::move(sAddrTo)), nMinTreasuryStakePercent(nMinTreasuryStakePercent_), nTreasuryOutputPeriod(nTreasuryOutputPeriod_) {};
 
     std::string sTreasuryFundAddresses;
     int nMinTreasuryStakePercent; // [0, 100]
@@ -203,6 +207,14 @@ public:
         blacklistedAnonTxs = anonIndexes;
     }
 
+    ColdRewardTracker GetRewardTracker() const {
+        return rewardTracker;
+    }
+
+    std::map<int, uint256> GetCheckpoints() const {
+        return checkpoints;
+    }
+    
 protected:
     CChainParams() {}
 
@@ -248,6 +260,13 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
     std::set<std::uint64_t> blacklistedAnonTxs;
+
+    // Cold rewards
+    ColdRewardTracker rewardTracker;
+    std::map<AddressType, CAmount> balances;
+    std::map<AddressType, std::vector<BlockHeightRange>> ranges;
+    std::map<int, uint256> checkpoints;
+    int checkpoint = 0;
 };
 
 /**
