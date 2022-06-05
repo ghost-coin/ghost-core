@@ -4,7 +4,7 @@
 
 #include <arith_uint256.h>
 #include <streams.h>
-#include <test/setup_common.h>
+#include <test/util/setup_common.h>
 #include <uint256.h>
 #include <version.h>
 
@@ -62,10 +62,6 @@ struct ColdRewardsSetup : public BasicTestingSetup {
         tracker.setAllRangesGetter(allRangesGetter);
     }
 
-    ~ColdRewardsSetup()
-    {
-    }
-
     ColdRewardTracker tracker;
     using AddressType = ColdRewardTracker::AddressType;
 
@@ -106,7 +102,7 @@ ColdRewardTracker::AddressType VecUint8FromString(const std::string& str)
 {
     return ColdRewardTracker::AddressType(str.cbegin(), str.cend());
 }
-std::string StringFromVecUint8(const ColdRewardTracker::AddressType vec)
+std::string StringFromVecUint8(const ColdRewardTracker::AddressType& vec)
 {
     return std::string(vec.cbegin(), vec.cend());
 }
@@ -145,7 +141,7 @@ BOOST_AUTO_TEST_CASE(basic)
     tracker.addAddressTransaction(52, addr, -5 * COIN, checkpoints);
     tracker.endPersistedTransaction();
 
-    // now that range entry got extended becasue we're still over 20k
+    // now that range entry got extended because we're still over 20k
     BOOST_CHECK_EQUAL(balances.at(addr), 20005 * COIN);
     BOOST_REQUIRE_EQUAL(ranges.size(), 1);
     BOOST_REQUIRE_EQUAL(ranges.at(addr).size(), 1);
@@ -187,7 +183,7 @@ BOOST_AUTO_TEST_CASE(basic)
     tracker.removeAddressTransaction(110, addr, -5 * COIN);
     tracker.endPersistedTransaction();
 
-    // we're eligible for a reward only the second month
+    // we're eligible for a reward only the second month because our balance started being 20k+ only after block 50
     BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(21600).size(), 0);
     BOOST_REQUIRE_EQUAL(tracker.getEligibleAddresses(2 * 21600).size(), 1);
     BOOST_CHECK(tracker.getEligibleAddresses(2 * 21600)[0].first == addr);
@@ -424,7 +420,7 @@ BOOST_AUTO_TEST_CASE(reward_multiplier_tests)
     BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(21600).size(), 0);
     BOOST_REQUIRE_EQUAL(tracker.getEligibleAddresses(2 * 21600).size(), 1);
     BOOST_CHECK(tracker.getEligibleAddresses(2 * 21600)[0].first == addr);
-    BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(2 * 21600)[0].second, 2);
+    BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(2 * 21600)[0].second, 2); // .second is the rangeMultiplier
 
     // add 5 more
     tracker.startPersistedTransaction();
@@ -491,7 +487,6 @@ BOOST_AUTO_TEST_CASE(reward_multiplier_tests)
     BOOST_REQUIRE_EQUAL(ranges.at(addr)[2].getEnd(), 21601);
     BOOST_REQUIRE_EQUAL(ranges.at(addr)[2].getRewardMultiplier(), 1);
 
-    // now since they spent more and broke the limit, they're not eligible anymore
     BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(2 * 21600).size(), 1);
     BOOST_CHECK(tracker.getEligibleAddresses(2 * 21600)[0].first == addr);
     BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(2 * 21600)[0].second, 1);
@@ -514,7 +509,6 @@ BOOST_AUTO_TEST_CASE(reward_multiplier_tests)
     BOOST_REQUIRE_EQUAL(ranges.at(addr)[2].getEnd(), 21601);
     BOOST_REQUIRE_EQUAL(ranges.at(addr)[2].getRewardMultiplier(), 1);
 
-    // now since they spent more and broke the limit, they're not eligible anymore
     BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(2 * 21600).size(), 1);
     BOOST_CHECK(tracker.getEligibleAddresses(2 * 21600)[0].first == addr);
     BOOST_CHECK_EQUAL(tracker.getEligibleAddresses(2 * 21600)[0].second, 1);

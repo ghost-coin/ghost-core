@@ -1,7 +1,7 @@
 ﻿#include "coldrewardtracker.h"
 
 CAmount ColdRewardTracker::GVRThreshold = 20000 * COIN;
-int ColdRewardTracker::MinimumRewardRangeSpan = 30 * 24 * 30;
+int ColdRewardTracker::MinimumRewardRangeSpan = 30 * 24 * 30; // Which is 21600 blocks per month
 
 
 boost::optional<CAmount> ColdRewardTracker::getBalanceInCache(const AddressType& addr)
@@ -68,9 +68,9 @@ void ColdRewardTracker::updateAddressRangesCache(const AddressType& addr, std::v
     addressesRanges[addr] = ranges;
 }
 
-void ColdRewardTracker::updateCheckpointCache(int new_checkpoint)
+void ColdRewardTracker::updateCheckpointCache(int newCheckpoint)
 {
-    lastCheckpoint = new_checkpoint;
+    lastCheckpoint = newCheckpoint;
 }
 
 void ColdRewardTracker::AssertTrue(bool valueShouldBeTrue, const std::string& functionName, const std::string &msg)
@@ -165,7 +165,7 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
                     rewardMultipliers.push_back(std::min(ar[idx].getPrevRewardMultiplier(), ar[idx].getRewardMultiplier()));
                 }
             } else if (rewardMultipliers.empty()) {
-                // we reach this point if no transaction was every done within this span. The reward is decided based on the last multiplier available
+                // we reach this point if no transaction was ever done within this span. The reward is decided based on the last multiplier available
                 rewardMultipliers.push_back(ar[idx].getRewardMultiplier());
                 break;
             }
@@ -266,10 +266,10 @@ void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressT
                                                             ") is lower than the last checkpoint seen (" + std::to_string(lastCheckpointSeen) + ")");
     const CAmount balance = balanceGetter(address) - balanceChangeInBlock;
     AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
-    balances[address] = balance;
+    balances[address] = balance;                                                                                                                                                                                                                                                                                                                                                                                                                   
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
 
-    AssertTrue(ranges.empty() || ranges.back().getEnd() <= blockHeight, __func__, "Can't rollback blocks in the past before rolling back thr ones that come after them");
+    AssertTrue(ranges.empty() || ranges.back().getEnd() <= blockHeight, __func__, "Can't rollback blocks in the past before rolling back the ones that come after them");
 
     while (!ranges.empty() && ranges.back().getEnd() == blockHeight) {
         if (ranges.back().getEnd() > ranges.back().getStart()) {
