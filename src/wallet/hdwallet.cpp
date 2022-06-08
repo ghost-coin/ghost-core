@@ -25,6 +25,7 @@
 #include <script/sign.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
+#include <policy/settings.h>
 #include <wallet/coincontrol.h>
 #include <blind.h>
 #include <anon.h>

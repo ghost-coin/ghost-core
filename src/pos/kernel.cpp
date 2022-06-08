@@ -228,8 +228,8 @@ bool CheckProofOfStake(CChainState &chain_state, BlockValidationState &state, co
 
     auto &pblocktree{chain_state.m_blockman.m_block_tree_db};
 
-    if (!tx.IsCoinStake()
-        || tx.vin.size() < 1) {
+    if (!tx.IsCoinStake() ||
+        tx.vin.size() < 1) {
         LogPrintf("ERROR: %s: malformed-txn %s\n", __func__, tx.GetHash().ToString());
         return state.Invalid(BlockValidationResult::DOS_100, "malformed-txn");
     }
@@ -252,7 +252,7 @@ bool CheckProofOfStake(CChainState &chain_state, BlockValidationState &state, co
             LogPrintf("ERROR: %s: prevout-not-found\n", __func__);
             return state.Invalid(BlockValidationResult::DOS_20, "prevout-not-found");
         }
-        if (!fVerifyingDB &&
+        if (!particl::fVerifyingDB &&
             (unsigned int)pindexPrev->nHeight > spent_coin.spent_height &&
             pindexPrev->nHeight - spent_coin.spent_height > MAX_REORG_DEPTH) {
             LogPrintf("ERROR: %s: Tried to stake kernel spent at height %d\n", __func__, spent_coin.spent_height);

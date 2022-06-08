@@ -146,13 +146,9 @@ bool fCheckpointsEnabled = DEFAULT_CHECKPOINTS_ENABLED;
 unsigned int MIN_BLOCKS_TO_KEEP = 288;
 unsigned int NODE_NETWORK_LIMITED_MIN_BLOCKS = 288;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
-bool fVerifyingDB = false;
-static bool attempted_rct_index_repair = false;
 
 uint256 hashAssumeValid;
 arith_uint256 nMinimumChainWork;
-
-CFeeRate minRelayTxFee = CFeeRate(DEFAULT_MIN_RELAY_TX_FEE);
 
 const CBlockIndex* CChainState::FindForkInGlobalIndex(const CBlockLocator& locator) const
 {
@@ -200,6 +196,8 @@ public:
     int m_node_id;
 };
 std::list<DelayedBlock> list_delayed_blocks;
+bool fVerifyingDB = false;
+static bool attempted_rct_index_repair = false;
 } // namespace particl
 
 
@@ -2744,19 +2742,19 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
 
                 int64_t nTestExists;
-                if (!fVerifyingDB && m_blockman.m_block_tree_db->ReadRCTOutputLink(txout->pk, nTestExists)) {
+                if (!particl::fVerifyingDB && m_blockman.m_block_tree_db->ReadRCTOutputLink(txout->pk, nTestExists)) {
                     control.Wait();
 
                     if (nTestExists > pindex->pprev->nAnonOutputs) {
                         // The anon index can diverge from the chain index if shutdown does not complete
                         LogPrintf("%s: Duplicate anon-output %s, index %d, above last index %d.\n", __func__, HexStr(txout->pk), nTestExists, pindex->pprev->nAnonOutputs);
 
-                        if (!attempted_rct_index_repair) {
+                        if (!particl::attempted_rct_index_repair) {
                             LogPrintf("Attempting to repair anon index.\n");
                             assert(state.m_chainman);
                             std::set<CCmpPubKey> setKi; // unused
                             RollBackRCTIndex(*state.m_chainman, pindex->pprev->nAnonOutputs, nTestExists, pindex->pprev->nHeight, setKi);
-                            attempted_rct_index_repair = true;
+                            particl::attempted_rct_index_repair = true;
                             return false;
                         } else {
                             LogPrintf("Not attempting anon index repair, already tried once.\n");
@@ -2765,7 +2763,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                     return error("%s: Duplicate anon-output (db) %s, index %d.", __func__, HexStr(txout->pk), nTestExists);
                 }
-                if (!fVerifyingDB && view.ReadRCTOutputLink(txout->pk, nTestExists)) {
+                if (!particl::fVerifyingDB && view.ReadRCTOutputLink(txout->pk, nTestExists)) {
                     control.Wait();
                     return error("%s: Duplicate anon-output (view) %s, index %d.", __func__, HexStr(txout->pk), nTestExists);
                 }
@@ -5198,7 +5196,7 @@ bool CVerifyDB::VerifyDB(
         return true;
     }
 
-    fVerifyingDB = true;
+    particl::fVerifyingDB = true;
 
     // Verify blocks in the best chain
     if (nCheckDepth <= 0 || nCheckDepth > chainstate.m_chain.Height()) {
@@ -5303,7 +5301,7 @@ bool CVerifyDB::VerifyDB(
 
     LogPrintf("[DONE].\n");
     LogPrintf("No coin database inconsistencies in last %i blocks (%i transactions)\n", block_count, nGoodTransactions);
-    fVerifyingDB = false;
+    particl::fVerifyingDB = false;
 
     return true;
 }
