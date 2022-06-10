@@ -2,7 +2,6 @@
 #define COLDREWARDTRACKER_H
 
 #include "blockheightrange.h"
-
 #include <boost/optional.hpp>
 #include <functional>
 #include <map>
@@ -11,6 +10,7 @@
 #include "amount.h"
 #include "uint256.h"
 
+#include "serialize.h"
 
 /**
  * @brief The ColdRewardTracker class
@@ -126,6 +126,13 @@ public:
     void setAllRangesGetter(const std::function<std::map<AddressType, std::vector<BlockHeightRange>>()>& func);
 
     const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges() const;
+
+    SERIALIZE_METHODS(ColdRewardTracker, obj)
+    {
+        READWRITE(obj.addressesRanges);
+        READWRITE(obj.balances);
+        READWRITE(obj.lastCheckpoint);
+    }
 };
 
 #endif // COLDREWARDTRACKER_H

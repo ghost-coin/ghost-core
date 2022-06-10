@@ -528,46 +528,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    // The inputs are valid we can track them
-    auto rewardTracker = ::Params().GetRewardTracker();
-
-    std::for_each(in_tx->vin.cbegin(), in_tx->vin.cend(), [&](const CTxIn& txin){
-        CTxDestination dest;
-        const Coin& coin = inputs.AccessCoin(txin.prevout);
-
-        PKHash destAddr = boost::get<PKHash>(dest);
-        if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-            const std::string& str = destAddr.ToString();
-            const auto& addr = AddressType(str.cbegin(), str.cend());
-
-            if (coin.nType == OUTPUT_STANDARD) {
-                rewardTracker.addAddressTransaction(nSpendHeight, addr, - coin.out.nValue, ::Params().GetCheckpoints());
-            } else {
-               LogPrintf("%s - Not tracking non-standard outpus\n", __func__, txin.ToString());
-            }
-        }
-
-    });
-
-    std::for_each(in_tx->vpout.cbegin(), in_tx->vpout.cend(), [&](const std::shared_ptr<CTxOutBase>& txOut){
-        CScript outScript;
-        txOut->GetScriptPubKey(outScript);
-        CTxDestination dest;
-        PKHash destAddr = boost::get<PKHash>(dest);
-
-        if (ExtractDestination(outScript, dest)) {
-            const std::string& str = destAddr.ToString();
-            const auto& addr = AddressType(str.cbegin(), str.cend());
-
-            if (txOut->IsStandardOutput()) {
-                rewardTracker.addAddressTransaction(nSpendHeight, addr, txOut->GetValue(), ::Params().GetCheckpoints());
-            } else {
-                LogPrintf("%s - Not tracking non-standard outpus\n", __func__, in_tx->ToString());
-             }
-        }
-    });
-
-
     return true;
 }
 

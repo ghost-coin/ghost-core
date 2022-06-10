@@ -1096,52 +1096,14 @@ public:
             0
         };
 
+
+        gvrCheckpoints = {
+            {0, uint256S("0x0df42459b6ced4f7c9ec8c7d4c4efe1a9ca89441f17e8c2485a80c247d0544b2")}
+        };
+
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         consensus.m_frozen_anon_index = gArgs.GetArg("-lastanonindex", DEFAULT_LAST_ANON_INDEX);
         anonRecoveryAddress = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it";
-
-        // Cold reward setup
-        auto balanceGetter = [this](const AddressType& addr) {
-            auto it = balances.find(addr);
-            return it == balances.cend() ? 0 : it->second;
-        };
-        auto balanceSetter = [this](const AddressType& addr, const CAmount& amount) {
-            balances[addr] = amount;
-        };
-
-        auto rangesGetter = [this](const AddressType& addr) {
-            auto it = ranges.find(addr);
-            return it == ranges.cend() ? std::vector<BlockHeightRange>() : it->second;
-        };
-        auto rangesSetter = [this](const AddressType& addr, const std::vector<BlockHeightRange>& vranges) {
-            ranges[addr] = vranges;
-        };
-
-        auto checkpointGetter = [this]() {
-            return checkpoint;
-        };
-
-        auto checkpointSetter = [this](int new_checkpoint) {
-            if (new_checkpoint > checkpoint)
-                checkpoint = new_checkpoint;
-        };
-
-        auto transactionStarter = []() {};
-        auto transactionEnder = []() {};
-
-        auto allRangesGetter = [this]() {
-            return ranges;
-        };
-
-        rewardTracker.setPersistedRangesGetter(rangesGetter);
-        rewardTracker.setPersistedRangesSetter(rangesSetter);
-        rewardTracker.setPersistedBalanceGetter(balanceGetter);
-        rewardTracker.setPersistedBalanceSetter(balanceSetter);
-        rewardTracker.setPersistedCheckpointGetter(checkpointGetter);
-        rewardTracker.setPersistedCheckpointSetter(checkpointSetter);
-        rewardTracker.setPersistedTransactionStarter(transactionStarter);
-        rewardTracker.setPersisterTransactionEnder(transactionEnder);
-        rewardTracker.setAllRangesGetter(allRangesGetter);
     }
 
     void SetOld()

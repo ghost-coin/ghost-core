@@ -29,7 +29,9 @@ const char DB_RCTOUTPUT = 'A';
 const char DB_RCTOUTPUT_LINK = 'L';
 const char DB_RCTKEYIMAGE = 'K';
 const char DB_SPENTCACHE = 'S';
-
+const char DB_GVR_RANGE = 'g';
+const char DB_GVR_BALANCE = 'v';
+const char DB_GVR_CHECKPOINT = 'r';
 
 //! -dbcache default (MiB)
 static const int64_t nDefaultDbCache = 450;

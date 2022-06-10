@@ -16,7 +16,6 @@
 #include <memory>
 #include <vector>
 
-#include "coldreward/coldrewardtracker.h"
 
 static const uint32_t CHAIN_NO_GENESIS = 444444;
 static const uint32_t CHAIN_NO_STEALTH_SPEND = 444445; // used hardened
@@ -207,12 +206,8 @@ public:
         blacklistedAnonTxs = anonIndexes;
     }
 
-    ColdRewardTracker GetRewardTracker() const {
-        return rewardTracker;
-    }
-
-    std::map<int, uint256> GetCheckpoints() const {
-        return checkpoints;
+    MapCheckpoints GetGvrCheckpoints() const {
+        return gvrCheckpoints;
     }
     
 protected:
@@ -260,13 +255,7 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
     std::set<std::uint64_t> blacklistedAnonTxs;
-
-    // Cold rewards
-    ColdRewardTracker rewardTracker;
-    std::map<AddressType, CAmount> balances;
-    std::map<AddressType, std::vector<BlockHeightRange>> ranges;
-    std::map<int, uint256> checkpoints;
-    int checkpoint = 0;
+    MapCheckpoints gvrCheckpoints;
 };
 
 /**

@@ -13529,7 +13529,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             }
 
         } else { 
-            const auto& eligibleAddresses = Params().GetRewardTracker().getEligibleAddresses(nBlockHeight);
+            const auto& eligibleAddresses = rewardTracker.getEligibleAddresses(nBlockHeight);
             auto isStakerGvrEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
                                                     [this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
                 const CTxDestination& trackedAddr = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));

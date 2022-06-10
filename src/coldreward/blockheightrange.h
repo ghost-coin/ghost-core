@@ -2,6 +2,7 @@
 #define BLOCKHEIGHTRANGE_H
 
 #include "amount.h"
+#include "serialize.h"
 
 class BlockHeightRange
 {
@@ -14,6 +15,7 @@ class BlockHeightRange
     unsigned prevMultiplier = 0;
 
 public:
+    BlockHeightRange() = default;
     BlockHeightRange(int Start, int End, unsigned RewardMultiplier, unsigned PrevRewardMultiplier);
 
     int getEnd() const;
@@ -21,6 +23,10 @@ public:
     unsigned getRewardMultiplier() const;
     unsigned getPrevRewardMultiplier() const;
     void newEnd(int value);
+
+    SERIALIZE_METHODS(BlockHeightRange, obj) {
+        READWRITE(obj.start, obj.end, obj.rewardMultiplier, obj.prevMultiplier);
+    }
 };
 
 #endif // BLOCKHEIGHTRANGE_H
