@@ -117,10 +117,10 @@ enum class SynchronizationState {
 };
 
 extern RecursiveMutex cs_main;
+extern GlobalMutex g_best_block_mutex;
+extern std::condition_variable g_best_block_cv;
 extern uint64_t nLastBlockTx;
 extern uint64_t nLastBlockSize;
-extern Mutex g_best_block_mutex;
-extern std::condition_variable g_best_block_cv;
 /** Used to notify getblocktemplate RPC of new tips. */
 extern uint256 g_best_block;
 extern std::atomic_bool fSkipRangeproof;
