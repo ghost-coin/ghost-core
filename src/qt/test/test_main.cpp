@@ -58,9 +58,10 @@ int main(int argc, char* argv[])
     // regtest params.
     //
     // All tests must use their own testing setup (if needed).
-    {
-        BasicTestingSetup dummy{CBaseChainParams::REGTEST, {}, true};
-    }
+    fs::create_directories([] {
+        BasicTestingSetup dummy{CBaseChainParams::REGTEST, {}, /*fParticlMode*/ true};
+        return gArgs.GetDataDirNet() / "blocks";
+    }());
 
     std::unique_ptr<interfaces::Init> init = interfaces::MakeGuiInit(argc, argv);
     gArgs.ForceSetArg("-listen", "0");
