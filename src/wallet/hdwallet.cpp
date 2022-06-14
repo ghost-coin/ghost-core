@@ -13537,7 +13537,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             });
 
             // Place devfunds
-            CAmount devFundOut = nReward * 0.16; // @TODO update the 0.16 (16%)
+            CAmount devFundOut = (nReward * 16) / 100; // 16% goes to devfund
             OUTPUT_PTR<CTxOutStandard> devFundOutTx = MAKE_OUTPUT<CTxOutStandard>();
             devFundOutTx->nValue = devFundOut;
 
@@ -13553,18 +13553,23 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             devFundOutTx->scriptPubKey = scriptDevFund;
             txNew.vpout.push_back(devFundOutTx);
 
+            nRewardOut = nReward - devFundOut;
+
             CAmount nGVRfwd = 0;
 
             if (!txPrevCoinstake->GetTreasuryFundCfwd(nGVRfwd)) {
                 nGVRfwd = 0;
             }
 
+            CAmount gvrOut = (nReward * 50) / 100; // 50% goes to the veteran
+            CAmount gvrOutTotal = nGVRfwd + gvrOut;
+
+            nRewardOut -= gvrOut;
+
             if (isStakerGvrEligible != eligibleAddresses.end()) {
 
-                CAmount gvrOut = nGVRfwd + (nReward * 0.5); // @TODO update the 0.5 (50%)
-
                 OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
-                gvrOutTx->nValue = gvrOut;
+                gvrOutTx->nValue = gvrOutTotal;
 
                 CScript scriptGvr;
                 std::vector<uint8_t> vData;
@@ -13576,12 +13581,11 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                 }
                 gvrOutTx->scriptPubKey = scriptGvr;
                 txNew.vpout.push_back(gvrOutTx);
-                
             } else {
                 // Add the GVR to carried forward. We will pay it when the staker is veteran
                 std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
 
-                CAmount gvrOutCfwd = nGVRfwd + (nReward * 0.5); // @TODO update the 0.5 (50%)
+                CAmount gvrOutCfwd = gvrOutTotal;
 
                 vCfwd[0] = DO_TREASURY_FUND_CFWD;
                 if (0 != part::PutVarInt(vCfwd, gvrOutCfwd)) {
