@@ -819,7 +819,9 @@ public:
                 { 0, genesis.GetHash()},
             }
         };
-
+        
+        consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
+        consensus.minRewardRangeSpan = DEFAULT_MIN_REWARD_RANGE_SPAN;
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809
             /* nTime    */ 0,
@@ -1104,6 +1106,9 @@ public:
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         consensus.m_frozen_anon_index = gArgs.GetArg("-lastanonindex", DEFAULT_LAST_ANON_INDEX);
         anonRecoveryAddress = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it";
+
+        consensus.gvrThreshold = gArgs.GetArg("-gvrthreshold", DEFAULT_GVR_THRESHOLD);
+        consensus.minRewardRangeSpan = gArgs.GetArg("-minrewardrangespan", DEFAULT_MIN_REWARD_RANGE_SPAN);
     }
 
     void SetOld()

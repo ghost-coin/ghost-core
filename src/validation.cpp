@@ -146,7 +146,7 @@ RecursiveMutex cs_main;
 std::map<uint256, StakeConflict> mapStakeConflict;
 std::map<COutPoint, uint256> mapStakeSeen;
 std::list<COutPoint> listStakeSeen;
-ColdRewardTracker rewardTracker;
+ColdRewardTracker rewardTracker(Params().GetConsensus().gvrThreshold, Params().GetConsensus().minRewardRangeSpan);
 
 CoinStakeCache coinStakeCache GUARDED_BY(cs_main);
 
@@ -3161,6 +3161,20 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                     CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
                     CAmount ngvrCfwdCheck = 0;
+                    CAmount ngvrBfwd = 0;
+
+                    if (pindex->pprev->nHeight > 0) { // Genesis block is pow
+                        if (!txPrevCoinstake
+                            && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                            LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
+                        }
+
+                        assert(txPrevCoinstake->IsCoinStake()); // Sanity check
+                        if (!txPrevCoinstake->GetTreasuryFundCfwd(ngvrBfwd)) {
+                            ngvrBfwd = 0;
+                        }
+                    }
 
                     if (dfDest.type() == typeid(CNoDestination)) {
                         return error("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
@@ -3176,7 +3190,13 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
                     if (outputDF->scriptPubKey != fundScriptPubKey) {
                         LogPrintf("ERROR: %s: Bad treasury fund output script.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-script");
+                    }
+
+                    const CAmount expectedDF = (nCalculatedStakeReward*16)/100;
+                    if (outputDF->nValue != expectedDF) {
+                        LogPrintf("ERROR: %s: Bad dev fund output value.\n", __func__);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
                     }
                     
                     // Output 2 if it exists is the veteran reward
@@ -3185,7 +3205,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                         if (!outputVr) {
                             LogPrintf("ERROR: %s: Bad Verteran fund output.\n", __func__);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-out");
                         }
 
                         // Check if the rewarded addr was really eligible that time
@@ -3200,18 +3220,25 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                         if (eligibility == eligibleAddresses.end()) {
                             LogPrintf("%s Veteran not matching at height %s", __func__, std::to_string(pindex->nHeight));
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-not-eligible");
                         }
 
                         if (txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)) {
                             LogPrintf("ERROR: %s: Coinstake gvr cfwd must be unset.\n", __func__);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-cfwd-unset");
                         }
 
                     } else {
                         // The carried forward is set since there were no gvr output
                         if (!txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)) {
                             LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
+
+                        CAmount nTreasuryCfwd = ngvrBfwd + nCalculatedStakeReward - nStakeReward - outputDF->nValue;
+                        if (!txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)
+                            || ngvrCfwdCheck != nTreasuryCfwd) {
+                            LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, ngvrCfwdCheck, nTreasuryCfwd);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
                     }

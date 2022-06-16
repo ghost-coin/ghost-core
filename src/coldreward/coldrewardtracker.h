@@ -57,8 +57,8 @@ class ColdRewardTracker
 public:
     using AddressType = std::vector<uint8_t>;
 
-    static CAmount GVRThreshold;
-    static int MinimumRewardRangeSpan;
+    CAmount GVRThreshold;
+    int MinimumRewardRangeSpan;
 
 private:
     std::map<AddressType, std::vector<BlockHeightRange>> addressesRanges;
@@ -97,13 +97,15 @@ protected:
 public:
     ColdRewardTracker() = default;
 
+    ColdRewardTracker(CAmount threshold, int rewardSpan) : GVRThreshold(threshold), MinimumRewardRangeSpan(rewardSpan){}
+
     void startPersistedTransaction();
     void endPersistedTransaction();
     void revertPersistedTransaction();
 
     static boost::optional<int> GetLastCheckpoint(const std::map<int, uint256>& checkpoints, int currentBlockHeight);
     /// Given a set of ranges of an address, this gives all the multipliers that have to do with the reward at currentBlockHeight
-    static unsigned ExtractRewardMultiplierFromRanges(int currentBlockHeight, const std::vector<BlockHeightRange>& addressRanges);
+    unsigned ExtractRewardMultiplierFromRanges(int currentBlockHeight, const std::vector<BlockHeightRange>& addressRanges);
 
 
     std::vector<std::pair<AddressType, unsigned>> getEligibleAddresses(int currentBlockHeight);
