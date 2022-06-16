@@ -117,7 +117,8 @@ The following can be set when running make: `make FOO=bar`
 - `LOG`: Use file-based logging for individual packages. During a package build its log file
   resides in the `depends` directory, and the log file is printed out automatically in case
   of build error. After successful build log files are moved along with package archives
-- `PROTOBUF`: build protobuf (required for usb device support)
+- `LTO`: Use LTO when building packages.
+- `PROTOBUF`: build protobuf (required for Particl usb device support)
 
 If some packages are not built, for example `make NO_WALLET=1`, the appropriate
 options will be passed to bitcoin's configure. In this case, `--disable-wallet`.

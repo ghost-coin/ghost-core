@@ -22,7 +22,7 @@
 #include <node/coin.h>
 #include <node/context.h>
 #include <node/transaction.h>
-#include <node/ui_interface.h>
+#include <node/interface_ui.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
@@ -821,7 +821,7 @@ public:
         if (!m_node.mempool) return nullptr;
         CScript coinbaseScript;
         CChainState& active = Assert(m_node.chainman)->ActiveChainstate();
-        return BlockAssembler(active, *m_node.mempool.get()).CreateNewBlock(coinbaseScript, false);
+        return BlockAssembler{active, m_node.mempool.get()}.CreateNewBlock(coinbaseScript, false);
     }
     CTxMemPool *getMempool() override
     {

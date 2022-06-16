@@ -107,7 +107,7 @@ LegacyScriptPubKeyMan& EnsureLegacyScriptPubKeyMan(CWallet& wallet, bool also_cr
         spk_man = wallet.GetOrCreateLegacyScriptPubKeyMan();
     }
     if (!spk_man) {
-        throw JSONRPCError(RPC_WALLET_ERROR, "This type of wallet does not support this command");
+        throw JSONRPCError(RPC_WALLET_ERROR, "Only legacy wallets are supported by this command");
     }
     return *spk_man;
 }
@@ -116,7 +116,7 @@ const LegacyScriptPubKeyMan& EnsureConstLegacyScriptPubKeyMan(const CWallet& wal
 {
     const LegacyScriptPubKeyMan* spk_man = wallet.GetLegacyScriptPubKeyMan();
     if (!spk_man) {
-        throw JSONRPCError(RPC_WALLET_ERROR, "This type of wallet does not support this command");
+        throw JSONRPCError(RPC_WALLET_ERROR, "Only legacy wallets are supported by this command");
     }
     return *spk_man;
 }

@@ -163,3 +163,4 @@ dist/
 /ci/scratch/
 sanitizer-output
 *~
+src/secp256k1-zkp/

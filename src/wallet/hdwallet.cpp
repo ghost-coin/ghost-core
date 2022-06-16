@@ -36,7 +36,7 @@
 #include <util/rbf.h>
 #include <wallet/fees.h>
 #include <wallet/spend.h>
-#include <node/ui_interface.h>
+#include <node/interface_ui.h>
 
 #if ENABLE_USBDEVICE
 #include <usbdevice/usbdevice.h>
