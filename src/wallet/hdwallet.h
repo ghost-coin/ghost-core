@@ -423,7 +423,7 @@ public:
     /**
      * populate vCoins with vector of available COutputs.
      */
-    void AvailableCoins(std::vector<COutput>& vCoins, const CCoinControl *coinControl = nullptr, std::optional<CFeeRate> feerate = std::nullopt, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    CoinsResult AvailableCoins(const CCoinControl *coinControl = nullptr, std::optional<CFeeRate> feerate = std::nullopt, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::optional<SelectionResult> SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
         const CCoinControl& coin_control, const CoinSelectionParams& coin_selection_params) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
@@ -443,12 +443,11 @@ public:
 
     bool AttemptSelection(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
 
-    bool IsSpent(const uint256& hash, unsigned int n) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool IsSpent(const COutPoint& outpoint) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool GetSpendingTxid(const uint256& hash, unsigned int n, uint256 &spent_by_txid) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /** Whether this or any UTXO with the same CTxDestination has been spent. */
-    bool IsSpentKey(const CScript *pscript) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    bool IsSpentKey(const uint256& hash, unsigned int n) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool IsSpentKey(const CScript& scriptPubKey) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void SetSpentKeyState(const CScript *pscript, bool used) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void SetSpentKeyState(const uint256& hash, unsigned int n, bool used) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void SetSpentKeyState(WalletBatch& batch, const uint256& hash, unsigned int n, bool used, std::set<CTxDestination>& tx_destinations) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

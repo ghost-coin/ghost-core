@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     {
     pwallet->BlockUntilSyncedToCurrentChain();
     LOCK(pwallet->cs_wallet);
-    BOOST_REQUIRE(pwallet->IsSpent(txin.prevout.hash, txin.prevout.n));
+    BOOST_REQUIRE(pwallet->IsSpent(COutPoint(txin.prevout.hash, txin.prevout.n)));
     }
 
     {
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     pwallet->blockDisconnected(block, pindexDelete->nHeight);
     pwallet->BlockUntilSyncedToCurrentChain();
     LOCK(pwallet->cs_wallet);
-    BOOST_REQUIRE(!pwallet->IsSpent(txin.prevout.hash, txin.prevout.n));
+    BOOST_REQUIRE(!pwallet->IsSpent(COutPoint(txin.prevout.hash, txin.prevout.n)));
     }
 
     {
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
     {
     pwallet->BlockUntilSyncedToCurrentChain();
     LOCK(pwallet->cs_wallet);
-    BOOST_REQUIRE(pwallet->IsSpent(txin.prevout.hash, txin.prevout.n));
+    BOOST_REQUIRE(pwallet->IsSpent(COutPoint(txin.prevout.hash, txin.prevout.n)));
     }
 
     CKey kRecv;

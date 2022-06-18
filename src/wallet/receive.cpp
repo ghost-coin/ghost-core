@@ -256,9 +256,15 @@ CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, 
     bool allow_used_addresses = (filter & ISMINE_USED) || !wallet.IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE);
     CAmount nCredit = 0;
     uint256 hashTx = wtx.GetHash();
-    for (unsigned int i = 0; i < wtx.tx->GetNumVOuts(); i++)
-    {
-        if (!wallet.IsSpent(hashTx, i) && (allow_used_addresses || !wallet.IsSpentKey(hashTx, i))) {
+    for (unsigned int i = 0; i < wtx.tx->GetNumVOuts(); i++) {
+        const CScript *pscript = nullptr;
+        if (wallet.IsParticlWallet()) {
+            pscript = wtx.tx->vpout[i]->GetPScriptPubKey();
+        } else {
+            pscript = &wtx.tx->vout[i].scriptPubKey;
+        }
+
+        if (!wallet.IsSpent(COutPoint(hashTx, i)) && (allow_used_addresses || (pscript && !wallet.IsSpentKey(*pscript)))) {
             nCredit += wallet.IsParticlWallet()
                        ? wallet.GetCredit(wtx.tx->vpout[i].get(), filter)
                        : OutputGetCredit(wallet, wtx.tx->vout[i], filter);
@@ -504,9 +510,9 @@ Balance GetBalance(const CWallet& wallet, const int min_depth, bool avoid_reuse)
             bool is_trusted = phdw->IsTrusted(txhash, rtx);
             int tx_depth = phdw->GetDepthInMainChain(rtx);
             for (const auto &r : rtx.vout) {
-                if (r.nType != OUTPUT_STANDARD
-                    || phdw->IsSpent(txhash, r.n)
-                    || (!allow_used_addresses && phdw->IsSpentKey(&r.scriptPubKey))) {
+                if (r.nType != OUTPUT_STANDARD ||
+                    phdw->IsSpent(COutPoint(txhash, r.n)) ||
+                    (!allow_used_addresses && phdw->IsSpentKey(r.scriptPubKey))) {
                     continue;
                 }
                 if (is_trusted && tx_depth >= min_depth) {
@@ -584,15 +590,15 @@ std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet)
             if (nDepth < (CachedTxIsFromMe(wallet, wtx, ISMINE_ALL) ? 0 : 1))
                 continue;
 
-            for (unsigned int i = 0; i < wtx.tx->vout.size(); i++)
-            {
+            for (unsigned int i = 0; i < wtx.tx->vout.size(); i++) {
+                const auto& output = wtx.tx->vout[i];
                 CTxDestination addr;
-                if (!wallet.IsMine(wtx.tx->vout[i]))
+                if (!wallet.IsMine(output))
                     continue;
-                if(!ExtractDestination(wtx.tx->vout[i].scriptPubKey, addr))
+                if(!ExtractDestination(output.scriptPubKey, addr))
                     continue;
 
-                CAmount n = wallet.IsSpent(walletEntry.first, i) ? 0 : wtx.tx->vout[i].nValue;
+                CAmount n = wallet.IsSpent(COutPoint(walletEntry.first, i)) ? 0 : output.nValue;
                 balances[addr] += n;
             }
         }

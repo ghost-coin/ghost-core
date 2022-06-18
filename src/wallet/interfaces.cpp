@@ -186,7 +186,7 @@ WalletTxOut MakeWalletTxOut(const CWallet& wallet,
     result.txout = output.txout;
     result.time = output.time;
     result.depth_in_main_chain = output.depth;
-    result.is_spent = wallet.IsSpent(output.outpoint.hash, output.outpoint.n);
+    result.is_spent = wallet.IsSpent(output.outpoint);
     return result;
 }
 
@@ -202,7 +202,7 @@ WalletTxOut MakeWalletTxOut(CHDWallet &wallet,
     result.txout.scriptPubKey = oR->scriptPubKey;
     result.time = rtx.GetTxTime();
     result.depth_in_main_chain = depth;
-    result.is_spent = wallet.IsSpent(hash, n);
+    result.is_spent = wallet.IsSpent(COutPoint(hash, n));
     return result;
 }
 
@@ -352,7 +352,7 @@ public:
     bool isLockedCoin(const COutPoint& output) override
     {
         LOCK(m_wallet->cs_wallet);
-        return m_wallet->IsLockedCoin(output.hash, output.n);
+        return m_wallet->IsLockedCoin(output);
     }
     void listLockedCoins(std::vector<COutPoint>& outputs) override
     {

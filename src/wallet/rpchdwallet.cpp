@@ -4579,6 +4579,7 @@ static RPCHelpMan getcoldstakinginfo()
     CAmount nMinimumSumAmount = MAX_MONEY;
     uint64_t nMaximumCount = 0;
     int nHeight, nRequiredDepth;
+    CoinsResult available_coins;
 
     {
         CCoinControl cctl;
@@ -4590,7 +4591,7 @@ static RPCHelpMan getcoldstakinginfo()
         LOCK(pwallet->cs_wallet);
         nHeight = pwallet->chain().getHeightInt();
         nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations() - 1), (int)(nHeight / 2));
-        pwallet->AvailableCoins(vecOutputs, &cctl, std::nullopt, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
+        available_coins = pwallet->AvailableCoins(&cctl, std::nullopt, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
 
     LOCK(pwallet->cs_wallet);
@@ -4598,7 +4599,7 @@ static RPCHelpMan getcoldstakinginfo()
     CAmount nStakeable{0}, nColdStakeable{0}, nWalletStaking{0}, nWalletPendingDepth{0};
     CKeyID keyID;
     CScript coinstakePath;
-    for (const auto &out : vecOutputs) {
+    for (const auto &out : available_coins.coins) {
         const CScript *scriptPubKey = &out.txout.scriptPubKey;
         CAmount nValue = out.txout.nValue;
 
@@ -5095,7 +5096,7 @@ static RPCHelpMan listunspentblind()
         CTxDestination address;
         const CScript *scriptPubKey = &pout->scriptPubKey;
         bool fValidAddress = ExtractDestination(*scriptPubKey, address);
-        bool reused = avoid_reuse && pwallet->IsSpentKey(out.txhash, out.i);
+        bool reused = avoid_reuse && pwallet->IsSpentKey(*scriptPubKey);
         if (setAddress.size() && (!fValidAddress || !setAddress.count(CBitcoinAddress(address))))
             continue;
 
@@ -6205,7 +6206,7 @@ static void traceFrozenPrevout(WalletContext& context, const COutPoint &op_trace
         traced_output.m_spentby = txid_spentby;
         if (traced_output.m_blinding_factor.IsNull()) {
             traced_output.m_value = r.nValue;
-            traced_output.m_is_spent = pwallet->IsSpent(op_trace.hash, op_trace.n);
+            traced_output.m_is_spent = pwallet->IsSpent(COutPoint(op_trace.hash, op_trace.n));
             if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
                 warnings.push_back(strprintf("GetBlind failed %s", op_trace.ToString()));
             }
@@ -6366,7 +6367,7 @@ static void traceFrozenOutputs(WalletContext& context, UniValue &rv, CAmount min
                     }
                 }
 
-                bool is_spent = pwallet->IsSpent(txid, r.n);
+                bool is_spent = pwallet->IsSpent(COutPoint(txid, r.n));
                 if (is_spent && !force_include) {
                     continue;
                 }
@@ -6466,7 +6467,7 @@ static void traceFrozenOutputs(WalletContext& context, UniValue &rv, CAmount min
                     !pwallet->chain().readRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, traced_output.m_anon_index)) {
                     warnings.push_back(strprintf("ReadRCTOutputLink failed %s %d", txid.ToString(), r.n));
                 }
-                traced_output.m_is_spent = pwallet->IsSpent(txid, r.n);
+                traced_output.m_is_spent = pwallet->IsSpent(COutPoint(txid, r.n));
                 if (!stx.GetBlind(r.n, traced_output.m_blinding_factor.begin())) {
                     warnings.push_back(strprintf("GetBlind failed %s %d", txid.ToString(), r.n));
                 }
@@ -6685,7 +6686,7 @@ static RPCHelpMan debugwallet()
                 if ((r.nType != OUTPUT_RINGCT && r.nType != OUTPUT_CT) ||
                     !(r.nFlags & ORF_OWNED) ||
                     r.nValue < min_frozen_blinded_value ||
-                    pwallet->IsSpent(txid, r.n)) {
+                    pwallet->IsSpent(COutPoint(txid, r.n))) {
                     continue;
                 }
 
@@ -7025,7 +7026,7 @@ static RPCHelpMan debugwallet()
                     }
                     if ((r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) &&
                         (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY) &&
-                        !pwallet->IsSpent(txhash, r.n)) {
+                        !pwallet->IsSpent(COutPoint(txhash, r.n))) {
                         uint256 tmp;
                         if (!stx.GetBlind(r.n, tmp.begin())) {
                             add_error("Missing blinding factor.", txhash, r.n);

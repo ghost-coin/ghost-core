@@ -30,7 +30,6 @@ LIBPARTICL_NODE=libparticl_node.a
 LIBPARTICL_COMMON=libparticl_common.a
 LIBPARTICL_CONSENSUS=libparticl_consensus.a
 LIBPARTICL_CLI=libparticl_cli.a
-LIBPARTICL_KERNEL=libparticl_kernel.a
 LIBPARTICL_UTIL=libparticl_util.a
 LIBPARTICL_CRYPTO_BASE=crypto/libparticl_crypto_base.la
 LIBPARTICLQT=qt/libparticlqt.a

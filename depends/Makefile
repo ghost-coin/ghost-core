@@ -48,6 +48,9 @@ FALLBACK_DOWNLOAD_PATH ?= https://bitcoincore.org/depends-sources
 PROTOBUF ?=
 NO_USB ?=
 
+C_STANDARD ?= c11
+CXX_STANDARD ?= c++17
+
 BUILD = $(shell ./config.guess)
 HOST ?= $(BUILD)
 PATCHES_PATH = $(BASEDIR)/patches

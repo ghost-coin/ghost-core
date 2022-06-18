@@ -21,7 +21,7 @@ ALL_SOURCE_FILENAMES_REGEXP = r"^.*\.(cpp|h|py|sh)$"
 ALLOWED_FILENAME_REGEXP = "^[a-zA-Z0-9/_.@][a-zA-Z0-9/_.@-]*$"
 ALLOWED_SOURCE_FILENAME_REGEXP = "^[a-z0-9_./-]+$"
 ALLOWED_SOURCE_FILENAME_EXCEPTION_REGEXP = (
-    "^src/(secp256k1/|minisketch/|univalue/|test/fuzz/FuzzedDataProvider.h|usbdevice/ledger/|usbdevice/ledger/)"
+    "^src/(secp256k1/|minisketch/|test/fuzz/FuzzedDataProvider.h|usbdevice/ledger/|usbdevice/ledger/)"
 )
 ALLOWED_PERMISSION_NON_EXECUTABLES = 0o644
 ALLOWED_PERMISSION_EXECUTABLES = 0o755
