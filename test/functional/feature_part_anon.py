@@ -73,6 +73,18 @@ class AnonTest(ParticlTestFramework):
         assert(self.wait_for_mempool(nodes[0], txnHash))
         self.stakeBlocks(1)
 
+        self.log.info('Test listsinceblock')
+        block2_hash = nodes[0].getblockhash(2)
+        rv = nodes[0].listsinceblock(block2_hash)
+        assert(len(rv['transactions']) == 2)
+        found_tx = False
+        for txn in rv['transactions']:
+            if txn['txid'] == txnHash:
+                found_tx = True
+            else:
+                assert(txn['category'] == 'stake')
+        assert(found_tx is True)
+
         ro = nodes[1].getblock(nodes[1].getblockhash(3))
         for txnHash in txnHashes:
             assert(txnHash in ro['tx'])

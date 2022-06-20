@@ -934,6 +934,7 @@ RPCHelpMan listsinceblock()
                                 {RPCResult::Type::STR, "account", /*optional=*/true, "Alias of label."},
                                 {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
                                 {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
+                                {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
@@ -945,6 +946,7 @@ RPCHelpMan listsinceblock()
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
                                 {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
+                                {RPCResult::Type::STR_AMOUNT, "reward", /*optional=*/true, "The reward if the transaction is a coinstake."},
                             },
                             TransactionDescriptionString()),
                             {

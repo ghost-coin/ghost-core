@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2022 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -148,7 +148,6 @@ class BlindTest(ParticlTestFramework):
         txnHash2 = nodes[0].sendtoaddress(addrTo0_2, availableBalance, '', '', True, 'node0 spend remaining')
         txnHashes.append(txnHash2)
 
-
         nodes[0].syncwithvalidationinterfacequeue()
         assert(isclose(nodes[0].getwalletinfo()['total_balance'], 99996.10316311))
         assert(isclose(nodes[1].getwalletinfo()['blind_balance'], 2.69580200))
@@ -156,6 +155,18 @@ class BlindTest(ParticlTestFramework):
         unspent = nodes[2].listunspentblind(minconf=0)
         assert(len(unspent[0]['stealth_address']))
         assert(len(unspent[0]['label']))
+
+        self.log.info('Test listsinceblock')
+        block2_hash = nodes[0].getblockhash(2)
+        rv = nodes[2].listsinceblock(block2_hash)
+        assert(len(rv['transactions']) == 4)
+        expect_hashes = (txnHash3, txnHash4, txnHash5)
+        count_hashes = [0] * 3
+        for txn in rv['transactions']:
+            for i, expect_hash in enumerate(expect_hashes):
+                if txn['txid'] == expect_hash:
+                    count_hashes[i] += 1
+        assert(count_hashes == [1, 1, 2])
 
         self.log.info('Test lockunspent')
         unspent = nodes[1].listunspentblind(minconf=0)
