@@ -510,8 +510,8 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
                 entry.pushKV("involvesWatchonly", true);
             }
 
-            if (wallet.IsParticlWallet()
-                && r.destination.index() == DI::_PKHash) {
+            if (wallet.IsParticlWallet() &&
+                r.destination.index() == DI::_PKHash) {
                 CStealthAddress sx;
                 CKeyID idK = ToKeyID(std::get<PKHash>(r.destination));
                 if (GetParticlWallet(&wallet)->GetStealthLinked(idK, sx)) {
@@ -674,7 +674,8 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
 
         entry.pushKV("category", sCategory);
         entry.pushKV("type", r.nType == OUTPUT_STANDARD ? "standard"
-                : r.nType == OUTPUT_CT ? "blind" : r.nType == OUTPUT_RINGCT ? "anon" : "unknown");
+                           : r.nType == OUTPUT_CT ? "blind"
+                           : r.nType == OUTPUT_RINGCT ? "anon" : "unknown");
 
         if (r.nFlags & ORF_OWNED && r.nFlags & ORF_FROM) {
             entry.pushKV("fromself", true);
