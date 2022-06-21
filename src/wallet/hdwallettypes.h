@@ -82,7 +82,7 @@ class COutputRecord
 {
 public:
     uint8_t nType = 0;
-    uint8_t nFlags = 0;
+    uint8_t nFlags = 0; // OutputRecordFlags
     uint16_t n = 0;
     CAmount nValue = -1;
     CScript scriptPubKey;
@@ -112,6 +112,8 @@ public:
         READWRITE(obj.sNarration);
         READWRITE(obj.vPath);
     }
+
+    bool FlagSet(uint8_t flag) { return nFlags & flag; }
 };
 
 class CTransactionRecord
@@ -121,7 +123,7 @@ public:
     // Conflicted state is marked by setting blockHash and nIndex -1
     uint256 blockHash;
     int block_height = 0;
-    int16_t nFlags = 0;
+    int16_t nFlags = 0; // OutputRecordFlags
     int16_t nIndex = 0;
 
     int64_t nBlockTime = 0;
@@ -131,6 +133,19 @@ public:
 
     std::vector<COutPoint> vin;  // When inputs are anon vin stores processed prevouts
     std::vector<COutputRecord> vout;
+
+    SERIALIZE_METHODS(CTransactionRecord, obj)
+    {
+        READWRITE(obj.blockHash);
+        READWRITE(obj.nFlags);
+        READWRITE(obj.nIndex);
+        READWRITE(obj.nBlockTime);
+        READWRITE(obj.nTimeReceived);
+        READWRITE(obj.mapValue);
+        READWRITE(obj.nFee);
+        READWRITE(obj.vin);
+        READWRITE(obj.vout);
+    }
 
     int InsertOutput(COutputRecord &r);
     bool EraseOutput(uint16_t n);
@@ -182,21 +197,9 @@ public:
     }
 
     bool InMempool() const;
-    bool IsCoinBase() const {return false;};
-    bool IsCoinStake() const {return false;};
-
-    SERIALIZE_METHODS(CTransactionRecord, obj)
-    {
-        READWRITE(obj.blockHash);
-        READWRITE(obj.nFlags);
-        READWRITE(obj.nIndex);
-        READWRITE(obj.nBlockTime);
-        READWRITE(obj.nTimeReceived);
-        READWRITE(obj.mapValue);
-        READWRITE(obj.nFee);
-        READWRITE(obj.vin);
-        READWRITE(obj.vout);
-    }
+    bool IsCoinBase() const { return false; };
+    bool IsCoinStake() const { return false; };
+    bool FlagSet(uint8_t flag) { return nFlags & flag; }
 };
 
 class CTempRecipient
@@ -205,14 +208,6 @@ public:
     CTempRecipient() {};
     CTempRecipient(uint8_t nType_, CAmount nAmount_, CTxDestination &dest)
         : nType(nType_), nAmount(nAmount_), nAmountSelected(nAmount_), address(dest) {};
-
-    void SetAmount(CAmount nValue)
-    {
-        nAmount = nValue;
-        nAmountSelected = nValue;
-    }
-
-    bool ApplySubFee(CAmount nFee, size_t nSubtractFeeFromAmount, bool &fFirst);
 
     uint8_t nType = 0;
     CAmount nAmount = 0;                // If fSubtractFeeFromAmount, nAmount = nAmountSelected - feeForOutput
@@ -245,6 +240,14 @@ public:
     uint32_t nChildKey = 0;             // Updates wallet after send
     uint32_t nChildKeyColdStaking = 0;  // Updates wallet after send
     uint32_t nStealthPrefix = 0;
+
+    void SetAmount(CAmount nValue)
+    {
+        nAmount = nValue;
+        nAmountSelected = nValue;
+    }
+
+    bool ApplySubFee(CAmount nFee, size_t nSubtractFeeFromAmount, bool &fFirst);
 };
 
 class COutputR
