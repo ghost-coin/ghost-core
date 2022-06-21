@@ -407,14 +407,15 @@ public:
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
     const CWalletTx *GetWalletOrTempTx(const uint256& hash, const CTransactionRecord *rtx) const;
 
-    int OwnStandardOut(const CTxOutStandard *pout, const CTxOutData *pdata, COutputRecord &rout, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int OwnStandardOut(const CTxOutStandard *pout, const CTxOutData *pdata,
+        COutputRecord &rout, bool &fUpdated, bool tx_is_from_me) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int OwnBlindOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOutCT *pout, const CStoredExtKey *pc, uint32_t &nLastChild,
-        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated, bool tx_is_from_me) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, const CStoredExtKey *pc, uint32_t &nLastChild,
-        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated, bool tx_is_from_me) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool ProcessPlaceholder(const CTransaction &tx, CTransactionRecord &rtx);
-    bool AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, const TxState& state, bool fFlushOnClose=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, const TxState &state, bool fFlushOnClose=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     ScanResult ScanForWalletTransactions(const uint256& start_block, int start_height, std::optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate) override;
     std::vector<uint256> ResendRecordTransactionsBefore(int64_t nTime);
