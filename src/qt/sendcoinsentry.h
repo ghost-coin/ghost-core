@@ -22,8 +22,6 @@ namespace Ui {
 
 /**
  * A single entry in the dialog for sending bitcoins.
- * Stacked widget, with different UIs for payment requests
- * with a strong payee identity.
  */
 class SendCoinsEntry : public QStackedWidget
 {

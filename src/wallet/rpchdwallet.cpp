@@ -8539,7 +8539,7 @@ static RPCHelpMan fundrawtransactionfrom()
     UniValue subtractFeeFromOutputs;
     std::set<int> setSubtractFeeFromOutputs;
 
-    coinControl.fAllowOtherInputs = true;
+    coinControl.m_allow_other_inputs = true;
     coinControl.m_avoid_address_reuse = pwallet->IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE);
 
     bool sign_tx = false;
@@ -8587,7 +8587,7 @@ static RPCHelpMan fundrawtransactionfrom()
             subtractFeeFromOutputs = options["subtractFeeFromOutputs"].get_array();
         }
         if (options.exists("allow_other_inputs")) {
-            coinControl.fAllowOtherInputs = options["allow_other_inputs"].get_bool();
+            coinControl.m_allow_other_inputs = options["allow_other_inputs"].get_bool();
         }
         if (options.exists("allow_change_output")) {
             coinControl.m_addChangeOutput = options["allow_change_output"].get_bool();

@@ -8665,7 +8665,7 @@ bool CHDWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, int& 
         }
     }
 
-    coinControl.fAllowOtherInputs = true;
+    coinControl.m_allow_other_inputs = true;
 
     for (const auto &txin : tx.vin) {
         coinControl.Select(txin.prevout);
@@ -10184,18 +10184,15 @@ bool CHDWallet::HaveSpend(const COutPoint &outpoint, const uint256 &txid)
     return false;
 };
 
-void CHDWallet::AddToSpends(const uint256& wtxid, WalletBatch* batch)
+void CHDWallet::AddToSpends(const CWalletTx& wtx, WalletBatch* batch)
 {
-    auto it = mapWallet.find(wtxid);
-    assert(it != mapWallet.end());
-    CWalletTx& thisTx = it->second;
-    if (thisTx.IsCoinBase()) // Coinbases don't spend anything!
+    if (wtx.IsCoinBase()) // Coinbases don't spend anything!
         return;
 
-    for (const CTxIn& txin : thisTx.tx->vin) {
-        AddToSpends(txin.prevout, wtxid, batch);
+    for (const CTxIn& txin : wtx.tx->vin) {
+        AddToSpends(txin.prevout, wtx.GetHash(), batch);
         if (m_collapse_spent_mode > 0) {
-            UnloadSpent(txin.prevout.hash, 1, wtxid);
+            UnloadSpent(txin.prevout.hash, 1, wtx.GetHash());
         }
     }
 }
@@ -11355,7 +11352,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             if (txout->nValue < nMinimumAmount || txout->nValue > nMaximumAmount) {
                 continue;
             }
-            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(wtxid, i))) {
+            if (coinControl && coinControl->HasSelected() && !coinControl->m_allow_other_inputs && !coinControl->IsSelected(COutPoint(wtxid, i))) {
                 continue;
             }
             if (!allow_locked && IsLockedCoin(COutPoint(wtxid, i))) {
@@ -11450,7 +11447,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             if (r.nValue < nMinimumAmount || r.nValue > nMaximumAmount) {
                 continue;
             }
-            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
+            if (coinControl && coinControl->HasSelected() && !coinControl->m_allow_other_inputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
                 continue;
             }
             if (!allow_locked && IsLockedCoin(COutPoint(txid, r.n))) {
@@ -11504,7 +11501,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     OutputGroup preset_inputs(coin_selection_params);
 
     // coin control -> return all selected outputs (we want all selected to go into the transaction for sure)
-    if (coin_control.HasSelected() && !coin_control.fAllowOtherInputs) {
+    if (coin_control.HasSelected() && !coin_control.m_allow_other_inputs) {
         for (const auto &out : vCoins) {
             if (!coin_control.IsSelected(out.outpoint)) {
                 continue;
@@ -11771,7 +11768,7 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, const CCoin
                 }
             }
 
-            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
+            if (coinControl && coinControl->HasSelected() && !coinControl->m_allow_other_inputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
                 continue;
             }
 
@@ -11839,7 +11836,7 @@ bool CHDWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins,
     }
 
     // coin control -> return all selected outputs (we want all selected to go into the transaction for sure)
-    if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs) {
+    if (coinControl && coinControl->HasSelected() && !coinControl->m_allow_other_inputs) {
         nValueRet = nValueFromPresetInputs;
         setCoinsRet.insert(setCoinsRet.end(), vPresetCoins.begin(), vPresetCoins.end());
         return (nValueRet >= nTargetValue);
@@ -12025,7 +12022,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinCon
                 }
             }
 
-            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
+            if (coinControl && coinControl->HasSelected() && !coinControl->m_allow_other_inputs && !coinControl->IsSelected(COutPoint(txid, r.n))) {
                 continue;
             }
 
