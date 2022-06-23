@@ -60,6 +60,9 @@ struct ColdRewardsSetup : public BasicTestingSetup {
         tracker.setPersistedTransactionStarter(transactionStarter);
         tracker.setPersisterTransactionEnder(transactionEnder);
         tracker.setAllRangesGetter(allRangesGetter);
+
+        tracker.setGvrThreshold(20000 * COIN);
+        tracker.setMinRewardRangeSpan(30 * 24 * 30);
     }
 
     ColdRewardTracker tracker;
@@ -732,13 +735,6 @@ BOOST_AUTO_TEST_CASE(checkpoints_basic)
     AddressType addr = VecUint8FromString(addrStr);
 
     BOOST_REQUIRE_THROW(balances.at(addr), std::out_of_range);
-
-    // add something below last checkpoint is not allowed
-    tracker.startPersistedTransaction();
-    BOOST_REQUIRE_THROW(tracker.addAddressTransaction(1, addr, 20000 * COIN, checkpoints), std::invalid_argument);
-    tracker.endPersistedTransaction();
-    BOOST_CHECK_EQUAL(balances.at(addr), 0);
-    BOOST_REQUIRE_EQUAL(ranges.size(), 0);
 
     // 20001 coins added at block 4 to insert a record
     tracker.startPersistedTransaction();

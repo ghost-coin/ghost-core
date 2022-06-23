@@ -124,6 +124,7 @@ static const unsigned int DEFAULT_LAST_ANON_INDEX = 0;
 static const unsigned int DEFAULT_FULL_RESTRICTION_HEIGHT = 0;
 static const CAmount DEFAULT_GVR_THRESHOLD = 20000 * COIN;
 static const int DEFAULT_MIN_REWARD_RANGE_SPAN = 30 * 24 * 30; // Which is 21600 blocks per month
+static const int DEFAULT_GVR_START_HEIGHT = 100000;
 
 
 

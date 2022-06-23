@@ -129,6 +129,14 @@ public:
 
     const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges() const;
 
+    void setGvrThreshold(const CAmount& amount) { 
+        GVRThreshold = amount;
+    }
+
+    void setMinRewardRangeSpan(int reward) {
+        MinimumRewardRangeSpan = reward;
+    }
+
     SERIALIZE_METHODS(ColdRewardTracker, obj)
     {
         READWRITE(obj.addressesRanges);

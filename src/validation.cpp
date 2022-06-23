@@ -146,7 +146,7 @@ RecursiveMutex cs_main;
 std::map<uint256, StakeConflict> mapStakeConflict;
 std::map<COutPoint, uint256> mapStakeSeen;
 std::list<COutPoint> listStakeSeen;
-ColdRewardTracker rewardTracker(Params().GetConsensus().gvrThreshold, Params().GetConsensus().minRewardRangeSpan);
+ColdRewardTracker rewardTracker;
 
 CoinStakeCache coinStakeCache GUARDED_BY(cs_main);
 
@@ -3271,8 +3271,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 const Coin& coin = view.AccessCoin(txin.prevout);
 
                  if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-                     PKHash destAddr = boost::get<PKHash>(dest);
-                     const std::string& str = destAddr.ToString();
+                     std::string str = EncodeDestination(dest);
                      const auto& addr = AddressType(str.cbegin(), str.cend());
  
                      rewardTracker.startPersistedTransaction();
@@ -3284,14 +3283,13 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         }
 
         for (const auto& txout: txs->vpout) {
-            if (!txout->IsStandardOutput()) {
+            if (txout->IsStandardOutput()) {
                 CTxDestination dest;
-                CScript   outScript;
+                CScript outScript;
                 txout->GetScriptPubKey(outScript);
 
                  if (ExtractDestination(outScript, dest)) {
-                     PKHash destAddr = boost::get<PKHash>(dest);
-                     const std::string& str = destAddr.ToString();
+                     const std::string& str = EncodeDestination(dest);
                      const auto& addr = AddressType(str.cbegin(), str.cend());
 
                      rewardTracker.startPersistedTransaction();
@@ -3657,6 +3655,10 @@ void transactionStarter() {}
 void transactionEnder() {}
 
 ColdRewardTracker& initColdReward() {
+
+    rewardTracker.setGvrThreshold(::Params().GetConsensus().gvrThreshold);
+    rewardTracker.setMinRewardRangeSpan(::Params().GetConsensus().minRewardRangeSpan);
+
     rewardTracker.setPersistedRangesGetter(rangesGetter);
     rewardTracker.setPersistedRangesSetter(rangesSetter);
     rewardTracker.setPersistedBalanceGetter(balanceGetter);

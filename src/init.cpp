@@ -737,7 +737,11 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-lastanonindex", strprintf("Last valid \"anon\" index set. (default: %u)", DEFAULT_LAST_ANON_INDEX), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-anonrestrictionstartheight", strprintf("Height at which to start anon restriction (default: %u)", DEFAULT_ANON_RESTRICTION_START_HEIGHT), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-blacklistedanon", "A list of anon indexes to blacklist eg: 1,3,5,6", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-gvrthreshold", "Threshold gvr", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-minrewardrangespan", "Min reward range span", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-automatedgvrstartheight", "Automated GVR start height", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
 
+    
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 #else
