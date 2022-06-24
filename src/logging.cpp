@@ -272,7 +272,7 @@ std::string LogCategoryToStr(BCLog::LogFlags category)
     case BCLog::LogFlags::ALL:
         return "all";
 
-    // Particl
+    // Particld
     case BCLog::SMSG:
         return "smsg";
     case BCLog::RINGCT:

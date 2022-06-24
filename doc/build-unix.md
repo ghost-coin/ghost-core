@@ -282,19 +282,17 @@ A list of additional configure flags can be displayed with:
 
 Setup and Build Example: Arch Linux
 -----------------------------------
-This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
+This example lists the steps necessary to setup and build a command line only distribution of the latest changes on Arch Linux:
 
-    pacman -S git base-devel boost libevent python
+    pacman --sync --needed autoconf automake boost gcc git libevent libtool make pkgconf python sqlite
     git clone https://github.com/particl/particl-core.git
     cd particl-core/
     ./autogen.sh
-    ./configure --disable-wallet --without-gui --without-miniupnpc
+    ./configure
     make check
+    ./src/particld
 
-Note:
-Enabling wallet support requires either compiling against a Berkeley DB newer than 4.8 (package `db`) using `--with-incompatible-bdb`,
-or building and depending on a local version of Berkeley DB 4.8.
-
+If you intend to work with legacy Berkeley DB wallets, see [Berkeley DB](#berkeley-db) section.
 
 ARM Cross-compilation
 -------------------
