@@ -257,10 +257,6 @@ case "$HOST" in
 esac
 
 case "$HOST" in
-    powerpc64-linux-*) HOST_LDFLAGS="${HOST_LDFLAGS} -Wl,-z,noexecstack" ;;
-esac
-
-case "$HOST" in
     *i686*) WIN_NAME=win32 && ARCH=i686 ;;
     *)      WIN_NAME=win64 && ARCH=x86_64 ;;
 esac

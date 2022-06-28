@@ -1366,7 +1366,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         vRecv >> vchData;
 
         if (vchData.size() < 4) {
-            peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-format");
+            peerLogic->MisbehavingById(pfrom->GetId(), 1, "smsg-format");
             return SMSG_GENERAL_ERROR; // Not enough data received to be a valid smsgInv
         }
 
@@ -1562,7 +1562,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         }
         if (time > now + SMSG_TIME_LEEWAY) {
             LogPrint(BCLog::SMSG, "Not interested in peer %d bucket %d, in the future.\n", pfrom->GetId(), time);
-            peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-time");
+            peerLogic->MisbehavingById(pfrom->GetId(), 1, "smsg-time");
             return SMSG_GENERAL_ERROR;
         }
 
@@ -1753,7 +1753,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
 
         if (vchData.size() < 8) {
             LogPrintf("smsgIgnore, not enough data %u.\n", vchData.size());
-            peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-format");
+            peerLogic->MisbehavingById(pfrom->GetId(), 1, "smsg-format");
             return SMSG_GENERAL_ERROR;
         }
 
@@ -3146,12 +3146,12 @@ int CSMSG::Receive(PeerManager *peerLogic, CNode *pfrom, std::vector<uint8_t> &v
                 SmsgMisbehaving(pfrom, 10);
             } else
             if (rv == SMSG_FUND_FAILED) { // Bad funding tx
-                peerLogic->Misbehaving(pfrom->GetId(), 10, "smsg-fundtx");
+                peerLogic->MisbehavingById(pfrom->GetId(), 10, "smsg-fundtx");
             } else
             if (rv == SMSG_FUND_DATA_NOT_FOUND) { // Missing funding tx
-                peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-fundtx-missing");
+                peerLogic->MisbehavingById(pfrom->GetId(), 1, "smsg-fundtx-missing");
             } else {
-                peerLogic->Misbehaving(pfrom->GetId(), 1, "smsg-format");
+                peerLogic->MisbehavingById(pfrom->GetId(), 1, "smsg-format");
             }
             continue;
         }

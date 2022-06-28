@@ -4948,7 +4948,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
 
     if (state.nFlags & BLOCK_STAKE_KERNEL_SPENT && !(state.nFlags & BLOCK_FAILED_DUPLICATE_STAKE)) {
         if (state.nodeId > -1) {
-            state.m_peerman->Misbehaving(state.nodeId, 20, "Spent kernel");
+            state.m_peerman->MisbehavingById(state.nodeId, 20, "Spent kernel");
         }
     }
 
@@ -6681,7 +6681,7 @@ static void EraseDelayedBlock(BlockManager &blockman, std::list<DelayedBlock>::i
     assert(state.m_chainman);
     if (p->m_node_id > -1) {
         if (state.m_peerman) {
-            state.m_peerman->Misbehaving(p->m_node_id, 25, "Delayed block");
+            state.m_peerman->MisbehavingById(p->m_node_id, 25, "Delayed block");
         }
     }
 

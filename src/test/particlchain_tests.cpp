@@ -559,7 +559,7 @@ BOOST_AUTO_TEST_CASE(taproot)
     TaprootSpendData tr_spenddata = builder.GetSpendData();
 
     WitnessV1Taproot output = builder.GetOutput();
-    keystore.tr_spenddata[output].Merge(builder.GetSpendData());
+    keystore.tr_trees[output] = builder;
 
     SignatureData sigdata;
     std::vector<unsigned char> sig;
