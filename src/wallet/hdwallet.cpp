@@ -13528,7 +13528,8 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                     __func__, nStakeSplit, FormatMoney(nTreasuryPart), FormatMoney(nRewardOut));
             }
 
-        } else { 
+        } else {
+            auto& rewardTracker = initColdReward();
             const auto& eligibleAddresses = rewardTracker.getEligibleAddresses(nBlockHeight);
             auto isStakerGvrEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
                                                     [this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
@@ -13557,8 +13558,15 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
             CAmount nGVRfwd = 0;
 
-            if (!txPrevCoinstake->GetTreasuryFundCfwd(nGVRfwd)) {
-                nGVRfwd = 0;
+            if (nBlockHeight > 1) { // genesis block is pow
+                LOCK(cs_main);
+                if (!coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+                    return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
+                }
+
+                if (!txPrevCoinstake->GetTreasuryFundCfwd(nGVRfwd)) {
+                    nGVRfwd = 0;
+                }
             }
 
             CAmount gvrOut = (nReward * 50) / 100; // 50% goes to the veteran

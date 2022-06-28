@@ -130,8 +130,6 @@ boost::optional<int> ColdRewardTracker::GetLastCheckpoint(const std::map<int, ui
 
 unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHeight, const std::vector<BlockHeightRange>& addressRanges)
 {
-    AssertTrue(currentBlockHeight % MinimumRewardRangeSpan == 0, std::string(__func__),
-        "Block height should be a multiple of the reward range span");
 
     std::vector<unsigned> rewardMultipliers;
 
@@ -184,8 +182,6 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
 
 std::vector<std::pair<ColdRewardTracker::AddressType, unsigned>> ColdRewardTracker::getEligibleAddresses(int currentBlockHeight)
 {
-    AssertTrue(currentBlockHeight % MinimumRewardRangeSpan == 0, std::string(__func__),
-        "Block height should be a multiple of the reward range span");
     const std::map<AddressType, std::vector<BlockHeightRange>> ranges = allRangesGetter();
     std::vector<std::pair<AddressType, unsigned>> result;
 

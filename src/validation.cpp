@@ -2162,7 +2162,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                      rewardTracker.startPersistedTransaction();
                      rewardTracker.removeAddressTransaction(pindex->nHeight, addr, coin.out.nValue);
                  } else {
-                     LogPrintf("%s Can't extract destination address ", __func__);
+                     LogPrintf("%s Can't extract destination address \n", __func__);
                  }
             }
         }
@@ -3193,7 +3193,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-script");
                     }
 
-                    const CAmount expectedDF = (nCalculatedStakeReward*16)/100;
+                    const CAmount expectedDF = (nCalculatedStakeReward * 16) / 100;
                     if (outputDF->nValue != expectedDF) {
                         LogPrintf("ERROR: %s: Bad dev fund output value.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
@@ -3262,44 +3262,45 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     }
 
     // Track the inputs/outputs for any balance changes
+    // We will add checkpoints, which will avoid tracking for txs when the automatedgvrrewardheight is not yet activated
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+        for (const auto& txs: block.vtx) {
 
-    for (const auto& txs: block.vtx) {
+            rewardTracker.startPersistedTransaction();
 
-        for (const auto& txin: txs->vin) {
-            if (!txin.IsAnonInput()) {
-                CTxDestination dest;
-                const Coin& coin = view.AccessCoin(txin.prevout);
-
-                 if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-                     std::string str = EncodeDestination(dest);
-                     const auto& addr = AddressType(str.cbegin(), str.cend());
- 
-                     rewardTracker.startPersistedTransaction();
-                     rewardTracker.addAddressTransaction(pindex->nHeight, addr, - coin.out.nValue, ::Params().GetGvrCheckpoints());
-                 } else {
-                     LogPrintf("%s Can't extract destination address ", __func__);
-                 }
+            for (const auto& txin: txs->vin) {
+                if (!txin.IsAnonInput()) {
+                    CTxDestination dest;
+                    const Coin& coin = view.AccessCoin(txin.prevout);
+                    assert(coin.nType == OUTPUT_STANDARD && "Tracking only standard output");
+                    if (ExtractDestination(coin.out.scriptPubKey, dest)) {
+                        std::string str = EncodeDestination(dest);
+                        const auto& addr = AddressType(str.cbegin(), str.cend());
+                        rewardTracker.addAddressTransaction(pindex->nHeight, addr, - coin.out.nValue, ::Params().GetGvrCheckpoints());
+                    } else {
+                        LogPrintf("%s Can't extract destination address for tracking inputs\n", __func__);
+                    }
+                }
             }
-        }
 
-        for (const auto& txout: txs->vpout) {
-            if (txout->IsStandardOutput()) {
-                CTxDestination dest;
-                CScript outScript;
-                txout->GetScriptPubKey(outScript);
+            for (const auto& txout: txs->vpout) {
+                if (txout->IsStandardOutput()) {
+                    CTxDestination dest;
+                    CScript outScript;
+                    txout->GetScriptPubKey(outScript);
 
-                 if (ExtractDestination(outScript, dest)) {
-                     const std::string& str = EncodeDestination(dest);
-                     const auto& addr = AddressType(str.cbegin(), str.cend());
-
-                     rewardTracker.startPersistedTransaction();
-                     rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
-                 } else {
-                     LogPrintf("%s Can't extract destination address ", __func__);
-                 }
+                    if (ExtractDestination(outScript, dest)) {
+                        const std::string& str = EncodeDestination(dest);
+                        const auto& addr = AddressType(str.cbegin(), str.cend());
+                        rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
+                    } else {
+                        LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
+                    }
+                }
             }
         }
     }
+    
 
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);

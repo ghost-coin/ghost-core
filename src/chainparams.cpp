@@ -1112,8 +1112,6 @@ public:
 
         consensus.gvrThreshold = gArgs.GetArg("-gvrthreshold", DEFAULT_GVR_THRESHOLD);
         consensus.minRewardRangeSpan = gArgs.GetArg("-minrewardrangespan", DEFAULT_MIN_REWARD_RANGE_SPAN);
-
-        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it", 60, 2));
     }
 
     void SetOld()

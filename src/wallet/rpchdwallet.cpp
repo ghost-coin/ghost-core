@@ -9784,6 +9784,45 @@ static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
     return extkeyimportinternal(request, false, true);
 }
 
+
+static UniValue geteligibleaddresses(const JSONRPCRequest &request)
+{
+    RPCHelpMan{"geteligibleaddresses",
+                "\nReturn the list of eligible addresses at the specified height" +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"height", RPCArg::Type::NUM, /* default */ "0", "The height at which to return the eligble addresses"},
+                },
+             RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                    {
+                        RPCResult::Type::OBJ, "", "", {
+                            {RPCResult::Type::STR, "Address", "The address eligible"},
+                            {RPCResult::Type::NUM, "Balance", "Balance of the eligible address"},
+                        }
+                    }
+                }},
+            RPCExamples{
+                HelpExampleCli("geteligibleaddresses", "4343")
+            },
+        }.Check(request);
+    
+    UniValue result(UniValue::VOBJ);
+
+    bool height = request.params.size() > 0 ? request.params[0].get_int64() : ::ChainActive().Tip()->nHeight;
+    auto& rewardTracker = initColdReward();
+
+    auto eligibleAddresses = rewardTracker.getEligibleAddresses(height);
+
+    for (const auto& eliAddr : eligibleAddresses) {
+        result.pushKV("Address", std::string(eliAddr.first.begin(), eliAddr.first.end()) );
+        result.pushKV("Balance", (CAmount)eliAddr.second);
+    }
+
+    return result;
+
+}
+
 static UniValue rehashblock(const JSONRPCRequest &request)
 {
             RPCHelpMan{"rehashblock",
@@ -9962,6 +10001,8 @@ static const CRPCCommand commands[] =
     { "blockchain",         "rewindchain",                      &rewindchain,                   {"height"} },
     { "blockchain",         "pruneorphanedblocks",              &pruneorphanedblocks,           {"testonly"} },
     { "blockchain",         "rehashblock",                      &rehashblock,                   {"blockhex","signwith","addtxns"} },
+
+    { "blockchain",         "geteligibleaddresses",             &geteligibleaddresses,          {"height"} },
 };
 // clang-format on
     return MakeSpan(commands);
