@@ -189,6 +189,8 @@ BITCOIN_CORE_H = \
   kernel/checks.h \
   kernel/coinstats.h \
   kernel/context.h \
+  kernel/mempool_limits.h \
+  kernel/mempool_options.h \
   key.h \
   key/stealth.h \
   key/extkey.h \
@@ -199,6 +201,7 @@ BITCOIN_CORE_H = \
   logging.h \
   logging/timer.h \
   mapport.h \
+  mempool_args.h \
   memusage.h \
   merkleblock.h \
   net.h \
@@ -224,6 +227,7 @@ BITCOIN_CORE_H = \
   outputtype.h \
   policy/feerate.h \
   policy/fees.h \
+  policy/fees_args.h \
   policy/packages.h \
   policy/policy.h \
   policy/rbf.h \
@@ -406,6 +410,7 @@ libparticl_node_a_SOURCES = \
   kernel/coinstats.cpp \
   kernel/context.cpp \
   mapport.cpp \
+  mempool_args.cpp \
   net.cpp \
   netgroup.cpp \
   net_processing.cpp \
@@ -422,6 +427,7 @@ libparticl_node_a_SOURCES = \
   node/interface_ui.cpp \
   noui.cpp \
   policy/fees.cpp \
+  policy/fees_args.cpp \
   policy/packages.cpp \
   policy/rbf.cpp \
   policy/settings.cpp \
@@ -1019,8 +1025,7 @@ endif
 
 # TODO: libbitcoinkernel is a work in progress consensus engine library, as more
 #       and more modules are decoupled from the consensus engine, this list will
-#       shrink to only those which are absolutely necessary. For example, things
-#       like index/*.cpp will be removed.
+#       shrink to only those which are absolutely necessary.
 libparticlkernel_la_SOURCES = \
   kernel/bitcoinkernel.cpp \
   arith_uint256.cpp \

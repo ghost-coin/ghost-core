@@ -321,6 +321,7 @@ bool ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue, st
 std::unique_ptr<WalletDatabase> CreateDummyWalletDatabase();
 
 /** Return object for accessing temporary in-memory database. */
+std::unique_ptr<WalletDatabase> CreateMockWalletDatabase(DatabaseOptions& options);
 std::unique_ptr<WalletDatabase> CreateMockWalletDatabase();
 
 /** Return object for accessing temporary in-memory BDB database. */
