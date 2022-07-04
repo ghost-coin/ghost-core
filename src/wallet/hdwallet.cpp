@@ -13529,12 +13529,18 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             }
 
         } else {
+
+            CTxDestination stakerAddrDest;
+            if (!ExtractDestination(scriptPubKeyKernel, stakerAddrDest)) {
+                 return werror("%s: Can't extract destination for kernel script.", __func__);
+            }
+
             auto& rewardTracker = initColdReward();
             const auto& eligibleAddresses = rewardTracker.getEligibleAddresses(nBlockHeight);
             auto isStakerGvrEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
-                                                    [this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
-                const CTxDestination& trackedAddr = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
-                return trackedAddr == m_reward_address;
+                                                    [&stakerAddrDest, this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
+                return trackedAddrDest == stakerAddrDest;
             });
 
             // Place devfunds
@@ -13545,14 +13551,15 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             CScript scriptDevFund;
             std::vector<uint8_t> vData;
 
+            // @TODO change the address with the correct dev fund address provided
             const CTxDestination devAddr = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
             if (IsValidDestination(devAddr)) {
-                if (!GetScriptForDest(scriptDevFund, m_reward_address, true, &vData)) {
-                    return werror("%s: Could not get script for reward address.", __func__);
+                if (!GetScriptForDest(scriptDevFund, devAddr, true, &vData)) {
+                    return werror("%s: Could not get script for dev fund address", __func__);
                 }
             }
             devFundOutTx->scriptPubKey = scriptDevFund;
-            txNew.vpout.push_back(devFundOutTx);
+            txNew.vpout.insert(txNew.vpout.begin() + 1, devFundOutTx);
 
             nRewardOut = nReward - devFundOut;
 
@@ -13574,21 +13581,11 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
             nRewardOut -= gvrOut;
 
-            if (isStakerGvrEligible != eligibleAddresses.end()) {
-
+            if (isStakerGvrEligible != eligibleAddresses.end() && IsValidDestination(stakerAddrDest)) {
                 OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
-                gvrOutTx->nValue = gvrOutTotal;
-
-                CScript scriptGvr;
-                std::vector<uint8_t> vData;
-
-                if (IsValidDestination(m_reward_address))  {
-                    if (!GetScriptForDest(scriptGvr, m_reward_address, true, &vData)) {
-                        return werror("%s: Could not get script for reward address.", __func__);
-                    }
-                }
-                gvrOutTx->scriptPubKey = scriptGvr;
-                txNew.vpout.push_back(gvrOutTx);
+                gvrOutTx->nValue = gvrOutTotal;                
+                gvrOutTx->scriptPubKey = scriptPubKeyKernel;
+                txNew.vpout.insert(txNew.vpout.begin() + 2, gvrOutTx);
             } else {
                 // Add the GVR to carried forward. We will pay it when the staker is veteran
                 std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();

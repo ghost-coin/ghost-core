@@ -9807,20 +9807,21 @@ static UniValue geteligibleaddresses(const JSONRPCRequest &request)
             },
         }.Check(request);
     
-    UniValue result(UniValue::VOBJ);
+    UniValue result(UniValue::VARR);
 
-    bool height = request.params.size() > 0 ? request.params[0].get_int64() : ::ChainActive().Tip()->nHeight;
+    int height = request.params.size() > 0 ? request.params[0].get_int64() : ::ChainActive().Tip()->nHeight;
     auto& rewardTracker = initColdReward();
 
     auto eligibleAddresses = rewardTracker.getEligibleAddresses(height);
 
     for (const auto& eliAddr : eligibleAddresses) {
-        result.pushKV("Address", std::string(eliAddr.first.begin(), eliAddr.first.end()) );
-        result.pushKV("Balance", (CAmount)eliAddr.second);
+        UniValue innerResult(UniValue::VOBJ);
+        innerResult.pushKV("Address", std::string(eliAddr.first.begin(), eliAddr.first.end()) );
+        innerResult.pushKV("Balance", ValueFromAmount(eliAddr.second));
+        result.push_back(innerResult);
     }
-
+    
     return result;
-
 }
 
 static UniValue rehashblock(const JSONRPCRequest &request)

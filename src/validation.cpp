@@ -2129,6 +2129,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     {
         const CTransaction &tx = *(block.vtx[i]);
         uint256 hash = tx.GetHash();
+        bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
 
         for (const auto &txin : tx.vin) {
             if (txin.IsAnonInput()) {
@@ -2149,25 +2150,40 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 Coin coin;
                 view.spent_cache.emplace_back(txin.prevout, SpentCoin());
             }
-
+            
             // Undo the inputs tracked by the reward tracker
             if (!txin.IsAnonInput()) {
                 CTxDestination dest;
                 const Coin& coin = view.AccessCoin(txin.prevout);
+                CScript trackedScript, kernelScriptPubKey;
+                uint256 kernelhash, kernelblockhash;
+                CAmount kernelvalue, amountToDeduct;
+                    
+                if (!GetKernelInfo(pindex, *block.vtx[0], kernelhash, kernelvalue, kernelScriptPubKey, kernelblockhash)) {
+                    error("DiscConnectBlock(): Can't get kernel info\n");
+                    return DISCONNECT_FAILED;
+                }
 
-                 if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-                     PKHash destAddr = boost::get<PKHash>(dest);
-                     const std::string& str = destAddr.ToString();
-                     const auto& addr = AddressType(str.cbegin(), str.cend());
-                     rewardTracker.startPersistedTransaction();
-                     rewardTracker.removeAddressTransaction(pindex->nHeight, addr, coin.out.nValue);
-                 } else {
-                     LogPrintf("%s Can't extract destination address \n", __func__);
-                 }
+                if (is_coinbase) {
+                    trackedScript = kernelScriptPubKey;
+                    amountToDeduct = kernelvalue;
+                } else {
+                    trackedScript = coin.out.scriptPubKey;
+                    amountToDeduct = coin.out.nValue;
+                }
+
+                if (ExtractDestination(trackedScript, dest)) {
+                    const auto str = EncodeDestination(dest);
+                    const auto& addr = AddressType(str.cbegin(), str.cend());
+                    rewardTracker.startPersistedTransaction();
+                    rewardTracker.removeAddressTransaction(pindex->nHeight, addr, - amountToDeduct);
+                } else {
+                    LogPrintf("%s Can't extract destination address for inputs\n", __func__);
+                    error("DisconnectBlock(): Can't extract destination address for inputs\n");
+                    return DISCONNECT_FAILED;
+                }
             }
         }
-
-        bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
 
         for (size_t k = tx.vpout.size(); k-- > 0;) {
             const CTxOutBase *out = tx.vpout[k].get();
@@ -2243,14 +2259,15 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 CScript outScript;
                 out->GetScriptPubKey(outScript);
 
-                if (ExtractDestination(outScript, dest)) {
-                    PKHash destAddr = boost::get<PKHash>(dest);
-                    const std::string& str = destAddr.ToString();
-                    const auto& addr = AddressType(str.cbegin(), str.cend());
+                if (ExtractDestination(outScript, dest)) { 
+                    const auto str = EncodeDestination(dest);
+                    const auto& addrType = AddressType(str.cbegin(), str.cend());
                     rewardTracker.startPersistedTransaction();
-                    rewardTracker.removeAddressTransaction(pindex->nHeight, addr, out->GetValue());
+                    rewardTracker.removeAddressTransaction(pindex->nHeight, addrType, out->GetValue());
                 } else {
                     LogPrintf("%s Can't extract destination address ", __func__);
+                    error("DisconnectBlock(): Can't extract destination address for outputs\n");
+                    return DISCONNECT_FAILED;
                 }
             }
         }
@@ -2737,6 +2754,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     int64_t nSigOpsCost = 0;
     int64_t nAnonIn = 0;
     int64_t nStakeReward = 0;
+    CAmount kernelvalue = 0;
+    CScript kernelScriptPubKey;
 
     blockundo.vtxundo.reserve(block.vtx.size() - (fParticlMode ? 0 : 1));
 
@@ -3177,7 +3196,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
 
                     if (dfDest.type() == typeid(CNoDestination)) {
-                        return error("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
+                        return error("%s: Failed to get dev fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
                     }
 
                     CScript fundScriptPubKey = GetScriptForDestination(dfDest);
@@ -3185,11 +3204,11 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     // Output 1 must be to the dev fund
                     const CTxOutStandard* outputDF = txCoinstake->vpout[1]->GetStandardOutput();
                     if (!outputDF) {
-                        LogPrintf("ERROR: %s: Bad treasury fund output.\n", __func__);
+                        LogPrintf("ERROR: %s: Bad dev fund output.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
                     }
                     if (outputDF->scriptPubKey != fundScriptPubKey) {
-                        LogPrintf("ERROR: %s: Bad treasury fund output script.\n", __func__);
+                        LogPrintf("ERROR: %s: Bad dev fund output script.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-script");
                     }
 
@@ -3199,50 +3218,52 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
                     }
                     
-                    // Output 2 if it exists is the veteran reward
-                    if (txCoinstake->vpout.size() == 4) {
-                        const CTxOutStandard* outputVr = txCoinstake->vpout[2]->GetStandardOutput();
+                    auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
 
-                        if (!outputVr) {
-                            LogPrintf("ERROR: %s: Bad Verteran fund output.\n", __func__);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-out");
-                        }
+                    CTxDestination stakerAddrDest;
+                    uint256 kernelhash, kernelblockhash;
+                    
+                    if (!GetKernelInfo(pindex, *block.vtx[0], kernelhash, kernelvalue, kernelScriptPubKey, kernelblockhash)) {
+                        return error("ConnectBlock(): Can't get kernel info\n");
+                    }
 
-                        // Check if the rewarded addr was really eligible that time
-                        const auto& eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
+                    ExtractDestination(kernelScriptPubKey, stakerAddrDest);
 
-                        auto eligibility = std::find_if(eligibleAddresses.begin(), eligibleAddresses.end(), [&](const std::pair<AddressType, unsigned>& addrMul){
-                            std::string address = std::string(addrMul.first.begin(), addrMul.first.end());
-                            CScript outScript = GetScriptForDestination(DecodeDestination(address));
+                    // Check if the staker of the block was eligible and that the gvr went to him
+                    
+                    auto wasEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
+                                                [&stakerAddrDest, this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                                            const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
+                                            return trackedAddrDest == stakerAddrDest;
+                                        });
 
-                            return outputVr->scriptPubKey == outScript;
-                        });
+                    if (wasEligible != eligibleAddresses.end()) {
+                        // if he was elig then the vpout[2] is the gvr out 
+                        // The staker was eligible then compare scripts
+                        CScript gvrReceiverScript; 
+                        txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
 
-                        if (eligibility == eligibleAddresses.end()) {
-                            LogPrintf("%s Veteran not matching at height %s", __func__, std::to_string(pindex->nHeight));
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-not-eligible");
-                        }
-
-                        if (txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)) {
-                            LogPrintf("ERROR: %s: Coinstake gvr cfwd must be unset.\n", __func__);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-cfwd-unset");
+                        if (kernelScriptPubKey != gvrReceiverScript) {
+                            LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-script");
                         }
 
                     } else {
+                        // The staker was not eligible so the carried forward has to be set
                         // The carried forward is set since there were no gvr output
                         if (!txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)) {
                             LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
 
-                        CAmount nTreasuryCfwd = ngvrBfwd + nCalculatedStakeReward - nStakeReward - outputDF->nValue;
+                        CAmount nTreasuryCfwd = ngvrBfwd + nCalculatedStakeReward - nStakeReward;
                         if (!txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)
                             || ngvrCfwdCheck != nTreasuryCfwd) {
                             LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, ngvrCfwdCheck, nTreasuryCfwd);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
                     }
-
+                    
                 }
 
                 coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
@@ -3267,22 +3288,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         for (const auto& txs: block.vtx) {
 
             rewardTracker.startPersistedTransaction();
-
-            for (const auto& txin: txs->vin) {
-                if (!txin.IsAnonInput()) {
-                    CTxDestination dest;
-                    const Coin& coin = view.AccessCoin(txin.prevout);
-                    assert(coin.nType == OUTPUT_STANDARD && "Tracking only standard output");
-                    if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-                        std::string str = EncodeDestination(dest);
-                        const auto& addr = AddressType(str.cbegin(), str.cend());
-                        rewardTracker.addAddressTransaction(pindex->nHeight, addr, - coin.out.nValue, ::Params().GetGvrCheckpoints());
-                    } else {
-                        LogPrintf("%s Can't extract destination address for tracking inputs\n", __func__);
-                    }
-                }
-            }
-
+            
             for (const auto& txout: txs->vpout) {
                 if (txout->IsStandardOutput()) {
                     CTxDestination dest;
@@ -3295,6 +3301,37 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
                     } else {
                         LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
+                        return error("ConnectBlock(): Can't extract destination address for outputs\n");
+                    }
+                }
+            }
+
+            for (const auto& txin: txs->vin) {
+                if (!txin.IsAnonInput()) {
+                    CTxDestination dest;
+                    const Coin& coin = view.AccessCoin(txin.prevout);
+                    CScript trackedScript;
+                    CAmount amountDeducted;
+
+                    if (coin.out.IsNull() ) {
+                        continue;
+                    }
+
+                    if (txs->IsCoinBase() || txs->IsCoinStake()) {
+                        trackedScript = kernelScriptPubKey;
+                        amountDeducted = kernelvalue;
+                    } else {
+                        trackedScript = coin.out.scriptPubKey;
+                        amountDeducted = coin.out.nValue;
+                    }
+
+                    if (ExtractDestination(trackedScript, dest)) {
+                        std::string str = EncodeDestination(dest);
+                        const auto& addr = AddressType(str.cbegin(), str.cend());
+                        rewardTracker.addAddressTransaction(pindex->nHeight, addr, - amountDeducted, ::Params().GetGvrCheckpoints());
+                    } else {
+                        LogPrintf("%s Can't extract destination address for tracking inputs\n", __func__);
+                        return error("ConnectBlock(): Can't extract destination address for inputs\n");
                     }
                 }
             }
@@ -3615,6 +3652,8 @@ void checkpointSetter(int newCheckpoint) {
 std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
     std::map<AddressType, std::vector<BlockHeightRange>> ranges;
     const std::unique_ptr<CDBIterator> pcursor(pblocktree->NewIterator());
+
+    pcursor->Seek(std::make_pair(DB_GVR_RANGE,std::vector<BlockHeightRange>()));
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) {
