@@ -13466,6 +13466,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     const Consensus::Params &consensusParams = Params().GetConsensus();
     // Get block reward
     CAmount nReward = Params().GetProofOfStakeReward(pindexPrev, nFees);
+    CAmount nRewardFeesExcluded = nReward - nFees;
     if (nReward < 0) {
         return false;
     }
@@ -13544,7 +13545,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             });
 
             // Place devfunds
-            CAmount devFundOut = (nReward * 16) / 100; // 16% goes to devfund
+            CAmount devFundOut = (nRewardFeesExcluded * 16) / 100; // 16% goes to devfund
             OUTPUT_PTR<CTxOutStandard> devFundOutTx = MAKE_OUTPUT<CTxOutStandard>();
             devFundOutTx->nValue = devFundOut;
 
@@ -13576,7 +13577,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                 }
             }
 
-            CAmount gvrOut = (nReward * 50) / 100; // 50% goes to the veteran
+            CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
             CAmount gvrOutTotal = nGVRfwd + gvrOut;
 
             nRewardOut -= gvrOut;
