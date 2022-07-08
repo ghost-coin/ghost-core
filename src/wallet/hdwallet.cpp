@@ -11381,7 +11381,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             if (!txout->setTxout(txout_old)) {
                 continue;
             }
-            int input_bytes = GetTxSpendSize(*this, wtx, i, (coinControl && coinControl->fAllowWatchOnly));
+            int input_bytes = CalculateMaximumSignedInputSize(txout_old, COutPoint(), provider, coinControl);
             result.coins.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
 
             // Checks the sum amount of all UTXO's.
@@ -11472,7 +11472,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             CTxOut txout(r.nValue, r.scriptPubKey);
             bool from_me = rtx.vin.size() > 0;
             int64_t time = rtx.GetTxTime();
-            int input_bytes = CalculateMaximumSignedInputSize(txout, this, (coinControl && coinControl->fAllowWatchOnly));
+            int input_bytes = CalculateMaximumSignedInputSize(txout, this, coinControl);
             result.coins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
 
             if (nMinimumSumAmount != MAX_MONEY) {
@@ -11537,7 +11537,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
                 !pcoin->tx->vpout[outpoint.n]->setTxout(txout)) {
                 return std::nullopt;
             }
-            input_bytes = CalculateMaximumSignedInputSize(txout, this, true);
+            input_bytes = CalculateMaximumSignedInputSize(txout, this, &coin_control);
         } else {
             it = mapWallet.find(outpoint.hash);
             if (it != mapWallet.end()) {
@@ -11547,7 +11547,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
                     !pcoin->tx->vpout[outpoint.n]->setTxout(txout)) {
                     return std::nullopt;
                 }
-                input_bytes = CalculateMaximumSignedInputSize(txout, this, true);
+                input_bytes = CalculateMaximumSignedInputSize(txout, this, &coin_control);
             } else {
                 // The input is external. We either did not find the tx in mapWallet, or we did but couldn't compute the input size with wallet data
                 if (!coin_control.GetExternalOutput(outpoint, txout)) {
