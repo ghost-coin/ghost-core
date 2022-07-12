@@ -11103,7 +11103,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, c
     return true;
 };
 
-CWallet::ScanResult CHDWallet::ScanForWalletTransactions(const uint256& start_block, int start_height, std::optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate)
+CWallet::ScanResult CHDWallet::ScanForWalletTransactions(const uint256& start_block, int start_height, std::optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate, const bool save_progress)
 {
     CExtKeyAccount *sea = nullptr;
 
@@ -11171,7 +11171,7 @@ CWallet::ScanResult CHDWallet::ScanForWalletTransactions(const uint256& start_bl
                         IsLocked() ? "Wallet is locked" : sea ? "Default account has no private key" : "Default account not found");
     }
 
-    ScanResult rv = CWallet::ScanForWalletTransactions(start_block, start_height, max_height, reserver, fUpdate);
+    ScanResult rv = CWallet::ScanForWalletTransactions(start_block, start_height, max_height, reserver, fUpdate, save_progress);
 
     // Remove lookahead keys
     if (sea) {
