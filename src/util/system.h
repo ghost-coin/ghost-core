@@ -608,4 +608,8 @@ private:
 
 } // namespace util
 
+namespace part {
+    std::string BytesReadable(uint64_t nBytes);
+} // namespace part
+
 #endif // BITCOIN_UTIL_SYSTEM_H

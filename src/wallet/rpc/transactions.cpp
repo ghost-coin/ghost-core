@@ -422,11 +422,12 @@ static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
  * @param  wtx            The wallet transaction.
  * @param  nMinDepth      The minimum confirmation depth.
  * @param  fLong          Whether to include the JSON version of the transaction.
- * @param  ret            The UniValue into which the result is stored.
+ * @param  ret            The vector into which the result is stored.
  * @param  filter_ismine  The "is mine" filter flags.
  * @param  filter_label   Optional label string to filter incoming transactions.
  */
-static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue& ret, const isminefilter& filter_ismine, const std::string* filter_label) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
+template <class Vec>
+static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nMinDepth, bool fLong, Vec& ret, const isminefilter& filter_ismine, const std::string* filter_label) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     CAmount nFee;
     std::list<COutputEntry> listReceived;
@@ -822,12 +823,11 @@ RPCHelpMan listtransactions()
     if (nFrom < 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative from");
 
-
     // NOTE: nFrom and nCount seem to apply to the individual json entries, not the txn
     //  a txn producing 2 entries will output only 1 entry if nCount is 1
     // TODO: Change to count on unique txids?
 
-    UniValue ret(UniValue::VARR);
+    std::vector<UniValue> ret;
     {
         LOCK(pwallet->cs_wallet);
         const CWallet::TxItems &txOrdered = pwallet->wtxOrdered;
@@ -839,8 +839,13 @@ RPCHelpMan listtransactions()
             if ((int)ret.size() >= (nCount+nFrom)) break;
         }
     }
-    // ret must be newest to oldest
-    ret.reverse();
+
+    // Need the full dataset here, can only trim once the tx records are merged in.
+    // Must be ordered from newest to oldest
+    UniValue result{UniValue::VARR};
+    for(int i = ret.size() - 1; i >= 0; --i) {
+        result.push_back(ret[i]);
+    }
 
     if (pwallet->IsParticlWallet()) {
         const CHDWallet *phdw = GetParticlWallet(pwallet.get());
@@ -848,7 +853,6 @@ RPCHelpMan listtransactions()
         const RtxOrdered_t &txOrdered = phdw->rtxOrdered;
 
         // TODO: Combine finding and inserting into ret loops
-
         UniValue retRecords(UniValue::VARR);
         for (RtxOrdered_t::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it) {
             std::string strAccount = "*";
@@ -862,31 +866,29 @@ RPCHelpMan listtransactions()
         for(int i = (int)retRecords.size() - 1; i >= 0; --i) {
             int64_t nInsertTime = find_value(retRecords[i], "time").getInt<int64_t>();
             bool fFound = false;
-            for (size_t k = nSearchStart; k < ret.size(); k++) {
+            for (size_t k = nSearchStart; k < result.size(); k++) {
                 nSearchStart = k;
-                int64_t nTime = find_value(ret[k], "time").getInt<int64_t>();
+                int64_t nTime = find_value(result[k], "time").getInt<int64_t>();
                 if (nTime > nInsertTime) {
-                    ret.insert(k, retRecords[i]);
+                    result.insert(k, retRecords[i]);
                     fFound = true;
                     break;
                 }
             }
 
             if (!fFound) {
-                ret.push_back(retRecords[i]);
+                result.push_back(retRecords[i]);
             }
         }
 
-        if (nFrom > 0 && ret.size() > 0) {
-            ret.erase(std::max((size_t)0, ret.size() - nFrom), ret.size());
+        if (nFrom > 0 && result.size() > 0) {
+            result.erase(std::max((size_t)0, result.size() - nFrom), result.size());
         }
-
-        if (ret.size() > (size_t)nCount) {
-            ret.erase(0, ret.size() - nCount);
+        if (result.size() > (size_t)nCount) {
+            result.erase(0, result.size() - nCount);
         }
     }
-
-    return ret;
+    return result;
 },
     };
 }

@@ -13,11 +13,14 @@
 #include <util/string.h>
 
 #include <charconv>
+#include <cstddef>
 #include <cstdint>
-#include <iterator>
 #include <limits>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <system_error>
+#include <type_traits>
 #include <vector>
 
 /** Used by SanitizeString() */
@@ -370,7 +373,6 @@ namespace part
     bool IsStringBoolNegative(const std::string &value);
     bool GetStringBool(const std::string &value, bool &fOut);
     bool IsStrOnlyDigits(const std::string &s);
-    std::string BytesReadable(uint64_t nBytes);
     bool stringsMatchI(const std::string &sString, const std::string &sFind, int type);
     std::string StripQuotes(std::string s);
     std::string &TrimQuotes(std::string &s);

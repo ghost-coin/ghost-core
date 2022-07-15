@@ -419,6 +419,23 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
             return QString();
         }
         return QString::fromStdString(rv.get_str());
+        /* Particl TODO: unlock request
+        auto op_dest = walletModel->wallet().getNewDestination(address_type, strLabel);
+        if (!op_dest) {
+            WalletModel::UnlockContext ctx(walletModel->requestUnlock());
+            if (!ctx.isValid()) {
+                // Unlock wallet failed or was cancelled
+                editStatus = WALLET_UNLOCK_FAILURE;
+                return QString();
+            }
+            op_dest = walletModel->wallet().getNewDestination(address_type, strLabel);
+            if (!op_dest) {
+                editStatus = KEY_GENERATION_FAILURE;
+                return QString();
+            }
+        }
+        strAddress = EncodeDestination(op_dest.GetObj());
+        */
     }
     else
     {

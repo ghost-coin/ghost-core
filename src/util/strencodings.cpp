@@ -3,17 +3,18 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <span.h>
 #include <util/strencodings.h>
-#include <util/string.h>
-
-#include <tinyformat.h>
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
+#include <cassert>
 #include <cstring>
 #include <limits>
 #include <optional>
+#include <ostream>
+#include <string>
+#include <vector>
 
 static const std::string CHARS_ALPHA_NUM = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -544,8 +545,8 @@ static bool icompare_pred(unsigned char a, unsigned char b)
 
 static bool icompare_str(const std::string &a, const std::string &b)
 {
-    return a.length() == b.length()
-        && std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
+    return a.length() == b.length() &&
+           std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
 };
 
 void *memrchr(const void *s, int c, size_t n)
@@ -614,34 +615,20 @@ bool IsStrOnlyDigits(const std::string &s)
     return s.find_first_not_of("0123456789") == std::string::npos;
 };
 
-std::string BytesReadable(uint64_t nBytes)
-{
-    if (nBytes >= 1024ll*1024ll*1024ll*1024ll)
-        return strprintf("%.2f TB", nBytes/1024.0/1024.0/1024.0/1024.0);
-    if (nBytes >= 1024*1024*1024)
-        return strprintf("%.2f GB", nBytes/1024.0/1024.0/1024.0);
-    if (nBytes >= 1024*1024)
-        return strprintf("%.2f MB", nBytes/1024.0/1024.0);
-    if (nBytes >= 1024)
-        return strprintf("%.2f KB", nBytes/1024.0);
-
-    return strprintf("%d B", nBytes);
-};
-
 bool stringsMatchI(const std::string &sString, const std::string &sFind, int type)
 {
     // case insensitive
 
     switch (type) {
         case 0: // full match
-            return sString.length() == sFind.length()
-                && std::equal(sFind.begin(), sFind.end(), sString.begin(), icompare_pred);
+            return sString.length() == sFind.length() &&
+                   std::equal(sFind.begin(), sFind.end(), sString.begin(), icompare_pred);
         case 1: // startswith
-            return sString.length() >= sFind.length()
-                && std::equal(sFind.begin(), sFind.end(), sString.begin(), icompare_pred);
+            return sString.length() >= sFind.length() &&
+                   std::equal(sFind.begin(), sFind.end(), sString.begin(), icompare_pred);
         case 2: // endswith
-            return sString.length() >= sFind.length()
-                && std::equal(sFind.begin(), sFind.end(), sString.begin(), icompare_pred);
+            return sString.length() >= sFind.length() &&
+                   std::equal(sFind.begin(), sFind.end(), sString.begin(), icompare_pred);
         case 3: // contains
             return std::search(sString.begin(), sString.end(), sFind.begin(), sFind.end(), icompare_pred) != sString.end();
     }

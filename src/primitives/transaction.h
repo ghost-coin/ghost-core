@@ -928,9 +928,8 @@ public:
     {
         if (IsParticlVersion()) {
             return (GetType() == TXN_COINBASE &&
-                    vin.size() == 1 && vin[0].prevout.IsNull()); // TODO [rm]?
+                    vin.size() == 1 && vin[0].prevout.IsNull());
         }
-
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 

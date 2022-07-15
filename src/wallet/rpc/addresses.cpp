@@ -116,13 +116,12 @@ RPCHelpMan getnewaddress()
 
     LOCK(pwallet->cs_wallet);
 
-    CTxDestination dest;
-    bilingual_str error;
-    if (!pwallet->GetNewDestination(output_type, label, dest, error)) {
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, error.original);
+    auto op_dest = pwallet->GetNewDestination(output_type, label);
+    if (!op_dest) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, op_dest.GetError().original);
     }
 
-    return EncodeDestination(dest);
+    return EncodeDestination(op_dest.GetObj());
 },
     };
 }
@@ -174,12 +173,11 @@ RPCHelpMan getrawchangeaddress()
         output_type = parsed.value();
     }
 
-    CTxDestination dest;
-    bilingual_str error;
-    if (!pwallet->GetNewChangeDestination(output_type, dest, error)) {
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, error.original);
+    auto op_dest = pwallet->GetNewChangeDestination(output_type);
+    if (!op_dest) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, op_dest.GetError().original);
     }
-    return EncodeDestination(dest);
+    return EncodeDestination(op_dest.GetObj());
 },
     };
 }
