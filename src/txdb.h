@@ -16,6 +16,7 @@
 #include <rctindex.h>
 #include <primitives/block.h>
 
+#include "coldreward/coldrewardtracker.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -154,6 +155,10 @@ public:
 
     bool ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin);
     bool EraseSpentCache(const COutPoint &outpoint);
+
+    bool WriteRewardTrackerUndo(const ColdRewardUndo& ro);
+    bool ReadRewardTrackerUndo(ColdRewardUndo& ro, int nHeight);
+    bool EraseRewardTrackerUndo(int nHeight);
 
     //bool WriteRCTOutputBatch(std::vector<std::pair<int64_t, CAnonOutput> > &vao);
 };

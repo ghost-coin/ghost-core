@@ -39,6 +39,8 @@ static const char DB_HEAD_BLOCKS = 'H';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
+static const char DB_TRACKER_INPUTS_UNDO = 'U';
+static const char DB_TRACKER_OUTPUTS_UNDO = 'N';
 
 /*
 static const char DB_RCTOUTPUT = 'A';
@@ -610,6 +612,72 @@ bool CBlockTreeDB::EraseSpentCache(const COutPoint &outpoint)
     batch.Erase(std::make_pair(DB_SPENTCACHE, outpoint));
     return WriteBatch(batch);
 };
+
+bool CBlockTreeDB::EraseRewardTrackerUndo(int nHeight)
+{
+    CDBBatch batch(*this);
+    batch.Erase(std::make_pair(DB_TRACKER_INPUTS_UNDO, nHeight));
+    batch.Erase(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, nHeight));
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::ReadRewardTrackerUndo(ColdRewardUndo& rewardUndo, int nHeight)
+{
+
+    const std::unique_ptr<CDBIterator> pcursor(pblocktree->NewIterator());
+
+    pcursor->Seek(std::make_pair(DB_TRACKER_INPUTS_UNDO, std::vector<std::pair<AddressType, CAmount>>()));
+
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) {
+            return false;
+        }
+        std::pair<char, int> key;
+        if (pcursor->GetKey(key) && key.first == DB_TRACKER_INPUTS_UNDO) {
+            std::vector<std::pair<AddressType, CAmount>> inputs;
+            if (pcursor->GetValue(inputs)) {
+                rewardUndo.inputs[key.second] = std::move(inputs);
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+
+    pcursor->Seek(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, std::vector<std::pair<AddressType, CAmount>>()));
+
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) {
+            return false;
+        }
+        std::pair<char, int> key;
+        if (pcursor->GetKey(key) && key.first == DB_TRACKER_OUTPUTS_UNDO) {
+            std::vector<std::pair<AddressType, CAmount>> outputs;
+            if (pcursor->GetValue(outputs)) {
+                rewardUndo.outputs[key.second] = std::move(outputs);
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+    return true;
+}
+
+bool CBlockTreeDB::WriteRewardTrackerUndo(const ColdRewardUndo& rewardUndo)
+{
+    CDBBatch batch(*this);
+
+    for (const auto& inputs: rewardUndo.inputs) {
+        batch.Write(std::make_pair(DB_TRACKER_INPUTS_UNDO, inputs.first), inputs.second);
+    }
+
+    for (const auto& outputs: rewardUndo.outputs) {
+        batch.Write(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, outputs.first), outputs.second);
+    }
+
+    return WriteBatch(batch);
+}
 
 bool CCoinsViewDB::Upgrade()
 {
