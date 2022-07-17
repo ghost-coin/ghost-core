@@ -128,6 +128,7 @@ public:
     void setAllRangesGetter(const std::function<std::map<AddressType, std::vector<BlockHeightRange>>()>& func);
 
     const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges() const;
+    const std::vector<std::pair<AddressType, CAmount>> getBalances();
 
     void setGvrThreshold(const CAmount& amount) { 
         GVRThreshold = amount;
@@ -143,6 +144,20 @@ public:
         READWRITE(obj.balances);
         READWRITE(obj.lastCheckpoint);
     }
+};
+
+// This is used to store undo data
+struct ColdRewardUndo {
+    using AddressType = std::vector<uint8_t>;
+
+    std::map<int, std::vector<std::pair<AddressType, CAmount>> > inputs;
+    std::map<int, std::vector<std::pair<AddressType, CAmount>> > outputs;
+
+    SERIALIZE_METHODS(ColdRewardUndo, obj){
+        READWRITE(obj.inputs);
+        READWRITE(obj.outputs);
+    }
+
 };
 
 #endif // COLDREWARDTRACKER_H

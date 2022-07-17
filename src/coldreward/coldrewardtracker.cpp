@@ -1,4 +1,5 @@
 ﻿#include "coldrewardtracker.h"
+#include <logging.h>
 
 
 boost::optional<CAmount> ColdRewardTracker::getBalanceInCache(const AddressType& addr)
@@ -98,6 +99,19 @@ void ColdRewardTracker::endPersistedTransaction()
     balances.clear();
 }
 
+const std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> ColdRewardTracker::getBalances() {
+    const std::map<AddressType, std::vector<BlockHeightRange>> ranges = allRangesGetter();
+    std::vector<std::pair<AddressType, CAmount>> result;
+
+    for(const auto& r: ranges) {
+        CAmount balance = balanceGetter(r.first);
+        auto add = std::string(r.first.begin(), r.first.end());
+        LogPrintf("%s Tracking addr %s with balance %i \n", __func__, add, balance);
+        result.push_back(std::make_pair(r.first, balance));
+    }
+    return result;
+}
+
 void ColdRewardTracker::revertPersistedTransaction()
 {
     addressesRanges.clear();
@@ -137,16 +151,16 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
 
     for(unsigned i = 0; i < ar.size(); i++) {
         const unsigned idx = ar.size() - i - 1;
-        AssertTrue(currentBlockHeight > ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
-        AssertTrue(currentBlockHeight > ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
+        // Now we're getting the elig addr every block
+        // AssertTrue(currentBlockHeight > ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
+        // AssertTrue(currentBlockHeight > ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
 
         // collect all reward multipliers that are > 0 over the last periods, to figure out the final reward
         const int startDistance = currentBlockHeight - ar[idx].getStart();
         const int endDistance = currentBlockHeight -   ar[idx].getEnd();
+        
         if(ar[idx].getRewardMultiplier() > 0) {
-
-            // collect all changes in balance over the last MinimumRewardRangeSpan
-
+            // collect all changes in balance
             if(startDistance == MinimumRewardRangeSpan) {
                 // if the balance changed at the point of start
                 rewardMultipliers.push_back(ar[idx].getRewardMultiplier());
@@ -187,7 +201,7 @@ std::vector<std::pair<ColdRewardTracker::AddressType, unsigned>> ColdRewardTrack
 
     for(const auto& r: ranges) {
         const std::vector<BlockHeightRange>& ar = r.second;
-        AssertTrue(ar.empty() || ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
+        // AssertTrue(ar.empty() || ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
         const unsigned rewardMultiplier = ExtractRewardMultiplierFromRanges(currentBlockHeight, ar);
         if(rewardMultiplier > 0)
         {
@@ -217,12 +231,21 @@ void ColdRewardTracker::RemoveOldData(int lastCheckpoint, std::vector<BlockHeigh
 void ColdRewardTracker::addAddressTransaction(int blockHeight, const AddressType& address, const CAmount& balanceChange, const std::map<int, uint256>& checkpoints)
 {
     const CAmount balance = getBalance(address) + balanceChange;
-    AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
+
+    // The balance can be negative. In that case it means we saw inputs before seeing outputs
+    // The tracked balance will remain negative untill we see more outputs to clear the debt
+    // AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
+    
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
 
     const std::size_t rangesSizeBefore = ranges.size();
 
     balances[address] = balance;
+
+    // Don't store any range related to a negative balance
+    if (balance < 0) {
+        return;
+    }
 
     {
         const unsigned currentMultiplier = static_cast<unsigned>(balance / GVRThreshold);

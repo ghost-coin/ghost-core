@@ -9785,13 +9785,15 @@ static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
 }
 
 
-static UniValue geteligibleaddresses(const JSONRPCRequest &request)
+static UniValue geteligibleaddresses(const JSONRPCRequest& request)
 {
     RPCHelpMan{"geteligibleaddresses",
                 "\nReturn the list of eligible addresses at the specified height" +
                 HELP_REQUIRING_PASSPHRASE,
                 {
                     {"height", RPCArg::Type::NUM, /* default */ "0", "The height at which to return the eligble addresses"},
+                    {"eligibleonly", RPCArg::Type::BOOL, /* default */ "1", "Whether to return eligible addresses only." 
+                    "When set to true height is the current height"},
                 },
              RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -9810,14 +9812,33 @@ static UniValue geteligibleaddresses(const JSONRPCRequest &request)
     UniValue result(UniValue::VARR);
 
     int height = request.params.size() > 0 ? request.params[0].get_int64() : ::ChainActive().Tip()->nHeight;
+    bool eligibleonly = request.params.size() > 1 ? request.params[1].get_bool() : true;
     auto& rewardTracker = initColdReward();
 
-    auto eligibleAddresses = rewardTracker.getEligibleAddresses(height);
+    std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> addresses;
 
-    for (const auto& eliAddr : eligibleAddresses) {
+    if (!eligibleonly) {
+        height = ::ChainActive().Tip()->nHeight;
+        addresses = rewardTracker.getBalances();
+    } else {
+        const auto addrMul = rewardTracker.getEligibleAddresses(height);
+        const auto balances = rewardTracker.getBalances();
+
+        for (const auto& b: balances) {
+            auto res = std::find_if(addrMul.begin(), addrMul.end(), [&b](const std::pair<ColdRewardTracker::AddressType, CAmount>& s){
+                return s.first == b.first;
+            });
+
+            if (res != addrMul.end()) {
+                addresses.push_back(std::make_pair(res->first, b.second));
+            }
+        }
+    }
+
+    for (const auto& trackedAddr : addresses) {
         UniValue innerResult(UniValue::VOBJ);
-        innerResult.pushKV("Address", std::string(eliAddr.first.begin(), eliAddr.first.end()) );
-        innerResult.pushKV("Balance", ValueFromAmount(eliAddr.second));
+        innerResult.pushKV("Address", std::string(trackedAddr.first.begin(), trackedAddr.first.end()) );
+        innerResult.pushKV("Balance", ValueFromAmount(trackedAddr.second));
         result.push_back(innerResult);
     }
     
