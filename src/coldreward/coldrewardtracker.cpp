@@ -158,7 +158,7 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
         // collect all reward multipliers that are > 0 over the last periods, to figure out the final reward
         const int startDistance = currentBlockHeight - ar[idx].getStart();
         const int endDistance = currentBlockHeight -   ar[idx].getEnd();
-        
+
         if(ar[idx].getRewardMultiplier() > 0) {
             // collect all changes in balance
             if(startDistance == MinimumRewardRangeSpan) {
@@ -280,7 +280,8 @@ void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressT
     const int lastCheckpointSeen = getCheckpoint();
     AssertTrue(lastCheckpointSeen < blockHeight, __func__, "Can't apply, height (" + std::to_string(blockHeight) +
                                                             ") is lower than the last checkpoint seen (" + std::to_string(lastCheckpointSeen) + ")");
-    const CAmount balance = balanceGetter(address) - balanceChangeInBlock;
+    
+    const CAmount balance = getBalance(address) - balanceChangeInBlock;
     AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
     balances[address] = balance;                                                                                                                                                                                                                                                                                                                                                                                                                   
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);

@@ -171,19 +171,71 @@ class GhostVeteranRewardTest(GhostTestFramework):
 
         node2_wallet_info_after_staking = nodes[2].getwalletinfo()
         block_count = nodes[0].getblockcount()
-        block3_details = nodes[0].getblock(nodes[0].getblockhash(block_count - 1), 2, True)
-        block3_gvr_cfwd = block3_details['tx'][0]['vout'][0]['treasury_fund_cfwd']
+        block4_details = nodes[0].getblock(nodes[0].getblockhash(block_count - 1), 2, True)
+        block4_gvr_cfwd = 0
 
-        block4_details = nodes[0].getblock(nodes[0].getblockhash(block_count), 2, True)
-        block4_staking_addr = nodes[0].decodescript(block4_details["stakekernelscript"])
+        try:
+            block4_gvr_cfwd = block4_details['tx'][0]['vout'][0]['treasury_fund_cfwd']
+        except KeyError as e:
+            assert_equal(str(e), "'treasury_fund_cfwd'")
 
-        assert_equal(treas_addr, block4_staking_addr["addresses"][0])
+
+        block5_details = nodes[0].getblock(nodes[0].getblockhash(block_count), 2, True)
+        block5_staking_addr = nodes[0].decodescript(block5_details["stakekernelscript"])
+
+        assert_equal(treas_addr, block5_staking_addr["addresses"][0])
         # Now make sure treas_addr was elig
         elig_addresses = nodes[0].geteligibleaddresses(block_count)
         assert_equal(self.is_elig(treas_addr, elig_addresses), True)
-        assert_equal(node2_wallet_info_after_staking["total_balance"] * COIN, (float(node2_wallet_info_before_staking["total_balance"])  + float(block3_gvr_cfwd) + 3 + 0.96 + 2.04) * COIN)
 
-        
+        # 3 = gvr from staked block 5
+        # 0.96 = dev fund reward
+        # 2.04 = block reward
+        assert_equal(node2_wallet_info_after_staking["total_balance"] * COIN, (float(node2_wallet_info_before_staking["total_balance"]) + float(block4_gvr_cfwd) + 3 + 0.96 + 2.04) * COIN)
+
+        tracked_balances_block5_before_reorg = nodes[0].geteligibleaddresses(block_count, False)
+
+        # ========================================================================================
+
+        node0_wallet_info_before_staking = nodes[0].getwalletinfo()
+        nodes[0].walletsettings('stakingoptions', {'rewardaddress': reward_address0, 'enabled': True})
+
+        self.stakeBlocks(1)  # Stake 6th block
+        node0_wallet_info_after_staking = nodes[0].getwalletinfo()
+
+        block_count = nodes[0].getblockcount()
+        # node0 is the staker so node0_staking_addr should be eligible and receives the GVR
+        block6_details = nodes[0].getblock(nodes[0].getblockhash(block_count), 2, True)
+        block6_staking_addr = nodes[0].decodescript(block6_details["stakekernelscript"])
+
+        assert_equal(node0_staking_addr, block6_staking_addr["addresses"][0])
+
+        elig_addresses = nodes[0].geteligibleaddresses(block_count)
+        assert_equal(self.is_elig(node0_staking_addr, elig_addresses), True)
+
+        block5_details = nodes[0].getblock(nodes[0].getblockhash(block_count - 1), 2, True)
+        block5_gvr_cfwd = 0
+
+        try:
+            block5_gvr_cfwd = block5_details['tx'][0]['vout'][0]['treasury_fund_cfwd']
+        except KeyError as e:
+            assert_equal(str(e), "'treasury_fund_cfwd'")
+
+        assert_equal(node0_wallet_info_after_staking["total_balance"] * COIN, (float(node0_wallet_info_before_staking["total_balance"]) + float(block5_gvr_cfwd) + 3 + 2.04) * COIN)
+
+        # When there is reorg make sure the balance is untracked
+
+        height_before = nodes[1].getblockcount()
+
+        best_hash = nodes[0].getbestblockhash()
+        nodes[0].invalidateblock(best_hash)
+        nodes[1].invalidateblock(best_hash)
+        nodes[2].invalidateblock(best_hash)
+        self.sync_all()
+
+        assert_equal(nodes[1].getblockcount(), height_before - 1)
+        tracked_balances_block5_after_reorg = nodes[0].geteligibleaddresses(nodes[1].getblockcount(), False)
+        assert_equal(tracked_balances_block5_after_reorg, tracked_balances_block5_before_reorg)
 
 
 if __name__ == '__main__':

@@ -2136,11 +2136,14 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 inputsSize += tx->vin.size();
                 outputsSize += tx->vpout.size();
             }
-            if (rewardUndo.inputs.size() != inputsSize ) {
+
+            if (rewardUndo.inputs.at(pindex->nHeight).size() != inputsSize) {
                 error("DisconnectBlock(): block and undo inputs size of tracker inconsistent");
                 return DISCONNECT_FAILED;
             }
-            if (rewardUndo.outputs.size() != outputsSize ) {
+
+            // outpuSize - 1 to remove the data output
+            if (rewardUndo.outputs.at(pindex->nHeight).size() != outputsSize - 1) {
                 error("DisconnectBlock(): block and undo outputs size of tracker inconsistent");
                 return DISCONNECT_FAILED;
             }
@@ -2338,20 +2341,16 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     }
 
     // Rollback the tracked balances
-    for(const auto& inputs: rewardUndo.inputs) {
-        assert(inputs.first == pindex->nHeight && "Height mismatch");
-
-        for(const auto& balance: inputs.second) {
-            rewardTracker.removeAddressTransaction(inputs.first, balance.first, balance.second);
-        }
+    for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
+        const auto addr = std::string(input.first.begin(), input.first.end());
+        LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, std::string(input.first.begin(), input.first.end()));
+        rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
     }
 
-    for(const auto& outputs: rewardUndo.outputs) {
-        assert(outputs.first == pindex->nHeight && "Height mismatch");
-        
-        for(const auto& balance: outputs.second) {
-            rewardTracker.removeAddressTransaction(outputs.first, balance.first, - balance.second);
-        }
+    for(const auto& output: rewardUndo.outputs.at(pindex->nHeight)) {
+        const auto addr = std::string(output.first.begin(), output.first.end());
+        LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, std::string(output.first.begin(), output.first.end()));
+        rewardTracker.removeAddressTransaction(pindex->nHeight, output.first, output.second);
     }
 
     // move best block pointer to prevout block
