@@ -556,6 +556,7 @@ public:
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
+        vTreasuryFundSettings.emplace_back(consensus.automatedGvrActivationHeight, TreasuryFundSettings("GSo4N8Q4QTHoC2eWnDQkm86Vs1FhcMGE3Y", 16, 1)); // 16% to dev fund every block. This is just a placeholder
         vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66, 5040));
         vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66, 5040));
         vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66, 5040)); //Approx each week to GVR Funds addr
