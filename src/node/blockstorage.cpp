@@ -882,12 +882,12 @@ struct CImportingNow {
     }
 };
 
-void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFiles, const ArgsManager& args)
+void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFiles, const ArgsManager& args, const fs::path& mempool_path)
 {
     SetSyscallSandboxPolicy(SyscallSandboxPolicy::INITIALIZATION_LOAD_BLOCKS);
     ScheduleBatchPriority();
 
-    fBusyImporting = true;
+    particl::fBusyImporting = true;
     {
         CImportingNow imp;
 
@@ -955,7 +955,7 @@ void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFile
             return;
         }
     } // End scope of CImportingNow
-    chainman.ActiveChainstate().LoadMempool(args);
-    fBusyImporting = false;
+    chainman.ActiveChainstate().LoadMempool(mempool_path);
+    particl::fBusyImporting = false;
 }
 } // namespace node

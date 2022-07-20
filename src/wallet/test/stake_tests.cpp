@@ -178,7 +178,12 @@ BOOST_AUTO_TEST_CASE(stake_test)
     }
     {
     // Normally sent through GetMainSignals().BlockDisconnected
-    pwallet->blockDisconnected(block, pindexDelete->nHeight);
+    const uint256& hash = block.GetHash();
+    interfaces::BlockInfo info{hash};
+    info.prev_hash = &block.hashPrevBlock;
+    info.height = pindexDelete->nHeight;
+    info.data = &block;
+    pwallet->blockDisconnected(info);
     pwallet->BlockUntilSyncedToCurrentChain();
     LOCK(pwallet->cs_wallet);
     BOOST_REQUIRE(!pwallet->IsSpent(COutPoint(txin.prevout.hash, txin.prevout.n)));

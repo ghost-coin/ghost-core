@@ -5,6 +5,9 @@
 
 #include <validation.h>
 
+#include <kernel/coinstats.h>
+#include <kernel/mempool_persist.h>
+
 #include <arith_uint256.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -17,8 +20,8 @@
 #include <consensus/validation.h>
 #include <cuckoocache.h>
 #include <flatfile.h>
+#include <fs.h>
 #include <hash.h>
-#include <kernel/coinstats.h>
 #include <logging.h>
 #include <logging/timer.h>
 #include <node/blockstorage.h>
@@ -48,6 +51,7 @@
 #include <util/rbf.h>
 #include <util/strencodings.h>
 #include <util/system.h>
+#include <util/time.h>
 #include <util/trace.h>
 #include <util/translation.h>
 #include <validationinterface.h>
@@ -65,6 +69,7 @@
 #include <net_processing.h>
 
 #include <algorithm>
+#include <chrono>
 #include <deque>
 #include <numeric>
 #include <optional>
@@ -73,8 +78,9 @@
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
 using kernel::ComputeUTXOStats;
+using kernel::LoadMempool;
 
-using node::BLOCKFILE_CHUNK_SIZE;
+using fsbridge::FopenFn;
 using node::BlockManager;
 using node::BlockMap;
 using node::CBlockIndexHeightOnlyComparator;
@@ -82,11 +88,8 @@ using node::CBlockIndexWorkComparator;
 using node::fImporting;
 using node::fPruneMode;
 using node::fReindex;
-using node::nPruneTarget;
-using node::OpenBlockFile;
 using node::ReadBlockFromDisk;
 using node::SnapshotMetadata;
-using node::UNDOFILE_CHUNK_SIZE;
 using node::UndoReadFromDisk;
 using node::UnlinkPrunedFiles;
 
@@ -132,8 +135,6 @@ GlobalMutex g_best_block_mutex;
 std::condition_variable g_best_block_cv;
 uint256 g_best_block;
 bool g_parallel_script_checks{false};
-std::atomic_bool fSkipRangeproof(false);
-std::atomic_bool fBusyImporting(false);        // covers ActivateBestChain too
 bool fRequireStandard = true;
 bool fCheckBlockIndex = false;
 bool fCheckpointsEnabled = DEFAULT_CHECKPOINTS_ENABLED;
@@ -192,6 +193,8 @@ public:
 std::list<DelayedBlock> list_delayed_blocks;
 bool fVerifyingDB = false;
 static bool attempted_rct_index_repair = false;
+std::atomic_bool fSkipRangeproof(false);
+std::atomic_bool fBusyImporting(false);        // covers ActivateBestChain too
 } // namespace particl
 
 
@@ -762,7 +765,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     std::unique_ptr<CTxMemPoolEntry>& entry = ws.m_entry;
 
     const Consensus::Params &consensus = Params().GetConsensus();
-    state.SetStateInfo(nAcceptTime, m_active_chainstate.m_chain.Height(), consensus, fParticlMode, (fBusyImporting && fSkipRangeproof));
+    state.SetStateInfo(nAcceptTime, m_active_chainstate.m_chain.Height(), consensus, fParticlMode, (particl::fBusyImporting && particl::fSkipRangeproof));
 
     if (!CheckTransaction(tx, state)) {
         return false; // state filled in by CheckTransaction
@@ -2346,7 +2349,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     int64_t nTimeStart = GetTimeMicros();
 
     const Consensus::Params &consensus = Params().GetConsensus();
-    state.SetStateInfo(block.nTime, pindex->nHeight, consensus, fParticlMode, (fBusyImporting && fSkipRangeproof), true);
+    state.SetStateInfo(block.nTime, pindex->nHeight, consensus, fParticlMode, (particl::fBusyImporting && particl::fSkipRangeproof), true);
 
     // Check it again in case a previous version let a bad block in
     // NOTE: We don't currently (re-)invoke ContextualCheckBlock() or
@@ -2566,7 +2569,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         nInputs += tx.vin.size();
 
         TxValidationState tx_state;
-        tx_state.SetStateInfo(block.nTime, pindex->nHeight, consensus, fParticlMode, (fBusyImporting && fSkipRangeproof), true);
+        tx_state.SetStateInfo(block.nTime, pindex->nHeight, consensus, fParticlMode, (particl::fBusyImporting && particl::fSkipRangeproof), true);
         tx_state.m_chainman = state.m_chainman;
         tx_state.m_chainstate = this;
         if (!tx.IsCoinBase())
@@ -4249,7 +4252,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
         return false;
 
-    state.SetStateInfo(block.nTime, -1, consensusParams, fParticlMode, (fBusyImporting && fSkipRangeproof), true);
+    state.SetStateInfo(block.nTime, -1, consensusParams, fParticlMode, (particl::fBusyImporting && particl::fSkipRangeproof), true);
 
     // Signet only: check block solution
     if (consensusParams.signet_blocks && fCheckPOW && !CheckSignetBlockSolution(block, consensusParams)) {
@@ -4312,7 +4315,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     // Must check for duplicate inputs (see CVE-2018-17144)
     for (const auto& tx : block.vtx) {
         TxValidationState tx_state;
-        tx_state.SetStateInfo(block.nTime, -1, consensusParams, fParticlMode, (fBusyImporting && fSkipRangeproof), true);
+        tx_state.SetStateInfo(block.nTime, -1, consensusParams, fParticlMode, (particl::fBusyImporting && particl::fSkipRangeproof), true);
         tx_state.m_chainman = state.m_chainman;
         if (state.m_chainman) {
             tx_state.m_chainstate = &state.m_chainman->ActiveChainstate();
@@ -5126,13 +5129,11 @@ void PruneBlockFilesManual(CChainState& active_chainstate, int nManualPruneHeigh
     }
 }
 
-void CChainState::LoadMempool(const ArgsManager& args)
+void CChainState::LoadMempool(const fs::path& load_path, FopenFn mockable_fopen_function)
 {
     if (!m_mempool) return;
-    if (args.GetBoolArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
-        ::LoadMempool(*m_mempool, *this);
-    }
-    m_mempool->SetIsLoaded(!ShutdownRequested());
+    ::LoadMempool(*m_mempool, load_path, *this, mockable_fopen_function);
+    m_mempool->SetLoadTried(!ShutdownRequested());
 }
 
 bool CChainState::LoadChainTip()
@@ -5936,152 +5937,6 @@ bool CChainState::ResizeCoinsCaches(size_t coinstip_size, size_t coinsdb_size)
     return ret;
 }
 
-static const uint64_t MEMPOOL_DUMP_VERSION = 1;
-
-bool LoadMempool(CTxMemPool& pool, CChainState& active_chainstate, FopenFn mockable_fopen_function)
-{
-    int64_t nExpiryTimeout = std::chrono::seconds{pool.m_expiry}.count();
-    FILE* filestr{mockable_fopen_function(gArgs.GetDataDirNet() / "mempool.dat", "rb")};
-    CAutoFile file(filestr, SER_DISK, CLIENT_VERSION);
-    if (file.IsNull()) {
-        LogPrintf("Failed to open mempool file from disk. Continuing anyway.\n");
-        return false;
-    }
-
-    int64_t count = 0;
-    int64_t expired = 0;
-    int64_t failed = 0;
-    int64_t already_there = 0;
-    int64_t unbroadcast = 0;
-    int64_t nNow = GetTime();
-
-    try {
-        uint64_t version;
-        file >> version;
-        if (version != MEMPOOL_DUMP_VERSION) {
-            return false;
-        }
-        uint64_t num;
-        file >> num;
-        while (num) {
-            --num;
-            CTransactionRef tx;
-            int64_t nTime;
-            int64_t nFeeDelta;
-            file >> tx;
-            file >> nTime;
-            file >> nFeeDelta;
-
-            CAmount amountdelta = nFeeDelta;
-            if (amountdelta) {
-                pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
-            }
-            if (nTime > nNow - nExpiryTimeout) {
-                LOCK(cs_main);
-                const auto& accepted = AcceptToMemoryPool(active_chainstate, tx, nTime, /*bypass_limits=*/false, /*test_accept=*/false, /*ignore_locks=*/false);
-                if (accepted.m_result_type == MempoolAcceptResult::ResultType::VALID) {
-                    ++count;
-                } else {
-                    // mempool may contain the transaction already, e.g. from
-                    // wallet(s) having loaded it while we were processing
-                    // mempool transactions; consider these as valid, instead of
-                    // failed, but mark them as 'already there'
-                    if (pool.exists(GenTxid::Txid(tx->GetHash()))) {
-                        ++already_there;
-                    } else {
-                        ++failed;
-                    }
-                }
-            } else {
-                ++expired;
-            }
-            if (ShutdownRequested())
-                return false;
-        }
-        std::map<uint256, CAmount> mapDeltas;
-        file >> mapDeltas;
-
-        for (const auto& i : mapDeltas) {
-            pool.PrioritiseTransaction(i.first, i.second);
-        }
-
-        std::set<uint256> unbroadcast_txids;
-        file >> unbroadcast_txids;
-        unbroadcast = unbroadcast_txids.size();
-        for (const auto& txid : unbroadcast_txids) {
-            // Ensure transactions were accepted to mempool then add to
-            // unbroadcast set.
-            if (pool.get(txid) != nullptr) pool.AddUnbroadcastTx(txid);
-        }
-    } catch (const std::exception& e) {
-        LogPrintf("Failed to deserialize mempool data on disk: %s. Continuing anyway.\n", e.what());
-        return false;
-    }
-
-    LogPrintf("Imported mempool transactions from disk: %i succeeded, %i failed, %i expired, %i already there, %i waiting for initial broadcast\n", count, failed, expired, already_there, unbroadcast);
-    return true;
-}
-
-bool DumpMempool(const CTxMemPool& pool, FopenFn mockable_fopen_function, bool skip_file_commit)
-{
-    int64_t start = GetTimeMicros();
-
-    std::map<uint256, CAmount> mapDeltas;
-    std::vector<TxMempoolInfo> vinfo;
-    std::set<uint256> unbroadcast_txids;
-
-    static Mutex dump_mutex;
-    LOCK(dump_mutex);
-
-    {
-        LOCK(pool.cs);
-        for (const auto &i : pool.mapDeltas) {
-            mapDeltas[i.first] = i.second;
-        }
-        vinfo = pool.infoAll();
-        unbroadcast_txids = pool.GetUnbroadcastTxs();
-    }
-
-    int64_t mid = GetTimeMicros();
-
-    try {
-        FILE* filestr{mockable_fopen_function(gArgs.GetDataDirNet() / "mempool.dat.new", "wb")};
-        if (!filestr) {
-            return false;
-        }
-
-        CAutoFile file(filestr, SER_DISK, CLIENT_VERSION);
-
-        uint64_t version = MEMPOOL_DUMP_VERSION;
-        file << version;
-
-        file << (uint64_t)vinfo.size();
-        for (const auto& i : vinfo) {
-            file << *(i.tx);
-            file << int64_t{count_seconds(i.m_time)};
-            file << int64_t{i.nFeeDelta};
-            mapDeltas.erase(i.tx->GetHash());
-        }
-        file << mapDeltas;
-
-        LogPrintf("Writing %d unbroadcast transactions to disk.\n", unbroadcast_txids.size());
-        file << unbroadcast_txids;
-
-        if (!skip_file_commit && !FileCommit(file.Get()))
-            throw std::runtime_error("FileCommit failed");
-        file.fclose();
-        if (!RenameOver(gArgs.GetDataDirNet() / "mempool.dat.new", gArgs.GetDataDirNet() / "mempool.dat")) {
-            throw std::runtime_error("Rename failed");
-        }
-        int64_t last = GetTimeMicros();
-        LogPrintf("Dumped mempool: %gs to copy, %gs to dump\n", (mid-start)*MICRO, (last-mid)*MICRO);
-    } catch (const std::exception& e) {
-        LogPrintf("Failed to dump mempool: %s. Continuing anyway.\n", e.what());
-        return false;
-    }
-    return true;
-}
-
 //! Guess how far we are in the verification process at the given block index
 //! require cs_main if pindex has not been validated yet (because nChainTx might be unset)
 double GuessVerificationProgress(const ChainTxData& data, const CBlockIndex *pindex) {
@@ -6164,7 +6019,7 @@ const AssumeutxoData* ExpectedAssumeutxo(
 }
 
 bool ChainstateManager::ActivateSnapshot(
-        CAutoFile& coins_file,
+        AutoFile& coins_file,
         const SnapshotMetadata& metadata,
         bool in_memory)
 {
@@ -6259,7 +6114,7 @@ static void FlushSnapshotToDisk(CCoinsViewCache& coins_cache, bool snapshot_load
 
 bool ChainstateManager::PopulateAndValidateSnapshot(
     CChainState& snapshot_chainstate,
-    CAutoFile& coins_file,
+    AutoFile& coins_file,
     const SnapshotMetadata& metadata)
 {
     // It's okay to release cs_main before we're done using `coins_cache` because we know
@@ -6932,23 +6787,6 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate)
     }
 
     return AddToMapStakeSeen(kernel, blockHash);
-};
-
-bool ShouldAutoReindex(ChainstateManager &chainman)
-{
-    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
-
-    if (pblocktree->CountBlockIndex() < 1) {
-        return false; // db will be initialised later in LoadBlockIndex
-    }
-
-    // Force reindex to update version
-    bool nV1 = false;
-    if (!pblocktree->ReadFlag("v1", nV1) || !nV1) {
-        LogPrintf("%s: v1 marker not detected, attempting reindex.\n", __func__);
-        return true;
-    }
-    return false;
 };
 
 bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool)

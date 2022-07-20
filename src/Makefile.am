@@ -187,12 +187,14 @@ BITCOIN_CORE_H = \
   interfaces/ipc.h \
   interfaces/node.h \
   interfaces/wallet.h \
+  kernel/chain.h \
   kernel/chainstatemanager_opts.h \
   kernel/checks.h \
   kernel/coinstats.h \
   kernel/context.h \
   kernel/mempool_limits.h \
   kernel/mempool_options.h \
+  kernel/mempool_persist.h \
   key.h \
   key/stealth.h \
   key/extkey.h \
@@ -219,6 +221,7 @@ BITCOIN_CORE_H = \
   node/chainstate.h \
   node/coin.h \
   node/context.h \
+  node/mempool_persist_args.h \
   node/miner.h \
   node/minisketchwrapper.h \
   node/psbt.h \
@@ -408,9 +411,11 @@ libparticl_node_a_SOURCES = \
   index/coinstatsindex.cpp \
   index/txindex.cpp \
   init.cpp \
+  kernel/chain.cpp \
   kernel/checks.cpp \
   kernel/coinstats.cpp \
   kernel/context.cpp \
+  kernel/mempool_persist.cpp \
   mapport.cpp \
   mempool_args.cpp \
   net.cpp \
@@ -424,6 +429,7 @@ libparticl_node_a_SOURCES = \
   node/context.cpp \
   node/eviction.cpp \
   node/interfaces.cpp \
+  node/mempool_persist_args.cpp \
   node/miner.cpp \
   node/minisketchwrapper.cpp \
   node/psbt.cpp \
@@ -1049,9 +1055,11 @@ libparticlkernel_la_SOURCES = \
   flatfile.cpp \
   fs.cpp \
   hash.cpp \
+  kernel/chain.cpp \
   kernel/checks.cpp \
   kernel/coinstats.cpp \
   kernel/context.cpp \
+  kernel/mempool_persist.cpp \
   key.cpp \
   anon.cpp \
   blind.cpp \

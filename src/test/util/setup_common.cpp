@@ -59,8 +59,6 @@
 
 using node::BlockAssembler;
 using node::CalculateCacheSizes;
-using node::fPruneMode;
-using node::fReindex;
 using node::LoadChainstate;
 using node::NodeContext;
 using node::RegenerateCommitments;
@@ -141,13 +139,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::ve
             throw std::runtime_error{error};
         }
     }
-
-    fBalancesIndex = false; // Must reset
-    for (const auto &arg : extra_args) {
-        if (strcmp(arg, "-balancesindex") == 0) {
-            fBalancesIndex = true;
-        }
-    }
+    fBalancesIndex = m_node.args->GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
     SelectParams(chainName);
     ResetParams(chainName, fParticlMode);
     SeedInsecureRand();
@@ -247,25 +239,27 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     // instead of unit tests, but for now we need these here.
     RegisterAllCoreRPCCommands(tableRPC);
 
-    auto maybe_load_error = LoadChainstate(fReindex.load(),
-                                           *Assert(m_node.chainman.get()),
-                                           Assert(m_node.mempool.get()),
-                                           fPruneMode,
-                                           m_args.GetBoolArg("-reindex-chainstate", false),
-                                           m_cache_sizes.block_tree_db,
-                                           m_cache_sizes.coins_db,
-                                           m_cache_sizes.coins,
-                                           /*block_tree_db_in_memory=*/true,
-                                           /*coins_db_in_memory=*/true);
-    assert(!maybe_load_error.has_value());
+    node::ChainstateLoadOptions options;
+    options.mempool = Assert(m_node.mempool.get());
+    options.block_tree_db_in_memory = true;
+    options.coins_db_in_memory = true;
+    options.reindex = node::fReindex;
+    options.reindex_chainstate = m_args.GetBoolArg("-reindex-chainstate", false);
+    options.prune = node::fPruneMode;
+    options.check_blocks = m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS);
+    options.check_level = m_args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL);
+    node::ChainstateLoadArgs csl_args;
+    // Particl, NOTE: m_args != m_node.args
+    csl_args.address_index = m_node.args->GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX);
+    csl_args.spent_index = m_node.args->GetBoolArg("-spentindex", particl::DEFAULT_SPENTINDEX);
+    csl_args.timestamp_index = m_node.args->GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
+    csl_args.balances_index = m_node.args->GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
+    options.args = csl_args;
+    auto [status, error] = LoadChainstate(*Assert(m_node.chainman), m_cache_sizes, options);
+    assert(status == node::ChainstateLoadStatus::SUCCESS);
 
-    auto maybe_verify_error = VerifyLoadedChainstate(
-        *Assert(m_node.chainman),
-        fReindex.load(),
-        m_args.GetBoolArg("-reindex-chainstate", false),
-        m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS),
-        m_args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL));
-    assert(!maybe_verify_error.has_value());
+    std::tie(status, error) = VerifyLoadedChainstate(*Assert(m_node.chainman), options);
+    assert(status == node::ChainstateLoadStatus::SUCCESS);
 
     BlockValidationState state;
     state.m_chainman = m_node.chainman.get();

@@ -8,19 +8,22 @@
 
 #include <coins.h>
 #include <dbwrapper.h>
-#include <chain.h>
-#include <insight/addressindex.h>
-#include <insight/spentindex.h>
-#include <insight/timestampindex.h>
-#include <insight/balanceindex.h>
-#include <rctindex.h>
-#include <primitives/block.h>
+#include <sync.h>
 
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+
+
+// Particl
+#include <insight/addressindex.h>
+#include <insight/spentindex.h>
+#include <insight/timestampindex.h>
+#include <insight/balanceindex.h>
+#include <rctindex.h>
+#include <primitives/block.h>
 
 class CBlockFileInfo;
 class CBlockIndex;

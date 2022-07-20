@@ -1050,7 +1050,7 @@ bool CSMSG::Enable(std::shared_ptr<wallet::CWallet> pactive_wallet, std::vector<
     {
         LOCK(m_node->connman->m_nodes_mutex);
         for (auto *pnode : m_node->connman->m_nodes) {
-            if (!(pnode->GetLocalServices() & NODE_SMSG)) {
+            if (!(m_node->connman->GetLocalServices() & NODE_SMSG)) {
                 continue;
             }
             m_node->connman->PushMessage(pnode,
@@ -3897,8 +3897,8 @@ int CSMSG::Encrypt(SecureMessage &smsg, const CKeyID &addressFrom, const CKeyID 
     CKey keyFrom;
 
     if (!fSendAnonymous) {
-        if (!coinAddrFrom.Set(addressFrom)
-            || !coinAddrFrom.GetKeyID(ckidFrom)) {
+        if (!coinAddrFrom.Set(addressFrom) ||
+            !coinAddrFrom.GetKeyID(ckidFrom)) {
             return errorN(SMSG_INVALID_ADDRESS_FROM, "%s: addressFrom is not valid: %s.", __func__, coinAddrFrom.ToString());
         }
     }
@@ -3908,8 +3908,8 @@ int CSMSG::Encrypt(SecureMessage &smsg, const CKeyID &addressFrom, const CKeyID 
 
     // Public key K is the destination address
     CPubKey cpkDestK;
-    if (GetStoredKey(ckidDest, cpkDestK) != 0
-        && GetLocalKey(ckidDest, cpkDestK) != 0) { // maybe it's a local key (outbox?)
+    if (GetStoredKey(ckidDest, cpkDestK) != 0 &&
+        GetLocalKey(ckidDest, cpkDestK) != 0) { // maybe it's a local key (outbox?)
         return errorN(SMSG_PUBKEY_NOT_EXISTS, "%s: Could not get public key for destination address.", __func__);
     }
 

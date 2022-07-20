@@ -22,6 +22,8 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "wallet/fees -> wallet/wallet -> wallet/fees",
     "wallet/wallet -> wallet/walletdb -> wallet/wallet",
     "kernel/coinstats -> validation -> kernel/coinstats",
+    "kernel/mempool_persist -> validation -> kernel/mempool_persist",
+
     # Particl
     "anon -> txmempool -> anon",
     "anon -> validation -> anon",
@@ -55,6 +57,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "net_processing -> smsg/smessage -> net_processing",
     "net_processing -> validation -> net_processing",
     "consensus/tx_verify -> validation -> txmempool -> consensus/tx_verify",
+    "index/base -> node/context -> smsg/manager -> smsg/smessage -> wallet/hdwallet -> pos/kernel -> node/transaction -> index/txindex -> index/base",
 )
 
 CODE_DIR = "src"

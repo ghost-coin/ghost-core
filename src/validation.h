@@ -68,11 +68,8 @@ static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
 static const bool DEFAULT_TXINDEX = false;
 static constexpr bool DEFAULT_COINSTATSINDEX{false};
 static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
-/** Default for -persistmempool */
-static const bool DEFAULT_PERSIST_MEMPOOL = true;
 
 typedef int64_t NodeId;
-
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
 /** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of ActiveChain().Tip() will not be pruned. */
@@ -104,8 +101,6 @@ extern uint64_t nLastBlockTx;
 extern uint64_t nLastBlockSize;
 /** Used to notify getblocktemplate RPC of new tips. */
 extern uint256 g_best_block;
-extern std::atomic_bool fSkipRangeproof;
-extern std::atomic_bool fBusyImporting;
 /** Whether there are dedicated script-checking threads running.
  * False indicates all script checking is done on the main threadMessageHandler thread.
  */
@@ -157,6 +152,8 @@ CAmount GetUTXOSum(CChainState &chainstate);
 /** Update num blocks of peers vector */
 void UpdateNumBlocksOfPeers(ChainstateManager &chainman, NodeId id, int height);
 extern bool fVerifyingDB;
+extern std::atomic_bool fSkipRangeproof;
+extern std::atomic_bool fBusyImporting;
 } // namespace particl
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
@@ -746,7 +743,7 @@ public:
     void CheckBlockIndex();
 
     /** Load the persisted mempool from disk */
-    void LoadMempool(const ArgsManager& args);
+    void LoadMempool(const fs::path& load_path, fsbridge::FopenFn mockable_fopen_function = fsbridge::fopen);
 
     /** Update the chain tip based on database information, i.e. CoinsTip()'s best block. */
     bool LoadChainTip() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
@@ -895,7 +892,7 @@ public:
     //! Internal helper for ActivateSnapshot().
     [[nodiscard]] bool PopulateAndValidateSnapshot(
         CChainState& snapshot_chainstate,
-        CAutoFile& coins_file,
+        AutoFile& coins_file,
         const node::SnapshotMetadata& metadata);
 
     /**
@@ -987,7 +984,7 @@ public:
     //! - Move the new chainstate to `m_snapshot_chainstate` and make it our
     //!   ChainstateActive().
     [[nodiscard]] bool ActivateSnapshot(
-        CAutoFile& coins_file, const node::SnapshotMetadata& metadata, bool in_memory);
+        AutoFile& coins_file, const node::SnapshotMetadata& metadata, bool in_memory);
 
     bool HaveActiveChainstate() const EXCLUSIVE_LOCKS_REQUIRED(::cs_main) { return m_active_chainstate; };
     //! The most-work chain.
@@ -1093,14 +1090,6 @@ bool DeploymentEnabled(const ChainstateManager& chainman, DEP dep)
     return DeploymentEnabled(chainman.GetConsensus(), dep);
 }
 
-using FopenFn = std::function<FILE*(const fs::path&, const char*)>;
-
-/** Dump the mempool to disk. */
-bool DumpMempool(const CTxMemPool& pool, FopenFn mockable_fopen_function = fsbridge::fopen, bool skip_file_commit = false);
-
-/** Load the mempool from disk. */
-bool LoadMempool(CTxMemPool& pool, CChainState& active_chainstate, FopenFn mockable_fopen_function = fsbridge::fopen);
-
 /**
  * Return the expected assumeutxo value for a given height, if one exists.
  *
@@ -1155,8 +1144,6 @@ bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) EXCLUS
 bool CheckStakeUnused(const COutPoint &kernel);
 bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
 
-/** Returns true if the block index needs to be reindexed. */
-bool ShouldAutoReindex(ChainstateManager &chainman) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 /** Returns true if the block index was rewound to rebuild the temporary indices. */
 bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool);
 

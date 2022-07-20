@@ -283,7 +283,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
     LogPrint(BCLog::POS, "Stake thread conditional delay set to %d.\n", stake_thread_cond_delay_ms);
 
     while (!fStopMinerProc) {
-        if (node::fReindex || node::fImporting || fBusyImporting) {
+        if (node::fReindex || node::fImporting || particl::fBusyImporting) {
             fIsStaking = false;
             LogPrint(BCLog::POS, "%s: Block import/reindex.\n", __func__);
             condWaitFor(nThreadID, 30000);

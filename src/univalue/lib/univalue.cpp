@@ -153,21 +153,21 @@ bool UniValue::erase_by_key(const std::string& key)
 
 void UniValue::push_back(const UniValue& val_)
 {
-    if (typ != VARR) throw std::runtime_error{"JSON value is not an array as expected"};
+    checkType(VARR);
 
     values.push_back(val_);
 }
 
 void UniValue::push_backV(const std::vector<UniValue>& vec)
 {
-    if (typ != VARR) throw std::runtime_error{"JSON value is not an array as expected"};
+    checkType(VARR);
 
     values.insert(values.end(), vec.begin(), vec.end());
 }
 
 void UniValue::__pushKV(const std::string& key, const UniValue& val_)
 {
-    if (typ != VOBJ) throw std::runtime_error{"JSON value is not an object as expected"};
+    checkType(VOBJ);
 
     keys.push_back(key);
     values.push_back(val_);
@@ -175,7 +175,7 @@ void UniValue::__pushKV(const std::string& key, const UniValue& val_)
 
 void UniValue::pushKV(const std::string& key, const UniValue& val_)
 {
-    if (typ != VOBJ) throw std::runtime_error{"JSON value is not an object as expected"};
+    checkType(VOBJ);
 
     size_t idx;
     if (findKey(key, idx))
@@ -186,7 +186,8 @@ void UniValue::pushKV(const std::string& key, const UniValue& val_)
 
 void UniValue::pushKVs(const UniValue& obj)
 {
-    if (typ != VOBJ || obj.typ != VOBJ) throw std::runtime_error{"JSON value is not an object as expected"};
+    checkType(VOBJ);
+    obj.checkType(VOBJ);
 
     for (size_t i = 0; i < obj.keys.size(); i++)
         __pushKV(obj.keys[i], obj.values.at(i));
@@ -254,6 +255,14 @@ const UniValue& UniValue::operator[](size_t idx) const
         return NullUniValue;
 
     return values.at(idx);
+}
+
+void UniValue::checkType(const VType& expected) const
+{
+    if (typ != expected) {
+        throw std::runtime_error{"JSON value of type " + std::string{uvTypeName(typ)} + " is not of expected type " +
+                                 std::string{uvTypeName(expected)}};
+    }
 }
 
 UniValue& UniValue::get(const std::string& key)

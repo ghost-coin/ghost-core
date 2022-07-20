@@ -19,6 +19,7 @@
 #include <netaddress.h>
 #include <netbase.h>
 #include <node/blockstorage.h>
+#include <kernel/chain.h>
 #include <node/coin.h>
 #include <node/context.h>
 #include <node/transaction.h>
@@ -408,6 +409,7 @@ bool FillBlock(const CBlockIndex* index, const FoundBlock& block, UniqueLock<Rec
     if (block.m_max_time) *block.m_max_time = index->GetBlockTimeMax();
     if (block.m_mtp_time) *block.m_mtp_time = index->GetMedianTimePast();
     if (block.m_in_active_chain) *block.m_in_active_chain = active[index->nHeight] == index;
+    if (block.m_locator) { *block.m_locator = active.GetLocator(index); }
     if (block.m_next_block) FillBlock(active[index->nHeight] == index ? active[index->nHeight + 1] : nullptr, *block.m_next_block, lock, active);
     if (block.m_data) {
         REVERSE_LOCK(lock);
@@ -433,11 +435,11 @@ public:
     }
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
-        m_notifications->blockConnected(*block, index->nHeight);
+        m_notifications->blockConnected(kernel::MakeBlockInfo(index, block.get()));
     }
     void BlockDisconnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* index) override
     {
-        m_notifications->blockDisconnected(*block, index->nHeight);
+        m_notifications->blockDisconnected(kernel::MakeBlockInfo(index, block.get()));
     }
     void UpdatedBlockTip(const CBlockIndex* index, const CBlockIndex* fork_index, bool is_ibd) override
     {
@@ -793,12 +795,12 @@ public:
             notifications.transactionAddedToMempool(entry.GetSharedTx(), 0 /* mempool_sequence */);
         }
     }
-    bool isTaprootActive() override
+    bool hasAssumedValidChain() override
     {
-        LOCK(::cs_main);
-        const CBlockIndex* tip = Assert(m_node.chainman)->ActiveChain().Tip();
-        return DeploymentActiveAfter(tip, *m_node.chainman.get(), Consensus::DEPLOYMENT_TAPROOT);
+        return Assert(m_node.chainman)->IsSnapshotActive();
     }
+
+    NodeContext* context() override { return &m_node; }
     NodeContext& m_node;
 
     int getHeightInt() override

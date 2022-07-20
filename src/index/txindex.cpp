@@ -61,19 +61,14 @@ bool TxIndex::DB::WriteTxs(const std::vector<std::pair<uint256, CDiskTxPos>>& v_
     return WriteBatch(batch);
 }
 
-TxIndex::TxIndex(size_t n_cache_size, bool f_memory, bool f_wipe)
-    : m_db(std::make_unique<TxIndex::DB>(n_cache_size, f_memory, f_wipe))
+TxIndex::TxIndex(std::unique_ptr<interfaces::Chain> chain, size_t n_cache_size, bool f_memory, bool f_wipe)
+    : BaseIndex(std::move(chain)), m_db(std::make_unique<TxIndex::DB>(n_cache_size, f_memory, f_wipe))
 {}
 
 TxIndex::~TxIndex() = default;
-
-bool TxIndex::Init()
+bool TxIndex::CustomInit(const std::optional<interfaces::BlockKey>& block)
 {
     LOCK(cs_main);
-
-    if (!BaseIndex::Init()) {
-        return false;
-    }
 
     // Set m_best_block_index to the last cs_indexed block if lower
     CChain &active_chain = m_chainstate->m_chain;
@@ -97,20 +92,20 @@ bool TxIndex::Init()
     return true;
 }
 
-bool TxIndex::WriteBlock(const CBlock& block, const CBlockIndex* pindex)
+bool TxIndex::CustomAppend(const interfaces::BlockInfo& block)
 {
     if (m_cs_index) {
-        IndexCSOutputs(block, pindex);
+        IndexCSOutputs(block);
     }
     // Exclude genesis block transaction because outputs are not spendable.
-    if (!block.IsParticlVersion() && pindex->nHeight == 0) return true;
+    // Particl: genesis block outputs are spendable
+    if (!(block.data && block.data->IsParticlVersion()) && block.height == 0) return true;
 
-    CDiskTxPos pos{
-        WITH_LOCK(::cs_main, return pindex->GetBlockPos()),
-        GetSizeOfCompactSize(block.vtx.size())};
+    assert(block.data);
+    CDiskTxPos pos({block.file_number, block.data_pos}, GetSizeOfCompactSize(block.data->vtx.size()));
     std::vector<std::pair<uint256, CDiskTxPos>> vPos;
-    vPos.reserve(block.vtx.size());
-    for (const auto& tx : block.vtx) {
+    vPos.reserve(block.data->vtx.size());
+    for (const auto& tx : block.data->vtx) {
         vPos.emplace_back(tx->GetHash(), pos);
         pos.nTxOffset += ::GetSerializeSize(*tx, CLIENT_VERSION);
     }
@@ -163,13 +158,17 @@ bool TxIndex::DisconnectBlock(const CBlock& block)
     return true;
 }
 
-bool TxIndex::IndexCSOutputs(const CBlock& block, const CBlockIndex* pindex)
+bool TxIndex::IndexCSOutputs(const interfaces::BlockInfo& block)
 {
     CDBBatch batch(*m_db);
     std::map<ColdStakeIndexOutputKey, ColdStakeIndexOutputValue> newCSOuts;
     std::map<ColdStakeIndexLinkKey, std::vector<ColdStakeIndexOutputKey> > newCSLinks;
 
-    for (const auto &tx : block.vtx) {
+    if (!block.data) {
+        return error("%s: Block data missing.", __func__);
+    }
+
+    for (const auto &tx : block.data->vtx) {
         int n = -1;
         for (const auto &o : tx->vpout) {
             n++;
@@ -191,11 +190,11 @@ bool TxIndex::IndexCSOutputs(const CBlock& block, const CBlockIndex* pindex)
             ColdStakeIndexOutputKey ok;
             ColdStakeIndexOutputValue ov;
             ColdStakeIndexLinkKey lk;
-            lk.m_height = pindex->nHeight;
+            lk.m_height = block.height;
             lk.m_stake_type = Solver(scriptStake, vSolutions);
 
-            if (m_cs_index_whitelist.size() > 0
-                && !m_cs_index_whitelist.count(vSolutions[0])) {
+            if (m_cs_index_whitelist.size() > 0 &&
+                !m_cs_index_whitelist.count(vSolutions[0])) {
                 continue;
             }
 
@@ -243,11 +242,11 @@ bool TxIndex::IndexCSOutputs(const CBlock& block, const CBlockIndex* pindex)
 
             auto it = newCSOuts.find(ok);
             if (it != newCSOuts.end()) {
-                it->second.m_spend_height = pindex->nHeight;
+                it->second.m_spend_height = block.height;
                 it->second.m_spend_txid = tx->GetHash();
             } else
             if (m_db->Read(std::make_pair(DB_TXINDEX_CSOUTPUT, ok), ov)) {
-                ov.m_spend_height = pindex->nHeight;
+                ov.m_spend_height = block.height;
                 ov.m_spend_txid = tx->GetHash();
                 batch.Write(std::make_pair(DB_TXINDEX_CSOUTPUT, ok), ov);
             }
@@ -261,8 +260,7 @@ bool TxIndex::IndexCSOutputs(const CBlock& block, const CBlockIndex* pindex)
         batch.Write(std::make_pair(DB_TXINDEX_CSLINK, it.first), it.second);
     }
 
-    CChain &active_chain = m_chainstate->m_chain;
-    batch.Write(DB_TXINDEX_CSBESTBLOCK, active_chain.GetLocator(pindex));
+    batch.Write(DB_TXINDEX_CSBESTBLOCK, GetLocator(*m_chain, block.hash));
 
     if (!m_db->WriteBatch(batch)) {
         return error("%s: WriteBatch failed.", __func__);

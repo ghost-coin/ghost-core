@@ -48,12 +48,10 @@
 #include <univalue.h>
 
 using node::AnalyzePSBT;
-using node::BroadcastTransaction;
 using node::FindCoins;
 using node::GetTransaction;
 using node::NodeContext;
 using node::PSBTAnalysis;
-using node::ReadBlockFromDisk;
 
 void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const uint256 hashBlock,
                       const CTxMemPool *pmempool, UniValue& entry, int nHeight = 0, int nConfirmations = 0, int nBlockTime = 0)
