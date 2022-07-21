@@ -52,6 +52,12 @@ public:
     uint8_t pchChecksum[CHECKSUM_SIZE]{};
 };
 
+class InvalidAddrManVersionError : public std::ios_base::failure
+{
+public:
+    InvalidAddrManVersionError(std::string msg) : std::ios_base::failure(msg) { }
+};
+
 /**
  * Bitcoin protocol message types. When adding new message types, don't forget
  * to update allNetMessageTypes in protocol.cpp.
@@ -409,7 +415,7 @@ public:
                 // Only support v2 deserialization if ADDRV2_FORMAT is set.
                 use_v2 = true;
             } else {
-                throw std::ios_base::failure("Unsupported CAddress disk format version");
+                throw InvalidAddrManVersionError("Unsupported CAddress disk format version");
             }
         } else {
             // In the network serialization format, the encoding (v1 or v2) is determined directly by

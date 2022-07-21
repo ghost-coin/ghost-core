@@ -17,13 +17,13 @@
 #include <optional>
 #include <utility>
 #include <vector>
-
+/*
 class InvalidAddrManVersionError : public std::ios_base::failure
 {
 public:
     InvalidAddrManVersionError(std::string msg) : std::ios_base::failure(msg) { }
 };
-
+*/
 class AddrManImpl;
 
 /** Default for -checkaddrman */
