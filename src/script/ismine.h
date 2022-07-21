@@ -9,7 +9,7 @@
 
 namespace wallet {
 /** IsMine() return codes */
-enum isminetype : uint8_t
+enum isminetype : unsigned int
 {
     ISMINE_NO               = 0,
     ISMINE_WATCH_ONLY_      = 1 << 0,

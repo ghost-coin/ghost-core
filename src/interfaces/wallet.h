@@ -40,7 +40,7 @@ struct bilingual_str;
 namespace wallet {
 class CCoinControl;
 class CWallet;
-enum isminetype : uint8_t;
+enum isminetype : unsigned int;
 struct CRecipient;
 struct WalletContext;
 using isminefilter = std::underlying_type<isminetype>::type;

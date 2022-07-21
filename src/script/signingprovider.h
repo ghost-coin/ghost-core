@@ -17,7 +17,7 @@
 #include <key/stealth.h>
 
 namespace wallet {
-enum isminetype : uint8_t;
+enum isminetype : unsigned int;
 }
 
 /** An interface to be implemented by keystores that support signing. */

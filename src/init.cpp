@@ -1665,7 +1665,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         csl_args.timestamp_index = args.GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
         csl_args.balances_index = args.GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
         options.args = csl_args;
-        options.reindex = options.reindex || node::particl::ShouldAutoReindex(chainman, cache_sizes, options);
+
         options.coins_error_cb = [] {
             uiInterface.ThreadSafeMessageBox(
                 _("Error reading from database, shutting down."),
@@ -1682,7 +1682,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                 return std::make_tuple(node::ChainstateLoadStatus::FAILURE, _("Error opening block database"));
             }
         };
-        auto [status, error] = catch_exceptions([&]{ return LoadChainstate(chainman, cache_sizes, options); });
+        auto [status, error] = catch_exceptions([&]{ options.reindex = options.reindex || node::particl::ShouldAutoReindex(chainman, cache_sizes, options);
+                                                     return LoadChainstate(chainman, cache_sizes, options); });
         if (status == node::ChainstateLoadStatus::SUCCESS) {
             uiInterface.InitMessage(_("Verifying blocks…").translated);
             if (chainman.m_blockman.m_have_pruned && options.check_blocks > MIN_BLOCKS_TO_KEEP) {
