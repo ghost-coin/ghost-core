@@ -282,7 +282,9 @@ void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressT
                                                             ") is lower than the last checkpoint seen (" + std::to_string(lastCheckpointSeen) + ")");
     
     const CAmount balance = getBalance(address) - balanceChangeInBlock;
-    AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
+    // Since we're allowing negative balance to be stored during addAddressTransaction
+    // Negative balance here just means we saw outputs first 
+    // AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
     balances[address] = balance;                                                                                                                                                                                                                                                                                                                                                                                                                   
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
 

@@ -237,6 +237,18 @@ class GhostVeteranRewardTest(GhostTestFramework):
         tracked_balances_block5_after_reorg = nodes[0].geteligibleaddresses(nodes[1].getblockcount(), False)
         assert_equal(tracked_balances_block5_after_reorg, tracked_balances_block5_before_reorg)
 
+        self.stop_nodes()
+
+        # Make sure that after nodes restarts the tracked balances are the same
+        self.start_node(0, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-gvrthreshold=10000', '-minrewardrangespan=1', '-automatedgvrstartheight=0'])
+        self.start_node(1, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-gvrthreshold=10000', '-minrewardrangespan=1', '-automatedgvrstartheight=0'])
+        self.start_node(2, ['-wallet=default_wallet', '-debug', '-anonrestricted=0', '-gvrthreshold=10000', '-minrewardrangespan=1', '-automatedgvrstartheight=0'])
+        self.connect_nodes(0, 1)
+        self.connect_nodes(1, 2)
+
+        block_count = nodes[0].getblockcount()
+        tracked_block5_after_restart = nodes[2].geteligibleaddresses(block_count, False)
+        assert_equal(tracked_block5_after_restart, tracked_balances_block5_after_reorg)
 
 if __name__ == '__main__':
     GhostVeteranRewardTest().main()

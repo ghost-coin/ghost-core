@@ -2341,16 +2341,17 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     }
 
     // Rollback the tracked balances
-    for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
-        const auto addr = std::string(input.first.begin(), input.first.end());
-        LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, std::string(input.first.begin(), input.first.end()));
-        rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
-    }
-
+    
     for(const auto& output: rewardUndo.outputs.at(pindex->nHeight)) {
         const auto addr = std::string(output.first.begin(), output.first.end());
-        LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, std::string(output.first.begin(), output.first.end()));
+        LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, addr);
         rewardTracker.removeAddressTransaction(pindex->nHeight, output.first, output.second);
+    }
+
+    for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
+        const auto addr = std::string(input.first.begin(), input.first.end());
+        LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
+        rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
     }
 
     // move best block pointer to prevout block
@@ -6329,6 +6330,8 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     int nGoodTransactions = 0;
     BlockValidationState state;
     int reportDone = 0;
+    [[maybe_unused]] ColdRewardTracker& tracker = initColdReward();
+
     LogPrintf("[0%%]..."); /* Continued */
     for (pindex = ::ChainActive().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
         const int percentageDone = std::max(1, std::min(99, (int)(((double)(::ChainActive().Height() - pindex->nHeight)) / (double)nCheckDepth * (nCheckLevel >= 4 ? 50 : 100))));
