@@ -560,8 +560,8 @@ BOOST_AUTO_TEST_CASE(getEligibleAddresses)
 
     // assert was eligable for month 3 in the past but not now
     // this doesn't work because we just added block (tracker.MinimumRewardRangeSpan * 3)
-    // BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).size(), std::invalid_argument);
-    // BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).front(), std::invalid_argument);
+    BOOST_REQUIRE_NO_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).size());
+    BOOST_REQUIRE_NO_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).front());
 
     // not eligable in month 4, this is ok.
     BOOST_REQUIRE_EQUAL(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 4).size(), 0);
@@ -574,12 +574,12 @@ BOOST_AUTO_TEST_CASE(negative_balance)
 
     // add
     tracker.startPersistedTransaction();
-    BOOST_REQUIRE_THROW(tracker.addAddressTransaction(1, addr, -1 * COIN, checkpoints), std::invalid_argument);
+    BOOST_REQUIRE_NO_THROW(tracker.addAddressTransaction(1, addr, -1 * COIN, checkpoints));
     tracker.endPersistedTransaction();
 
     // remove
     tracker.startPersistedTransaction();
-    BOOST_REQUIRE_THROW(tracker.removeAddressTransaction(1, addr, 1 * COIN), std::invalid_argument);
+    BOOST_REQUIRE_NO_THROW(tracker.removeAddressTransaction(1, addr, 1 * COIN));
     tracker.endPersistedTransaction();
 }
 

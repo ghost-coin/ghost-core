@@ -118,6 +118,10 @@ class GhostVeteranRewardTest(GhostTestFramework):
         self.wait_for_mempool(nodes[0], txhash)
         self.stakeBlocks(1)
 
+        # Check the balances of the balances tracked till this point
+        # 10 = Amount sent
+        # 2.04 = Block reward
+        # 0.96 = Dev Fund
         tracked_balances = nodes[0].geteligibleaddresses(1, False)
         assert_equal(self.get_balance_of(to_addr, tracked_balances) * COIN, (10 - tx["fee"]) * COIN )
         assert_equal(self.get_balance_of(reward_address0, tracked_balances) * COIN, (2.04 + float(tx["fee"])) * COIN)
@@ -150,7 +154,7 @@ class GhostVeteranRewardTest(GhostTestFramework):
 
         tracked_balances3 = nodes[0].geteligibleaddresses(1, False)
 
-        # to_addr balance should have change because we sent all the outputs to node0_staking_addr
+        # to_addr balance should have changed because we sent all the outputs to node0_staking_addr
         assert_equal(self.get_balance_of(to_addr, tracked_balances3) * COIN, 0)
         assert_equal(self.get_balance_of(reward_address0, tracked_balances3) * COIN, 0)
 
