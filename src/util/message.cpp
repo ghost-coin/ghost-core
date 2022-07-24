@@ -84,7 +84,7 @@ bool MessageSign(
 
 uint256 MessageHash(const std::string& message, const std::string& message_magic)
 {
-    CHashWriter hasher(SER_GETHASH, 0);
+    HashWriter hasher{};
     hasher << message_magic << message;
 
     return hasher.GetHash();

@@ -2518,7 +2518,7 @@ CAmount CHDWallet::GetSpendableBalance() const
             continue;
         }
         nBalance += CachedTxGetAvailableCredit(*this, wtx);
-        if (CachedTxGetAvailableCredit(*this, wtx, true, ISMINE_WATCH_ONLY) > 0) {
+        if (CachedTxGetAvailableCredit(*this, wtx, ISMINE_WATCH_ONLY) > 0) {
             for (unsigned int i = 0; i < wtx.tx->GetNumVOuts(); i++) {
                 if (!IsSpent(COutPoint(wtx.GetHash(), i))) {
                     nBalance += GetCredit(wtx.tx->vpout[i].get(), ISMINE_WATCH_COLDSTAKE);
@@ -2626,7 +2626,7 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal, bool avoid_reuse) const
     for (const auto &item : mapWallet) {
         const CWalletTx &wtx = item.second;
 
-        bal.nPartImmature += CachedTxGetImmatureCredit(*this, wtx);
+        bal.nPartImmature += CachedTxGetImmatureCredit(*this, wtx, ISMINE_SPENDABLE);
         //bal.nPartWatchOnlyImmature += wtx.GetImmatureWatchOnlyCredit(*locked_chain);
 
         int depth;
@@ -2640,11 +2640,11 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal, bool avoid_reuse) const
         }
 
         if (CachedTxIsTrusted(*this, wtx)) {
-            bal.nPart += CachedTxGetAvailableCredit(*this, wtx, true, ISMINE_SPENDABLE | reuse_filter);
-            bal.nPartWatchOnly += CachedTxGetAvailableCredit(*this, wtx, true, ISMINE_WATCH_ONLY | reuse_filter);
+            bal.nPart += CachedTxGetAvailableCredit(*this, wtx, ISMINE_SPENDABLE | reuse_filter);
+            bal.nPartWatchOnly += CachedTxGetAvailableCredit(*this, wtx, ISMINE_WATCH_ONLY | reuse_filter);
         } else if (GetTxDepthInMainChain(wtx) == 0 && wtx.InMempool()) {
-            bal.nPartUnconf += CachedTxGetAvailableCredit(*this, wtx, true, ISMINE_SPENDABLE | reuse_filter);
-            bal.nPartWatchOnlyUnconf += CachedTxGetAvailableCredit(*this, wtx, true, ISMINE_WATCH_ONLY | reuse_filter);
+            bal.nPartUnconf += CachedTxGetAvailableCredit(*this, wtx, ISMINE_SPENDABLE | reuse_filter);
+            bal.nPartWatchOnlyUnconf += CachedTxGetAvailableCredit(*this, wtx, ISMINE_WATCH_ONLY | reuse_filter);
         }
     }
 
