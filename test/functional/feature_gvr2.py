@@ -236,13 +236,22 @@ class GhostVeteranReward2Test(GhostTestFramework):
         tracked_balances_block8 = nodes[0].geteligibleaddresses(8, False)
         eligible_addresses_block8 = nodes[0].geteligibleaddresses(8)
 
-        change_amount = float(block_details['tx'][1]['vout'][0]['value']) * COIN
+        change_amount = 0
+
+        if block_details['tx'][1]['vout'][0]['scriptPubKey']['addresses'][0] == node2_to_addr:
+            change_amount = float(block_details['tx'][1]['vout'][0]['value']) * COIN
+        else:
+            change_amount = float(block_details['tx'][1]['vout'][1]['value']) * COIN
+
         input_amount = float(vin_tx_details["amount"]) * COIN
 
         # treasury_fund_cfwd should be set since the staker is not eligible
         assert_equal(float(block_details['tx'][0]['vout'][0]['treasury_fund_cfwd']) * COIN, 3 * COIN)
 
         expected_balance = tracked_balance_node2_to_addr + 96000000 + change_amount
+        print("INPUT AMOUNT=", input_amount)
+        print("TRACKED BALANCE=", tracked_balance_node2_to_addr)
+        print("CHANGE AMOUNT=", change_amount)
         expected_balance = expected_balance - input_amount
 
         assert_equal(self.get_balance_of(node2_to_addr, tracked_balances_block8) * COIN, expected_balance)
@@ -265,10 +274,11 @@ class GhostVeteranReward2Test(GhostTestFramework):
         tracked_balances_block9 = nodes[0].geteligibleaddresses(block_count, False)
         eligible_addresses_block9 = nodes[0].geteligibleaddresses(block_count)
 
-        balance_expected_block9 = expected_balance + amount - float(tx['fee'])
+        amount_fee_excluded = (amount - float(tx['fee'])) + 0.96
+        balance_expected_block9 = expected_balance + (amount_fee_excluded*COIN)
         assert_equal(self.get_balance_of(node2_to_addr, tracked_balances_block9) * COIN, balance_expected_block9)
 
-        assert_equal(len(eligible_addresses_block9), 1)
+        assert_equal(len(eligible_addresses_block9), 0)
 
         # Stake 6 blocks again before node2_to_addr becomes eligible again
         self.stakeBlocks(4)
@@ -279,7 +289,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
 
         eligible_addresses_block16 = nodes[0].geteligibleaddresses(16)
         assert_equal(len(eligible_addresses_block16), 1)
-        assert_equal(self.get_balance_of(node2_to_addr, eligible_addresses_block16), (0.96*7 + balance_expected_block9) * COIN)
+        assert_equal(self.get_balance_of(node2_to_addr, eligible_addresses_block16) * COIN, (0.96*7*COIN) + balance_expected_block9)
 
 
 if __name__ == '__main__':
