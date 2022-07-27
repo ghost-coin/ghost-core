@@ -324,6 +324,8 @@ PARTICL_SCRIPTS = [
     'feature_control_anon2.py',
     'feature_control_anon3.py',
     'feature_control_anon4.py',
+    'feature_gvr.py',
+    'feature_gvr2.py'
 ]
 
 PARTICL_SCRIPTS_EXT = [
@@ -333,7 +335,6 @@ PARTICL_SCRIPTS_EXT = [
     'rpc_part_tracefrozenoutputs.py',
     'feature_part_vote_extra.py',
     'feature_spend_blacklisted.py',
-    'feature_gvr.py',
 ]
 
 INSIGHT_SCRIPTS = [

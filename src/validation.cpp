@@ -3667,7 +3667,7 @@ std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
     std::map<AddressType, std::vector<BlockHeightRange>> ranges;
     const std::unique_ptr<CDBIterator> pcursor(pblocktree->NewIterator());
 
-    pcursor->Seek(std::make_pair(DB_GVR_RANGE,std::vector<BlockHeightRange>()));
+    pcursor->Seek(std::make_pair(DB_GVR_RANGE, std::vector<BlockHeightRange>()));
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) {
@@ -6423,6 +6423,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         }
     }
 
+    rewardTracker.revertPersistedTransaction();
     LogPrintf("[DONE].\n");
     LogPrintf("No coin database inconsistencies in last %i blocks (%i transactions)\n", block_count, nGoodTransactions);
     fVerifyingDB = false;
