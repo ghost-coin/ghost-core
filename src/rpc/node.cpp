@@ -74,7 +74,7 @@ static RPCHelpMan setmocktime()
         }
     }
 
-    return NullUniValue;
+    return UniValue::VNULL;
 },
     };
 }
@@ -94,7 +94,7 @@ static RPCHelpMan invokedisallowedsyscall()
                 throw std::runtime_error("invokedisallowedsyscall is used for testing only.");
             }
             TestDisallowedSandboxCall();
-            return NullUniValue;
+            return UniValue::VNULL;
         },
     };
 }
@@ -172,7 +172,7 @@ static RPCHelpMan mockscheduler()
     CHECK_NONFATAL(node_context->scheduler);
     node_context->scheduler->MockForward(std::chrono::seconds(delta_seconds));
 
-    return NullUniValue;
+    return UniValue::VNULL;
 },
     };
 }

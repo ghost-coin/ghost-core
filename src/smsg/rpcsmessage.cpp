@@ -701,7 +701,7 @@ static RPCHelpMan smsgimportprivkey()
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Import failed.");
     }
 
-    return NullUniValue;
+    return UniValue::VNULL;
 },
     };
 }
@@ -2441,7 +2441,7 @@ static RPCHelpMan smsgpurge()
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Error: " + sError);
     }
 
-    return NullUniValue;
+    return UniValue::VNULL;
 },
     };
 }

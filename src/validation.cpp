@@ -2999,7 +2999,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         m_blockman.m_dirty_blockindex.insert(pindex);
     }
 
-
     if (fTimestampIndex) {
         unsigned int logicalTS = pindex->nTime;
         if (!m_blockman.m_block_tree_db->WriteTimestampIndex(CTimestampIndexKey(logicalTS, pindex->GetBlockHash()))) {
@@ -3023,9 +3022,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             return AbortNode(state, "Failed to write balances index");
         }
     }
-
-    assert(pindex->phashBlock);
-
     m_chainman.m_smsgman->SetBestBlock(view.smsg_cache, pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
 
     // add this block to the view's block chain

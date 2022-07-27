@@ -7,9 +7,15 @@
 
 #include <consensus/amount.h>
 #include <hash.h>
+#include <script/script.h>
+#include <serialize.h>
 #include <tinyformat.h>
+#include <uint256.h>
 #include <util/strencodings.h>
-#include <assert.h>
+#include <version.h>
+
+#include <cassert>
+#include <stdexcept>
 
 bool ExtractCoinStakeInt64(const std::vector<uint8_t> &vData, DataOutputTypes get_type, CAmount &out)
 {
