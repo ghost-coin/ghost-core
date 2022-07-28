@@ -738,7 +738,7 @@ public:
         consensus.nMinRCTOutputDepth = 2;
         consensus.m_frozen_anon_index = 20;
         consensus.anonRestrictionStartHeight = 50;
-        consensus.automatedGvrActivationHeight = 100000;
+        consensus.automatedGvrActivationHeight = 1;
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -823,8 +823,9 @@ public:
             }
         };
         
-        consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
-        consensus.minRewardRangeSpan = DEFAULT_MIN_REWARD_RANGE_SPAN;
+        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 1, 1));
+        consensus.gvrThreshold = 10000 * COIN;
+        consensus.minRewardRangeSpan = 10; // 10 blocks for testnet
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809
             /* nTime    */ 0,
