@@ -2617,7 +2617,7 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal, bool avoid_reuse) const
 {
     bal = CHDWalletBalances();
 
-    isminefilter reuse_filter = avoid_reuse ? 0 : ISMINE_USED;
+    isminefilter reuse_filter = avoid_reuse ? ISMINE_NO : ISMINE_USED;
 
     bool allow_used_addresses = !IsWalletFlagSet(WALLET_FLAG_AVOID_REUSE) || (!avoid_reuse);
 
@@ -3807,7 +3807,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // Choose coins to us
             if (pick_new_inputs) {
                 nValueIn = 0;
-                std::optional<SelectionResult> result = SelectCoins(available_coins.coins, nValueToSelect, *coinControl, coin_selection_params);
+                std::optional<SelectionResult> result = SelectCoins(available_coins.all(), nValueToSelect, *coinControl, coin_selection_params);
 
                 if (!result) {
                     return wserrorN(1, sError, __func__, _("Insufficient funds.").translated);
@@ -10154,7 +10154,7 @@ void CHDWallet::PostProcessUnloadSpent()
         available_coins = AvailableCoins();
     }
 
-    for (const COutput& coin : available_coins.coins) {
+    for (const COutput& coin : available_coins.all()) {
         CTransactionRef tx;
         {
         LOCK(cs_wallet);
@@ -11382,7 +11382,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
                 continue;
             }
             int input_bytes = CalculateMaximumSignedInputSize(txout_old, COutPoint(), provider, coinControl);
-            result.coins.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
+            result.other.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
@@ -11394,7 +11394,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             }
 
             // Checks the maximum number of UTXO's.
-            if (nMaximumCount > 0 && result.coins.size() >= nMaximumCount) {
+            if (nMaximumCount > 0 && result.size() >= nMaximumCount) {
                 return result;
             }
         }
@@ -11473,7 +11473,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             bool from_me = rtx.vin.size() > 0;
             int64_t time = rtx.GetTxTime();
             int input_bytes = CalculateMaximumSignedInputSize(txout, this, coinControl);
-            result.coins.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
+            result.other.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
 
             if (nMinimumSumAmount != MAX_MONEY) {
                 result.total_amount += r.nValue;
@@ -11484,7 +11484,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             }
 
             // Checks the maximum number of UTXO's.
-            if (nMaximumCount > 0 && result.coins.size() >= nMaximumCount) {
+            if (nMaximumCount > 0 && result.size() >= nMaximumCount) {
                 return result;
             }
         }
@@ -11585,15 +11585,21 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     size_t max_descendants = (size_t)std::max<int64_t>(1, limit_descendant_count);
     bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
 
+    CoinsResult available_coins;
+    available_coins.other = vCoins;
+
     // form groups from remaining coins; note that preset coins will not
     // automatically have their associated (same address) coins included
-    if (coin_control.m_avoid_partial_spends && vCoins.size() > OUTPUT_GROUP_MAX_ENTRIES) {
+    if (coin_control.m_avoid_partial_spends && available_coins.size() > OUTPUT_GROUP_MAX_ENTRIES) {
         // Cases where we have 101+ outputs all pointing to the same destination may result in
         // privacy leaks as they will potentially be deterministically sorted. We solve that by
         // explicitly shuffling the outputs before processing
-        Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
+        Shuffle(available_coins.legacy.begin(), available_coins.legacy.end(), coin_selection_params.rng_fast);
+        Shuffle(available_coins.P2SH_segwit.begin(), available_coins.P2SH_segwit.end(), coin_selection_params.rng_fast);
+        Shuffle(available_coins.bech32.begin(), available_coins.bech32.end(), coin_selection_params.rng_fast);
+        Shuffle(available_coins.bech32m.begin(), available_coins.bech32m.end(), coin_selection_params.rng_fast);
+        Shuffle(available_coins.other.begin(), available_coins.other.end(), coin_selection_params.rng_fast);
     }
-
 
     // Coin Selection attempts to select inputs from a pool of eligible UTXOs to fund the
     // transaction at a target feerate. If an attempt fails, more attempts may be made using a more
@@ -11604,26 +11610,26 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
 
         // If possible, fund the transaction with confirmed UTXOs only. Prefer at least six
         // confirmations on outputs received from other wallets and only spend confirmed change.
-        if (auto r1{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 6, 0), vCoins, coin_selection_params)}) return r1;
-        if (auto r2{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 1, 0), vCoins, coin_selection_params)}) return r2;
+        if (auto r1{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 6, 0), available_coins, coin_selection_params, /*allow_mixed_output_types=*/false)}) return r1;
+        if (auto r2{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 1, 0), available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) return r2;
 
         // Fall back to using zero confirmation change (but with as few ancestors in the mempool as
         // possible) if we cannot fund the transaction otherwise.
         if (m_spend_zero_conf_change) {
-            if (auto r3{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, 2), vCoins, coin_selection_params)}) return r3;
+            if (auto r3{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, 2), available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) return r3;
             if (auto r4{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, std::min((size_t)4, max_ancestors/3), std::min((size_t)4, max_descendants/3)),
-                                   vCoins, coin_selection_params)}) {
+                                   available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
                 return r4;
             }
             if (auto r5{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors/2, max_descendants/2),
-                                   vCoins, coin_selection_params)}) {
+                                   available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
                 return r5;
             }
             // If partial groups are allowed, relax the requirement of spending OutputGroups (groups
             // of UTXOs sent to the same address, which are obviously controlled by a single wallet)
             // in their entirety.
             if (auto r6{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
-                                   vCoins, coin_selection_params)}) {
+                                   available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
                 return r6;
             }
             // Try with unsafe inputs if they are allowed. This may spend unconfirmed outputs
@@ -11631,7 +11637,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
             if (coin_control.m_include_unsafe_inputs) {
                 if (auto r7{::AttemptSelection(*this, value_to_select,
                     CoinEligibilityFilter(0 /* conf_mine */, 0 /* conf_theirs */, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
-                    vCoins, coin_selection_params)}) {
+                    available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
                     return r7;
                 }
             }
@@ -11641,7 +11647,7 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
             if (!fRejectLongChains) {
                 if (auto r8{::AttemptSelection(*this, value_to_select,
                                       CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), true /* include_partial_groups */),
-                                      vCoins, coin_selection_params)}) {
+                                      available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
                     return r8;
                 }
             }
@@ -12087,7 +12093,7 @@ std::map<CTxDestination, std::vector<COutput>> CHDWallet::ListCoins() const
     coinControl.fAllowLocked = true;
     available_coins = AvailableCoins(&coinControl);
 
-    for (const auto& coin : available_coins.coins) {
+    for (const auto& coin : available_coins.all()) {
         CTransactionRef tx;
         CTxDestination address;
 
@@ -12910,7 +12916,7 @@ size_t CHDWallet::CountColdstakeOutputs()
     coinControl.m_include_immature = true;
     coinControl.m_include_unsafe_inputs = true;
     available_coins = AvailableCoins(&coinControl, std::nullopt, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
-    for (const auto &coin : available_coins.coins) {
+    for (const auto &coin : available_coins.all()) {
         if (HasIsCoinstakeOp(coin.txout.scriptPubKey)) {
             nColdstakeOutputs++;
         }

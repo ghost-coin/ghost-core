@@ -749,7 +749,7 @@ RPCHelpMan listunspent()
         cctl.m_include_unsafe_inputs = include_unsafe;
         cctl.m_include_immature = fIncludeImmature;
         LOCK(pwallet->cs_wallet);
-        vecOutputs = AvailableCoinsListUnspent(*pwallet, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount).coins;
+        vecOutputs = AvailableCoinsListUnspent(*pwallet, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount).all();
     }
 
     LOCK(pwallet->cs_wallet);

@@ -4599,7 +4599,7 @@ static RPCHelpMan getcoldstakinginfo()
     CAmount nStakeable{0}, nColdStakeable{0}, nWalletStaking{0}, nWalletPendingDepth{0};
     CKeyID keyID;
     CScript coinstakePath;
-    for (const auto &out : available_coins.coins) {
+    for (const auto &out : available_coins.all()) {
         const CScript *scriptPubKey = &out.txout.scriptPubKey;
         CAmount nValue = out.txout.nValue;
 
