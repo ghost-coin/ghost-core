@@ -6,6 +6,9 @@
 #define BITCOIN_RPC_RAWTRANSACTION_UTIL_H
 
 #include <string>
+#include <optional>
+
+// Particl
 #include <map>
 
 struct bilingual_str;
@@ -42,6 +45,6 @@ void SignTransactionResultToJSON(CMutableTransaction& mtx, bool complete, const 
 void ParsePrevouts(const UniValue& prevTxsUnival, FillableSigningProvider* keystore, std::map<COutPoint, Coin>& coins, bool for_coinstake=false);
 
 /** Create a transaction from univalue parameters */
-CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, bool rbf);
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf);
 
 #endif // BITCOIN_RPC_RAWTRANSACTION_UTIL_H
