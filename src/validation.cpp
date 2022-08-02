@@ -3233,10 +3233,21 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                     CTxDestination stakerAddrDest;
                     uint256 kernelhash, kernelblockhash;
-                    
-                    if (!GetKernelInfo(pindex, *block.vtx[0], kernelhash, kernelvalue, kernelScriptPubKey, kernelblockhash)) {
-                        return error("ConnectBlock(): Can't get kernel info\n");
+
+                    const COutPoint& prevout = (*block.vtx[0]).vin[0].prevout;
+
+                    CTransactionRef txPrev;
+                    CBlock blockKernel;
+
+                    if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel, true)){
+                        return error("Can't get kernel transaction details\n");
                     }
+
+                    const CTxOutBase* outPrev = txPrev->vpout[prevout.n].get();
+                    kernelvalue = outPrev->GetValue();
+
+                    LogPrintf("%s Kernel out value=%s kernel out addr=%s\n", __func__, outPrev->GetValue(), EncodeDestination(stakerAddrDest));
+                    outPrev->GetScriptPubKey(kernelScriptPubKey);
 
                     ExtractDestination(kernelScriptPubKey, stakerAddrDest);
 
