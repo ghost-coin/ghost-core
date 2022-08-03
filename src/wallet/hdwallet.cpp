@@ -3373,10 +3373,10 @@ int CHDWallet::PostProcessTempRecipients(std::vector<CTempRecipient> &vecSend)
 
 bool CheckOutputValue(interfaces::Chain& chain, const CTempRecipient &r, const CTxOutBase *txbout, CAmount nFeeRet, std::string &sError)
 {
-    if ((r.nType == OUTPUT_STANDARD
-            && IsDust(txbout, chain.relayDustFee()))
-        || (r.nType != OUTPUT_DATA
-            && r.nAmount < 0)) {
+    if ((r.nType == OUTPUT_STANDARD &&
+         particl::IsDust(txbout, chain.relayDustFee())) ||
+         (r.nType != OUTPUT_DATA &&
+          r.nAmount < 0)) {
         if (r.fSubtractFeeFromAmount && nFeeRet > 0) {
             if (r.nAmount < 0) {
                 sError = "The transaction amount is too small to pay the fee";
@@ -3845,7 +3845,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 // Never create dust outputs; if we would, just
                 // add the dust to the fee.
-                if (IsDust(&tempOut, coin_selection_params.m_discard_feerate)) {
+                if (particl::IsDust(&tempOut, coin_selection_params.m_discard_feerate)) {
                     nChangePosInOut = -1;
                     // Raise the fee after it may be subtracted from outputs
                     extra_fee_from_change += nChange;
@@ -4445,7 +4445,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     r.SetAmount(value_change);
                 } else
                 {
-                    if (value_change > ::minRelayTxFee.GetFee(2048)) { // TODO: better output size estimate
+                    if (HaveChain() && value_change > chain().relayMinFee().GetFee(2048)) { // TODO: better output size estimate
                         r.SetAmount(value_change);
                     } else {
                         r.SetAmount(0);
@@ -5247,7 +5247,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     return wserrorN(1, sError, __func__, ("SetChangeDest failed: " + sError));
                 }
 
-                if (nChange > ::minRelayTxFee.GetFee(2048)) { // TODO: better output size estimate
+                if (HaveChain() && nChange > chain().relayMinFee().GetFee(2048)) { // TODO: better output size estimate
                     r.SetAmount(nChange);
                 } else {
                     r.SetAmount(0);

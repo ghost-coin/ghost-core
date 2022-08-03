@@ -810,12 +810,14 @@ void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoi
         }
         // Check for script
         bool fHaveScript = false;
+
         if (IsHex(sChangeAddress)) {
             std::vector<uint8_t> vScript = ParseHex(sChangeAddress);
             CScript script(vScript.begin(), vScript.end());
 
+            int64_t now = GetTime();
             TxoutType whichType;
-            if (IsStandard(script, whichType)) {
+            if (IsStandard(script, std::nullopt, whichType, now)) {
                 coin_control.scriptChange = script;
                 fHaveScript = true;
             }

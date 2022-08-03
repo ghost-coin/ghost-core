@@ -317,12 +317,12 @@ BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)
 
     int64_t cs_time = Params().GetConsensus().OpIsCoinstakeTime;
     TxoutType whichType;
-    BOOST_CHECK(true == IsStandard(script, whichType, cs_time));
+    BOOST_CHECK(true == IsStandard(script, std::nullopt, whichType, cs_time));
 
     // Test trailing script
     script << OP_DROP;
     script << CScriptNum(123);
-    BOOST_CHECK(false == IsStandard(script, whichType, cs_time));
+    BOOST_CHECK(false == IsStandard(script, std::nullopt, whichType, cs_time));
 
     // Test compacted cs_script
     CScript script2 = CScript() << OP_DUP << OP_HASH160;

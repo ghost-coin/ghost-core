@@ -50,8 +50,8 @@ static constexpr unsigned int MAX_STANDARD_TAPSCRIPT_STACK_ITEM_SIZE{80};
 static constexpr unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE{3600};
 /** The maximum size of a standard ScriptSig */
 static constexpr unsigned int MAX_STANDARD_SCRIPTSIG_SIZE{1650};
-/** Min feerate for defining dust. Historically this has been based on the
- * minRelayTxFee, however changing the dust limit changes which transactions are
+/** Min feerate for defining dust.
+ * Changing the dust limit changes which transactions are
  * standard and should be done with care and ideally rarely. It makes sense to
  * only increase the dust limit after prior releases were already not creating
  * outputs below the new threshold */
@@ -107,10 +107,7 @@ static constexpr unsigned int STANDARD_LOCKTIME_VERIFY_FLAGS{LOCKTIME_VERIFY_SEQ
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFee);
 bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFee);
 
-CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn);
-bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee);
-
-bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType, int64_t time=0);
+bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_datacarrier_bytes, TxoutType& whichType, int64_t time=0);
 
 
 // Changing the default transaction version requires a two step process: first
@@ -123,7 +120,7 @@ static constexpr decltype(CTransaction::nVersion) TX_MAX_STANDARD_VERSION_PARTIC
 * Check for standard transaction types
 * @return True if all outputs (scriptPubKeys) use only standard transaction forms
 */
-bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason, int64_t time=0);
+bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason, int64_t time=0);
 /**
 * Check for standard transaction types
 * @param[in] mapInputs       Map of previous transactions that have outputs we're spending
@@ -154,5 +151,10 @@ static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
 {
     return GetVirtualTransactionInputSize(tx, 0, 0);
 }
+
+namespace particl {
+CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn);
+bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee);
+} // namespace particl
 
 #endif // BITCOIN_POLICY_POLICY_H

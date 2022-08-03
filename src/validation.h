@@ -105,7 +105,6 @@ extern uint256 g_best_block;
  * False indicates all script checking is done on the main threadMessageHandler thread.
  */
 extern bool g_parallel_script_checks;
-extern bool fRequireStandard;
 extern bool fCheckBlockIndex;
 extern bool fCheckpointsEnabled;
 /** If the tip is older than this (in seconds), the node is considered to be in initial block download. */
@@ -1173,7 +1172,7 @@ bool CheckStakeUnused(const COutPoint &kernel);
 bool CheckStakeUnique(const CBlock &block, bool fUpdate=true);
 
 /** Returns true if the block index was rewound to rebuild the temporary indices. */
-bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool* mempool);
+bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool *mempool);
 
 int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
