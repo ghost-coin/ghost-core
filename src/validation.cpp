@@ -914,8 +914,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    const bool taproot_active = fParticlMode ? m_active_chainstate.m_chain.Tip()->nTime >= args.m_chainparams.GetConsensus().m_taproot_time : true;
-    if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view, taproot_active, nAcceptTime)) {
+    if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view, nAcceptTime)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
 

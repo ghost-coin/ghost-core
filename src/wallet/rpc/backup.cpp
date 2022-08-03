@@ -1648,11 +1648,6 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
             }
         }
 
-        // Taproot descriptors cannot be imported if Taproot is not yet active.
-        // Check if this is a Taproot descriptor
-        CTxDestination dest;
-        ExtractDestination(scripts[0], dest);
-
         // If private keys are enabled, check some things.
         if (!wallet.IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
            if (keys.keys.empty()) {
