@@ -3245,11 +3245,9 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                     const CTxOutBase* outPrev = txPrev->vpout[prevout.n].get();
                     kernelvalue = outPrev->GetValue();
-
-                    LogPrintf("%s Kernel out value=%s kernel out addr=%s\n", __func__, outPrev->GetValue(), EncodeDestination(stakerAddrDest));
                     outPrev->GetScriptPubKey(kernelScriptPubKey);
-
                     ExtractDestination(kernelScriptPubKey, stakerAddrDest);
+                    LogPrintf("%s Kernel out value=%s kernel out addr=%s\n", __func__, outPrev->GetValue(), EncodeDestination(stakerAddrDest));
 
                     // Check if the staker of the block was eligible and that the gvr went to him
                     

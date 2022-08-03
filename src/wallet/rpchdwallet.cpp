@@ -9,6 +9,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/merkle.h>
 #include <core_io.h>
+#include <string>
 #include <validation.h>
 #include <net.h>
 #include <policy/policy.h>
@@ -9792,8 +9793,7 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
                 HELP_REQUIRING_PASSPHRASE,
                 {
                     {"height", RPCArg::Type::NUM, /* default */ "0", "The height at which to return the eligble addresses"},
-                    {"eligibleonly", RPCArg::Type::BOOL, /* default */ "1", "Whether to return eligible addresses only." 
-                    "When set to true height is the current height"},
+                    {"eligibleonly", RPCArg::Type::BOOL, /* default */ "1", "Whether to return eligible addresses only. When set to true height is the current height"},
                 },
              RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -9805,14 +9805,23 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
                     }
                 }},
             RPCExamples{
-                HelpExampleCli("geteligibleaddresses", "4343")
+                HelpExampleCli("geteligibleaddresses", "4 1")
             },
         }.Check(request);
     
     UniValue result(UniValue::VARR);
 
-    int height = request.params.size() > 0 ? request.params[0].get_int64() : ::ChainActive().Tip()->nHeight;
-    bool eligibleonly = request.params.size() > 1 ? request.params[1].get_bool() : true;
+    int height{0};
+    bool eligibleonly{true};
+
+    if (request.params[0].isNum()) {
+        height = request.params[0].get_int64();
+        eligibleonly = request.params[1].isNull()? true : request.params[1].get_bool();
+    } else if (request.params[0].isStr()) {
+        height = request.params.size() > 0 ? std::stol(request.params[0].get_str()) : ::ChainActive().Tip()->nHeight;
+        eligibleonly = request.params.size() > 1 ? std::stoi(request.params[1].get_str()) : true;
+    }
+
     auto& rewardTracker = initColdReward();
 
     std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> addresses;
@@ -10024,7 +10033,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "pruneorphanedblocks",              &pruneorphanedblocks,           {"testonly"} },
     { "blockchain",         "rehashblock",                      &rehashblock,                   {"blockhex","signwith","addtxns"} },
 
-    { "blockchain",         "geteligibleaddresses",             &geteligibleaddresses,          {"height"} },
+    { "blockchain",         "geteligibleaddresses",             &geteligibleaddresses,          {"height", "eligibleonly"} },
 };
 // clang-format on
     return MakeSpan(commands);
