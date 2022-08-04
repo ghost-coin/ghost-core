@@ -7,6 +7,8 @@
   - getcoldstakinginfo pending_depth shows coins unstakable until after 225 blocks (nStakeMinConfirmations)
 - rpc: Added minstakeabledepth to getstakinginfo
 - wallet: Only mark anon/blind tx outputs as change if wallet owns inputs.
+- New checkpoints
+
 
 
 0.21.2.9
