@@ -88,7 +88,7 @@ static void DisconnectTip(CChainState &chainstate_active, CTxMemPool* mempool, C
     BOOST_REQUIRE(DISCONNECT_OK == chainstate_active.DisconnectBlock(block, pindexDelete, view));
     BOOST_REQUIRE(FlushView(&view, state, chainstate_active, true));
     BOOST_REQUIRE(chainstate_active.FlushStateToDisk(state, FlushStateMode::IF_NEEDED));
-    chainstate_active.m_chain.SetTip(pindexDelete->pprev);
+    chainstate_active.m_chain.SetTip(*pindexDelete->pprev);
     chainstate_active.UpdateTip(pindexDelete->pprev);
 }
 
@@ -353,7 +353,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
             BOOST_CHECK(!clearstate.IsInvalid());
             BOOST_REQUIRE(FlushView(&clearview, state, chainstate_active, false));
             BOOST_REQUIRE(chainstate_active.FlushStateToDisk(clearstate, FlushStateMode::IF_NEEDED));
-            chain_active.SetTip(pindexDelete);
+            chain_active.SetTip(*pindexDelete);
             chainstate_active.UpdateTip(pindexDelete);
 
             BOOST_CHECK(tipHash == chain_active.Tip()->GetBlockHash());

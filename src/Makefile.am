@@ -193,6 +193,7 @@ BITCOIN_CORE_H = \
   kernel/mempool_limits.h \
   kernel/mempool_options.h \
   kernel/mempool_persist.h \
+  kernel/validation_cache_sizes.h \
   key.h \
   key/stealth.h \
   key/extkey.h \
@@ -228,6 +229,7 @@ BITCOIN_CORE_H = \
   node/psbt.h \
   node/transaction.h \
   node/utxo_snapshot.h \
+  node/validation_cache_args.h \
   noui.h \
   outputtype.h \
   policy/feerate.h \
@@ -435,6 +437,7 @@ libparticl_node_a_SOURCES = \
   node/minisketchwrapper.cpp \
   node/psbt.cpp \
   node/transaction.cpp \
+  node/validation_cache_args.cpp \
   noui.cpp \
   policy/fees.cpp \
   policy/fees_args.cpp \

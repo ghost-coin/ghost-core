@@ -421,7 +421,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
             return errorN(false, sError, __func__, "FlushStateToDisk failed.");
         }
 
-        chainman.ActiveChain().SetTip(pindex->pprev);
+        chainman.ActiveChain().SetTip(*pindex->pprev);
         chainman.ActiveChainstate().UpdateTip(pindex->pprev);
         GetMainSignals().BlockDisconnected(pblock, pindex);
     }
