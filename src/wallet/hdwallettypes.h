@@ -154,6 +154,7 @@ public:
     COutputRecord *GetOutput(int n);
     const COutputRecord *GetOutput(int n) const;
     const COutputRecord *GetChangeOutput() const;
+    unsigned int GetMaxVout() const;
 
     void SetMerkleBranch(const uint256 &blockHash_, int posInBlock)
     {

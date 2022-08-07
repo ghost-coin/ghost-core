@@ -2964,7 +2964,7 @@ static RPCHelpMan clearwallettransactions()
 
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
 
-        std::map<uint256, CWalletTx>::const_iterator itw;
+        MapWallet_t::const_iterator itw;
         std::string strType;
         uint256 hash;
         uint32_t fFlags = DB_SET_RANGE;

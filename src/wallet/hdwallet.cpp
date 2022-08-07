@@ -12612,11 +12612,13 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
 
     todo.insert(hashTx);
 
+    size_t nChangedRecords{0};
     while (!todo.empty()) {
         uint256 now = *todo.begin();
         todo.erase(now);
         done.insert(now);
 
+        unsigned int max_known_output{0};
         if ((mri = mapRecords.find(now)) != mapRecords.end()) {
             CTransactionRecord &rtx = mri->second;
             int currentconfirm = GetDepthInMainChain(rtx);
@@ -12633,6 +12635,8 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
                 rtx.SetAbandoned();
                 walletdb.WriteTxRecord(now, rtx);
                 NotifyTransactionChanged(now, CT_UPDATED);
+                nChangedRecords++;
+                max_known_output = rtx.GetMaxVout();
             }
         } else
         if ((mwi = mapWallet.find(now)) != mapWallet.end()) {
@@ -12657,26 +12661,28 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
 
                 // If a transaction changes 'conflicted' state, that changes the balance
                 // available of the outputs it spends. So force those to be recomputed
-                for (const auto &txin : wtx.tx->vin)
-                {
-                    auto it = mapWallet.find(txin.prevout.hash);
-                    if (it != mapWallet.end()) {
-                        it->second.MarkDirty();
-                    }
-                }
+                MarkInputsDirty(wtx.tx);
+
+                max_known_output = wtx.tx->GetNumVOuts();
             }
         } else {
             // Not in wallet
             continue;
         }
 
-        TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(hashTx, 0));
-        while (iter != mapTxSpends.end() && iter->first.hash == now) {
-            if (!done.count(iter->second)) {
-                todo.insert(iter->second);
+        // Iterate over all its outputs, and mark transactions in the wallet that spend them abandoned too
+        for (unsigned int i = 0; i < max_known_output; ++i) {
+            std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(COutPoint(now, i));
+            for (TxSpends::const_iterator iter = range.first; iter != range.second; ++iter) {
+                if (!done.count(iter->second)) {
+                    todo.insert(iter->second);
+                }
             }
-            iter++;
         }
+    }
+
+    if (nChangedRecords > 0) { // HACK, alternative is to load CStoredTransaction to get vin
+        MarkDirty();
     }
 
     return true;
@@ -12703,12 +12709,13 @@ void CHDWallet::MarkConflicted(const uint256 &hashBlock, int conflicting_height,
     std::set<uint256> todo, done;
     todo.insert(hashTx);
 
-    size_t nChangedRecords = 0;
+    size_t nChangedRecords{0};
     while (!todo.empty()) {
         uint256 now = *todo.begin();
         todo.erase(now);
         done.insert(now);
 
+        unsigned int max_known_output{0};
         if ((mri = mapRecords.find(now)) != mapRecords.end()) {
             CTransactionRecord &rtx = mri->second;
 
@@ -12722,20 +12729,10 @@ void CHDWallet::MarkConflicted(const uint256 &hashBlock, int conflicting_height,
                 rtx.block_height = conflicting_height;
                 walletdb.WriteTxRecord(now, rtx);
 
-                // Iterate over all its outputs, and mark transactions in the wallet that spend them conflicted too
-                TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(now, 0));
-                while (iter != mapTxSpends.end() && iter->first.hash == now) {
-                    if (!done.count(iter->second)) {
-                         todo.insert(iter->second);
-                    }
-                    iter++;
-                }
+                nChangedRecords++;
+                max_known_output = rtx.GetMaxVout();
             }
-
-            nChangedRecords++;
-            continue;
-        }
-
+        } else
         if ((mwi = mapWallet.find(now)) != mapWallet.end()) {
             CWalletTx &wtx = mwi->second;
             int currentconfirm = GetTxDepthInMainChain(wtx);
@@ -12746,29 +12743,27 @@ void CHDWallet::MarkConflicted(const uint256 &hashBlock, int conflicting_height,
                 wtx.m_state = TxStateConflicted{hashBlock, conflicting_height};
                 wtx.MarkDirty();
                 walletdb.WriteTx(wtx);
-                // Iterate over all its outputs, and mark transactions in the wallet that spend them conflicted too
-                TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(now, 0));
-                while (iter != mapTxSpends.end() && iter->first.hash == now) {
-                    if (!done.count(iter->second)) {
-                         todo.insert(iter->second);
-                    }
-                    iter++;
-                }
 
                 // If a transaction changes 'conflicted' state, that changes the balance
                 // available of the outputs it spends. So force those to be recomputed
-                for(const auto &txin : wtx.tx->vin) {
-                    auto it = mapWallet.find(txin.prevout.hash);
-                    if (it != mapWallet.end()) {
-                        it->second.MarkDirty();
-                    }
-                }
-            }
+                MarkInputsDirty(wtx.tx);
 
+                max_known_output = wtx.tx->GetNumVOuts();
+            }
+        } else {
+            WalletLogPrintf("%s: Warning txn %s not recorded in wallet.\n", __func__, now.ToString());
             continue;
         }
 
-        WalletLogPrintf("%s: Warning txn %s not recorded in wallet.\n", __func__, now.ToString());
+        // Iterate over all its outputs, and mark transactions in the wallet that spend them abandoned too
+        for (unsigned int i = 0; i < max_known_output; ++i) {
+            std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(COutPoint(now, i));
+            for (TxSpends::const_iterator iter = range.first; iter != range.second; ++iter) {
+                if (!done.count(iter->second)) {
+                    todo.insert(iter->second);
+                }
+            }
+        }
     }
 
     if (nChangedRecords > 0) { // HACK, alternative is to load CStoredTransaction to get vin
@@ -12822,6 +12817,19 @@ void CHDWallet::SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator> r
         // cached members not copied on purpose
     }
     return;
+}
+
+bool CHDWallet::HasWalletSpend(const uint256 hash, const CTransactionRecord &rtx) const
+{
+    AssertLockHeld(cs_wallet);
+    unsigned int max_known_output = rtx.GetMaxVout();
+    for (unsigned int i = 0; i < max_known_output; ++i) {
+        auto iter = mapTxSpends.find(COutPoint(hash, i));
+        if (iter != mapTxSpends.end()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool CHDWallet::GetSetting(const std::string &setting, UniValue &json) const

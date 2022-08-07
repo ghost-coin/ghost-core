@@ -73,6 +73,13 @@ const COutputRecord *CTransactionRecord::GetChangeOutput() const
     return nullptr;
 };
 
+unsigned int CTransactionRecord::GetMaxVout() const
+{
+    // Returns the maximum vout value known by the wallet
+    // vout is always in order by asc n
+    return vout.empty() ? 0 : vout.back().n;
+};
+
 bool CStoredTransaction::InsertBlind(int n, const uint8_t *p)
 {
     for (auto &bp : vBlinds) {

@@ -26,7 +26,7 @@ typedef std::map<CKeyID, CStealthKeyMetadata> StealthKeyMetaMap;
 typedef std::map<CKeyID, CExtKeyAccount*> ExtKeyAccountMap;
 typedef std::map<CKeyID, CStoredExtKey*> ExtKeyMap;
 
-typedef std::map<uint256, CWalletTx> MapWallet_t;
+typedef std::unordered_map<uint256, CWalletTx, SaltedTxidHasher> MapWallet_t;
 
 class UniValue;
 typedef struct secp256k1_scratch_space_struct secp256k1_scratch_space;
@@ -462,8 +462,12 @@ public:
     /** Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
     bool AbandonTransaction(const uint256 &hashTx) override;
 
+    /** Mark a transaction (and its in-wallet descendants) as conflicting with a particular block. */
     void MarkConflicted(const uint256 &hashBlock, int conflicting_height, const uint256 &hashTx) override;
     void SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator>) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
+    //! Check if a given transaction record has any of its outputs spent by another transaction in the wallet
+    bool HasWalletSpend(const uint256 hash, const CTransactionRecord &rtx) const;
 
     bool GetSetting(const std::string &setting, UniValue &json) const;
     bool SetSetting(const std::string &setting, const UniValue &json);
