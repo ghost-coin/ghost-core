@@ -2453,15 +2453,11 @@ util::Result<CTxDestination> CWallet::GetNewChangeDestination(const OutputType t
 {
     LOCK(cs_wallet);
 
-    CTxDestination dest;
-    bilingual_str error;
     ReserveDestination reservedest(this, type);
-    if (!reservedest.GetReservedDestination(dest, true, error)) {
-        return util::Error{error};
-    }
+    auto op_dest = reservedest.GetReservedDestination(true);
+    if (op_dest) reservedest.KeepDestination();
 
-    reservedest.KeepDestination();
-    return dest;
+    return op_dest;
 }
 
 std::optional<int64_t> CWallet::GetOldestKeyPoolTime() const
@@ -2531,27 +2527,24 @@ std::set<std::string> CWallet::ListAddrBookLabels(const std::string& purpose) co
     return label_set;
 }
 
-bool ReserveDestination::GetReservedDestination(CTxDestination& dest, bool internal, bilingual_str& error)
+util::Result<CTxDestination> ReserveDestination::GetReservedDestination(bool internal)
 {
     m_spk_man = pwallet->GetScriptPubKeyMan(type, internal);
     if (!m_spk_man) {
-        error = strprintf(_("Error: No %s addresses available."), FormatOutputType(type));
-        return false;
+        return util::Error{strprintf(_("Error: No %s addresses available."), FormatOutputType(type))};
     }
-
 
     if (nIndex == -1)
     {
         m_spk_man->TopUp();
 
         CKeyPool keypool;
-        if (!m_spk_man->GetReservedDestination(type, internal, address, nIndex, keypool, error)) {
-            return false;
-        }
+        auto op_address = m_spk_man->GetReservedDestination(type, internal, nIndex, keypool);
+        if (!op_address) return op_address;
+        address = *op_address;
         fInternal = keypool.fInternal;
     }
-    dest = address;
-    return true;
+    return address;
 }
 
 void ReserveDestination::KeepDestination()
@@ -3594,7 +3587,7 @@ void CWallet::LoadActiveScriptPubKeyMan(uint256 id, OutputType type, bool intern
     // Legacy wallets have only one ScriptPubKeyManager and it's active for all output and change types.
     Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
 
-    WalletLogPrintf("Setting spkMan to active: id = %s, type = %d, internal = %d\n", id.ToString(), static_cast<int>(type), static_cast<int>(internal));
+    WalletLogPrintf("Setting spkMan to active: id = %s, type = %s, internal = %s\n", id.ToString(), FormatOutputType(type), internal ? "true" : "false");
     auto& spk_mans = internal ? m_internal_spk_managers : m_external_spk_managers;
     auto& spk_mans_other = internal ? m_external_spk_managers : m_internal_spk_managers;
     auto spk_man = m_spk_managers.at(id).get();
@@ -3612,7 +3605,7 @@ void CWallet::DeactivateScriptPubKeyMan(uint256 id, OutputType type, bool intern
 {
     auto spk_man = GetScriptPubKeyMan(type, internal);
     if (spk_man != nullptr && spk_man->GetID() == id) {
-        WalletLogPrintf("Deactivate spkMan: id = %s, type = %d, internal = %d\n", id.ToString(), static_cast<int>(type), static_cast<int>(internal));
+        WalletLogPrintf("Deactivate spkMan: id = %s, type = %s, internal = %s\n", id.ToString(), FormatOutputType(type), internal ? "true" : "false");
         WalletBatch batch(GetDatabase());
         if (!batch.EraseActiveScriptPubKeyMan(static_cast<uint8_t>(type), internal)) {
             throw std::runtime_error(std::string(__func__) + ": erasing active ScriptPubKeyMan id failed");

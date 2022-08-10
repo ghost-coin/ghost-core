@@ -292,7 +292,7 @@ PackageMempoolAcceptResult ProcessNewPackage(CChainState& active_chainstate, CTx
                                                    const Package& txns, bool test_accept, bool ignore_locks=false)
                                                    EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-/* Transaction policy functions */
+/* Mempool validation helper functions */
 
 /**
  * Check if transaction will be final in the next block to be created.

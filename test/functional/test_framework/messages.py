@@ -65,6 +65,9 @@ FILTER_TYPE_BASIC = 0
 
 WITNESS_SCALE_FACTOR = 4
 
+DEFAULT_ANCESTOR_LIMIT = 25    # default max number of in-mempool ancestors
+DEFAULT_DESCENDANT_LIMIT = 25  # default max number of in-mempool descendants
+
 PARTICL_BLOCK_VERSION = 0xa0
 PARTICL_TX_VERSION = 0xa0
 PARTICL_TX_ANON_MARKER = 0xffffffa0
