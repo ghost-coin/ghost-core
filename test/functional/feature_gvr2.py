@@ -82,7 +82,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
 
         self.start_node(0, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
         self.start_node(1, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
-        self.start_node(2, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
+        self.start_node(2, ['-wallet=default_wallet', '-reservebalance=1025', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
 
         self.import_genesis_coins_a(nodes[0])
         self.import_genesis_coins_b(nodes[1])
@@ -165,7 +165,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
         assert_equal(len(eligible_addresses_block6), 1)
 
         block_details = nodes[0].getblock(nodes[0].getblockhash(block_count), 2)
-        assert_equal(float(block_details['tx'][0]['vout'][0]['treasury_fund_cfwd']) * COIN, 3 * 6 * COIN)
+        assert_equal(float(block_details['tx'][0]['vout'][0]['gvr_fund_cfwd']) * COIN, 3 * 6 * COIN)
 
         tracked_balance_node2_to_addr = tracked_balance_node2_to_addr + (5 * 0.96) * COIN
         assert_equal(self.get_balance_of(node2_to_addr, eligible_addresses_block6) * COIN, tracked_balance_node2_to_addr)
@@ -194,9 +194,9 @@ class GhostVeteranReward2Test(GhostTestFramework):
         # Restart the nodes and check the tracked balances
         self.stop_nodes()
 
-        self.start_node(0, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
-        self.start_node(1, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
-        self.start_node(2, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
+        self.start_node(0, ['-wallet=default_wallet', '-reservebalance=10000000', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
+        self.start_node(1, ['-wallet=default_wallet', '-reservebalance=10000000', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
+        self.start_node(2, ['-wallet=default_wallet', '-reservebalance=10000000', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
 
         nodes[0].walletsettings('stakingoptions', {'rewardaddress': reward_address0, 'enabled': False})
         nodes[1].walletsettings('stakingoptions', {'rewardaddress': reward_address1, 'enabled': False})
@@ -207,7 +207,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
         self.sync_all()
 
         for n in nodes:
-            n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 10})
+            n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 1})
 
         block_count = nodes[0].getblockcount()
         tracked_balances_block7_after_restart = nodes[0].geteligibleaddresses(block_count, False)
@@ -224,6 +224,8 @@ class GhostVeteranReward2Test(GhostTestFramework):
 
         amount = 1000
         outputs = [{'address': another_node2_addr, 'amount': amount, 'subfee': True}]
+        print(nodes[2].getstakinginfo())
+        print(nodes[2].getbalances())
         tx = nodes[2].sendtypeto('ghost', 'ghost', outputs, '', '', 1, 1, False, {'show_fee': True, 'changeaddress': node2_to_addr})
         rawtx = nodes[2].getrawtransaction(tx['txid'])
         txhash = nodes[2].sendrawtransaction(rawtx)
@@ -245,8 +247,8 @@ class GhostVeteranReward2Test(GhostTestFramework):
 
         input_amount = float(vin_tx_details["amount"]) * COIN
 
-        # treasury_fund_cfwd should be set since the staker is not eligible
-        assert_equal(float(block_details['tx'][0]['vout'][0]['treasury_fund_cfwd']) * COIN, 3 * COIN)
+        # gvr_fund_cfwd should be set since the staker is not eligible
+        assert_equal(float(block_details['tx'][0]['vout'][0]['gvr_fund_cfwd']) * COIN, 3 * COIN)
 
         expected_balance = tracked_balance_node2_to_addr + 96000000 + change_amount
         print("INPUT AMOUNT=", input_amount)

@@ -98,7 +98,7 @@ class GhostVeteranRewardTest(GhostTestFramework):
         self.connect_nodes_bi(1, 2)
 
         for n in nodes:
-            n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 10})
+            n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 1})
 
         balance_node0 = nodes[0].getwalletinfo()
         balance_node1 = nodes[1].getwalletinfo()
@@ -166,7 +166,7 @@ class GhostVeteranRewardTest(GhostTestFramework):
         assert_equal(len(elig), 0)
         # Since nobody was elig then the carried forward has to be set
         ro = nodes[0].getblock(nodes[0].getblockhash(1), 2)
-        assert_equal(float(ro['tx'][0]['vout'][0]['treasury_fund_cfwd']) * COIN, 3 * COIN)
+        assert_equal(float(ro['tx'][0]['vout'][0]['gvr_fund_cfwd']) * COIN, 3 * COIN)
 
 
         node2_wallet_info_before_staking = nodes[2].getwalletinfo()
@@ -179,9 +179,9 @@ class GhostVeteranRewardTest(GhostTestFramework):
         block4_gvr_cfwd = 0
 
         try:
-            block4_gvr_cfwd = block4_details['tx'][0]['vout'][0]['treasury_fund_cfwd']
+            block4_gvr_cfwd = block4_details['tx'][0]['vout'][0]['gvr_fund_cfwd']
         except KeyError as e:
-            assert_equal(str(e), "'treasury_fund_cfwd'")
+            assert_equal(str(e), "'gvr_fund_cfwd'")
 
 
         block5_details = nodes[0].getblock(nodes[0].getblockhash(block_count), 2, True)
@@ -221,9 +221,9 @@ class GhostVeteranRewardTest(GhostTestFramework):
         block5_gvr_cfwd = 0
 
         try:
-            block5_gvr_cfwd = block5_details['tx'][0]['vout'][0]['treasury_fund_cfwd']
+            block5_gvr_cfwd = block5_details['tx'][0]['vout'][0]['gvr_fund_cfwd']
         except KeyError as e:
-            assert_equal(str(e), "'treasury_fund_cfwd'")
+            assert_equal(str(e), "'gvr_fund_cfwd'")
 
         assert_equal(node0_wallet_info_after_staking["total_balance"] * COIN, (float(node0_wallet_info_before_staking["total_balance"]) + float(block5_gvr_cfwd) + 3 + 2.04) * COIN)
 

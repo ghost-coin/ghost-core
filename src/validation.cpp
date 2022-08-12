@@ -3190,8 +3190,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 } else {
 
                     CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
-                    CAmount ngvrCfwdCheck = 0;
-                    CAmount ngvrBfwd = 0;
+                    CAmount ngvrCfwdCheck = 0, ngvrBfwd = 0, nTreasuryBfwd = 0, nTreasuryCfwdCheck = 0;
+                    bool devFundPaidOut = false;
 
                     if (pindex->pprev->nHeight > 0) { // Genesis block is pow
                         if (!txPrevCoinstake
@@ -3201,8 +3201,12 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         }
 
                         assert(txPrevCoinstake->IsCoinStake()); // Sanity check
-                        if (!txPrevCoinstake->GetTreasuryFundCfwd(ngvrBfwd)) {
+                        if (!txPrevCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
                             ngvrBfwd = 0;
+                        }
+
+                        if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
+                            nTreasuryBfwd = 0;
                         }
                     }
 
@@ -3210,23 +3214,39 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return error("%s: Failed to get dev fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
                     }
 
-                    CScript fundScriptPubKey = GetScriptForDestination(dfDest);
+                    if (pindex->nHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
+                        CScript fundScriptPubKey = GetScriptForDestination(dfDest);
 
-                    // Output 1 must be to the dev fund
-                    const CTxOutStandard* outputDF = txCoinstake->vpout[1]->GetStandardOutput();
-                    if (!outputDF) {
-                        LogPrintf("ERROR: %s: Bad dev fund output.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
-                    }
-                    if (outputDF->scriptPubKey != fundScriptPubKey) {
-                        LogPrintf("ERROR: %s: Bad dev fund output script.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-script");
-                    }
+                        // Output 1 must be to the dev fund
+                        const CTxOutStandard* outputDF = txCoinstake->vpout[1]->GetStandardOutput();
+                        if (!outputDF) {
+                            LogPrintf("ERROR: %s: Bad dev fund output.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                        }
+                        if (outputDF->scriptPubKey != fundScriptPubKey) {
+                            LogPrintf("ERROR: %s: Bad dev fund output script.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-script");
+                        }
 
-                    const CAmount expectedDF = (nCalculatedStakeRewardWithoutFees * 16) / 100;
-                    if (outputDF->nValue != expectedDF) {
-                        LogPrintf("ERROR: %s: Bad dev fund output value.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
+                        if (txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)) {
+                            LogPrintf("ERROR: %s: Coinstake treasury cfwd must be unset.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
+
+                        const CAmount devFundPart = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * 16) / 100);
+                        if (outputDF->nValue != devFundPart) {
+                            LogPrintf("ERROR: %s: Bad dev fund output value.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
+                        }
+                        devFundPaidOut = true;
+                    } else {
+                        // The dev fund carried forward has to be set
+                        CAmount nTreasuryCfwd = nTreasuryBfwd + nCalculatedStakeReward - nStakeReward;
+                        if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
+                            || nTreasuryCfwdCheck != nTreasuryCfwd) {
+                            LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
                     }
                     
                     auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
@@ -3260,8 +3280,13 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     if (wasEligible != eligibleAddresses.end()) {
                         // if he was elig then the vpout[2] is the gvr out 
                         // The staker was eligible then compare scripts
-                        CScript gvrReceiverScript; 
-                        txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
+                        CScript gvrReceiverScript;
+                       
+                        if (devFundPaidOut) {
+                            txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
+                        } else {
+                            txCoinstake->vpout[1]->GetScriptPubKey(gvrReceiverScript);
+                        }
 
                         if (kernelScriptPubKey != gvrReceiverScript) {
                             LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match\n", __func__);
@@ -3271,15 +3296,15 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     } else {
                         // The staker was not eligible so the carried forward has to be set
                         // The carried forward is set since there were no gvr output
-                        if (!txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)) {
+                        if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)) {
                             LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
 
-                        CAmount nTreasuryCfwd = ngvrBfwd + nCalculatedStakeReward - nStakeReward;
-                        if (!txCoinstake->GetTreasuryFundCfwd(ngvrCfwdCheck)
-                            || ngvrCfwdCheck != nTreasuryCfwd) {
-                            LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwd, ngvrCfwdCheck);
+                        CAmount nGvrCfwd = ngvrBfwd + nCalculatedStakeReward - nStakeReward;
+                        if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)
+                            || ngvrCfwdCheck != nGvrCfwd) {
+                            LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nGvrCfwd, ngvrCfwdCheck);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
                     }

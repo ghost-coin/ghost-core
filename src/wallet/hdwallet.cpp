@@ -13539,32 +13539,16 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             auto& rewardTracker = initColdReward();
             const auto& eligibleAddresses = rewardTracker.getEligibleAddresses(nBlockHeight);
             auto isStakerGvrEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
-                                                    [&stakerAddrDest, this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                                                    [&stakerAddrDest](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
                 const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
                 return trackedAddrDest == stakerAddrDest;
             });
 
             // Place devfunds
             CAmount devFundOut = (nRewardFeesExcluded * 16) / 100; // 16% goes to devfund
-            OUTPUT_PTR<CTxOutStandard> devFundOutTx = MAKE_OUTPUT<CTxOutStandard>();
-            devFundOutTx->nValue = devFundOut;
-
-            CScript scriptDevFund;
-            std::vector<uint8_t> vData;
-
-            // @TODO change the address with the correct dev fund address provided
-            const CTxDestination devAddr = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
-            if (IsValidDestination(devAddr)) {
-                if (!GetScriptForDest(scriptDevFund, devAddr, true, &vData)) {
-                    return werror("%s: Could not get script for dev fund address", __func__);
-                }
-            }
-            devFundOutTx->scriptPubKey = scriptDevFund;
-            txNew.vpout.insert(txNew.vpout.begin() + 1, devFundOutTx);
-
-            nRewardOut = nReward - devFundOut;
 
             CAmount nGVRfwd = 0;
+            CAmount nTreasuryBfwd = 0;
 
             if (nBlockHeight > 1) { // genesis block is pow
                 LOCK(cs_main);
@@ -13572,10 +13556,48 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                     return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
                 }
 
-                if (!txPrevCoinstake->GetTreasuryFundCfwd(nGVRfwd)) {
+                if (!txPrevCoinstake->GetGvrFundCfwd(nGVRfwd)) {
                     nGVRfwd = 0;
                 }
+
+                if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
+                    nTreasuryBfwd = 0;
+                }
             }
+
+            CAmount nTreasuryCfwd = nTreasuryBfwd + devFundOut;
+            bool devFundPaid = false;
+            if (nBlockHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
+                OUTPUT_PTR<CTxOutStandard> devFundOutTx = MAKE_OUTPUT<CTxOutStandard>();
+                devFundOutTx->nValue = nTreasuryCfwd;
+
+                CScript scriptDevFund;
+                std::vector<uint8_t> vData;
+
+                const CTxDestination devAddr = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
+                if (IsValidDestination(devAddr)) {
+                    if (!GetScriptForDest(scriptDevFund, devAddr, true, &vData)) {
+                        return werror("%s: Could not get script for dev fund address", __func__);
+                    }
+                }
+                devFundOutTx->scriptPubKey = scriptDevFund;
+                txNew.vpout.insert(txNew.vpout.begin() + 1, devFundOutTx);
+                devFundPaid = true;
+            } else {
+                // Add the dev fund to carried forward
+                std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
+
+                vCfwd[0] = DO_TREASURY_FUND_CFWD;
+                if (0 != part::PutVarInt(vCfwd, nTreasuryCfwd)) {
+                    return werror("%s: PutVarInt failed: %d.", __func__, nTreasuryCfwd);
+                }
+                vData.insert(vData.end(), vCfwd.begin(), vCfwd.end());
+                CAmount test_cfwd = 0;
+                assert(ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, test_cfwd));
+                assert(test_cfwd == nTreasuryCfwd);
+            }
+
+            nRewardOut = nReward - devFundOut;
 
             CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
             CAmount gvrOutTotal = nGVRfwd + gvrOut;
@@ -13586,21 +13608,22 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                 OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
                 gvrOutTx->nValue = gvrOutTotal;                
                 gvrOutTx->scriptPubKey = scriptPubKeyKernel;
-                txNew.vpout.insert(txNew.vpout.begin() + 2, gvrOutTx);
+                if (devFundPaid)
+                    txNew.vpout.insert(txNew.vpout.begin() + 2, gvrOutTx);
+                else 
+                    txNew.vpout.insert(txNew.vpout.begin() + 1, gvrOutTx);
             } else {
                 // Add the GVR to carried forward. We will pay it when the staker is veteran
                 std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
 
-                CAmount gvrOutCfwd = gvrOutTotal;
-
-                vCfwd[0] = DO_TREASURY_FUND_CFWD;
-                if (0 != part::PutVarInt(vCfwd, gvrOutCfwd)) {
-                    return werror("%s: PutVarInt failed: %d.", __func__, gvrOutCfwd);
+                vCfwd[0] = DO_GVR_FUND_CFWD;
+                if (0 != part::PutVarInt(vCfwd, gvrOutTotal)) {
+                    return werror("%s: PutVarInt failed: %d.", __func__, gvrOutTotal);
                 }
                 vData.insert(vData.end(), vCfwd.begin(), vCfwd.end());
                 CAmount test_cfwd = 0;
-                assert(ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, test_cfwd));
-                assert(test_cfwd == gvrOutCfwd);
+                assert(ExtractCoinStakeInt64(vData, DO_GVR_FUND_CFWD, test_cfwd));
+                assert(test_cfwd == gvrOutTotal);
             }
         }
 
