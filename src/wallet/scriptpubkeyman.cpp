@@ -1210,6 +1210,13 @@ CPubKey LegacyScriptPubKeyMan::GenerateNewKey(WalletBatch &batch, CHDChain& hd_c
     return pubkey;
 }
 
+//! Try to derive an extended key, throw if it fails.
+static void DeriveExtKey(CExtKey& key_in, unsigned int index, CExtKey& key_out) {
+    if (!key_in.Derive(key_out, index)) {
+        throw std::runtime_error("Could not derive extended key");
+    }
+}
+
 void LegacyScriptPubKeyMan::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey& secret, CHDChain& hd_chain, bool internal)
 {
     // for now we use a fixed keypath scheme of m/0'/0'/k
@@ -1227,11 +1234,11 @@ void LegacyScriptPubKeyMan::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& 
 
     // derive m/0'
     // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    masterKey.Derive(accountKey, BIP32_HARDENED_KEY_LIMIT);
+    DeriveExtKey(masterKey, BIP32_HARDENED_KEY_LIMIT, accountKey);
 
     // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
     assert(internal ? m_storage.CanSupportFeature(FEATURE_HD_SPLIT) : true);
-    accountKey.Derive(chainChildKey, BIP32_HARDENED_KEY_LIMIT+(internal ? 1 : 0));
+    DeriveExtKey(accountKey, BIP32_HARDENED_KEY_LIMIT+(internal ? 1 : 0), chainChildKey);
 
     // derive child key at next index, skip keys already known to the wallet
     do {
@@ -1239,7 +1246,7 @@ void LegacyScriptPubKeyMan::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& 
         // childIndex | BIP32_HARDENED_KEY_LIMIT = derive childIndex in hardened child-index-range
         // example: 1 | BIP32_HARDENED_KEY_LIMIT == 0x80000001 == 2147483649
         if (internal) {
-            chainChildKey.Derive(childKey, hd_chain.nInternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
+            DeriveExtKey(chainChildKey, hd_chain.nInternalChainCounter | BIP32_HARDENED_KEY_LIMIT, childKey);
             metadata.hdKeypath = "m/0'/1'/" + ToString(hd_chain.nInternalChainCounter) + "'";
             metadata.key_origin.path.push_back(0 | BIP32_HARDENED_KEY_LIMIT);
             metadata.key_origin.path.push_back(1 | BIP32_HARDENED_KEY_LIMIT);
@@ -1247,7 +1254,7 @@ void LegacyScriptPubKeyMan::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& 
             hd_chain.nInternalChainCounter++;
         }
         else {
-            chainChildKey.Derive(childKey, hd_chain.nExternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
+            DeriveExtKey(chainChildKey, hd_chain.nExternalChainCounter | BIP32_HARDENED_KEY_LIMIT, childKey);
             metadata.hdKeypath = "m/0'/0'/" + ToString(hd_chain.nExternalChainCounter) + "'";
             metadata.key_origin.path.push_back(0 | BIP32_HARDENED_KEY_LIMIT);
             metadata.key_origin.path.push_back(0 | BIP32_HARDENED_KEY_LIMIT);
@@ -1583,7 +1590,8 @@ void LegacyScriptPubKeyMan::LearnRelatedScripts(const CPubKey& key, OutputType t
         CTxDestination witdest = WitnessV0KeyHash(key.GetID());
         CScript witprog = GetScriptForDestination(witdest);
         // Make sure the resulting program is solvable.
-        assert(IsSolvable(*this, witprog));
+        const auto desc = InferDescriptor(witprog, *this);
+        assert(desc && desc->IsSolvable());
         AddCScript(witprog);
     }
 }

@@ -187,9 +187,9 @@ public:
     bool SignSchnorr(const uint256& hash, Span<unsigned char> sig, const uint256* merkle_root, const uint256& aux) const;
 
     //! Derive BIP32 child key.
-    bool Derive(CKey& keyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const;
+    [[nodiscard]] bool Derive(CKey& keyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const;
 
-    bool Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
+    [[nodiscard]] bool Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
 
     /**
      * Verify thoroughly whether a private key and a public key match.
@@ -230,7 +230,7 @@ struct CExtKey {
 
     void Encode(unsigned char code[BIP32_EXTKEY_SIZE]) const;
     void Decode(const unsigned char code[BIP32_EXTKEY_SIZE]);
-    bool Derive(CExtKey& out, unsigned int nChild) const;
+    [[nodiscard]] bool Derive(CExtKey& out, unsigned int nChild) const;
     CExtPubKey Neuter() const;
     void SetSeed(Span<const std::byte> seed);
 };

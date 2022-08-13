@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -164,11 +164,13 @@ void RunDeriveTest(std::vector<DeriveTestData> &vData)
         for (uint32_t d = 0; d < dt.nDerives; ++d) {
             rv += evkey[d % 2].Derive(evkey[(d+1) % 2], 1);
         }
+
         BOOST_CHECK(dt.nDerives == (uint32_t)rv);
         evkeyOut = evkey[dt.nDerives % 2];
 
         BOOST_CHECK(CBitcoinExtKey(evkeyOut).ToString().c_str());
         BOOST_CHECK(evkeyOut.nDepth == dt.nDerives % 256);
+        // ndepth used to wrap around: dt.nDerives % 256
 
         BOOST_CHECK(0 == strcmp(CBitcoinExtKey(evkeyOut).ToString().c_str(), dt.vKey58.c_str()));
 
@@ -192,10 +194,9 @@ void RunDeriveTests()
         DeriveTestData(1,
             std::string("XPARHAt1XMcNYAwP5yxEEqHXkbawBq31u2WW5SPBRdw8j8tPjKCLeUJFoNhVYANn5Y2BkQrmYMZFBUteSXPFWSS47MyP2PckLRJNptsfPx99Hqsd"),
             std::string("PPARTKPL4rp5WLnrYRpBPySBKNwQbcNxtP22g5PYFeVLri914xwnzewmxBH4dTMd6Xf578bi3sUnLpix65m2gENpWRdwGM5L7fM4Q4FU5StZaV2D")),
-
-        DeriveTestData(350,
-            std::string("XPARHDuzfjhA9hhyH5g3X5bwjBkUAcZpJUfeF5T2UrnHvqsWYEKGFLcLtmaMcktytFiY1hnut6SxQkN6XqhtBJXCSbNuJXaQ26eyVaTZVZ5j37bL"),
-            std::string("PPARTNRKDEts7sZSjXXzgDkbHy6waPumHqBAqiTPJsLW4R87st4ibXFs3a9vi3uVdvy14rJQxqfKLKuqnVZboDCadnzgRR1TicCxDYke1jRB4hUk")),
+        DeriveTestData(94,
+            std::string("XPARHDuhLXcRn96RJLvTrx4PVi7haWhQjNmBZSfABEn4vAbngbhwDdgdeqcQ3aHoJq9r2QQL2yH8ggzEPWam7f3QyX7TURgPTLdQzTgQZ4mfbZQr"),
+            std::string("PPARTNR1t2p8kJwtknnR26D34VUAzJ3MijGiA5fX1FLH3jrQ2FTPZpL9oeBy8sLMHSSpJUwAPf5TJiAA2zAnkYzyAJUunWCy8mnit5addzXgEyuM")),
     };
 
     std::vector<DeriveTestData> vTestNetPairs = {
@@ -205,10 +206,9 @@ void RunDeriveTests()
         DeriveTestData(1,
             std::string("xparFfqM6xibpb6fDtB6tLPNpC89yZejLSqW4CTaGbVkkws3VtRrw3siNhGBxuAFAy1C6rMbrbasWFsMSLho4imGzV1DFczz8ZfcDVuKLSj11kc"),
             std::string("pparszFbdzdENYiiv8djUKDBhhYZjDegiweri9Fv4NMaaT9qtp11jRmmxuJmj2guRodVqE1jj7vJxZUm2fzBCUPxfrvCAi5iD2SinpS3Vu1KTDZL")),
-
-        DeriveTestData(350,
-            std::string("xparJhpVV3WDMMgrKbzP8eoMQMf8m6T8nbyfhGJdVSexTvyrR1MToMxoma8GZRN3tfMTPnVwbVJ6mjKSkfLTvoucDtXVPaefovGGu5oQwNoJECr"),
-            std::string("ppart3HanNi1z5VK7EMYkZXbgHi6i1BV8PozsnKm7bCjnA8xhj7wLJ5s4JBdodEmyCwRnwiSe66qx4fej5nkKTDioEGwKn1qoyJccJwDSBXEsZmM")),
+        DeriveTestData(94,
+            std::string("xparJhXAGxmqnk8sarQj17F7vitYfE3ZghWz4USKsSRwnfFznQ2S6SFZqcAhNpBUU6fU6Pv6UKUNiMTJRYDQHL899d5fHge73thmnJeUTAJ16St"),
+            std::string("ppart3HHTAdHcWsm8Vby6Rz3Sp5L7uK5ZHuYC9XtoyCWmUsEr6WcJbA9pNDgESfdciRF2aMC4uWyvSuxyaPwGo27KjmAgsDME8tPGqmD4Sg85X3t")),
     };
     CBitcoinExtKey extKey58;
 

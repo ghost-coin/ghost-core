@@ -376,7 +376,8 @@ bool CKey::Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild
     return ret;
 }
 /*
-bool CExtKey::Derive(CExtKey &out, unsigned int nChild) const {
+bool CExtKey::Derive(CExtKey &out, unsigned int _nChild) const {
+    if (nDepth == std::numeric_limits<unsigned char>::max()) return false;
     out.nDepth = nDepth + 1;
     CKeyID id = key.GetPubKey().GetID();
     memcpy(out.vchFingerprint, &id, 4);

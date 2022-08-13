@@ -39,7 +39,6 @@ static const uint8_t PARTICL_TXN_VERSION = 0xA0;
 static const uint8_t MAX_PARTICL_TXN_VERSION = 0xBF;
 static const uint8_t BTC_TXN_VERSION = 0x02;
 
-
 enum OutputTypes
 {
     OUTPUT_NULL             = 0, // Marker for CCoinsView (0.14)

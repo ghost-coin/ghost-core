@@ -104,8 +104,7 @@ struct CExtPubKey {
     void Decode(const unsigned char code[74]);
     void EncodeWithVersion(unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]) const;
     void DecodeWithVersion(const unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]);
-    bool Derive(CExtPubKey &out, unsigned int nChild) const;
-
+    [[nodiscard]] bool Derive(CExtPubKey &out, unsigned int nChild) const;
 
     template<typename Stream>
     void Serialize(Stream &s) const
@@ -145,7 +144,7 @@ struct CExtKey {
 
     void Encode(unsigned char code[74]) const;
     void Decode(const unsigned char code[74]);
-    bool Derive(CExtKey &out, unsigned int nChild) const;
+    [[nodiscard]] bool Derive(CExtKey &out, unsigned int nChild) const;
     CExtPubKey Neutered() const;
     void SetSeed(const unsigned char *seed, unsigned int nSeedLen);
     void SetSeed(Span<const uint8_t> seed);

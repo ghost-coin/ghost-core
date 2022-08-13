@@ -6062,8 +6062,12 @@ int CHDWallet::ExtKeyImportLoose(CHDWalletDB *pwdb, CStoredExtKey &sekIn, CKeyID
         sek.mapValue[EKVT_KEY_TYPE] = SetChar(v, EKT_BIP44_MASTER);
 
         CExtKey evDerivedKey, evPurposeKey;
-        sek.kp.Derive(evPurposeKey, BIP44_PURPOSE);
-        evPurposeKey.Derive(evDerivedKey, (uint32_t)Params().BIP44ID());
+        if (!sek.kp.Derive(evPurposeKey, BIP44_PURPOSE)) {
+            return werrorN(1, "%s: Failed to derive purpose key.", __func__);
+        }
+        if (!evPurposeKey.Derive(evDerivedKey, (uint32_t)Params().BIP44ID())) {
+            return werrorN(1, "%s: Failed to derive bip44 key.", __func__);
+        }
 
         v.resize(0);
         PushUInt32(v, BIP44_PURPOSE);
@@ -6079,18 +6083,17 @@ int CHDWallet::ExtKeyImportLoose(CHDWalletDB *pwdb, CStoredExtKey &sekIn, CKeyID
         idDerived = sekDerived.GetID();
 
         if (pwdb->ReadExtKey(idDerived, sekExist)) {
-            if (fSaveBip44
-                && !fsekInExist) {
+            if (fSaveBip44 &&
+                !fsekInExist) {
                 // Assume the user wants to save the bip44 key, drop down
             } else {
                 return werrorN(12, "%s: %s", __func__, ExtKeyGetString(12));
             }
         } else {
-            if (IsCrypted()
-                && (ExtKeyEncrypt(&sekDerived, vMasterKey, false) != 0)) {
+            if (IsCrypted() &&
+                (ExtKeyEncrypt(&sekDerived, vMasterKey, false) != 0)) {
                 return werrorN(1, "%s: ExtKeyEncrypt failed.", __func__);
             }
-
             if (!pwdb->WriteExtKey(idDerived, sekDerived)) {
                 return werrorN(1, "%s: DB Write failed.", __func__);
             }
@@ -6338,8 +6341,12 @@ int CHDWallet::ExtKeyNewMaster(CHDWalletDB *pwdb, CKeyID &idMaster, bool fAutoGe
     CKeyID idRoot = sekRoot.GetID();
 
     CExtKey evMasterKey;
-    evRootKey.Derive(evMasterKey, BIP44_PURPOSE);
-    evMasterKey.Derive(evMasterKey, Params().BIP44ID());
+    if (!evRootKey.Derive(evMasterKey, BIP44_PURPOSE)) {
+        return werrorN(1, "%s: Failed to derive purpose key.", __func__);
+    }
+    if (!evMasterKey.Derive(evMasterKey, Params().BIP44ID())) {
+        return werrorN(1, "%s: Failed to derive bip44 key.", __func__);
+    }
 
     std::vector<uint8_t> vPath;
     PushUInt32(vPath, BIP44_PURPOSE);
@@ -8068,8 +8075,8 @@ int CHDWallet::InitAccountStealthV2Chains(CHDWalletDB *pwdb, CExtKeyAccount *sea
     }
 
     CExtKey vkAcc0, vkAcc0_0, vkAccount = sekAccount->kp.GetExtKey();
-    if (!vkAccount.Derive(vkAcc0, 0)
-        || !vkAcc0.Derive(vkAcc0_0, 0)) {
+    if (!vkAccount.Derive(vkAcc0, 0) ||
+        !vkAcc0.Derive(vkAcc0_0, 0)) {
         return werrorN(1, "%s: Derive failed.", __func__);
     }
 
@@ -8188,8 +8195,8 @@ int CHDWallet::SaveStealthAddress(CHDWalletDB *pwdb, CExtKeyAccount *sea, const 
         return werrorN(1, "WriteExtStealthKeyPack failed.");
     }
 
-    if (!pwdb->WriteExtKey(sea->vExtKeyIDs[nScanChain], *sekScan)
-        || (!is_v1_key && !pwdb->WriteExtKey(sea->vExtKeyIDs[nSpendChain], *sekSpend))) {
+    if (!pwdb->WriteExtKey(sea->vExtKeyIDs[nScanChain], *sekScan) ||
+        (!is_v1_key && !pwdb->WriteExtKey(sea->vExtKeyIDs[nSpendChain], *sekSpend))) {
         sea->mapStealthKeys.erase(idKey);
         return werrorN(1, "WriteExtKey failed.");
     }
@@ -11374,7 +11381,11 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             auto provider = GetLegacyScriptPubKeyMan();
             bool fSpendableIn = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (coinControl && coinControl->fAllowWatchOnly && (mine & ISMINE_WATCH_ONLY_) != ISMINE_NO);
             //bool fSolvableIn = (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO;
-            bool fSolvableIn = provider ? IsSolvable(*provider, txout->scriptPubKey) : false;
+            bool fSolvableIn = false;
+            if (provider) {
+                auto inferred = InferDescriptor(txout->scriptPubKey, *provider);
+                fSolvableIn = inferred->IsSolvable();
+            }
             bool fNeedHardwareKey = (mine & ISMINE_HARDWARE_DEVICE);
 
             CTxOut txout_old;

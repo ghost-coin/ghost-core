@@ -301,7 +301,7 @@ void CExtPubKey::Decode(const unsigned char code[74])
 
 bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const
 {
-    // Depth wraps around
+    if (nDepth == std::numeric_limits<unsigned char>::max()) return false;
     out.nDepth = (uint8_t) (nDepth + 1) & 0xFF;
     CKeyID id = pubkey.GetID();
 
@@ -310,11 +310,9 @@ bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const
     return pubkey.Derive(out.pubkey, out.chaincode, nChild, chaincode);
 };
 
-
-
 bool CExtKey::Derive(CExtKey &out, unsigned int nChild) const
 {
-    // Depth wraps around
+    if (nDepth == std::numeric_limits<unsigned char>::max()) return false;
     out.nDepth = (uint8_t) (nDepth + 1) & 0xFF;
     CKeyID id = key.GetPubKey().GetID();
     memcpy(&out.vchFingerprint[0], &id, 4);

@@ -186,8 +186,12 @@ static RPCHelpMan mnemonicrpc()
 
             // m / purpose' / coin_type' / account' / change / address_index
             CExtKey ekDerived;
-            ekMaster.Derive(ekDerived, BIP44_PURPOSE);
-            ekDerived.Derive(ekDerived, (uint32_t)Params().BIP44ID());
+            if (!ekMaster.Derive(ekDerived, BIP44_PURPOSE)) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to derive master key");
+            }
+            if (!ekDerived.Derive(ekDerived, (uint32_t)Params().BIP44ID())) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to derive bip44 key");
+            }
 
             eKey58.SetKey(CExtKeyPair(ekDerived), CChainParams::EXT_SECRET_KEY);
             result.pushKV("derived", eKey58.ToString());

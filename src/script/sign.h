@@ -108,12 +108,6 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const std::vector<uint8_t> &amount, const CScript &scriptPubKey);
 void UpdateInput(CTxIn& input, const SignatureData& data);
 
-/* Check whether we know how to sign for an output like this, assuming we
- * have all private keys. While this function does not need private keys, the passed
- * provider is used to look up public keys and redeemscripts by hash.
- * Solvability is unrelated to whether we consider this output to be ours. */
-bool IsSolvable(const SigningProvider& provider, const CScript& script);
-
 /** Check whether a scriptPubKey is known to be segwit. */
 bool IsSegWitOutput(const SigningProvider& provider, const CScript& script);
 
