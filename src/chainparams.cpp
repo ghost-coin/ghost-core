@@ -824,7 +824,7 @@ public:
             }
         };
         
-        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 1, 1));
+        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 1, 10));
         consensus.gvrThreshold = 10000 * COIN;
         consensus.minRewardRangeSpan = 10; // 10 blocks for testnet
         chainTxData = ChainTxData{

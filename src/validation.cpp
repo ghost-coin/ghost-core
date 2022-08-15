@@ -3031,6 +3031,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             const CAmount nCalculatedStakeReward = Params().GetProofOfStakeReward(pindex->pprev, nFees); // stake_test
             const float nCalculatedStakeRewardReal = (float) nCalculatedStakeReward / COIN; // stake_test
             const CAmount nCalculatedStakeRewardWithoutFees = nCalculatedStakeReward - nFees;
+            CAmount ngvrCfwdCheck = 0, ngvrBfwd = 0;
+            bool devFundPaidOut = false;
 
             if (block.nTime >= consensus.smsg_fee_time) {
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
@@ -3190,8 +3192,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 } else {
 
                     CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
-                    CAmount ngvrCfwdCheck = 0, ngvrBfwd = 0, nTreasuryBfwd = 0, nTreasuryCfwdCheck = 0;
-                    bool devFundPaidOut = false;
+                    CAmount nTreasuryBfwd = 0, nTreasuryCfwdCheck = 0;
 
                     if (pindex->pprev->nHeight > 0) { // Genesis block is pow
                         if (!txPrevCoinstake
@@ -3241,78 +3242,76 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         devFundPaidOut = true;
                     } else {
                         // The dev fund carried forward has to be set
-                        CAmount nTreasuryCfwd = nTreasuryBfwd + nCalculatedStakeReward - nStakeReward;
+                        CAmount nTreasuryCfwd = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * 16) / 100);;
                         if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
                             || nTreasuryCfwdCheck != nTreasuryCfwd) {
                             LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
                     }
-                    
-                    auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
+                }
+            }
+            if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+                auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
+                CTxDestination stakerAddrDest;
+                uint256 kernelhash, kernelblockhash;
 
-                    CTxDestination stakerAddrDest;
-                    uint256 kernelhash, kernelblockhash;
+                const COutPoint& prevout = (*block.vtx[0]).vin[0].prevout;
 
-                    const COutPoint& prevout = (*block.vtx[0]).vin[0].prevout;
+                CTransactionRef txPrev;
+                CBlock blockKernel;
 
-                    CTransactionRef txPrev;
-                    CBlock blockKernel;
-
-                    if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel, true)){
-                        return error("Can't get kernel transaction details\n");
-                    }
-
-                    const CTxOutBase* outPrev = txPrev->vpout[prevout.n].get();
-                    kernelvalue = outPrev->GetValue();
-                    outPrev->GetScriptPubKey(kernelScriptPubKey);
-                    ExtractDestination(kernelScriptPubKey, stakerAddrDest);
-                    LogPrintf("%s Kernel out value=%s kernel out addr=%s\n", __func__, outPrev->GetValue(), EncodeDestination(stakerAddrDest));
-
-                    // Check if the staker of the block was eligible and that the gvr went to him
-                    
-                    auto wasEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(), 
-                                                [&stakerAddrDest, this](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
-                                            const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
-                                            return trackedAddrDest == stakerAddrDest;
-                                        });
-
-                    if (wasEligible != eligibleAddresses.end()) {
-                        // if he was elig then the vpout[2] is the gvr out 
-                        // The staker was eligible then compare scripts
-                        CScript gvrReceiverScript;
-                       
-                        if (devFundPaidOut) {
-                            txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
-                        } else {
-                            txCoinstake->vpout[1]->GetScriptPubKey(gvrReceiverScript);
-                        }
-
-                        if (kernelScriptPubKey != gvrReceiverScript) {
-                            LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match\n", __func__);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-script");
-                        }
-
-                    } else {
-                        // The staker was not eligible so the carried forward has to be set
-                        // The carried forward is set since there were no gvr output
-                        if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)) {
-                            LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
-                        }
-
-                        CAmount nGvrCfwd = ngvrBfwd + nCalculatedStakeReward - nStakeReward;
-                        if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)
-                            || ngvrCfwdCheck != nGvrCfwd) {
-                            LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nGvrCfwd, ngvrCfwdCheck);
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
-                        }
-                    }
-                    
+                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel, true)){
+                    return error("Can't get kernel transaction details\n");
                 }
 
-                coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
+                const CTxOutBase* outPrev = txPrev->vpout[prevout.n].get();
+                kernelvalue = outPrev->GetValue();
+                outPrev->GetScriptPubKey(kernelScriptPubKey);
+                ExtractDestination(kernelScriptPubKey, stakerAddrDest);
+                LogPrintf("%s Kernel out value=%s kernel out addr=%s\n", __func__, outPrev->GetValue(), EncodeDestination(stakerAddrDest));
+
+                // Check if the staker of the block was eligible and that the gvr went to him
+
+                auto wasEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(),
+                                            [&stakerAddrDest](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                                        const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
+                                        return trackedAddrDest == stakerAddrDest;
+                                    });
+
+                if (wasEligible != eligibleAddresses.end()) {
+                    // if he was elig then the vpout[2] is the gvr out
+                    // The staker was eligible then compare scripts
+                    CScript gvrReceiverScript;
+
+                    if (devFundPaidOut) {
+                        txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
+                    } else {
+                        txCoinstake->vpout[1]->GetScriptPubKey(gvrReceiverScript);
+                    }
+
+                    if (kernelScriptPubKey != gvrReceiverScript) {
+                        LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match\n", __func__);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-script");
+                    }
+
+                } else {
+                    // The staker was not eligible so the carried forward has to be set
+                    // The carried forward is set since there were no gvr output
+                    if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)) {
+                        LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                    }
+
+                    CAmount nGvrCfwd = ngvrBfwd + ((nCalculatedStakeRewardWithoutFees * 50) / 100);;
+                    if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)
+                        || ngvrCfwdCheck != nGvrCfwd) {
+                        LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nGvrCfwd, ngvrCfwdCheck);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                    }
+                }
             }
+            coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
         } else {
             if (blockHash != chainparams.GetConsensus().hashGenesisBlock) {
                 LogPrintf("ERROR: %s: Block isn't coinstake or genesis.\n", __func__);

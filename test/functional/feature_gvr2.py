@@ -15,7 +15,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [['-debug', '-anonrestricted=0', '-reservebalance=0',  '-txindex=1'] for i in range(self.num_nodes)]
+        self.extra_args = [['-debug', '-anonrestricted=0', '-reservebalance=1100',  '-txindex=1'] for i in range(self.num_nodes)]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -82,7 +82,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
 
         self.start_node(0, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
         self.start_node(1, ['-wallet=default_wallet', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
-        self.start_node(2, ['-wallet=default_wallet', '-reservebalance=1025', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
+        self.start_node(2, ['-wallet=default_wallet', '-reservebalance=1100', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
 
         self.import_genesis_coins_a(nodes[0])
         self.import_genesis_coins_b(nodes[1])
@@ -106,7 +106,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
         self.connect_nodes_bi(1, 2)
 
         for n in nodes:
-            n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 10})
+            n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 1})
 
         node2_to_addr = treas_addr
         amount = 10_002
@@ -196,7 +196,7 @@ class GhostVeteranReward2Test(GhostTestFramework):
 
         self.start_node(0, ['-wallet=default_wallet', '-reservebalance=10000000', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
         self.start_node(1, ['-wallet=default_wallet', '-reservebalance=10000000', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
-        self.start_node(2, ['-wallet=default_wallet', '-reservebalance=10000000', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
+        self.start_node(2, ['-wallet=default_wallet', '-reservebalance=1100', '-txindex', '-debug', '-anonrestricted=0', '-gvrthreshold=1000000000000', '-minrewardrangespan=5', '-automatedgvrstartheight=0'])
 
         nodes[0].walletsettings('stakingoptions', {'rewardaddress': reward_address0, 'enabled': False})
         nodes[1].walletsettings('stakingoptions', {'rewardaddress': reward_address1, 'enabled': False})
