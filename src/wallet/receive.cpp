@@ -255,7 +255,8 @@ CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, 
 void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
                   std::list<COutputEntry>& listReceived,
                   std::list<COutputEntry>& listSent,
-                  std::list<COutputEntry>& listStaked, CAmount& nFee, const isminefilter& filter, bool fForFilterTx)
+                  std::list<COutputEntry>& listStaked, CAmount& nFee, const isminefilter& filter,
+                  bool include_change, bool fForFilterTx)
 {
     nFee = 0;
     listReceived.clear();
@@ -334,8 +335,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
             //   1) they debit from us (sent)
             //   2) the output is to us (received)
             if (nDebit > 0) {
-                // Don't report 'change' txouts
-                if (wallet.IsChange(txout))
+                if (!include_change && wallet.IsChange(txout))
                     continue;
             } else
             if (!(fIsMine & filter)) {
@@ -372,8 +372,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
                 listReceived.push_back(output);
             }
         }
-    } else
-    {
+    } else {
         for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i)
         {
             const CTxOut& txout = wtx.tx->vout[i];
@@ -383,8 +382,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
             //   2) the output is to us (received)
             if (nDebit > 0)
             {
-                // Don't report 'change' txouts
-                if (OutputIsChange(wallet, txout))
+                if (!include_change && OutputIsChange(wallet, txout))
                     continue;
             }
             else if (!(fIsMine & filter))

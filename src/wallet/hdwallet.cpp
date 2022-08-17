@@ -3807,7 +3807,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // Choose coins to us
             if (pick_new_inputs) {
                 nValueIn = 0;
-                std::optional<SelectionResult> result = SelectCoins(available_coins.all(), nValueToSelect, *coinControl, coin_selection_params);
+                std::optional<SelectionResult> result = SelectCoins(available_coins.All(), nValueToSelect, *coinControl, coin_selection_params);
 
                 if (!result) {
                     return wserrorN(1, sError, __func__, _("Insufficient funds.").translated);
@@ -10161,7 +10161,7 @@ void CHDWallet::PostProcessUnloadSpent()
         available_coins = AvailableCoins();
     }
 
-    for (const COutput& coin : available_coins.all()) {
+    for (const COutput& coin : available_coins.All()) {
         CTransactionRef tx;
         {
         LOCK(cs_wallet);
@@ -11393,7 +11393,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
                 continue;
             }
             int input_bytes = CalculateMaximumSignedInputSize(txout_old, COutPoint(), provider, coinControl);
-            result.other.emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
+            result.coins[OutputType::UNKNOWN].emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
@@ -11405,7 +11405,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             }
 
             // Checks the maximum number of UTXO's.
-            if (nMaximumCount > 0 && result.size() >= nMaximumCount) {
+            if (nMaximumCount > 0 && result.Size() >= nMaximumCount) {
                 return result;
             }
         }
@@ -11484,7 +11484,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             bool from_me = rtx.vin.size() > 0;
             int64_t time = rtx.GetTxTime();
             int input_bytes = CalculateMaximumSignedInputSize(txout, this, coinControl);
-            result.other.emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
+            result.coins[OutputType::UNKNOWN].emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
 
             if (nMinimumSumAmount != MAX_MONEY) {
                 result.total_amount += r.nValue;
@@ -11495,7 +11495,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             }
 
             // Checks the maximum number of UTXO's.
-            if (nMaximumCount > 0 && result.size() >= nMaximumCount) {
+            if (nMaximumCount > 0 && result.Size() >= nMaximumCount) {
                 return result;
             }
         }
@@ -11597,19 +11597,15 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
     bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
 
     CoinsResult available_coins;
-    available_coins.other = vCoins;
+    available_coins.coins[OutputType::UNKNOWN] = vCoins;
 
     // form groups from remaining coins; note that preset coins will not
     // automatically have their associated (same address) coins included
-    if (coin_control.m_avoid_partial_spends && available_coins.size() > OUTPUT_GROUP_MAX_ENTRIES) {
+    if (coin_control.m_avoid_partial_spends && available_coins.Size() > OUTPUT_GROUP_MAX_ENTRIES) {
         // Cases where we have 101+ outputs all pointing to the same destination may result in
         // privacy leaks as they will potentially be deterministically sorted. We solve that by
         // explicitly shuffling the outputs before processing
-        Shuffle(available_coins.legacy.begin(), available_coins.legacy.end(), coin_selection_params.rng_fast);
-        Shuffle(available_coins.P2SH_segwit.begin(), available_coins.P2SH_segwit.end(), coin_selection_params.rng_fast);
-        Shuffle(available_coins.bech32.begin(), available_coins.bech32.end(), coin_selection_params.rng_fast);
-        Shuffle(available_coins.bech32m.begin(), available_coins.bech32m.end(), coin_selection_params.rng_fast);
-        Shuffle(available_coins.other.begin(), available_coins.other.end(), coin_selection_params.rng_fast);
+        available_coins.Shuffle(coin_selection_params.rng_fast);
     }
 
     // Coin Selection attempts to select inputs from a pool of eligible UTXOs to fund the
@@ -12104,7 +12100,7 @@ std::map<CTxDestination, std::vector<COutput>> CHDWallet::ListCoins() const
     coinControl.fAllowLocked = true;
     available_coins = AvailableCoins(&coinControl);
 
-    for (const auto& coin : available_coins.all()) {
+    for (const auto& coin : available_coins.All()) {
         CTransactionRef tx;
         CTxDestination address;
 
@@ -12935,7 +12931,7 @@ size_t CHDWallet::CountColdstakeOutputs()
     coinControl.m_include_immature = true;
     coinControl.m_include_unsafe_inputs = true;
     available_coins = AvailableCoins(&coinControl, std::nullopt, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
-    for (const auto &coin : available_coins.all()) {
+    for (const auto &coin : available_coins.All()) {
         if (HasIsCoinstakeOp(coin.txout.scriptPubKey)) {
             nColdstakeOutputs++;
         }

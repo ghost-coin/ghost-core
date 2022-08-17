@@ -3113,6 +3113,7 @@ static void ParseOutputs(
         listStaked,
         nFee,
         ISMINE_ALL,
+        false,
         true);
 
     if (hide_zero_coinstakes && !listStaked.empty() && nFee == 0) {
@@ -4601,7 +4602,7 @@ static RPCHelpMan getcoldstakinginfo()
     CAmount nStakeable{0}, nColdStakeable{0}, nWalletStaking{0}, nWalletPendingDepth{0};
     CKeyID keyID;
     CScript coinstakePath;
-    for (const auto &out : available_coins.all()) {
+    for (const auto &out : available_coins.All()) {
         const CScript *scriptPubKey = &out.txout.scriptPubKey;
         CAmount nValue = out.txout.nValue;
 

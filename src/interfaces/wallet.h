@@ -438,13 +438,14 @@ struct WalletTx
     int64_t time;
     std::map<std::string, std::string> value_map;
     bool is_coinbase;
-    bool operator<(const WalletTx& a) const { return tx->GetHash() < a.tx->GetHash(); }
+    bool operator<(const WalletTx& a) const { return GetHash() < a.GetHash(); }
 
     // Particl
+    uint256 GetHash() const { return is_record ? irtx->first : tx->GetHash(); }
     bool is_coinstake{false};
     bool is_record{false};
     MapRecords_t::const_iterator irtx;
-    CHDWallet *partWallet;
+    CHDWallet *partWallet{nullptr};
 };
 
 //! Updated transaction status.

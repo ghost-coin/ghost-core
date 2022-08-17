@@ -75,6 +75,10 @@ WalletModel::~WalletModel()
 
 void WalletModel::startPollBalance()
 {
+    // Update the cached balance right away, so every view can make use of it,
+    // so them don't need to waste resources recalculating it.
+    pollBalanceChanged();
+
     // This timer will be fired repeatedly to update the balance
     // Since the QTimer::timeout is a private signal, it cannot be used
     // in the GUIUtil::ExceptionSafeConnect directly.
@@ -143,13 +147,19 @@ void WalletModel::startRescan()
 
 void WalletModel::checkBalanceChanged(const interfaces::WalletBalances& new_balances)
 {
-    if(new_balances.balanceChanged(m_cached_balances)) {
+    if (new_balances.balanceChanged(m_cached_balances)) {
         bool fHaveWatchOnlyCheck = new_balances.watch_only_balance || new_balances.unconfirmed_watch_only_balance || new_balances.balanceWatchStaked;
-        if (fHaveWatchOnlyCheck != fHaveWatchOnly)
+        if (fHaveWatchOnlyCheck != fHaveWatchOnly) {
             updateWatchOnlyFlag(fHaveWatchOnlyCheck);
+        }
         m_cached_balances = new_balances;
         Q_EMIT balanceChanged(new_balances);
     }
+}
+
+interfaces::WalletBalances WalletModel::getCachedBalance() const
+{
+    return m_cached_balances;
 }
 
 void WalletModel::updateTransaction()
@@ -237,7 +247,9 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
     // Particl: Avoid unused-but-set-variable error, balance will be checked in rpc function
     assert(MoneyRange(total));
     /*
-    CAmount nBalance = m_wallet->getAvailableBalance(coinControl);
+    // If no coin was manually selected, use the cached balance
+    // Future: can merge this call with 'createTransaction'.
+    CAmount nBalance = getAvailableBalance(&coinControl);
 
     if(total > nBalance)
     {
@@ -732,4 +744,9 @@ void WalletModel::refresh(bool pk_hash_only)
 uint256 WalletModel::getLastBlockProcessed() const
 {
     return m_client_model ? m_client_model->getBestBlockHash() : uint256{};
+}
+
+CAmount WalletModel::getAvailableBalance(const CCoinControl* control)
+{
+    return control && control->HasSelected() ? wallet().getAvailableBalance(*control) : getCachedBalance().balance;
 }
