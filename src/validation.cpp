@@ -6378,6 +6378,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     BlockValidationState state;
     int reportDone = 0;
     [[maybe_unused]] ColdRewardTracker& tracker = initColdReward();
+    tracker.revertPersistedTransaction();
 
     LogPrintf("[0%%]..."); /* Continued */
     for (pindex = ::ChainActive().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {

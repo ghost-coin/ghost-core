@@ -23,6 +23,7 @@ public:
     unsigned getRewardMultiplier() const;
     unsigned getPrevRewardMultiplier() const;
     void newEnd(int value);
+    void newStart(int value);
 
     SERIALIZE_METHODS(BlockHeightRange, obj) {
         READWRITE(obj.start, obj.end, obj.rewardMultiplier, obj.prevMultiplier);

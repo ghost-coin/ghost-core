@@ -113,6 +113,28 @@ std::string StringFromVecUint8(const ColdRewardTracker::AddressType& vec)
 
 BOOST_FIXTURE_TEST_SUITE(coldreward_tests, ColdRewardsSetup)
 
+
+BOOST_AUTO_TEST_CASE(removeAddressTransaction) {
+
+    std::string addrStr = "abc";
+    AddressType addr = VecUint8FromString(addrStr);
+
+    tracker.startPersistedTransaction();
+    tracker.addAddressTransaction(27505, addr, 20001 * COIN, checkpoints);
+    tracker.addAddressTransaction(27506, addr, 40001 * COIN, checkpoints);
+    tracker.addAddressTransaction(27507, addr, 40001 * COIN, checkpoints);
+    tracker.addAddressTransaction(27508, addr, 40001 * COIN, checkpoints);
+    tracker.addAddressTransaction(27509, addr, 40001 * COIN, checkpoints);
+    tracker.addAddressTransaction(27510, addr, 40001 * COIN, checkpoints);
+    
+    tracker.endPersistedTransaction();
+
+    tracker.removeAddressTransaction(27510, addr, 40001 * COIN);
+    // tracker.removeAddressTransaction(27509, addr, 40001 * COIN);
+    tracker.removeAddressTransaction(27508, addr, 40001 * COIN);
+    tracker.removeAddressTransaction(27507, addr, 20001 * COIN);
+}
+
 BOOST_AUTO_TEST_CASE(basic)
 {
     std::string addrStr = "abc";
