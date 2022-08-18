@@ -691,7 +691,7 @@ static RPCHelpMan smsgimportprivkey()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
     }
 
-    std::string strLabel = "";
+    std::string strLabel;
     if (!request.params[1].isNull()) {
         strLabel = request.params[1].get_str();
     }

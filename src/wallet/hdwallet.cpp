@@ -49,8 +49,6 @@
 #include <algorithm>
 #include <thread>
 
-#include <boost/algorithm/string/replace.hpp>
-
 using interfaces::FoundBlock;
 
 static constexpr size_t OUTPUT_GROUP_MAX_ENTRIES{100};
@@ -11097,7 +11095,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, c
     std::string strCmd = gArgs.GetArg("-walletnotify", "");
 
     if (!strCmd.empty()) {
-        boost::replace_all(strCmd, "%s", txhash.GetHex());
+        ReplaceAll(strCmd, "%s", txhash.GetHex());
         std::thread t(runCommand, strCmd);
         t.detach(); // thread runs free
     }

@@ -1024,7 +1024,7 @@ static RPCHelpMan extkey()
     EnsureWalletIsUnlocked(pwallet);
 
     std::string mode = "list";
-    std::string sInKey = "";
+    std::string sInKey;
 
     uint32_t nParamOffset = 0;
     if (request.params.size() > 0) {
@@ -1636,7 +1636,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
 
     std::string sLblMaster = "Master Key";
     std::string sLblAccount = "Default Account";
-    std::string sPassphrase = "";
+    std::string sPassphrase;
     std::string sError;
     int64_t nScanFrom = 1;
     int create_extkeys = 0;
@@ -2899,7 +2899,7 @@ static RPCHelpMan deriverangekeys()
                         vPath.clear();
                     }
 
-                    std::string strAccount = "";
+                    std::string strAccount;
                     if (f256bit) {
                         pwallet->SetAddressBook(&wdb, idk256, strAccount, "receive", vPath, false);
                     } else {
@@ -3714,7 +3714,7 @@ static RPCHelpMan filtertransactions()
     unsigned int count     = 10;
     int          skip      = 0;
     isminefilter watchonly = ISMINE_SPENDABLE;
-    std::string  search    = "";
+    std::string  search;
     std::string  category  = "all";
     std::string  type      = "all";
     std::string  sort      = "time";

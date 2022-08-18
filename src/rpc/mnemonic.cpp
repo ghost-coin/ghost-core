@@ -54,7 +54,7 @@ static RPCHelpMan mnemonicrpc()
         },
     [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    std::string mode = "";
+    std::string mode;
 
     if (request.params.size() > 0) {
         std::string s = request.params[0].get_str();

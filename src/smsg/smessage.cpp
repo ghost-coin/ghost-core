@@ -67,7 +67,6 @@ Notes:
 #include <limits>
 
 #include <xxhash/xxhash.h>
-#include <boost/algorithm/string/replace.hpp>
 
 smsg::CSMSG smsgModule;
 
@@ -2637,7 +2636,7 @@ int CSMSG::ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t
 
             //TODO: Format message
             if (!strCmd.empty()) {
-                boost::replace_all(strCmd, "%s", EncodeDestination(PKHash(addressTo)));
+                ReplaceAll(strCmd, "%s", EncodeDestination(PKHash(addressTo)));
                 std::thread t(runCommand, strCmd);
                 t.detach(); // thread runs free
             }
