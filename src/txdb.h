@@ -33,6 +33,8 @@ const char DB_SPENTCACHE = 'S';
 const char DB_GVR_RANGE = 'g';
 const char DB_GVR_BALANCE = 'v';
 const char DB_GVR_CHECKPOINT = 'r';
+static const char DB_TRACKER_INPUTS_UNDO = 'U';
+static const char DB_TRACKER_OUTPUTS_UNDO = 'N';
 
 //! -dbcache default (MiB)
 static const int64_t nDefaultDbCache = 450;

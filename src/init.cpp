@@ -911,6 +911,12 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
     // the relevant pointers before the ABC call.
     for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
         BlockValidationState state;
+        bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
+        if (fReindexChainState || fReindex) {
+            LogPrintf("%s Clearing tracked data \n", __func__);
+            clearTrackedData();
+        }
+
         if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
             LogPrintf("Failed to connect best block (%s)\n", state.ToString());
             //StartShutdown();

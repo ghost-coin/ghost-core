@@ -3720,6 +3720,36 @@ std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
     return ranges;
 }
 
+void clearTrackedData() {
+    auto allRanges = allRangesGetter();
+
+    for (auto& range: allRanges) {
+        pblocktree->Erase(std::make_pair(DB_GVR_RANGE, range.first));
+        pblocktree->Erase(std::make_pair(DB_GVR_BALANCE, range.first));
+    }
+
+    allRanges = allRangesGetter();
+    assert(allRanges.size() == 0 && "Tracked data not reset during -reindex-chainstate or -reindex");
+
+    ColdRewardUndo undoData;
+    pblocktree->ReadRewardTrackerUndo(undoData, 1);
+
+    for(auto& inputs: undoData.inputs) {
+        pblocktree->Erase(std::make_pair(DB_TRACKER_INPUTS_UNDO, inputs.first));
+    }
+
+    for(auto& outputs: undoData.outputs) {
+        pblocktree->Erase(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, outputs.first));
+    }
+
+    undoData.inputs.clear();
+    undoData.outputs.clear();
+
+    pblocktree->ReadRewardTrackerUndo(undoData, 1);
+    assert(undoData.inputs.size() == 0 && "Undo inputs tracked data not reset during -reindex-chainstate or -reindex");
+    assert(undoData.outputs.size() == 0 && "Undo outputs tracked data not reset during -reindex-chainstate or -reindex");
+}
+
 CAmount balanceGetter(const AddressType& addr) {
     CAmount balance{0};
     pblocktree->Read(std::make_pair(DB_GVR_BALANCE, addr), balance);

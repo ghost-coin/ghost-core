@@ -1115,5 +1115,6 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconn
 void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
 
 ColdRewardTracker& initColdReward();
+void clearTrackedData();
 
 #endif // BITCOIN_VALIDATION_H

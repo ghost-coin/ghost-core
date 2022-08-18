@@ -39,8 +39,6 @@ static const char DB_HEAD_BLOCKS = 'H';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
-static const char DB_TRACKER_INPUTS_UNDO = 'U';
-static const char DB_TRACKER_OUTPUTS_UNDO = 'N';
 
 /*
 static const char DB_RCTOUTPUT = 'A';
