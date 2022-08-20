@@ -21,12 +21,6 @@ Next Major Version
   - Workaround for wallet context only provided for wallet rpc commands.
 
 
-22.0.3
-==============
-
-- wallet: Stake thread is awoken when the chain leaves IBD state.
-
-
 22.0.2
 ==============
 
@@ -143,6 +137,16 @@ Next Major Version
   - New 'blind_watchonly_visible' option for coincontrol on sendtypeto command.
   - When 'blind_watchonly_visible' is set blinded outputs sent to stealth addresses can be uncovered with the scan secret only.
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
+
+
+0.19.2.22
+==============
+
+- consensus: Fix rare fork possibility.
+  - A block index is added for an invalid block, to prevent nodes trying
+    to redownload the same block from peers.
+    The failed block index is added to m_failed_blocks, but wasn't being
+    removed when the block index is removed to prevent DoS issues.
 
 
 0.19.2.20
