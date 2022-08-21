@@ -34,7 +34,7 @@ void BlockHeightRange::newEnd(const int value)
 void BlockHeightRange::newStart(const int value) {
     start = value;
     if(start > end) {
-        LogPrintf("%s INVALID RANGE ", __func__);
+        LogPrintf("%s INVALID RANGE \n", __func__);
         throw std::runtime_error("Invalid range: [" + std::to_string(start) + "," + std::to_string(end) + "]");
     }
 }
@@ -46,7 +46,7 @@ BlockHeightRange::BlockHeightRange(const int Start, const int End, const unsigne
       prevMultiplier(PrevRewardMultiplier)
 {
     if(Start > End) {
-        LogPrintf("%s INVALID RANGE ", __func__);
+        LogPrintf("%s INVALID RANGE \n", __func__);
         throw std::runtime_error("Invalid range: [" + std::to_string(Start) + "," + std::to_string(End) + "]");
     }
 }

@@ -287,7 +287,7 @@ void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressT
     // AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
     balances[address] = balance;                                                                                                                                                                                                                                                                                                                                                                                                                   
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
-    LogPrintf("%s Attempt to remove block at height %s for address %s ranges size %d", __func__, blockHeight, std::string(address.begin(), address.end()), ranges.size());
+    LogPrintf("%s Attempt to remove block at height %s for address %s ranges size %d\n", __func__, blockHeight, std::string(address.begin(), address.end()), ranges.size());
 
 
     if (!ranges.empty() && ranges.back().getEnd() > blockHeight) {
