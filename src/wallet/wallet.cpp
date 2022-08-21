@@ -1458,6 +1458,19 @@ bool CWallet::IsMine(const CTransaction& tx) const
     return false;
 }
 
+isminetype CWallet::IsMine(const COutPoint& outpoint) const
+{
+    AssertLockHeld(cs_wallet);
+    auto wtx = GetWalletTx(outpoint.hash);
+    if (!wtx) {
+        return ISMINE_NO;
+    }
+    if (outpoint.n >= wtx->tx->vout.size()) {
+        return ISMINE_NO;
+    }
+    return IsMine(wtx->tx->vout[outpoint.n]);
+}
+
 bool CWallet::IsFromMe(const CTransaction& tx) const
 {
     return (GetDebit(tx, ISMINE_ALL) > 0);
@@ -1543,16 +1556,20 @@ bool CWallet::LoadWalletFlags(uint64_t flags)
     return true;
 }
 
-bool CWallet::AddWalletFlags(uint64_t flags)
+void CWallet::InitWalletFlags(uint64_t flags)
 {
     LOCK(cs_wallet);
+
     // We should never be writing unknown non-tolerable wallet flags
     assert(((flags & KNOWN_WALLET_FLAGS) >> 32) == (flags >> 32));
+    // This should only be used once, when creating a new wallet - so current flags are expected to be blank
+    assert(m_wallet_flags == 0);
+
     if (!WalletBatch(GetDatabase()).WriteWalletFlags(flags)) {
         throw std::runtime_error(std::string(__func__) + ": writing wallet flags failed");
     }
 
-    return LoadWalletFlags(flags);
+    if (!LoadWalletFlags(flags)) assert(false);
 }
 
 // Helper for producing a max-sized low-S low-R signature (eg 71 bytes)
@@ -2915,7 +2932,7 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
     {
         walletInstance->SetMinVersion(FEATURE_LATEST);
 
-        walletInstance->AddWalletFlags(wallet_creation_flags);
+        walletInstance->InitWalletFlags(wallet_creation_flags);
 
         // Only create LegacyScriptPubKeyMan when not descriptor wallet
         if (!walletInstance->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
@@ -3543,7 +3560,6 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
 
         for (bool internal : {false, true}) {
             for (OutputType t : OUTPUT_TYPES) {
-                if (t == OutputType::UNKNOWN) continue;
                 auto spk_manager = std::unique_ptr<DescriptorScriptPubKeyMan>(new DescriptorScriptPubKeyMan(*this));
                 if (IsCrypted()) {
                     if (IsLocked()) {
@@ -3571,7 +3587,7 @@ void CWallet::SetupDescriptorScriptPubKeyMans()
             const UniValue& descriptor_vals = find_value(signer_res, internal ? "internal" : "receive");
             if (!descriptor_vals.isArray()) throw std::runtime_error(std::string(__func__) + ": Unexpected result");
             for (const UniValue& desc_val : descriptor_vals.get_array().getValues()) {
-                std::string desc_str = desc_val.getValStr();
+                const std::string& desc_str = desc_val.getValStr();
                 FlatSigningProvider keys;
                 std::string desc_error;
                 std::unique_ptr<Descriptor> desc = Parse(desc_str, keys, desc_error, false);

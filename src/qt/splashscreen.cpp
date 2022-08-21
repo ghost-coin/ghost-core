@@ -44,7 +44,7 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     QString titleText       = PACKAGE_NAME;
     QString versionText     = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
     QString copyrightText   = QString::fromUtf8(CopyrightHolders("\xc2\xA9").c_str());
-    QString titleAddText    = networkStyle->getTitleAddText();
+    const QString& titleAddText    = networkStyle->getTitleAddText();
 
     QString font            = QApplication::font().toString();
 
