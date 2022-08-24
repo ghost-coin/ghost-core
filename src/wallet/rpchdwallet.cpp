@@ -6311,7 +6311,7 @@ static void traceFrozenOutputs(WalletContext& context, UniValue &rv, CAmount min
     std::vector<std::shared_ptr<CWallet> > wallets = GetWallets(context);
     std::set<COutPoint> extra_txouts;  // Trace these outputs even if spent
     std::set<COutPoint> top_level, set_forced;
-    int64_t time_now = GetAdjustedTime();
+    int64_t time_now = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
 
     if (uv_extra_outputs.isArray()) {
         for (size_t i = 0; i < uv_extra_outputs.size(); ++i) {
@@ -6583,7 +6583,7 @@ static RPCHelpMan debugwallet()
     bool downgrade_wallets = false;
     bool exit_ibd = false;
     CAmount max_frozen_output_spendable = Params().GetConsensus().m_max_tainted_value_out;
-    int64_t time_now = GetAdjustedTime();
+    int64_t time_now = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
 
     if (!request.params[0].isNull()) {
         const UniValue &options = request.params[0].get_obj();
@@ -7279,7 +7279,7 @@ static RPCHelpMan walletsettings()
                 }
 
                 const Consensus::Params& consensusParams = Params().GetConsensus();
-                if (GetAdjustedTime() < consensusParams.OpIsCoinstakeTime) {
+                if (GetAdjustedTimeInt() < consensusParams.OpIsCoinstakeTime) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "OpIsCoinstake is not active yet.");
                 }
             } else {

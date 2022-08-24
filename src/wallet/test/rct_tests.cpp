@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     size_t k, nTries = 10000;
     int nBestHeight = WITH_LOCK(cs_main, return chain_active.Height());
     for (k = 0; k < nTries; ++k) {
-        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nSearchTime = GetAdjustedTimeInt() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime > pwallet->nLastCoinStakeSearchTime &&
             pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             break;
@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Should connect without bad tx
     pblocktemplate->block.vtx.pop_back();
     for (k = 0; k < nTries; ++k) {
-        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nSearchTime = GetAdjustedTimeInt() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime > pwallet->nLastCoinStakeSearchTime &&
             pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             break;

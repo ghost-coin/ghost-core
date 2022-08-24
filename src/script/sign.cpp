@@ -729,9 +729,10 @@ bool SignSignature(const SigningProvider &provider, const CTransaction& txFrom, 
         assert(txin.prevout.n < txFrom.vpout.size());
         CScript scriptPubKey;
         std::vector<uint8_t> vamount;
-        if (!txFrom.vpout[txin.prevout.n]->PutValue(vamount)
-            || !txFrom.vpout[txin.prevout.n]->GetScriptPubKey(scriptPubKey))
+        if (!txFrom.vpout[txin.prevout.n]->PutValue(vamount) ||
+            !txFrom.vpout[txin.prevout.n]->GetScriptPubKey(scriptPubKey)) {
             return false;
+        }
         return SignSignature(provider, scriptPubKey, txTo, nIn, vamount, nHashType);
     }
 
@@ -750,8 +751,11 @@ public:
     bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override { return true; }
     bool CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror) const override { return true; }
 };
-const DummySignatureChecker DUMMY_CHECKER;
+}
 
+const BaseSignatureChecker& DUMMY_CHECKER = DummySignatureChecker();
+
+namespace {
 class DummySignatureCreator : public BaseSignatureCreator {
 private:
     char m_r_len = 32;

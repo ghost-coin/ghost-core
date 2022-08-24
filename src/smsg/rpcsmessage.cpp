@@ -1848,7 +1848,7 @@ static RPCHelpMan smsgbuckets()
                 }
             }
             smsgModule.buckets.clear();
-            smsgModule.start_time = GetAdjustedTime();
+            smsgModule.start_time = GetAdjustedTimeInt();
         } // cs_smsg
 
         result.pushKV("result", "Removed all buckets.");
@@ -2780,7 +2780,7 @@ static RPCHelpMan smsgdebug()
         }
 
         bool active_only = request.params.size() > 1 ? GetBool(request.params[1]) : true;
-        int64_t now = GetAdjustedTime();
+        int64_t now = GetAdjustedTimeInt();
 
         std::ofstream file;
         file.open(filepath);

@@ -32,7 +32,12 @@ int64_t GetTimeOffset()
     return nTimeOffset;
 }
 
-int64_t GetAdjustedTime()
+NodeClock::time_point GetAdjustedTime()
+{
+    return NodeClock::now() + std::chrono::seconds{GetTimeOffset()};
+}
+
+int64_t GetAdjustedTimeInt()
 {
     return GetTime() + GetTimeOffset();
 }

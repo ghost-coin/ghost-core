@@ -36,11 +36,11 @@ public:
         vValues.push_back(initial_value);
         vSorted = vValues;
     }
-    
+
     CMedianFilter() : nSize(0)
     {
     }
-    
+
     void set(unsigned int size, T initial_value)
     {
         nSize = size;
@@ -87,7 +87,8 @@ public:
 
 /** Functions to keep track of adjusted P2P time */
 int64_t GetTimeOffset();
-int64_t GetAdjustedTime();
+NodeClock::time_point GetAdjustedTime();
+int64_t GetAdjustedTimeInt();
 void AddTimeData(const CNetAddr& ip, int64_t nTime);
 
 /**

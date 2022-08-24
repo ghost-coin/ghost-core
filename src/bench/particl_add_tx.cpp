@@ -93,7 +93,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
     for (k = 0; k < nTries; ++k) {
         nBestHeight = pwallet->chain().getHeightInt();
 
-        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nSearchTime = GetAdjustedTimeInt() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime <= pwallet->nLastCoinStakeSearchTime) {
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
             continue;

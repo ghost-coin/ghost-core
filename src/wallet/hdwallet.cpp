@@ -10921,7 +10921,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, c
 
     bool fInsertedNew = ret.second;
     if (fInsertedNew) {
-        rtx.nTimeReceived = GetAdjustedTime();
+        rtx.nTimeReceived = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
 
         MapRecords_t::iterator mri = ret.first;
         rtxOrdered.insert(std::make_pair(rtx.nTimeReceived, mri));
@@ -11961,7 +11961,7 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, const CCoinCon
     const bool include_tainted_frozen = {coinControl ? coinControl->m_include_tainted_frozen : false};
     const bool only_safe = {coinControl ? !coinControl->m_include_unsafe_inputs : true};
 
-    int64_t time_now = GetAdjustedTime();
+    int64_t time_now = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
 
     CHDWalletDB wdb(*m_database);
 

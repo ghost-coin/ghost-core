@@ -750,8 +750,8 @@ static const std::vector<RPCResult> TransactionDescriptionString()
            {RPCResult::Type::STR, "comment", /*optional=*/true, "If a comment is associated with the transaction, only present if not empty."},
            {RPCResult::Type::STR, "narration", /*optional=*/true, "If a narration is embedded in the transaction, only present if not empty."},
            {RPCResult::Type::BOOL, "fromself", /*optional=*/true, "True if this wallet owned an input of the transaction."},
-           {RPCResult::Type::STR, "bip125-replaceable", /*optional=*/true, "(\"yes|no|unknown\") Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
-               "may be unknown for unconfirmed transactions not in the mempool."},
+           {RPCResult::Type::STR, "bip125-replaceable", /*optional=*/true, "(\"yes|no|unknown\") Whether this transaction signals BIP125 replaceability or has an unconfirmed ancestor signaling BIP125 replaceability.\n"
+               "May be unknown for unconfirmed transactions not in the mempool because their unconfirmed ancestors are unknown."},
            {RPCResult::Type::ARR, "parent_descs", /*optional=*/true, "Only if 'category' is 'received'. List of parent descriptors for the scriptPubKey of this coin.", {
                {RPCResult::Type::STR, "desc", "The descriptor string."},
            }},

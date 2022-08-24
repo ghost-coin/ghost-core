@@ -60,6 +60,8 @@ public:
     bool IsCoinStake() const override { return m_txto.IsCoinStake(); }
 };
 
+/** A signature checker that accepts all signatures */
+extern const BaseSignatureChecker& DUMMY_CHECKER;
 /** A signature creator that just produces 71-byte empty signatures. */
 extern const BaseSignatureCreator& DUMMY_SIGNATURE_CREATOR;
 /** A signature creator that just produces 72-byte empty signatures. */

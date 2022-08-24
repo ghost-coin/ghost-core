@@ -545,7 +545,7 @@ static bool CheckStandardOutput(TxValidationState &state, const CTxOutStandard *
     nValueOut += p->nValue;
 
     if (HasIsCoinstakeOp(p->scriptPubKey)) {
-        if (GetAdjustedTime() < state.m_consensus_params->OpIsCoinstakeTime) {
+        if (TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime()) < state.m_consensus_params->OpIsCoinstakeTime) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-opiscoinstake");
         }
         if (!state.m_consensus_params->fAllowOpIsCoinstakeWithP2PKH) {

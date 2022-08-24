@@ -145,7 +145,7 @@ void SecMsgBucket::hashBucket(int64_t bucket_time)
     XXH32_state_t *state = XXH32_createState();
     XXH32_reset(state, 1);
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
 
     nActive = 0;
     nLeastTTL = 0;
@@ -177,7 +177,7 @@ size_t SecMsgBucket::CountActive() const
 {
     size_t nMessages = 0;
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     for (auto it = setTokens.begin(); it != setTokens.end(); ++it) {
         if (it->timestamp + it->ttl < now) {
             continue;
@@ -197,7 +197,7 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
     std::vector<std::pair<int64_t, NodeId> > vTimedOutLocks;
     while (fSecMsgEnabled) {
         nLoop++;
-        int64_t now = GetAdjustedTime();
+        int64_t now = GetAdjustedTimeInt();
 
         vTimedOutLocks.resize(0);
         int64_t cutoffTime = now - SMSG_RETENTION;
@@ -509,7 +509,7 @@ int CSMSG::BuildBucketSet()
 {
     LogPrint(BCLog::SMSG, "%s\n", __func__);
 
-    int64_t  now            = GetAdjustedTime();
+    int64_t  now            = GetAdjustedTimeInt();
     uint32_t nFiles         = 0;
     uint32_t nMessages      = 0;
     unsigned char header_buffer[SMSG_HDR_LEN];
@@ -963,7 +963,7 @@ bool CSMSG::Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::s
         return error("%s: Could not load purged sets, secure messaging disabled.", __func__);
     }
 
-    start_time = GetAdjustedTime();
+    start_time = GetAdjustedTimeInt();
 
     m_thread_interrupt.reset();
     thread_smsg = std::thread(&util::TraceThread, "smsg", std::function<void()>(std::bind(&ThreadSecureMsg, this)));
@@ -1334,7 +1334,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         return SMSG_NO_ERROR;
     }
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     {
         LOCK(pfrom->smsgData.cs_smsg_net);
 
@@ -1507,7 +1507,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
                 }
                 memput_int64_le(&vchDataOut[0], time);
 
-                int64_t now = GetAdjustedTime();
+                int64_t now = GetAdjustedTimeInt();
                 size_t nMessages = 0;
                 uint8_t *p = &vchDataOut[8];
                 for (it = tokenSet.begin(); it != tokenSet.end(); ++it) {
@@ -1554,7 +1554,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         int64_t time = memget_int64_le(&vchData[0]);
 
         // Check time valid:
-        int64_t now = GetAdjustedTime();
+        int64_t now = GetAdjustedTimeInt();
         if (time < now - SMSG_RETENTION) {
             LogPrint(BCLog::SMSG, "Not interested in peer %d bucket %d, has expired.\n", pfrom->GetId(), time);
             return SMSG_GENERAL_ERROR;
@@ -3070,7 +3070,7 @@ int CSMSG::Receive(PeerManager *peerLogic, CNode *pfrom, std::vector<uint8_t> &v
 
     // Check bktTime ()
     // Bucket may not exist yet - will be created when messages are added
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     if (bktTime % SMSG_BUCKET_LEN) {
         LogPrint(BCLog::SMSG, "Not a valid bucket time %d.\n", bktTime);
         SmsgMisbehaving(pfrom, 10);
@@ -3250,7 +3250,7 @@ int CSMSG::StoreUnscanned(const uint8_t *pHeader, const uint8_t *pPayload, uint3
         return errorN(SMSG_GENERAL_ERROR, "%s - Failed to create directory %s - %s.", __func__, fs::PathToString(pathSmsgDir), ex.what());
     }
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     if (smsg.timestamp > now + SMSG_TIME_LEEWAY) {
         return errorN(SMSG_GENERAL_ERROR, "%s: Message > now.", __func__);
     }
@@ -3304,7 +3304,7 @@ int CSMSG::Store(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t nPayl
         return errorN(SMSG_GENERAL_ERROR, "Failed to create directory %s - %s.", fs::PathToString(pathSmsgDir), ex.what());
     }
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     if (smsg.timestamp > now + SMSG_TIME_LEEWAY) {
         return errorN(SMSG_GENERAL_ERROR, "%s: Message > now.", __func__);
     }
@@ -3482,7 +3482,7 @@ int CSMSG::StoreFundingTx(ChainSyncCache &cache, const CTransaction &tx, const C
     if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         LogPrintf("%s Tx: %s, block: %s, height %d, time %d.\n", __func__, tx.GetHash().ToString(), block_hash.ToString(), pindex->nHeight, pindex->nTime);
     }
-    if (pindex->nTime < GetAdjustedTime() - KEEP_FUNDING_TX_DATA) {
+    if (pindex->nTime < GetAdjustedTimeInt() - KEEP_FUNDING_TX_DATA) {
         // Skip old txns
         return SMSG_NO_ERROR;
     }
@@ -3597,7 +3597,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
 
 int CSMSG::PruneFundingTxData()
 {
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     LogPrint(BCLog::SMSG, "%s Now: %d\n", __func__, now);
 
     int min_height_to_keep = std::numeric_limits<int>::max();
@@ -3646,7 +3646,7 @@ int CSMSG::SetBestBlock(ChainSyncCache &cache, const uint256 &block_hash, int he
     if (!m_track_funding_txns) {
         return SMSG_NO_ERROR;
     }
-    if (time < GetAdjustedTime() - KEEP_FUNDING_TX_DATA) {
+    if (time < GetAdjustedTimeInt() - KEEP_FUNDING_TX_DATA) {
         // Skip old blocks
         cache.m_skip = true;
         return SMSG_NO_ERROR;
@@ -3722,7 +3722,7 @@ int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_
         return SMSG_PAYLOAD_OVER_SIZE;
     }
 
-    int64_t now = GetAdjustedTime();
+    int64_t now = GetAdjustedTimeInt();
     if (psmsg->timestamp > now + SMSG_TIME_LEEWAY) {
         LogPrint(BCLog::SMSG, "Time in future %d.\n", psmsg->timestamp);
         return SMSG_TIME_IN_FUTURE;
@@ -4382,7 +4382,7 @@ int CSMSG::FundMsgs(std::vector<SecureMessage*> v_smsgs, std::string &sError, bo
         } else
         if (fund_from == OUTPUT_RINGCT) {
             const Consensus::Params &consensusParams = Params().GetConsensus();
-            if (consensusParams.clamp_tx_version_time > GetAdjustedTime()) {
+            if (consensusParams.clamp_tx_version_time > GetAdjustedTimeInt()) {
                 tr.nType = OUTPUT_STANDARD;
                 tr.fScriptSet = true;
                 tr.scriptPubKey.resize(1);
