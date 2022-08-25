@@ -2360,7 +2360,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         }
     }
 
-    if (!rewardUndo.inputs.empty() && undoInputHeightExists != rewardUndo.inputs.end()){
+    if (!rewardUndo.inputs.empty() && undoInputHeightExists != rewardUndo.inputs.end()) {
         for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
             const auto addr = std::string(input.first.begin(), input.first.end());
             LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
@@ -3202,10 +3202,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         }
 
                         assert(txPrevCoinstake->IsCoinStake()); // Sanity check
-                        if (!txPrevCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
-                            ngvrBfwd = 0;
-                        }
-
                         if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
                             nTreasuryBfwd = 0;
                         }
@@ -3252,6 +3248,18 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 }
             }
             if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+                if (pindex->pprev->nHeight > 0) { // Genesis block is pow
+                    if (!txPrevCoinstake
+                        && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                        LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
+                    }
+                    assert(txPrevCoinstake->IsCoinStake()); // Sanity check
+                    if (!txPrevCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
+                        ngvrBfwd = 0;
+                    }
+                }
+
                 auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
                 CTxDestination stakerAddrDest;
                 uint256 kernelhash, kernelblockhash;
