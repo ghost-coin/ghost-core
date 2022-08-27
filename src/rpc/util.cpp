@@ -398,7 +398,7 @@ uint32_t GetUInt32(const UniValue &uv)
         throw std::runtime_error("Not a number or string value.");
     }
     uint32_t rv = 0;
-    std::string s = uv.get_str();
+    const std::string &s = uv.get_str();
     if (s.length() && !ParseUInt32(s, &rv)) {
         throw std::runtime_error("String not a numeric value.");
     }

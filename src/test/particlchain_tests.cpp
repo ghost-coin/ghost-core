@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(mixed_input_types)
         std::make_pair( (std::vector<int>) {0, 2, -1}, false)
     };
 
-    for (auto t : tests) {
+    for (const auto &t : tests) {
         txn.vin.clear();
 
         for (auto ti : t.first) {

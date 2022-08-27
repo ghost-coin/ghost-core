@@ -1121,7 +1121,7 @@ static RPCHelpMan smsgfund()
         for (unsigned int idx = 0; idx < uv_msgids.size(); idx++) {
             const UniValue &uv_msgid = uv_msgids[idx];
 
-            std::string sMsgId = uv_msgid.get_str();
+            const std::string &sMsgId = uv_msgid.get_str();
             if (!IsHex(sMsgId) || sMsgId.size() != 56) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "msgid must be 28 bytes in hex string.");
             }

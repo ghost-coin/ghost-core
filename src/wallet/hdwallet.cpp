@@ -1903,7 +1903,7 @@ std::set< std::set<CTxDestination> > CHDWallet::GetAddressGroupings() const
         if (pcoin->tx->vin.size() > 0) {
             bool any_mine = false;
             // group all input addresses with each other
-            for (CTxIn txin : pcoin->tx->vin) {
+            for (const CTxIn &txin : pcoin->tx->vin) {
                 const CScript *pScript = nullptr;
                 CTxDestination address;
 
@@ -1976,11 +1976,11 @@ std::set< std::set<CTxDestination> > CHDWallet::GetAddressGroupings() const
 
     std::set< std::set<CTxDestination>* > uniqueGroupings; // a set of pointers to groups of addresses
     std::map< CTxDestination, std::set<CTxDestination>* > setmap;  // map addresses to the unique group containing it
-    for (std::set<CTxDestination> _grouping : groupings) {
+    for (const auto &_grouping : groupings) {
         // make a set of all the groups hit by this new group
         std::set< std::set<CTxDestination>* > hits;
         std::map< CTxDestination, std::set<CTxDestination>* >::iterator it;
-        for (CTxDestination address : _grouping) {
+        for (const auto &address : _grouping) {
             if ((it = setmap.find(address)) != setmap.end()) {
                 hits.insert((*it).second);
             }
@@ -1996,7 +1996,7 @@ std::set< std::set<CTxDestination> > CHDWallet::GetAddressGroupings() const
         uniqueGroupings.insert(merged);
 
         // update setmap
-        for (CTxDestination element : *merged) {
+        for (const CTxDestination &element : *merged) {
             setmap[element] = merged;
         }
     }
