@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2013-2020 The Bitcoin Core developers
+# Copyright (c) 2013-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
@@ -7,10 +7,10 @@
 #
 
 import argparse
+import collections
 import ipaddress
 import re
 import sys
-import collections
 from typing import List, Dict, Union
 
 from asmap import ASMap, net_to_prefix
@@ -29,10 +29,11 @@ PATTERN_IPV6 = re.compile(r"^\[([0-9a-z:]+)\]:(\d+)$")
 PATTERN_ONION = re.compile(r"^([a-z2-7]{56}\.onion):(\d+)$")
 PATTERN_AGENT = re.compile(
     r"^/Satoshi:("
-    r"0.19.(2|99).(12|13)|"
-    r"0.20.(0|1|99).(0|1|2|3|4|5)"
-    r"0.21.(0|1|99).(0|1|2|3|4|5)"
-    r"22.(0|1).(0|99)|"
+    r"0.19.(2|99).(22|99)|"
+    r"0.20.(0|1|99).(0|1|2|3|4|5|99)"
+    r"0.21.(0|1|2|99).(11|99)"
+    r"22.(0|1|2|3).(0|99)|"
+    r"23.(0|1|2).(0|99)|"
     r")")
 
 def parseline(line: str) -> Union[dict, None]:

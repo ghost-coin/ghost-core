@@ -4759,7 +4759,7 @@ bool ChainstateManager::AcceptBlockHeader(const CBlockHeader& block, BlockValida
             LogPrint(BCLog::VALIDATION, "%s: %s prev block invalid\n", __func__, hash.ToString());
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
         }
-        if (!ContextualCheckBlockHeader(block, state, m_blockman, *this, pindexPrev, m_adjusted_time_callback())) {
+        if (!ContextualCheckBlockHeader(block, state, m_blockman, *this, pindexPrev, m_options.adjusted_time_callback())) {
             LogPrint(BCLog::VALIDATION, "%s: Consensus::ContextualCheckBlockHeader: %s, %s\n", __func__, hash.ToString(), state.ToString());
             return false;
         }
@@ -6843,7 +6843,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool *mempool)
         return false;
     }
 
-    int64_t now = TicksSinceEpoch<std::chrono::seconds>(chainman.m_adjusted_time_callback());
+    int64_t now = TicksSinceEpoch<std::chrono::seconds>(chainman.m_options.adjusted_time_callback());
     int rewound_tip_height;
 
     {
