@@ -134,6 +134,7 @@ static RPCHelpMan getpeerinfo()
                     {RPCResult::Type::NUM, "startingheight", /*optional=*/true, "The starting height (block) of the peer"},
                     {RPCResult::Type::NUM, "currentheight", /*optional=*/true, "The current height (block) of the peer"},
                     {RPCResult::Type::NUM, "banscore", /*optional=*/true, "The ban score (DEPRECATED, returned only if config option -deprecatedrpc=banscore is passed)"},
+                    {RPCResult::Type::NUM, "presynced_headers", /*optional=*/true, "The current height of header pre-synchronization with this peer, or -1 if no low-work sync is in progress"},
                     {RPCResult::Type::NUM, "synced_headers", /*optional=*/true, "The last header we have in common with this peer"},
                     {RPCResult::Type::NUM, "synced_blocks", /*optional=*/true, "The last block we have in common with this peer"},
                     {RPCResult::Type::NUM, "duplicate_count", /*optional=*/true, "The number of already received blocks or headers sent by this peer"},
@@ -235,6 +236,7 @@ static RPCHelpMan getpeerinfo()
             //}
             obj.pushKV("startingheight", statestats.m_starting_height);
             obj.pushKV("currentheight", statestats.m_chain_height);
+            obj.pushKV("presynced_headers", statestats.presync_height);
             obj.pushKV("synced_headers", statestats.nSyncHeight);
             obj.pushKV("synced_blocks", statestats.nCommonHeight);
             obj.pushKV("duplicate_count", statestats.nDuplicateCount);

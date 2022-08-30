@@ -80,7 +80,7 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
     }
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    if (!chainman.ProcessNewBlock(shared_pblock, true, nullptr)) {
+    if (!chainman.ProcessNewBlock(shared_pblock, true, /*min_pow_checked=*/true, nullptr)) {
         return error("%s: Block not accepted.", __func__);
     }
 

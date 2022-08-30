@@ -46,7 +46,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock> pblock, BlockValidation
         LOCK(cs_main);
         bool ret = CheckBlock(*pblock, state, state.m_chainman->ActiveChainstate().m_params.GetConsensus());
         if (ret) {
-            ret = state.m_chainman->ActiveChainstate().AcceptBlock(pblock, state, &pindex, fForceProcessing, nullptr, nullptr);
+            ret = state.m_chainman->ActiveChainstate().AcceptBlock(pblock, state, &pindex, fForceProcessing, nullptr, nullptr, /*min_pow_checked=*/true);
         }
         if (!ret) {
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.ToString());

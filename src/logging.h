@@ -65,9 +65,9 @@ namespace BCLog {
 #endif
         UTIL        = (1 << 25),
         BLOCKSTORE  = (1 << 26),
+        HEADERSSYNC = (1 << 27),
 
-        SMSG        = (1 << 27),
-        RINGCT      = (1 << 28),
+        SMSG        = (1 << 28),
         POS         = (1 << 29),
         HDWALLET    = (1 << 30),
 

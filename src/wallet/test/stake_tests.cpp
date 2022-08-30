@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         BOOST_CHECK(state.GetRejectReason() == "bad-block-signature");
 
         std::shared_ptr<const CBlock> bad_block_shared = std::make_shared<CBlock>(bad_block);
-        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr));
+        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr, /*min_pow_checked=*/true));
         BOOST_CHECK(state.IsInvalid());
         BOOST_CHECK(state.GetRejectReason() == "time-too-old");
 
@@ -288,7 +288,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         bad_block.nTime = GetTime() + 15;
         bad_block_shared.reset();
         bad_block_shared = std::make_shared<CBlock>(bad_block);
-        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr));
+        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr, /*min_pow_checked=*/true));
         BOOST_CHECK(state.IsInvalid());
         BOOST_CHECK(state.GetRejectReason() == "bad-block-signature");
 
@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         bad_block.nTime = GetTime() + 16;
         bad_block_shared.reset();
         bad_block_shared = std::make_shared<CBlock>(bad_block);
-        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr));
+        BOOST_REQUIRE(false == chainstate_active.AcceptBlock(bad_block_shared, state, &new_block_index, true, nullptr, nullptr, /*min_pow_checked=*/true));
         BOOST_CHECK(state.IsInvalid());
         BOOST_CHECK(state.GetRejectReason() == "time-too-new");
         }

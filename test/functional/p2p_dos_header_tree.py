@@ -22,6 +22,7 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
         self.setup_clean_chain = True
         self.chain = 'testnet'  # Use testnet chain because it has an early checkpoint
         self.num_nodes = 2
+        self.extra_args = [["-minimumchainwork=0x0"], ["-minimumchainwork=0x0"]]
 
     def skip_test_if_missing_module(self):
         raise SkipTest("todo.")
@@ -65,7 +66,7 @@ class RejectLowDifficultyHeadersTest(BitcoinTestFramework):
 
         self.log.info("Feed all fork headers (succeeds without checkpoint)")
         # On node 0 it succeeds because checkpoints are disabled
-        self.restart_node(0, extra_args=['-nocheckpoints'])
+        self.restart_node(0, extra_args=['-nocheckpoints', "-minimumchainwork=0x0"])
         peer_no_checkpoint = self.nodes[0].add_p2p_connection(P2PInterface())
         peer_no_checkpoint.send_and_ping(msg_headers(self.headers_fork))
         assert {

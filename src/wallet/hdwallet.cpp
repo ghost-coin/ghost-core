@@ -13705,7 +13705,7 @@ bool CHDWallet::SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int
 
     CKey key;
     pblock->nVersion = PARTICL_BLOCK_VERSION;
-    pblock->nBits = GetNextTargetRequired(pindexPrev, consensusParams);
+    pblock->nBits = particl::GetNextTargetRequired(pindexPrev, consensusParams);
     if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug)) {
         WalletLogPrintf("%s, nBits %d\n", __func__, pblock->nBits);
     }
