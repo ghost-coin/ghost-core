@@ -2098,12 +2098,13 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     CBlockUndo blockUndo;
     ColdRewardUndo rewardUndo;
 
+    const auto& consensus = Params().GetConsensus();
     if (!UndoReadFromDisk(blockUndo, pindex)) {
         error("DisconnectBlock(): failure reading undo data");
         return DISCONNECT_FAILED;
     }
 
-    if (pindex->nHeight >= Params().GetConsensus().automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndo(rewardUndo, pindex->nHeight)) {
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndo(rewardUndo, pindex->nHeight)) {
         error("DisconnectBlock(): failure reading coldreward undo data");
         return DISCONNECT_FAILED;
     }
@@ -2129,7 +2130,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             }
         }
         
-        if (pindex->nHeight >= Params().GetConsensus().automatedGvrActivationHeight) {
+        if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
             std::size_t inputsSize = 0;
             std::size_t outputsSize = 0;
             for(const auto& tx: block.vtx) {
@@ -2366,6 +2367,11 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
             rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
         }
+    }
+
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && 
+        !pblocktree->WriteLastTrackedHeight(pindex->pprev->nHeight)) {
+        return DISCONNECT_FAILED;
     }
 
     // move best block pointer to prevout block
@@ -3299,7 +3305,11 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
 
                     if (kernelScriptPubKey != gvrReceiverScript) {
-                        LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match\n", __func__);
+                        CTxDestination actualDest;
+                        ExtractDestination(gvrReceiverScript, actualDest);
+                        auto actual = EncodeDestination(actualDest);
+
+                        LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match (actual=%, expected=%)\n", __func__, actual, EncodeDestination(stakerAddrDest));
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-script");
                     }
 
@@ -3334,9 +3344,22 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         }
     }
 
+
+    std::int64_t readHeight;
+
+    if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadLastTrackedHeight(readHeight)) {
+        if (pindex->nHeight == 1) {
+            readHeight = 0;
+        } else {
+            LogPrintf("%s Impossible to read last tracked height attempted height %s\n", __func__, pindex->nHeight);
+            return false;
+        }
+    }
+
     // Track the inputs/outputs for any balance changes
     // We will add checkpoints, which will avoid tracking for txs when the automatedgvrrewardheight is not yet activated
-    if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+
+    if (readHeight < pindex->nHeight && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
 
         rewardTracker.startPersistedTransaction();
 
@@ -3387,6 +3410,13 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 return error("ConnectBlock(): Can't extract destination address for inputs\n");
             }
         }
+
+        if (!pblocktree->WriteLastTrackedHeight(pindex->nHeight)) {
+            LogPrintf("%s Impossible to write last tracked height attempted height %s\n", __func__, pindex->nHeight);
+            return false;
+        }
+    } else { 
+        LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
     }
     
 
@@ -3412,7 +3442,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
      && !WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
         return false;
 
-    if (pindex->nHeight > consensus.automatedGvrActivationHeight && !pblocktree->WriteRewardTrackerUndo(rewardUndo)) {
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->WriteRewardTrackerUndo(rewardUndo)) {
         return false;
     }
 
