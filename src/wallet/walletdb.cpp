@@ -63,6 +63,7 @@ const std::string WALLETDESCRIPTORKEY{"walletdescriptorkey"};
 const std::string WATCHMETA{"watchmeta"};
 const std::string WATCHS{"watchs"};
 
+
 const std::string PART_EXTACC{"eacc"};
 const std::string PART_EXTKEY{"ek32"};
 const std::string PART_EXTKEYNAMED{"eknm"};
@@ -72,6 +73,8 @@ const std::string PART_LOCKEDUTXO{"luo"};
 const std::string PART_SXADDR{"sxad"};
 const std::string PART_WALLETSETTING{"wset"};
 const std::string PART_LEXTKEYCK{"elck"};
+
+const std::unordered_set<std::string> LEGACY_TYPES{CRYPTED_KEY, CSCRIPT, DEFAULTKEY, HDCHAIN, KEYMETA, KEY, OLD_KEY, POOL, WATCHMETA, WATCHS};
 } // namespace DBKeys
 
 //
@@ -1101,6 +1104,45 @@ bool WalletBatch::WriteHDChain(const CHDChain& chain)
 bool WalletBatch::WriteWalletFlags(const uint64_t flags)
 {
     return WriteIC(DBKeys::FLAGS, flags);
+}
+
+bool WalletBatch::EraseRecords(const std::unordered_set<std::string>& types)
+{
+    // Get cursor
+    if (!m_batch->StartCursor())
+    {
+        return false;
+    }
+
+    // Iterate the DB and look for any records that have the type prefixes
+    while (true)
+    {
+        // Read next record
+        CDataStream key(SER_DISK, CLIENT_VERSION);
+        CDataStream value(SER_DISK, CLIENT_VERSION);
+        bool complete;
+        bool ret = m_batch->ReadAtCursor(key, value, complete);
+        if (complete) {
+            break;
+        }
+        else if (!ret)
+        {
+            m_batch->CloseCursor();
+            return false;
+        }
+
+        // Make a copy of key to avoid data being deleted by the following read of the type
+        Span<const unsigned char> key_data = MakeUCharSpan(key);
+
+        std::string type;
+        key >> type;
+
+        if (types.count(type) > 0) {
+            m_batch->Erase(key_data);
+        }
+    }
+    m_batch->CloseCursor();
+    return true;
 }
 
 bool WalletBatch::TxnBegin()

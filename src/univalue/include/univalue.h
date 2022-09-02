@@ -88,14 +88,14 @@ public:
     void insert(size_t pos, const UniValue& val_);
     bool erase(size_t from, size_t to);
     bool erase_by_key(const std::string& key);
-    void push_back(const UniValue& val);
+    void push_back(UniValue val);
     void push_backV(const std::vector<UniValue>& vec);
     template <class It>
     void push_backV(It first, It last);
 
-    void __pushKV(const std::string& key, const UniValue& val);
-    void pushKV(const std::string& key, const UniValue& val);
-    void pushKVs(const UniValue& obj);
+    void __pushKV(std::string key, UniValue val);
+    void pushKV(std::string key, UniValue val);
+    void pushKVs(UniValue obj);
 
     std::string write(unsigned int prettyIndent = 0,
                       unsigned int indentLevel = 0) const;
