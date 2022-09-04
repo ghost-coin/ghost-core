@@ -242,6 +242,7 @@ class GhostVeteranRewardTest(GhostTestFramework):
         assert_equal(tracked_balances_block5_after_reorg, tracked_balances_block5_before_reorg)
 
         nodes[0].verifychain()
+        nodes[0].verifychain(4)
         self.stop_nodes()
 
         # Make sure that after nodes restarts the tracked balances are the same

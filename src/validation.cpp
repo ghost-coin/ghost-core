@@ -2369,9 +2369,15 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         }
     }
 
-    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && 
-        !pblocktree->WriteLastTrackedHeight(pindex->pprev->nHeight)) {
-        return DISCONNECT_FAILED;
+    if (!fVerifyingDB) {
+        if (pindex->nHeight >= consensus.automatedGvrActivationHeight && 
+            !pblocktree->WriteLastTrackedHeight(pindex->pprev->nHeight)) {
+            return DISCONNECT_FAILED;
+        } else {
+            LogPrintf("%s Writting last tracked height %d\n", __func__, pindex->pprev->nHeight);
+        }
+    } else {
+        LogPrintf("%s Still verifying DB not writing last tracked index\n", __func__);
     }
 
     // move best block pointer to prevout block
@@ -2846,7 +2852,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     const Coin &coin = view.AccessCoin(input.prevout);
 
                     if (coin.nType != OUTPUT_CT) {
-                        bool isCoinStake = tx.IsCoinStake() || tx.IsCoinBase();
+                        bool isCoinStake = tx.IsCoinStake();
                         inputsTrackingData.push_back(std::make_pair(isCoinStake, coin));
                         // Cache recently spent coins for staking.
                         view.spent_cache.emplace_back(input.prevout, SpentCoin(coin, pindex->nHeight));
@@ -3275,7 +3281,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 CTransactionRef txPrev;
                 CBlock blockKernel;
 
-                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel, true)){
+                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel, true)) {
                     return error("Can't get kernel transaction details\n");
                 }
 
@@ -3300,8 +3306,10 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                     if (devFundPaidOut) {
                         txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
+                        LogPrintf("%s Dev fund was paid out using index 2 for gvr\n", __func__);
                     } else {
                         txCoinstake->vpout[1]->GetScriptPubKey(gvrReceiverScript);
+                        LogPrintf("%s Dev fund was not paid out using index 1 for gvr\n", __func__);
                     }
 
                     if (kernelScriptPubKey != gvrReceiverScript) {
@@ -3344,7 +3352,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         }
     }
 
-
     std::int64_t readHeight;
 
     if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadLastTrackedHeight(readHeight)) {
@@ -3357,9 +3364,10 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     }
 
     // Track the inputs/outputs for any balance changes
-    // We will add checkpoints, which will avoid tracking for txs when the automatedgvrrewardheight is not yet activated
 
     if (readHeight < pindex->nHeight && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+
+        LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
 
         rewardTracker.startPersistedTransaction();
 
@@ -3393,8 +3401,10 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             }
 
             if (trackedInput.first) {
-                trackedScript = kernelScriptPubKey;
-                amountDeducted = kernelvalue;
+                trackedScript = trackedInput.second.out.scriptPubKey;
+                amountDeducted = trackedInput.second.out.nValue;
+                LogPrintf("%s Tracking kernel inputs value %d KernelValue=%d\n", __func__, trackedInput.second.out.nValue, kernelvalue);
+
             } else {
                 trackedScript = trackedInput.second.out.scriptPubKey;
                 amountDeducted = trackedInput.second.out.nValue;
@@ -3411,10 +3421,17 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             }
         }
 
-        if (!pblocktree->WriteLastTrackedHeight(pindex->nHeight)) {
-            LogPrintf("%s Impossible to write last tracked height attempted height %s\n", __func__, pindex->nHeight);
-            return false;
+        if (!fVerifyingDB) {
+            if (!pblocktree->WriteLastTrackedHeight(pindex->nHeight)) {
+                LogPrintf("%s Impossible to write last tracked height attempted height %d\n", __func__, pindex->nHeight);
+                return false;
+            } else {
+                LogPrintf("%s Wrote last tracked index %d\n", __func__, pindex->nHeight);
+            }
+        } else {
+            LogPrintf("%s Still verifying DB fVerifyingDB=%d\n", __func__, fVerifyingDB);
         }
+
     } else { 
         LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
     }

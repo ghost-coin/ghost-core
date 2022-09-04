@@ -1061,6 +1061,7 @@ UniValue getblockreward(const JSONRPCRequest& request)
     CAmount value_out = 0, value_in = 0, value_treasury = 0;
 
     bool gvrOutExists = false;
+    bool devFundExists = (pblockindex->nHeight % fundconf->nTreasuryOutputPeriod) == 0;
     CAmount gvrAmount = 0;
 
     for (const auto &txout : tx->vpout) {
@@ -1083,7 +1084,7 @@ UniValue getblockreward(const JSONRPCRequest& request)
         output.pushKV("value", ValueFromAmount(txout->GetValue()));
         outputs.push_back(output);
 
-        if (fundconf && *txout->GetPScriptPubKey() == fundScriptPubKey && value_treasury == 0) {
+        if (!gvrActivationHeight && fundconf && *txout->GetPScriptPubKey() == fundScriptPubKey && value_treasury == 0) {
             value_treasury = txout->GetValue();
             continue;
         }
@@ -1118,14 +1119,19 @@ UniValue getblockreward(const JSONRPCRequest& request)
     short gvrIndex = 1;
 
     if (gvrActivationHeight) {
-        if (gvrOutExists && value_treasury == 0) {
+        if (gvrOutExists && !devFundExists) {
             block_reward -= tx->vpout[1]->GetValue();
             gvrIndex = 1;
         }
 
-        if (gvrOutExists && value_treasury > 0) {
+        if (gvrOutExists && devFundExists) {
             block_reward -= tx->vpout[2]->GetValue();
             gvrIndex = 2;
+        }
+
+        if (devFundExists) {
+            block_reward -= tx->vpout[1]->GetValue();
+            value_treasury = tx->vpout[1]->GetValue();
         }
     }
 
@@ -1139,7 +1145,7 @@ UniValue getblockreward(const JSONRPCRequest& request)
     rv.pushKV("stakereward", ValueFromAmount(stake_reward));
     rv.pushKV("blockreward", ValueFromAmount(block_reward));
 
-    if (value_treasury > 0) {
+    if (devFundExists) {
         rv.pushKV("treasuryreward", ValueFromAmount(value_treasury));
     }
 

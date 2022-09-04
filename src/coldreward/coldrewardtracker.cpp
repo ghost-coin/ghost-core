@@ -255,6 +255,7 @@ void ColdRewardTracker::addAddressTransaction(int blockHeight, const AddressType
             // we add a [blockHeight, blockHeight] range as a marker that the balance has crossed a threshold multiple
             ranges.push_back(BlockHeightRange(blockHeight, blockHeight, currentMultiplier, ranges.back().getRewardMultiplier()));
         } else {
+            LogPrintf("%s Previous range value [%d, %d]\n", __func__, ranges.back().getStart(), ranges.back().getEnd());
             ranges.back().newEnd(blockHeight);
         }
     }

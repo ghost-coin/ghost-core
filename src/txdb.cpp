@@ -679,6 +679,8 @@ bool CBlockTreeDB::WriteRewardTrackerUndo(const ColdRewardUndo& rewardUndo)
 
 bool CBlockTreeDB::WriteLastTrackedHeight(std::int64_t lastHeight) {
     CDBBatch batch(*this);
+    LogPrintf("%s Writting last tracked height %d\n", __func__, lastHeight);
+
     batch.Write(std::make_pair(DB_LAST_TRACKED_HEIGHT, 0), lastHeight);
     return WriteBatch(batch);
 }
@@ -689,6 +691,7 @@ bool CBlockTreeDB::ReadLastTrackedHeight(std::int64_t& rv) {
 
 bool CBlockTreeDB::EraseLastTrackedHeight() {
     CDBBatch batch(*this);
+    LogPrintf("%s Erasing last tracked height\n", __func__);
     batch.Erase(std::make_pair(DB_LAST_TRACKED_HEIGHT, 0));
     return WriteBatch(batch);
 }
