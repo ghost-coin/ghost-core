@@ -57,12 +57,12 @@ class AddressIndexTest(ParticlTestFramework):
         addrs = [nodes[1].getnewaddress() for i in range(3)]
 
         ms1 = nodes[1].addmultisigaddress_part(2, addrs)['address']
-        assert(ms1 == 'r8L81gLiWg46j5EGfZSp2JHmA9hBgLbHuf')  # rFHaEuXkYpNUYpMMY3kMkDdayQxpc7ozti
+        assert (ms1 == 'r8L81gLiWg46j5EGfZSp2JHmA9hBgLbHuf')  # rFHaEuXkYpNUYpMMY3kMkDdayQxpc7ozti
 
         addr1 = nodes[2].getnewaddress()
-        assert(addr1 == 'pqZDE7YNWv5PJWidiaEG8tqfebkd6PNZDV')  # pcX1WHotKuQwFypDf1ZkJrh81J1DS7DfXd
+        assert (addr1 == 'pqZDE7YNWv5PJWidiaEG8tqfebkd6PNZDV')  # pcX1WHotKuQwFypDf1ZkJrh81J1DS7DfXd
         addr2 = nodes[3].getnewaddress()
-        assert(addr2 == 'pqavEUgLCZeGh8o9sTcCfYVAsrTgnQTUsK')
+        assert (addr2 == 'pqavEUgLCZeGh8o9sTcCfYVAsrTgnQTUsK')
 
         self.sync_all()
         chain_height = nodes[1].getblockcount()
@@ -178,7 +178,7 @@ class AddressIndexTest(ParticlTestFramework):
 
 
         balance0 = nodes[1].getaddressbalance('pqZDE7YNWv5PJWidiaEG8tqfebkd6PNZDV')
-        assert(balance0["balance"] < 45 * 100000000)
+        assert (balance0["balance"] < 45 * 100000000)
 
 
         # Check that deltas are returned correctly
@@ -215,7 +215,7 @@ class AddressIndexTest(ParticlTestFramework):
         nodes[2].invalidateblock(best_hash)
         nodes[3].invalidateblock(best_hash)
         self.sync_all()
-        assert(nodes[1].getblockcount() == height_before - 1)
+        assert (nodes[1].getblockcount() == height_before - 1)
 
         balance4 = nodes[1].getaddressbalance(address2)
         assert_equal(balance4['balance'], 4500000000)
@@ -241,8 +241,8 @@ class AddressIndexTest(ParticlTestFramework):
         assert_equal(utxos3[2]["height"], 9)
         assert_equal(utxos3[3]["height"], 10)
 
-        assert(utxos3[2]['txid'] == txidsort1)
-        assert(utxos3[3]['txid'] == txidsort2)
+        assert (utxos3[2]['txid'] == txidsort1)
+        assert (utxos3[3]['txid'] == txidsort2)
 
         # Check mempool indexing
         self.log.info("Testing mempool indexing...")
@@ -257,11 +257,11 @@ class AddressIndexTest(ParticlTestFramework):
 
         mempool = nodes[2].getaddressmempool({"addresses": [address3]})
         assert_equal(len(mempool), 3)
-        assert(mempool[0]['txid'] == txidsort1)
+        assert (mempool[0]['txid'] == txidsort1)
         assert_equal(mempool[0]['address'], address3)
-        assert(mempool[1]['txid'] == txidsort2)
+        assert (mempool[1]['txid'] == txidsort2)
         assert_equal(mempool[1]['address'], address3)
-        assert(mempool[2]['txid'] == txidsort3)
+        assert (mempool[2]['txid'] == txidsort3)
         assert_equal(mempool[2]['address'], address3)
 
         self.sync_all()
@@ -279,8 +279,8 @@ class AddressIndexTest(ParticlTestFramework):
         mempool = nodes[2].getaddressmempool({"addresses": [address4]})
         assert_equal(len(mempool), 0)
         utxos4 = nodes[2].getaddressutxos({"addresses": [address4]})
-        assert(len(utxos4) == 1)
-        assert(txid_in == utxos4[0]['txid'])
+        assert (len(utxos4) == 1)
+        assert (txid_in == utxos4[0]['txid'])
         inputs = [{'txid': utxos4[0]['txid'], 'vout': utxos4[0]['outputIndex']}]
         outputs = {address4: 0.99}
         tx = nodes[2].createrawtransaction(inputs, outputs)
@@ -307,8 +307,8 @@ class AddressIndexTest(ParticlTestFramework):
         assert_equal(deltas_with_info["end"]["hash"], end_block_hash)
 
         utxos_with_info = nodes[1].getaddressutxos({"addresses": [address2], "chainInfo": True})
-        assert(len(utxos_with_info['utxos']) == 2)
-        assert(utxos_with_info['utxos'][0]['height'] == 9)
+        assert (len(utxos_with_info['utxos']) == 2)
+        assert (utxos_with_info['utxos'][0]['height'] == 9)
 
         # 256bit addresses
         self.log.info("Testing 256bit addresses...")
@@ -351,8 +351,8 @@ class AddressIndexTest(ParticlTestFramework):
         mempool_txns = {}
         for a in addrs:
             mempool = nodes[1].getaddressmempool({'addresses': [a]})
-            assert(len(mempool) == 1)
-            assert(mempool[0]['address'] == a)
+            assert (len(mempool) == 1)
+            assert (mempool[0]['address'] == a)
             mempool_txns[a] = mempool
 
         utxo = mempool_txns[addr_sw_bech32]
@@ -384,8 +384,8 @@ class AddressIndexTest(ParticlTestFramework):
 
         self.sync_all()
         mempool_sw_ms = nodes[1].getaddressmempool({'addresses': [ms_btcnative['address']]})
-        assert(len(mempool_sw_ms) == 1)
-        assert(mempool_sw_ms[0]['address'] == ms_btcnative['address'])
+        assert (len(mempool_sw_ms) == 1)
+        assert (mempool_sw_ms[0]['address'] == ms_btcnative['address'])
 
         inputs = [{'txid': mempool_sw_ms[0]['txid'], 'vout': mempool_sw_ms[0]['index']}]
         outputs = {nodes[0].getnewaddress(): 0.99}

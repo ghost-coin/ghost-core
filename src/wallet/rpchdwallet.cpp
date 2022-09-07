@@ -1349,7 +1349,7 @@ static RPCHelpMan extkey()
 
             pwallet->RescanFromTime(nTimeStartScan, reserver, true /* update */);
             pwallet->MarkDirty();
-            pwallet->ReacceptWalletTransactions();
+            pwallet->ResubmitWalletTransactions(/*relay=*/false, /*force=*/true);
 
         } // cs_wallet
     } else
@@ -1820,7 +1820,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
         pwallet->RescanFromTime(nScanFrom, reserver, true);
         pwallet->MarkDirty();
         LOCK(pwallet->cs_wallet);
-        pwallet->ReacceptWalletTransactions();
+        pwallet->ResubmitWalletTransactions(/*relay=*/false, /*force=*/true);
     }
 
     // Reset to defaults

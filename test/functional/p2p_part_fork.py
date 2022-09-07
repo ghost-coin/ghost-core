@@ -83,7 +83,7 @@ class ForkTest(ParticlTestFramework):
 
         # Stop group1 from staking
         nodes[0].reservebalance(True, 10000000)
-        assert(nodes[0].getblockcount() == nBlocksShorterChain)
+        assert (nodes[0].getblockcount() == nBlocksShorterChain)
 
         self.wait_for_height(nodes[3], nBlocksLongerChain, 2000)
 
@@ -95,7 +95,7 @@ class ForkTest(ParticlTestFramework):
             try:
                 ro = nodes[0].getblockhash(k)
             except JSONRPCException as e:
-                assert('Block height out of range' in e.error['message'])
+                assert ('Block height out of range' in e.error['message'])
                 ro = ''
             node0_chain.append(ro)
             print('node0 ', k, ' - ', ro)
@@ -119,14 +119,14 @@ class ForkTest(ParticlTestFramework):
                 try:
                     ro = nodes[0].getblockhash(k)
                 except JSONRPCException as e:
-                    assert('Block height out of range' in e.error['message'])
+                    assert ('Block height out of range' in e.error['message'])
                     ro = ''
                 if not ro == node3_chain[k]:
                     fPass = False
                     break
             if fPass:
                 break
-        #assert(fPass)
+        #assert (fPass)
 
 
         node0_chain = []
@@ -134,16 +134,16 @@ class ForkTest(ParticlTestFramework):
             try:
                 ro = nodes[0].getblockhash(k)
             except JSONRPCException as e:
-                assert('Block height out of range' in e.error['message'])
+                assert ('Block height out of range' in e.error['message'])
                 ro = ''
             node0_chain.append(ro)
             print('node0 ', k, ' - ', ro)
 
 
         ro = nodes[0].getblockchaininfo()
-        assert(ro['blocks'] == nBlocksLongerChain)
+        assert (ro['blocks'] == nBlocksLongerChain)
         ro = nodes[3].getblockchaininfo()
-        assert(ro['blocks'] == nBlocksLongerChain)
+        assert (ro['blocks'] == nBlocksLongerChain)
 
         # Ensure all valid txns are trusted
         # resendwallettransactions() has a delay
@@ -161,19 +161,19 @@ class ForkTest(ParticlTestFramework):
         for tx in n0_ft:
             if tx['category'] == 'orphaned_stake':
                 num_orphaned += 1
-        assert(num_orphaned == 2)
+        assert (num_orphaned == 2)
 
         n0_lt = nodes[0].listtransactions()
         num_orphaned = 0
         for tx in n0_lt:
             if tx['category'] == 'orphaned_stake':
                 num_orphaned += 1
-        assert(num_orphaned == 2)
+        assert (num_orphaned == 2)
 
         n0_wi_after = nodes[0].getwalletinfo()
         # Some small amounts were spent.
         difference = float(n0_wi_before['total_balance']) - float(n0_wi_after['total_balance'])
-        assert(difference > 0.0 and difference < 5.0)
+        assert (difference > 0.0 and difference < 5.0)
 
 
 if __name__ == '__main__':

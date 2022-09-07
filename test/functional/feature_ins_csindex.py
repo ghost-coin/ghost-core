@@ -43,8 +43,8 @@ class TxIndexTest(ParticlTestFramework):
         nodes[2].extkeyimportmaster(nodes[2].mnemonic('new')['master'])
 
         r = nodes[1].getinsightinfo()
-        assert(r['txindex'] is True)
-        assert(r['coldstakeindex'] is True)
+        assert (r['txindex'] is True)
+        assert (r['coldstakeindex'] is True)
 
         addrStake = nodes[2].getnewaddress('addrStake')
         addrSpend = nodes[2].getnewaddress('addrSpend', 'false', 'false', 'true')
@@ -69,81 +69,81 @@ class TxIndexTest(ParticlTestFramework):
 
         try:
             nodes[1].sendtoaddress(addrStake2_stakeonly, 12)
-            assert(False), 'Sent to stakeonly address'
+            assert (False), 'Sent to stakeonly address'
         except JSONRPCException as e:
-            assert('Can\'t send to stake-only address version' in e.error['message'])
+            assert ('Can\'t send to stake-only address version' in e.error['message'])
 
         try:
             nodes[1].sendtypeto('part', 'part',
                                 [{'address': addrStake2_stakeonly, 'amount':12}])
-            assert(False), 'Sent to stakeonly address'
+            assert (False), 'Sent to stakeonly address'
         except JSONRPCException as e:
-            assert('Can\'t send to stake-only address version' in e.error['message'])
+            assert ('Can\'t send to stake-only address version' in e.error['message'])
 
         self.sync_all()
 
         ro = nodes[2].listcoldstakeunspent(addrStake)
-        assert(len(ro) == 0)
+        assert (len(ro) == 0)
 
         try:
             ro = nodes[0].listcoldstakeunspent(addrStake)
-            assert(False), 'listcoldstakeunspent without -csindex.'
+            assert (False), 'listcoldstakeunspent without -csindex.'
         except JSONRPCException as e:
-            assert(re.search('Requires -(?:cs|tx)index enabled', e.error['message']))
+            assert (re.search('Requires -(?:cs|tx)index enabled', e.error['message']))
 
         self.stakeBlocks(1)
         ro = nodes[2].listcoldstakeunspent(addrStake)
-        assert(len(ro) == 2)
-        assert(ro[0]['value'] == ro[1]['value'] == 1200000000000)
-        assert(ro[0]['addrspend'] == ro[1]['addrspend'] == addrSpend)
+        assert (len(ro) == 2)
+        assert (ro[0]['value'] == ro[1]['value'] == 1200000000000)
+        assert (ro[0]['addrspend'] == ro[1]['addrspend'] == addrSpend)
         ro = nodes[2].listcoldstakeunspent(addrStake, 2, {'mature_only': True})
-        assert(len(ro) == 0)
+        assert (len(ro) == 0)
         ro = nodes[2].listcoldstakeunspent(addrStake, 2, {'mature_only': True, 'all_staked': True})
-        assert(len(ro) == 0)
+        assert (len(ro) == 0)
 
         ro = nodes[2].listcoldstakeunspent(addrStake2)
-        assert(len(ro) == 1)
-        assert(ro[0]['value'] == 1200000000)
-        assert(ro[0]['addrspend'] == addrSpend2)
+        assert (len(ro) == 1)
+        assert (ro[0]['value'] == 1200000000)
+        assert (ro[0]['addrspend'] == addrSpend2)
 
         ro2 = nodes[2].listcoldstakeunspent(addrStake2_stakeonly)
-        assert(json.dumps(ro2) == json.dumps(ro))
+        assert (json.dumps(ro2) == json.dumps(ro))
 
         self.stakeBlocks(1)
 
         # Lock the addrStake2 unspent, the unspents on addrStake must stake in the next block
         ro = nodes[2].listcoldstakeunspent(addrStake2_stakeonly, -1, {'show_outpoints': True})
-        assert(nodes[2].lockunspent(False, [{'txid': ro[0]['txid'], 'vout': ro[0]['n']}]) == True)
+        assert (nodes[2].lockunspent(False, [{'txid': ro[0]['txid'], 'vout': ro[0]['n']}]) == True)
 
         self.stakeBlocks(1, nStakeNode=2)
         ro = nodes[2].listcoldstakeunspent(addrStake)
-        assert(len(ro) == 3)
+        assert (len(ro) == 3)
 
         ro = nodes[2].listcoldstakeunspent(addrStake, 4, {'mature_only': True})
-        assert(len(ro) == 1)
+        assert (len(ro) == 1)
         ro = nodes[2].listcoldstakeunspent(addrStake, 4, {'mature_only': True, 'all_staked': True})
-        assert(len(ro) == 3)
+        assert (len(ro) == 3)
 
         ro = nodes[2].rewindchain()
-        assert(ro['to_height'] == 3)
+        assert (ro['to_height'] == 3)
         ro = nodes[2].getblockchaininfo()
-        assert(ro['blocks'] == 3)
+        assert (ro['blocks'] == 3)
 
         ro = nodes[2].listcoldstakeunspent(addrStake, 4)
-        assert(ro[0]['height'] == 2)
-        assert(ro[1]['height'] == 2)
-        assert(len(ro) == 2)
+        assert (ro[0]['height'] == 2)
+        assert (ro[1]['height'] == 2)
+        assert (len(ro) == 2)
 
         ro = nodes[1].listcoldstakeunspent(addrStake)
-        assert(len(ro) == 3)
+        assert (len(ro) == 3)
 
         self.restart_node(1, extra_args=self.extra_args[1] + ['-wallet=default_wallet',])
 
         ro = nodes[1].listcoldstakeunspent(addrStake)
-        assert(len(ro) == 3)
+        assert (len(ro) == 3)
 
         ro = nodes[1].getblockreward(2)
-        assert(ro['stakereward'] < ro['blockreward'])
+        assert (ro['stakereward'] < ro['blockreward'])
 
         self.restart_node(0, extra_args=self.extra_args[0] + ['-wallet=default_wallet',])
         self.restart_node(2, extra_args=self.extra_args[2] + ['-wallet=default_wallet',])
@@ -187,7 +187,7 @@ class TxIndexTest(ParticlTestFramework):
         for o in ro:
             if o['addrspend'] in (ms_addr0['address'], ms_addr1['address']):
                 num_found += 1
-        assert(num_found == 2)
+        assert (num_found == 2)
 
 
 if __name__ == '__main__':

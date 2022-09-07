@@ -35,57 +35,57 @@ class ExtKeyTest(ParticlTestFramework):
         self.stakeBlocks(1)
 
         ro = node1.extkeyimportmaster('drip fog service village program equip minute dentist series hawk crop sphere olympic lazy garbage segment fox library good alley steak jazz force inmate')
-        assert(ro['account_id'] == 'ahL1QdHhzNCtZWJzv36ScfPipJP1cUzAD8')
+        assert (ro['account_id'] == 'ahL1QdHhzNCtZWJzv36ScfPipJP1cUzAD8')
 
         extAddrTo = node1.getnewextaddress('test label')
-        assert(extAddrTo == 'pparszNYZ1cpWxnNieFqHCV2rtXmG74a4WAXHHhXaRATzzU6kMixjy1rXDM1UM4LVgkXRpLNM1rQNvkgLf7kUeMXiyaBMK8aSR3td4b4cX4epnHF')
+        assert (extAddrTo == 'pparszNYZ1cpWxnNieFqHCV2rtXmG74a4WAXHHhXaRATzzU6kMixjy1rXDM1UM4LVgkXRpLNM1rQNvkgLf7kUeMXiyaBMK8aSR3td4b4cX4epnHF')
 
         ro = node1.filteraddresses()
-        assert(len(ro) == 1)
-        assert(ro[0]['label'] == 'test label')
+        assert (len(ro) == 1)
+        assert (ro[0]['label'] == 'test label')
 
 
         ro = node1.getaddressinfo(extAddrTo)
-        assert(ro['ismine'] == True)
-        assert(ro['isextkey'] == True)
+        assert (ro['ismine'] == True)
+        assert (ro['isextkey'] == True)
 
         ro = node1.dumpprivkey(extAddrTo)
-        assert(ro == 'xparFnnG7xJkEekTjWGumcEY1BKgryY4txW5Ce56KQPBJG7u3cNsUHxGgjVwHGEaxUGDAjT4SXv7fkWkp4TFaFHjaoZVh8Zricnwz3DjAxtqtmi')
+        assert (ro == 'xparFnnG7xJkEekTjWGumcEY1BKgryY4txW5Ce56KQPBJG7u3cNsUHxGgjVwHGEaxUGDAjT4SXv7fkWkp4TFaFHjaoZVh8Zricnwz3DjAxtqtmi')
 
         txnHash = node.sendtoaddress(extAddrTo, 10)
 
         ro = node.getmempoolentry(txnHash)
-        assert(ro['height'] == 1)
+        assert (ro['height'] == 1)
 
         self.stakeBlocks(1)
 
 
         ro = node1.listtransactions()
-        assert(len(ro) == 1)
-        assert(ro[0]['address'] == 'pkGv5xgviEAEjwpRPeEt8c9cvraw2umKYo')
-        assert(ro[0]['amount'] == 10)
+        assert (len(ro) == 1)
+        assert (ro[0]['address'] == 'pkGv5xgviEAEjwpRPeEt8c9cvraw2umKYo')
+        assert (ro[0]['amount'] == 10)
 
         ro = node1.getwalletinfo()
-        assert(ro['total_balance'] == 10)
+        assert (ro['total_balance'] == 10)
 
         block2_hash = node.getblockhash(2)
 
         ro = node.getblock(block2_hash)
-        assert(txnHash in ro['tx'])
+        assert (txnHash in ro['tx'])
 
 
         txnHash2 = node.sendtoaddress(extAddrTo, 20, '', '', False, 'narration test')
 
-        assert(self.wait_for_mempool(node1, txnHash2))
+        assert (self.wait_for_mempool(node1, txnHash2))
 
         ro = node1.listtransactions()
-        assert(len(ro) == 2)
-        assert(ro[1]['address'] == 'pbo5e7tsLJBdUcCWteTTkGBxjW8Xy12o1V')
-        assert(ro[1]['amount'] == 20)
-        assert('narration test' in ro[1].values())
+        assert (len(ro) == 2)
+        assert (ro[1]['address'] == 'pbo5e7tsLJBdUcCWteTTkGBxjW8Xy12o1V')
+        assert (ro[1]['amount'] == 20)
+        assert ('narration test' in ro[1].values())
 
         ro = node.listtransactions()
-        assert('narration test' in ro[-1].values())
+        assert ('narration test' in ro[-1].values())
 
         extAddrTo0 = node.getnewextaddress()
 
@@ -97,10 +97,10 @@ class ExtKeyTest(ParticlTestFramework):
             txnHashes.append(txnHash)
 
         for txnHash in txnHashes:
-            assert(self.wait_for_mempool(node, txnHash))
+            assert (self.wait_for_mempool(node, txnHash))
 
         ro = node.listtransactions('*', 24)
-        assert(len(ro) == 24)
+        assert (len(ro) == 24)
         assert[isclose(ro[0]['amount'], 0.01)]
         assert[isclose(ro[23]['amount'], 0.24)]
         assert[ro[23]['address'] == 'pm23xKs3gy6AhZZ7JZe61Rn1m8VB83P49d']
@@ -111,12 +111,12 @@ class ExtKeyTest(ParticlTestFramework):
         ro = node.getblock(block3_hash)
 
         for txnHash in txnHashes:
-            assert(txnHash in ro['tx'])
+            assert (txnHash in ro['tx'])
 
         # Test bech32 encoding
         ek_b32 = 'tpep1q3ehtcetqqqqqqesj04mypkmhnly5rktqmcpmjuq09lyevcsjxrgra6x8trd52vp2vpsk6kf86v3npg6x66ymrn5yrqnclxtqrlfdlw3j4f0309dhxct8kc68paxt'
-        assert(node.getnewextaddress('lbl_b32', '', True) == ek_b32)
-        assert(ek_b32 in json.dumps(node.filteraddresses()))
+        assert (node.getnewextaddress('lbl_b32', '', True) == ek_b32)
+        assert (ek_b32 in json.dumps(node.filteraddresses()))
 
 
         self.log.info('Test receiving on non-account extkeys')
@@ -146,35 +146,35 @@ class ExtKeyTest(ParticlTestFramework):
         self.stakeBlocks(1)
 
         extkeyinfo_1 = self.nodes[2].extkey('key', ext_addr1)
-        assert(int(extkeyinfo_1['num_derives']) == 1)
+        assert (int(extkeyinfo_1['num_derives']) == 1)
         extkeyinfo_2 = self.nodes[2].extkey('key', ext_addr2)
-        assert(int(extkeyinfo_2['num_derives']) == 6)
+        assert (int(extkeyinfo_2['num_derives']) == 6)
         extkeyinfo_3 = self.nodes[2].extkey('key', ext_addr3)
-        assert(int(extkeyinfo_3['num_derives']) == 1)
+        assert (int(extkeyinfo_3['num_derives']) == 1)
 
         debugwallet = self.nodes[2].debugwallet()
-        assert(debugwallet['map_loose_keys_size'] == 7)
-        assert(debugwallet['map_loose_lookahead_size'] == 64 * 3)
+        assert (debugwallet['map_loose_keys_size'] == 7)
+        assert (debugwallet['map_loose_lookahead_size'] == 64 * 3)
 
         balances_2 = self.nodes[2].getbalances()
-        assert(balances_2['watchonly']['trusted'] == 1.0)
-        assert(balances_2['mine']['trusted'] == 2.0)
+        assert (balances_2['watchonly']['trusted'] == 1.0)
+        assert (balances_2['mine']['trusted'] == 2.0)
 
         self.log.info('Restarting node 2')
         self.restart_node(2, extra_args=self.extra_args[2] + ['-wallet=default_wallet',])
         balances_2 = self.nodes[2].getbalances()
-        assert(balances_2['watchonly']['trusted'] == 1.0)
-        assert(balances_2['mine']['trusted'] == 2.0)
+        assert (balances_2['watchonly']['trusted'] == 1.0)
+        assert (balances_2['mine']['trusted'] == 2.0)
 
         debugwallet = self.nodes[2].debugwallet()
         print('debugwallet', self.dumpj(debugwallet))
-        assert(debugwallet['map_loose_keys_size'] == 7)
-        assert(debugwallet['map_loose_lookahead_size'] == 64 * 3)
+        assert (debugwallet['map_loose_keys_size'] == 7)
+        assert (debugwallet['map_loose_lookahead_size'] == 64 * 3)
 
         self.nodes[2].sendtoaddress(extAddrTo, 1.0)
 
         extkeyinfo_3 = self.nodes[2].extkey('key', ext_addr3)
-        assert(int(extkeyinfo_3['num_derives']) == 1)
+        assert (int(extkeyinfo_3['num_derives']) == 1)
 
 
 if __name__ == '__main__':

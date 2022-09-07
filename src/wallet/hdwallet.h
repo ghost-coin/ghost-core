@@ -419,7 +419,7 @@ public:
 
     ScanResult ScanForWalletTransactions(const uint256& start_block, int start_height, std::optional<int> max_height, const WalletRescanReserver& reserver, bool fUpdate, const bool save_progress) override;
     std::vector<uint256> ResendRecordTransactionsBefore(int64_t nTime);
-    void ResendWalletTransactions() override;
+    void ResubmitWalletTransactions(bool relay, bool force) override;
 
     /**
      * populate vCoins with vector of available COutputs.

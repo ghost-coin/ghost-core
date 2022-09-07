@@ -118,7 +118,7 @@ class ParticlTestFramework(BitcoinTestFramework):
             if ro['total']['messages'] == nMessages:
                 fPass = True
                 break
-        assert(fPass)
+        assert (fPass)
 
         fPass = False
         for i in range(30):
@@ -127,17 +127,17 @@ class ParticlTestFramework(BitcoinTestFramework):
             if ro['total']['messages'] == nMessages:
                 fPass = True
                 break
-        assert(fPass)
+        assert (fPass)
 
     def stakeToHeight(self, height, fSync=True, nStakeNode=0, nSyncCheckNode=1):
         self.nodes[nStakeNode].walletsettings('stakelimit', {'height': height})
         self.nodes[nStakeNode].reservebalance(False)
-        assert(self.wait_for_height(self.nodes[nStakeNode], height))
+        assert (self.wait_for_height(self.nodes[nStakeNode], height))
         self.nodes[nStakeNode].reservebalance(True, 10000000)
         if not fSync:
             return
         self.sync_all()
-        assert(self.nodes[nSyncCheckNode].getblockcount() == height)
+        assert (self.nodes[nSyncCheckNode].getblockcount() == height)
 
     def stakeBlocks(self, nBlocks, nStakeNode=0, fSync=True):
         height = self.nodes[nStakeNode].getblockcount()
@@ -165,11 +165,11 @@ class ParticlTestFramework(BitcoinTestFramework):
 
     def import_genesis_coins_a(self, node):
         node.extkeyimportmaster('abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
-        assert(node.getwalletinfo()['total_balance'] == 100000)
+        assert (node.getwalletinfo()['total_balance'] == 100000)
 
     def import_genesis_coins_b(self, node):
         node.extkeyimportmaster('pact mammal barrel matrix local final lecture chunk wasp survey bid various book strong spread fall ozone daring like topple door fatigue limb olympic', '', 'true', '', '', 0, {'createextkeys': 1})
-        assert(node.getwalletinfo()['total_balance'] == 25000)
+        assert (node.getwalletinfo()['total_balance'] == 25000)
 
 
 def bytes_to_wif(b, compressed=True):

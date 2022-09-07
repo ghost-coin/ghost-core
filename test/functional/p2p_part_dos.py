@@ -133,17 +133,17 @@ class DoSTest(ParticlTestFramework):
                     self.log.info('Found line in log: ' + line)
                 if found_error_line and found_misbehave_line:
                     break
-        assert(found_error_line)
-        assert(found_misbehave_line)
+        assert (found_error_line)
+        assert (found_misbehave_line)
 
         peer_info = nodes[0].getpeerinfo()
-        assert(peer_info[1]['loose_headers'] >= 200)
-        assert(peer_info[1]['banscore'] > 100)
+        assert (peer_info[1]['loose_headers'] >= 200)
+        assert (peer_info[1]['banscore'] > 100)
 
         # Verify node under DOS isn't forwarding bad headers
         peer_info1 = nodes[1].getpeerinfo()
-        assert(peer_info1[0]['loose_headers'] == 0)
-        assert(peer_info1[0]['banscore'] == 0)
+        assert (peer_info1[0]['loose_headers'] == 0)
+        assert (peer_info1[0]['banscore'] == 0)
 
         if check_blockindex_decay:
             self.log.info('Waiting for unfilled headers to decay')
@@ -153,7 +153,7 @@ class DoSTest(ParticlTestFramework):
                 self.log.info('waiting %d, blockindexsize: %d' % (i, index_size))
                 if index_size <= 21:
                     break
-            assert(nodes[0].getblockchaininfo()['blockindexsize'] == 21)
+            assert (nodes[0].getblockchaininfo()['blockindexsize'] == 21)
 
             self.log.info('Reading log file: ' + log_path)
             found_misbehave_line = False
@@ -163,7 +163,7 @@ class DoSTest(ParticlTestFramework):
                         found_misbehave_line = True
                         self.log.info('Found line in log: ' + line)
                         break
-            assert(found_misbehave_line)
+            assert (found_misbehave_line)
 
             self.log.info('Replace headers for next test')
             self.log.info('Initial blockindexsize: %d\n' % (nodes[0].getblockchaininfo()['blockindexsize']))
@@ -197,7 +197,7 @@ class DoSTest(ParticlTestFramework):
         self.connect_nodes(0, 1)
 
         self.log.info('After restart blockindexsize: %d' % (nodes[0].getblockchaininfo()['blockindexsize']))
-        assert(nodes[0].getblockchaininfo()['blockindexsize'] == 21)
+        assert (nodes[0].getblockchaininfo()['blockindexsize'] == 21)
 
         self.log.info('Sending many duplicate headers\n\n')
 
@@ -237,7 +237,7 @@ class DoSTest(ParticlTestFramework):
                     found_dos_line = True
                     self.log.info('Found line in log: ' + line)
                     break
-        assert(found_dos_line)
+        assert (found_dos_line)
 
         self.log.info('Test that invalid coinstakes are detected in acceptblock')
         prev_block_hash = nodes[0].getbestblockhash()
@@ -273,8 +273,8 @@ class DoSTest(ParticlTestFramework):
                 elif line.find('AcceptBlock FAILED (invalid-stake-depth') > -1:
                     invalid_stake_line += 1
                     self.log.info('Found line in log: ' + line)
-        assert(bad_sig_line == 1)
-        assert(invalid_stake_line == 1)
+        assert (bad_sig_line == 1)
+        assert (invalid_stake_line == 1)
 
 
 if __name__ == '__main__':

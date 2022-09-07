@@ -39,10 +39,10 @@ class BalancesIndexTest(ParticlTestFramework):
         nodes[2].extkeyimportmaster(nodes[2].mnemonic('new')['master'])
 
         r = nodes[1].getinsightinfo()
-        assert(r['balancesindex'] is True)
+        assert (r['balancesindex'] is True)
 
         r = nodes[1].getblockbalances(nodes[0].getblockhash(0))
-        assert(r['plain'] == 125000.0)
+        assert (r['plain'] == 125000.0)
 
         sx_addr_2 = nodes[2].getnewstealthaddress()
         nodes[0].sendtypeto('part', 'anon', [{'address': sx_addr_2, 'amount': 10.0}])
@@ -51,9 +51,9 @@ class BalancesIndexTest(ParticlTestFramework):
         self.stakeBlocks(1)
 
         r = nodes[1].getblockbalances(nodes[0].getblockhash(1), {'in_sats': True})
-        assert(r['plain'] == 12497900039637)
-        assert(r['blind'] == 1100000000)
-        assert(r['anon'] == 1000000000)
+        assert (r['plain'] == 12497900039637)
+        assert (r['blind'] == 1100000000)
+        assert (r['anon'] == 1000000000)
 
         txid = nodes[2].sendtypeto('blind', 'part', [{'address': sx_addr_2, 'amount': 2.0, 'subfee': True}])
         tx_raw = nodes[2].getrawtransaction(txid)
@@ -62,10 +62,10 @@ class BalancesIndexTest(ParticlTestFramework):
         self.stakeBlocks(1)
 
         blockbalances = nodes[1].getblockbalances(nodes[0].getblockhash(2))
-        assert(blockbalances['blind'] == 9.0)
+        assert (blockbalances['blind'] == 9.0)
 
         txoutsetinfo = nodes[1].gettxoutsetinfo()
-        assert(blockbalances['plain'] == txoutsetinfo['total_amount'])
+        assert (blockbalances['plain'] == txoutsetinfo['total_amount'])
 
 
 if __name__ == '__main__':

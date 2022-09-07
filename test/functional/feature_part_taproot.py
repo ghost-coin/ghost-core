@@ -111,10 +111,10 @@ class ParticlTaprootTest(ParticlTestFramework):
         self.sync_all()
         self.stakeBlocks(1)
 
-        assert(nodes[2].gettransaction(txid1)['confirmations'] == 1)
-        assert(nodes[2].gettransaction(txid2)['confirmations'] == 1)
-        assert(nodes[2].gettransaction(txid3)['confirmations'] == 1)
-        assert(nodes[2].gettransaction(txid4)['confirmations'] == 1)
+        assert (nodes[2].gettransaction(txid1)['confirmations'] == 1)
+        assert (nodes[2].gettransaction(txid2)['confirmations'] == 1)
+        assert (nodes[2].gettransaction(txid3)['confirmations'] == 1)
+        assert (nodes[2].gettransaction(txid4)['confirmations'] == 1)
 
 
 if __name__ == '__main__':

@@ -507,10 +507,12 @@ public:
         pchMessageStart[2] = 0xef;
         pchMessageStart[3] = 0xb4;
         nDefaultPort = 51738;
+        nPruneAfterHeight = 100000;
+        m_assumed_blockchain_size = 2;
+        m_assumed_chain_state_size = 2;
+
         nBIP44ID = (int)WithHardenedBit(44);
         assert(nBIP44ID == (int)0x8000002C);
-
-
         nModifierInterval = 10 * 60;    // 10 minutes
         nStakeMinConfirmations = 225;   // 225 * 2 minutes
         nTargetSpacing = 120;           // 2 minutes
@@ -518,10 +520,6 @@ public:
 
         AddImportHashesMain(vImportedCoinbaseTxns);
         SetLastImportHeight();
-
-        nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 2;
-        m_assumed_chain_state_size = 2;
 
         genesis = CreateGenesisBlockMainNet(1500296400, 31429, 0x1f00ffff); // 2017-07-17 13:00:00
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -612,11 +610,11 @@ public:
          // TODO to be specified in a future patch.
         };
 
-        chainTxData = ChainTxData {
+        chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 b35f0e0cde108c282380d6850bae83c1fd2e961781e2289e2b2cd3d17ff039ab
-            /* nTime    */ 1659605952,
-            /* nTxCount */ 1538460,
-            /* dTxRate  */ 0.01
+            .nTime    = 1659605952,
+            .nTxCount = 1538460,
+            .dTxRate  = 0.01,
         };
     }
 
@@ -714,8 +712,11 @@ public:
         pchMessageStart[2] = 0x05;
         pchMessageStart[3] = 0x0b;
         nDefaultPort = 51938;
-        nBIP44ID = (int)WithHardenedBit(1);
+        nPruneAfterHeight = 1000;
+        m_assumed_blockchain_size = 2;
+        m_assumed_chain_state_size = 1;
 
+        nBIP44ID = (int)WithHardenedBit(1);
         nModifierInterval = 10 * 60;    // 10 minutes
         nStakeMinConfirmations = 225;   // 225 * 2 minutes
         nTargetSpacing = 120;           // 2 minutes
@@ -724,10 +725,6 @@ public:
 
         AddImportHashesTest(vImportedCoinbaseTxns);
         SetLastImportHeight();
-
-        nPruneAfterHeight = 1000;
-        m_assumed_blockchain_size = 1;
-        m_assumed_chain_state_size = 1;
 
         genesis = CreateGenesisBlockTestNet(1502309248, 5924, 0x1f00ffff);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -803,9 +800,9 @@ public:
 
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 01bbfe87e90af03e6daa171611fe342403a7ebb7f4703342f34fdeb613b3ecbc
-            /* nTime    */ 1659606240,
-            /* nTxCount */ 1228036,
-            /* dTxRate  */ 0.005
+            .nTime    = 1659606240,
+            .nTxCount = 1228036,
+            .dTxRate  = 0.005
         };
     }
 
@@ -843,15 +840,15 @@ public:
             vSeeds.emplace_back("178.128.221.177");
             vSeeds.emplace_back("v7ajjeirttkbnt32wpy3c6w3emwnfr3fkla7hpxcfokr3ysd3kqtzmqd.onion:38333");
 
-            consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000000de26b0e471");
-            consensus.defaultAssumeValid = uint256S("0x00000112852484b5fe3451572368f93cfd2723279af3464e478aee35115256ef"); // 78788
+            consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000001291fc22898");
+            consensus.defaultAssumeValid = uint256S("0x000000d1a0e224fa4679d2fb2187ba55431c284fa1b74cbc8cfda866fd4d2c09"); // 105495
             m_assumed_blockchain_size = 1;
             m_assumed_chain_state_size = 0;
             chainTxData = ChainTxData{
-                // Data from RPC: getchaintxstats 4096 0000003d9144c56ac110ae04a0c271a0acce2f14f426b39fdf0d938c96d2eb09
-                /* nTime    */ 1645631279,
-                /* nTxCount */ 1257429,
-                /* dTxRate  */ 0.1389638742514995,
+                // Data from RPC: getchaintxstats 4096 000000d1a0e224fa4679d2fb2187ba55431c284fa1b74cbc8cfda866fd4d2c09
+                .nTime    = 1661702566,
+                .nTxCount = 1903567,
+                .dTxRate  = 0.02336701143027275,
             };
         } else {
             const auto signet_challenge = args.GetArgs("-signetchallenge");

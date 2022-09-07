@@ -71,7 +71,7 @@ class TraceFrozenOutputsTest(ParticlTestFramework):
         for tx in traced['transactions']:
             found_at_depth = check_tx(tx, 0)
 
-        assert(found_at_depth == 1)
+        assert (found_at_depth == 1)
 
 
 if __name__ == '__main__':

@@ -993,7 +993,7 @@ static RPCHelpMan initaccountfromdevice()
         pwallet->RescanFromTime(nScanFrom, reserver, true /* update */);
         pwallet->MarkDirty();
         LOCK(pwallet->cs_wallet);
-        pwallet->ReacceptWalletTransactions();
+        pwallet->ResubmitWalletTransactions(/*relay=*/false, /*force=*/true);
     }
 
     std::string sPath;

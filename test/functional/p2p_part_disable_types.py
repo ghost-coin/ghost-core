@@ -43,7 +43,7 @@ class DisableTest(ParticlTestFramework):
             txids.append(nodes[1].sendtypeto('part', 'anon', [{'address': sx1, 'amount': 1},]))
 
         for h in txids:
-            assert(self.wait_for_mempool(nodes[0], h))
+            assert (self.wait_for_mempool(nodes[0], h))
 
         self.stakeBlocks(2)
 
@@ -55,7 +55,7 @@ class DisableTest(ParticlTestFramework):
         txids.append(nodes[1].sendtypeto('blind', 'anon', [{'address': sx1, 'amount': 1},]))
 
         for h in txids:
-            assert(self.wait_for_mempool(nodes[1], h))
+            assert (self.wait_for_mempool(nodes[1], h))
 
         self.stakeBlocks(1)
 
@@ -66,36 +66,36 @@ class DisableTest(ParticlTestFramework):
 
         txids = []
         txids.append(nodes[1].sendtypeto('part', 'part', [{'address': sx0, 'amount': 1},]))
-        assert(self.wait_for_mempool(nodes[1], txids[-1]))
+        assert (self.wait_for_mempool(nodes[1], txids[-1]))
 
         try:
             nodes[1].sendtypeto('part', 'blind', [{'address': sx1, 'amount': 1},])
-            assert(False)
+            assert (False)
         except Exception:
             pass
         try:
             nodes[1].sendtypeto('blind', 'part', [{'address': sx1, 'amount': 1},])
-            assert(False)
+            assert (False)
         except Exception:
             pass
         try:
             nodes[1].sendtypeto('blind', 'anon', [{'address': sx1, 'amount': 1},])
-            assert(False)
+            assert (False)
         except Exception:
             pass
         try:
             nodes[1].sendtypeto('anon', 'part', [{'address': sx1, 'amount': 1},], '', '', 5)
-            assert(False)
+            assert (False)
         except Exception:
             pass
         try:
             nodes[1].sendtypeto('anon', 'anon', [{'address': sx1, 'amount': 1},], '', '', 5)
-            assert(False)
+            assert (False)
         except Exception:
             pass
         try:
             nodes[1].sendtypeto('part', 'anon', [{'address': sx1, 'amount': 1},])
-            assert(False)
+            assert (False)
         except Exception:
             pass
 
@@ -123,9 +123,9 @@ class DisableTest(ParticlTestFramework):
             rtx = nodes[0].getrawtransaction(txid)
             try:
                 nodes[1].sendrawtransaction(rtx)
-                assert(False)
+                assert (False)
             except Exception as e:
-                assert('bad-txns-anon-disabled' in str(e) or 'bad-txns-blind-disabled' in str(e))
+                assert ('bad-txns-anon-disabled' in str(e) or 'bad-txns-blind-disabled' in str(e))
 
 
 if __name__ == '__main__':

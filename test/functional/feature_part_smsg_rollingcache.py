@@ -10,7 +10,9 @@ from test_framework.test_particl import (
     isclose
 )
 
+
 KEEP_FUNDING_TX_DATA = 86400 * 31
+
 
 class SmsgRollingCacheTest(ParticlTestFramework):
     def set_test_params(self):
@@ -46,8 +48,8 @@ class SmsgRollingCacheTest(ParticlTestFramework):
 
         text = 'Some text to test'
         ro = nodes[1].smsgsend(address1, address0, text, True, 10)
-        assert(ro['result'] == 'Sent.')
-        assert(isclose(ro['fee'], 0.00159000))
+        assert (ro['result'] == 'Sent.')
+        assert (isclose(ro['fee'], 0.00159000))
 
         self.stakeBlocks(1, nStakeNode=1)
 
@@ -58,7 +60,7 @@ class SmsgRollingCacheTest(ParticlTestFramework):
                 time.sleep(1)
                 continue
             break
-        assert(len(txns['txns']) > 0)
+        assert (len(txns['txns']) > 0)
 
         now = int(time.time())
         for i in range(len(nodes)):
@@ -71,7 +73,7 @@ class SmsgRollingCacheTest(ParticlTestFramework):
                 time.sleep(1)
                 continue
             break
-        assert(len(txns['txns']) == 0)
+        assert (len(txns['txns']) == 0)
 
         self.log.info('Done.')
 

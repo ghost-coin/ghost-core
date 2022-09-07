@@ -95,17 +95,17 @@ class SpentIndexTest(ParticlTestFramework):
         # Check that verbose raw transaction includes address values and input values
         txVerbose2 = self.nodes[3].getrawtransaction(sent_txid, 1)
         assert_equal(txVerbose2["vin"][0]["address"], 'pcwP4hTtaMb7n4urszBTsgxWLdNLU4yNGz')
-        assert(float(txVerbose2["vin"][0]["value"]) > 0)
-        assert(txVerbose2["vin"][0]["valueSat"] > 0)
+        assert (float(txVerbose2["vin"][0]["value"]) > 0)
+        assert (txVerbose2["vin"][0]["valueSat"] > 0)
 
 
         # Check the mempool index
         txid2 = nodes[0].sendtoaddress(addrs[1], 5)
         self.sync_all()
         txVerbose3 = self.nodes[1].getrawtransaction(txid2, 1)
-        assert(len(txVerbose3["vin"][0]["address"]) > 0)
-        assert(float(txVerbose3["vin"][0]["value"]) > 0)
-        assert(txVerbose3["vin"][0]["valueSat"] > 0)
+        assert (len(txVerbose3["vin"][0]["address"]) > 0)
+        assert (float(txVerbose3["vin"][0]["value"]) > 0)
+        assert (txVerbose3["vin"][0]["valueSat"] > 0)
 
 
         # Check the database index
@@ -113,13 +113,13 @@ class SpentIndexTest(ParticlTestFramework):
 
         block1_hash = nodes[1].getblockhash(nodes[1].getblockcount())
         ro = nodes[1].getblock(block1_hash)
-        assert(txid2 in ro['tx'])
+        assert (txid2 in ro['tx'])
 
 
         txVerbose4 = self.nodes[3].getrawtransaction(txid2, 1)
-        assert(len(txVerbose4["vin"][0]["address"]) > 0)
-        assert(float(txVerbose4["vin"][0]["value"]) > 0)
-        assert(txVerbose4["vin"][0]["valueSat"] > 0)
+        assert (len(txVerbose4["vin"][0]["address"]) > 0)
+        assert (float(txVerbose4["vin"][0]["value"]) > 0)
+        assert (txVerbose4["vin"][0]["valueSat"] > 0)
 
 
         # Check block deltas
@@ -142,7 +142,7 @@ class SpentIndexTest(ParticlTestFramework):
             if out["satoshis"] == 500000000 and out["address"] == addrs[1]:
                 fFound = True
                 break
-        assert(fFound)
+        assert (fFound)
 
         print("Passed\n")
 

@@ -29,30 +29,30 @@ class VoteTestExtra(ParticlTestFramework):
         self.import_genesis_coins_a(nodes[0])
 
         ro = nodes[0].setvote(1, 1, 0, 3)
-        assert(ro['result'] == 'Voting for option 1 on proposal 1')
+        assert (ro['result'] == 'Voting for option 1 on proposal 1')
         ro = nodes[0].setvote(1, 2, 0, 3)
-        assert(ro['result'] == 'Voting for option 2 on proposal 1')
+        assert (ro['result'] == 'Voting for option 2 on proposal 1')
         ro = nodes[0].setvote(1, 3, 4, 8)
-        assert(ro['result'] == 'Voting for option 3 on proposal 1')
+        assert (ro['result'] == 'Voting for option 3 on proposal 1')
         ro = nodes[0].setvote(1, 4, 6, 9)
-        assert(ro['result'] == 'Voting for option 4 on proposal 1')
+        assert (ro['result'] == 'Voting for option 4 on proposal 1')
 
         ro = nodes[0].votehistory(True, True)
 
-        assert(ro[0]['proposal'] == 1)
-        assert(ro[0]['option'] == 2)
-        assert(ro[0]['from_height'] == 0)
-        assert(ro[0]['to_height'] == 3)
+        assert (ro[0]['proposal'] == 1)
+        assert (ro[0]['option'] == 2)
+        assert (ro[0]['from_height'] == 0)
+        assert (ro[0]['to_height'] == 3)
 
-        assert(ro[1]['proposal'] == 1)
-        assert(ro[1]['option'] == 3)
-        assert(ro[1]['from_height'] == 4)
-        assert(ro[1]['to_height'] == 6)
+        assert (ro[1]['proposal'] == 1)
+        assert (ro[1]['option'] == 3)
+        assert (ro[1]['from_height'] == 4)
+        assert (ro[1]['to_height'] == 6)
 
-        assert(ro[2]['proposal'] == 1)
-        assert(ro[2]['option'] == 4)
-        assert(ro[2]['from_height'] == 6)
-        assert(ro[2]['to_height'] == 9)
+        assert (ro[2]['proposal'] == 1)
+        assert (ro[2]['option'] == 4)
+        assert (ro[2]['from_height'] == 6)
+        assert (ro[2]['to_height'] == 9)
 
         self.stakeBlocks(10)
 
@@ -61,13 +61,13 @@ class VoteTestExtra(ParticlTestFramework):
             ro = nodes[0].getblock(block_hash, 3)
 
             if i  < 4:
-                assert(ro['tx'][0]['vout'][0]['vote'] == '1, 2')
+                assert (ro['tx'][0]['vout'][0]['vote'] == '1, 2')
             elif i  < 6:
-                assert(ro['tx'][0]['vout'][0]['vote'] == '1, 3')
+                assert (ro['tx'][0]['vout'][0]['vote'] == '1, 3')
             elif i  < 10:
-                assert(ro['tx'][0]['vout'][0]['vote'] == '1, 4')
+                assert (ro['tx'][0]['vout'][0]['vote'] == '1, 4')
             else:
-                assert('vote' not in ro['tx'][0]['vout'][0])
+                assert ('vote' not in ro['tx'][0]['vout'][0])
 
 
 if __name__ == '__main__':
