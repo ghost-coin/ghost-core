@@ -204,8 +204,9 @@ make -C depends --jobs="$JOBS" HOST="$HOST" \
                                    x86_64_linux_RANLIB=x86_64-linux-gnu-ranlib \
                                    x86_64_linux_NM=x86_64-linux-gnu-nm \
                                    x86_64_linux_STRIP=x86_64-linux-gnu-strip \
-                                   qt_config_opts_x86_64_linux='-platform linux-g++ -xplatform bitcoin-linux-g++' \
-                                   ${NO_USB:+NO_USB=1}
+                                   ${NO_USB:+NO_USB=1} \
+                                   FORCE_USE_SYSTEM_CLANG=1
+
 
 ###########################
 # Source Tarball Building #
