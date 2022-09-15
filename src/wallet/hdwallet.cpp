@@ -13584,7 +13584,9 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         }
     }
 
-    if (nBlockHeight >= consensusParams.automatedGvrActivationHeight) {
+    if (nBlockHeight >= consensusParams.automatedGvrActivationHeight && nBlockHeight > consensusParams.agvrStartPayingHeight) {
+        // Entering here means AGVR is activated and that the first month is over, everything should work normally
+
         CAmount nGVRfwd = 0;
 
         if (nBlockHeight > 1) { // genesis block is pow
@@ -13637,6 +13639,62 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             assert(test_cfwd == gvrOutTotal);
         }
     }
+
+    CAmount nGVRfwd = 0;
+
+    if (nBlockHeight > 1) { // genesis block is pow
+        LOCK(cs_main);
+        if (!coinStakeCache.GetCoinStake(pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
+        }
+        if (!txPrevCoinstake->GetGvrFundCfwd(nGVRfwd)) {
+            nGVRfwd = 0;
+        }
+    }
+
+
+    // Start - Remove this block after successfull activation
+    if (nBlockHeight == consensusParams.agvrStartPayingHeight) {
+        // Pay the accumulated gvr to specified addr
+        
+        CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
+
+        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        auto gvrOutTotal = nGVRfwd + gvrOut;
+
+        OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
+        gvrOutTx->nValue = gvrOutTotal;
+        gvrOutTx->scriptPubKey = GetScriptForDestination(dfDest);
+
+        if (devFundPaid)
+            txNew.vpout.insert(txNew.vpout.begin() + 2, gvrOutTx);
+        else
+            txNew.vpout.insert(txNew.vpout.begin() + 1, gvrOutTx);
+
+    }
+
+    if (nBlockHeight >= consensusParams.automatedGvrActivationHeight && nBlockHeight < consensusParams.agvrStartPayingHeight) {
+        // Add the GVR to carried forward. We will pay it at the end of first minRewardRangeSpan
+        CAmount nGVRfwd = 0;
+        if (txPrevCoinstake && !txPrevCoinstake->GetGvrFundCfwd(nGVRfwd)) {
+            nGVRfwd = 0;
+        }
+
+        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        nRewardOut -= gvrOut;
+        auto gvrOutTotal = nGVRfwd + gvrOut;
+        std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();
+
+        vCfwd[0] = DO_GVR_FUND_CFWD;
+        if (0 != part::PutVarInt(vCfwd, gvrOutTotal)) {
+            return werror("%s: PutVarInt failed: %d.", __func__, gvrOutTotal);
+        }
+        vData.insert(vData.end(), vCfwd.begin(), vCfwd.end());
+        CAmount test_cfwd = 0;
+        assert(ExtractCoinStakeInt64(vData, DO_GVR_FUND_CFWD, test_cfwd));
+        assert(test_cfwd == gvrOutTotal);
+    }
+    // End
 
     // Place SMSG fee rate
     if (nTime >= consensusParams.smsg_fee_time) {

@@ -160,6 +160,7 @@ struct Params {
 
     int64_t gvrThreshold;
     int minRewardRangeSpan;
+    int agvrStartPayingHeight;
 
     /**
      * If true, witness commitments contain a payload equal to a Bitcoin Script solution

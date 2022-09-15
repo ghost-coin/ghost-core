@@ -3259,7 +3259,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
                 }
             }
-            if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+
+            if (pindex->nHeight >= consensus.automatedGvrActivationHeight && pindex->nHeight > consensus.agvrStartPayingHeight) {
                 if (pindex->pprev->nHeight > 0) { // Genesis block is pow
                     if (!txPrevCoinstake
                         && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
@@ -3329,7 +3330,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                     }
 
-                    CAmount nGvrCfwd = ngvrBfwd + ((nCalculatedStakeRewardWithoutFees * 50) / 100);;
+                    CAmount nGvrCfwd = ngvrBfwd + ((nCalculatedStakeRewardWithoutFees * 50) / 100);
                     if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)
                         || ngvrCfwdCheck != nGvrCfwd) {
                         LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nGvrCfwd, ngvrCfwdCheck);
@@ -3337,6 +3338,28 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
                 }
             }
+
+            if (pindex->nHeight == consensus.agvrStartPayingHeight) {
+                // Check that total carried forward was paid
+                const auto* outGvr = devFundPaidOut? txCoinstake->vpout[0]->GetStandardOutput() : txCoinstake->vpout[1]->GetStandardOutput();
+
+                auto gvrAmount = ((nCalculatedStakeRewardWithoutFees * 50) / 100);
+                auto expectedGvrAmount = consensus.minRewardRangeSpan * gvrAmount;
+                if (outGvr->nValue != expectedGvrAmount) {
+                    LogPrintf("[GVR activation] ERROR: %s: Paid GVR amount mismatch (actual=%d vs expected=%d)\n", __func__, outGvr->nValue, expectedGvrAmount);
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                }
+            }
+
+            if (pindex->nHeight < consensus.agvrStartPayingHeight) {
+                // Check that amount was carried
+
+                if (!txCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
+                    LogPrintf("[GVR activation] ERROR: %s: Carried forward must be set\n", __func__);
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                }
+            }
+
             coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
         } else {
             if (blockHash != chainparams.GetConsensus().hashGenesisBlock) {
@@ -3432,8 +3455,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             LogPrintf("%s Still verifying DB fVerifyingDB=%d\n", __func__, fVerifyingDB);
         }
 
-    } else { 
-        LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
     }
     
 
