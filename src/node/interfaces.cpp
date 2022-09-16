@@ -820,7 +820,7 @@ public:
     {
         if (!m_node.mempool) return nullptr;
         CScript coinbaseScript;
-        CChainState& active = Assert(m_node.chainman)->ActiveChainstate();
+        Chainstate& active = Assert(m_node.chainman)->ActiveChainstate();
         return BlockAssembler{active, m_node.mempool.get()}.CreateNewBlock(coinbaseScript, false);
     }
     CTxMemPool *getMempool() override

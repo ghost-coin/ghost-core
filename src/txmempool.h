@@ -40,7 +40,7 @@
 
 class CBlockIndex;
 class CChain;
-class CChainState;
+class Chainstate;
 extern RecursiveMutex cs_main;
 
 enum eMemPoolFlags

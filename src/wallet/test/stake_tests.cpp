@@ -82,7 +82,7 @@ static void TryAddBadTxn(CHDWallet *pwallet, CTxDestination &dest, OutputTypes o
     SyncWithValidationInterfaceQueue();
 }
 
-static void DisconnectTip(CChainState &chainstate_active, CTxMemPool* mempool, CBlock &block, CBlockIndex *pindexDelete, CCoinsViewCache &view, const CChainParams &chainparams) EXCLUSIVE_LOCKS_REQUIRED(cs_main, mempool->cs)
+static void DisconnectTip(Chainstate &chainstate_active, CTxMemPool* mempool, CBlock &block, CBlockIndex *pindexDelete, CCoinsViewCache &view, const CChainParams &chainparams) EXCLUSIVE_LOCKS_REQUIRED(cs_main, mempool->cs)
 {
     BlockValidationState state;
     BOOST_REQUIRE(DISCONNECT_OK == chainstate_active.DisconnectBlock(block, pindexDelete, view));

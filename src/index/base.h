@@ -12,7 +12,7 @@
 
 class CBlock;
 class CBlockIndex;
-class CChainState;
+class Chainstate;
 namespace interfaces {
 class Chain;
 } // namespace interfaces
@@ -96,7 +96,7 @@ protected:
 
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
-    CChainState* m_chainstate{nullptr};
+    Chainstate* m_chainstate{nullptr};
 
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
 

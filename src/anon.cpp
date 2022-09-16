@@ -305,7 +305,7 @@ bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPo
 };
 
 
-bool AllAnonOutputsUnknown(CChainState &active_chainstate, const CTransaction &tx, TxValidationState &state)
+bool AllAnonOutputsUnknown(Chainstate &active_chainstate, const CTransaction &tx, TxValidationState &state)
 {
     state.m_has_anon_output = false;
     for (unsigned int k = 0; k < tx.vpout.size(); k++) {
