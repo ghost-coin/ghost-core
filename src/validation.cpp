@@ -3343,7 +3343,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 // Check that total carried forward was paid
                 const auto* outGvr = devFundPaidOut? txCoinstake->vpout[0]->GetStandardOutput() : txCoinstake->vpout[1]->GetStandardOutput();
 
-                auto gvrAmount = ((nCalculatedStakeRewardWithoutFees * 50) / 100);
+                auto gvrAmount = (nCalculatedStakeRewardWithoutFees * 50) / 100;
                 auto expectedGvrAmount = consensus.minRewardRangeSpan * gvrAmount;
                 if (outGvr->nValue != expectedGvrAmount) {
                     LogPrintf("[GVR activation] ERROR: %s: Paid GVR amount mismatch (actual=%d vs expected=%d)\n", __func__, outGvr->nValue, expectedGvrAmount);
@@ -3351,7 +3351,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 }
             }
 
-            if (pindex->nHeight < consensus.agvrStartPayingHeight) {
+            if (pindex->nHeight >= consensus.automatedGvrActivationHeight && pindex->nHeight < consensus.agvrStartPayingHeight) {
                 // Check that amount was carried
 
                 if (!txCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
