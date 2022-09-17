@@ -3378,7 +3378,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     std::int64_t readHeight;
 
     if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadLastTrackedHeight(readHeight)) {
-        if (pindex->nHeight == 1) {
+        if (pindex->nHeight == 1 || pindex->nHeight == consensus.automatedGvrActivationHeight) {
             readHeight = 0;
         } else {
             LogPrintf("%s Impossible to read last tracked height attempted height %s\n", __func__, pindex->nHeight);
