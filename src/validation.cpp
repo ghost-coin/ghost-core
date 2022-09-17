@@ -3344,7 +3344,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 const auto* outGvr = devFundPaidOut? txCoinstake->vpout[0]->GetStandardOutput() : txCoinstake->vpout[1]->GetStandardOutput();
 
                 auto gvrAmount = (nCalculatedStakeRewardWithoutFees * 50) / 100;
-                auto expectedGvrAmount = consensus.minRewardRangeSpan * gvrAmount;
+                auto expectedGvrAmount = (consensus.minRewardRangeSpan + 2) * gvrAmount;
                 if (outGvr->nValue != expectedGvrAmount) {
                     LogPrintf("[GVR activation] ERROR: %s: Paid GVR amount mismatch (actual=%d vs expected=%d)\n", __func__, outGvr->nValue, expectedGvrAmount);
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");

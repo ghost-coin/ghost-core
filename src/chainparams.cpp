@@ -560,7 +560,6 @@ public:
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
-        vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 16, 5040));
         vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66, 5040));
         vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66, 5040));
         vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66, 5040)); //Approx each week to GVR Funds addr
@@ -742,7 +741,7 @@ public:
         consensus.nMinRCTOutputDepth = 2;
         consensus.m_frozen_anon_index = 20;
         consensus.anonRestrictionStartHeight = 50;
-        consensus.automatedGvrActivationHeight = 5000;
+        consensus.automatedGvrActivationHeight = 1000;
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -773,11 +772,11 @@ public:
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
 
-        genesis = CreateGenesisBlockTestNet(1663245055, 162, 0x1f00ffff);
+        genesis = CreateGenesisBlockTestNet(1663437816, 151165, 0x1f00ffff);
 
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256S("0x00003dd016229c6746970be84beb86caa0fcae7db5d799fe2a95a6b8a7441022"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0000f7a29616311da755c7ebbcaf69eac2cac94d39f7361d773dafd610174f8f"));
         assert(genesis.hashMerkleRoot == uint256S("0xc088a85a1e2aa0a55900f079078075af187600d5d242c09d5139fc3bbb23f1f8"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5e35a3292cbf2e112a65236817519565a3c50544dd24d602ceba985dba4e806c"));
 
@@ -828,7 +827,7 @@ public:
             }
         };
         
-        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 66, 10));
+        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 66, 14));
         consensus.gvrThreshold = 10000 * COIN;
         consensus.minRewardRangeSpan = 500; // 500 blocks for testnet
         consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
