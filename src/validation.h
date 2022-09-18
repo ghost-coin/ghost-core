@@ -32,6 +32,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "coldreward/coldrewardtracker.h"
 
 class CChainState;
 class BlockValidationState;
@@ -121,6 +122,9 @@ static const bool DEFAULT_ANON_RESTRICTED = true;
 static const bool DEFAULT_ANON_RESTRICTION_START_HEIGHT = 0;
 static const unsigned int DEFAULT_LAST_ANON_INDEX = 0;
 static const unsigned int DEFAULT_FULL_RESTRICTION_HEIGHT = 0;
+static const CAmount DEFAULT_GVR_THRESHOLD = 20000 * COIN;
+static const int DEFAULT_MIN_REWARD_RANGE_SPAN = 30 * 24 * 30; // Which is 21600 blocks per month
+static const int DEFAULT_GVR_START_HEIGHT = 100000;
 
 
 
@@ -144,6 +148,7 @@ extern CBlockPolicyEstimator feeEstimator;
 typedef std::unordered_map<uint256, CBlockIndex*, BlockHasher> BlockMap;
 extern std::map<COutPoint, uint256> mapStakeSeen;
 extern std::list<COutPoint> listStakeSeen;
+extern ColdRewardTracker rewardTracker;
 extern uint64_t nLastBlockTx;
 extern uint64_t nLastBlockSize;
 extern Mutex g_best_block_mutex;
@@ -1108,5 +1113,8 @@ DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex,
 bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
 bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
 void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
+
+ColdRewardTracker& initColdReward();
+void clearTrackedData();
 
 #endif // BITCOIN_VALIDATION_H

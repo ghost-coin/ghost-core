@@ -9,6 +9,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/merkle.h>
 #include <core_io.h>
+#include <string>
 #include <validation.h>
 #include <net.h>
 #include <policy/policy.h>
@@ -9784,6 +9785,75 @@ static UniValue extkeyimportmasterlegacy(const JSONRPCRequest &request)
     return extkeyimportinternal(request, false, true);
 }
 
+
+static UniValue geteligibleaddresses(const JSONRPCRequest& request)
+{
+    RPCHelpMan{"geteligibleaddresses",
+                "\nReturn the list of eligible addresses at the specified height" +
+                HELP_REQUIRING_PASSPHRASE,
+                {
+                    {"height", RPCArg::Type::NUM, /* default */ "0", "The height at which to return the eligble addresses"},
+                    {"eligibleonly", RPCArg::Type::BOOL, /* default */ "1", "Whether to return eligible addresses only. When set to true height is the current height"},
+                },
+             RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                    {
+                        RPCResult::Type::OBJ, "", "", {
+                            {RPCResult::Type::STR, "Address", "The address eligible"},
+                            {RPCResult::Type::NUM, "Balance", "Balance of the eligible address"},
+                        }
+                    }
+                }},
+            RPCExamples{
+                HelpExampleCli("geteligibleaddresses", "4 1")
+            },
+        }.Check(request);
+    
+    UniValue result(UniValue::VARR);
+
+    int height{0};
+    bool eligibleonly{true};
+
+    if (request.params[0].isNum()) {
+        height = request.params[0].get_int64();
+        eligibleonly = request.params[1].isNull()? true : request.params[1].get_bool();
+    } else if (request.params[0].isStr()) {
+        height = request.params.size() > 0 ? std::stol(request.params[0].get_str()) : ::ChainActive().Tip()->nHeight;
+        eligibleonly = request.params.size() > 1 ? std::stoi(request.params[1].get_str()) : true;
+    }
+
+    auto& rewardTracker = initColdReward();
+
+    std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> addresses;
+
+    if (!eligibleonly) {
+        height = ::ChainActive().Tip()->nHeight;
+        addresses = rewardTracker.getBalances();
+    } else {
+        const auto addrMul = rewardTracker.getEligibleAddresses(height);
+        const auto balances = rewardTracker.getBalances();
+
+        for (const auto& b: balances) {
+            auto res = std::find_if(addrMul.begin(), addrMul.end(), [&b](const std::pair<ColdRewardTracker::AddressType, CAmount>& s){
+                return s.first == b.first;
+            });
+
+            if (res != addrMul.end()) {
+                addresses.push_back(std::make_pair(res->first, b.second));
+            }
+        }
+    }
+
+    for (const auto& trackedAddr : addresses) {
+        UniValue innerResult(UniValue::VOBJ);
+        innerResult.pushKV("Address", std::string(trackedAddr.first.begin(), trackedAddr.first.end()) );
+        innerResult.pushKV("Balance", ValueFromAmount(trackedAddr.second));
+        result.push_back(innerResult);
+    }
+    
+    return result;
+}
+
 static UniValue rehashblock(const JSONRPCRequest &request)
 {
             RPCHelpMan{"rehashblock",
@@ -9962,6 +10032,8 @@ static const CRPCCommand commands[] =
     { "blockchain",         "rewindchain",                      &rewindchain,                   {"height"} },
     { "blockchain",         "pruneorphanedblocks",              &pruneorphanedblocks,           {"testonly"} },
     { "blockchain",         "rehashblock",                      &rehashblock,                   {"blockhex","signwith","addtxns"} },
+
+    { "blockchain",         "geteligibleaddresses",             &geteligibleaddresses,          {"height", "eligibleonly"} },
 };
 // clang-format on
     return MakeSpan(commands);

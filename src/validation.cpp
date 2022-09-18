@@ -146,6 +146,7 @@ RecursiveMutex cs_main;
 std::map<uint256, StakeConflict> mapStakeConflict;
 std::map<COutPoint, uint256> mapStakeSeen;
 std::list<COutPoint> listStakeSeen;
+ColdRewardTracker rewardTracker;
 
 CoinStakeCache coinStakeCache GUARDED_BY(cs_main);
 
@@ -1955,7 +1956,7 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState &state, const C
     //    CBlockIndex *pindexPrev = ::ChainActive().Tip()->pprev;
     //    if (pindexPrev)
     //        nTime = pindexPrev->GetBlockHeader().nTime;
-    
+
     if (!ignoreTx(tx) && m_has_anon_input && fAnonChecks
         && !VerifyMLSAG(tx, state)) {
         return false;
@@ -2095,8 +2096,16 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     bool fClean = true;
 
     CBlockUndo blockUndo;
+    ColdRewardUndo rewardUndo;
+
+    const auto& consensus = Params().GetConsensus();
     if (!UndoReadFromDisk(blockUndo, pindex)) {
         error("DisconnectBlock(): failure reading undo data");
+        return DISCONNECT_FAILED;
+    }
+
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndo(rewardUndo, pindex->nHeight)) {
+        error("DisconnectBlock(): failure reading coldreward undo data");
         return DISCONNECT_FAILED;
     }
 
@@ -2120,6 +2129,27 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 return DISCONNECT_FAILED;
             }
         }
+        
+        if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+            std::size_t inputsSize = 0;
+            std::size_t outputsSize = 0;
+            for(const auto& tx: block.vtx) {
+                inputsSize += tx->vin.size();
+                outputsSize += tx->vpout.size();
+            }
+
+            if (rewardUndo.inputs.at(pindex->nHeight).size() != inputsSize) {
+                error("DisconnectBlock(): block and undo inputs size of tracker inconsistent");
+                return DISCONNECT_FAILED;
+            }
+
+            // outpuSize - 1 to remove the data output
+            if (rewardUndo.outputs.at(pindex->nHeight).size() != outputsSize - 1) {
+                error("DisconnectBlock(): block and undo outputs size of tracker inconsistent");
+                return DISCONNECT_FAILED;
+            }
+        }
+
     }
 
     int nVtxundo = (int)blockUndo.vtxundo.size()-1;
@@ -2128,6 +2158,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     {
         const CTransaction &tx = *(block.vtx[i]);
         uint256 hash = tx.GetHash();
+        bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
 
         for (const auto &txin : tx.vin) {
             if (txin.IsAnonInput()) {
@@ -2149,8 +2180,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 view.spent_cache.emplace_back(txin.prevout, SpentCoin());
             }
         }
-
-        bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
 
         for (size_t k = tx.vpout.size(); k-- > 0;) {
             const CTxOutBase *out = tx.vpout[k].get();
@@ -2219,6 +2248,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             view.addressIndex.push_back(std::make_pair(CAddressIndexKey(scriptType, uint256(hashBytes.data(), hashBytes.size()), pindex->nHeight, i, hash, k, false), nValue));
             // undo unspent index
             view.addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(scriptType, uint256(hashBytes.data(), hashBytes.size()), hash, k), CAddressUnspentValue()));
+
         }
 
 
@@ -2309,6 +2339,45 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             }
             // At this point, all of txundo.vprevout should have been moved out.
         }
+    }
+
+    // Rollback the tracked balances
+    auto undoOutputHeightExists = std::find_if(rewardUndo.outputs.begin(), rewardUndo.outputs.end(), 
+        [&](const std::pair<int, std::vector<std::pair<AddressType, CAmount>>>& elem){
+            return elem.first == pindex->nHeight;
+        });
+
+    auto undoInputHeightExists = std::find_if(rewardUndo.inputs.begin(), rewardUndo.inputs.end(), 
+        [&](const std::pair<int, std::vector<std::pair<AddressType, CAmount>>>& elem){
+            return elem.first == pindex->nHeight;
+        });
+
+
+    if (!rewardUndo.outputs.empty() && undoOutputHeightExists != rewardUndo.outputs.end()) {
+        for(const auto& output: rewardUndo.outputs.at(pindex->nHeight)) {
+            const auto addr = std::string(output.first.begin(), output.first.end());
+            LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, addr);
+            rewardTracker.removeAddressTransaction(pindex->nHeight, output.first, output.second);
+        }
+    }
+
+    if (!rewardUndo.inputs.empty() && undoInputHeightExists != rewardUndo.inputs.end()) {
+        for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
+            const auto addr = std::string(input.first.begin(), input.first.end());
+            LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
+            rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
+        }
+    }
+
+    if (!fVerifyingDB) {
+        if (pindex->nHeight >= consensus.automatedGvrActivationHeight && 
+            !pblocktree->WriteLastTrackedHeight(pindex->pprev->nHeight)) {
+            return DISCONNECT_FAILED;
+        } else {
+            LogPrintf("%s Writting last tracked height %d\n", __func__, pindex->pprev->nHeight);
+        }
+    } else {
+        LogPrintf("%s Still verifying DB not writing last tracked index\n", __func__);
     }
 
     // move best block pointer to prevout block
@@ -2688,6 +2757,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     smsgModule.StartConnectingBlock();
 
     CBlockUndo blockundo;
+    ColdRewardUndo rewardUndo;
 
     // Precomputed transaction data pointers must not be invalidated
     // until after `control` has run the script checks (potentially
@@ -2698,11 +2768,14 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
     std::vector<int> prevheights;
+    std::vector<std::pair<bool, Coin> > inputsTrackingData; 
     CAmount nFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
     int64_t nAnonIn = 0;
     int64_t nStakeReward = 0;
+    CAmount kernelvalue = 0;
+    CScript kernelScriptPubKey;
 
     blockundo.vtxundo.reserve(block.vtx.size() - (fParticlMode ? 0 : 1));
 
@@ -2779,6 +2852,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     const Coin &coin = view.AccessCoin(input.prevout);
 
                     if (coin.nType != OUTPUT_CT) {
+                        bool isCoinStake = tx.IsCoinStake();
+                        inputsTrackingData.push_back(std::make_pair(isCoinStake, coin));
                         // Cache recently spent coins for staking.
                         view.spent_cache.emplace_back(input.prevout, SpentCoin(coin, pindex->nHeight));
                     }
@@ -2967,6 +3042,9 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             const TreasuryFundSettings *pTreasuryFundSettings = chainparams.GetTreasuryFundSettings(pindex->nHeight);
             const CAmount nCalculatedStakeReward = Params().GetProofOfStakeReward(pindex->pprev, nFees); // stake_test
             const float nCalculatedStakeRewardReal = (float) nCalculatedStakeReward / COIN; // stake_test
+            const CAmount nCalculatedStakeRewardWithoutFees = nCalculatedStakeReward - nFees;
+            CAmount ngvrCfwdCheck = 0, ngvrBfwd = 0;
+            bool devFundPaidOut = false;
 
             if (block.nTime >= consensus.smsg_fee_time) {
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
@@ -3027,101 +3105,262 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
                 }
             } else {
-                assert(pTreasuryFundSettings->nMinTreasuryStakePercent <= 100);
 
-                CAmount nTreasuryBfwd = 0, nTreasuryCfwdCheck = 0;
-                float nMinTreasuryPartFloat = (nCalculatedStakeRewardReal * pTreasuryFundSettings->nMinTreasuryStakePercent) / 100;
-                CAmount nMinTreasuryPart = (CAmount) nMinTreasuryPartFloat * COIN;
-                CAmount nMaxHolderPart = nCalculatedStakeReward - nMinTreasuryPart;
-                if (nMinTreasuryPart < 0 || nMaxHolderPart < 0) {
-                    LogPrintf("ERROR: %s: Bad coinstake split amount (treasury=%d vs reward=%d)\n", __func__, nMinTreasuryPart, nMaxHolderPart);
-                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
+                if (pindex->nHeight < consensus.automatedGvrActivationHeight) {
+
+                    assert(pTreasuryFundSettings->nMinTreasuryStakePercent <= 100);
+
+                    CAmount nTreasuryBfwd = 0, nTreasuryCfwdCheck = 0;
+                    float nMinTreasuryPartFloat = (nCalculatedStakeRewardReal * pTreasuryFundSettings->nMinTreasuryStakePercent) / 100;
+                    CAmount nMinTreasuryPart = (CAmount) nMinTreasuryPartFloat * COIN;
+                    CAmount nMaxHolderPart = nCalculatedStakeReward - nMinTreasuryPart;
+                    if (nMinTreasuryPart < 0 || nMaxHolderPart < 0) {
+                        LogPrintf("ERROR: %s: Bad coinstake split amount (treasury=%d vs reward=%d)\n", __func__, nMinTreasuryPart, nMaxHolderPart);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
+                    }
+
+                    if (pindex->pprev->nHeight > 0) { // Genesis block is pow
+                        if (!txPrevCoinstake
+                            && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                            LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
+                        }
+
+                        assert(txPrevCoinstake->IsCoinStake()); // Sanity check
+                        if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
+                            nTreasuryBfwd = 0;
+                        }
+                    }
+
+                    if (pindex->nHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
+                        // Fund output must exist and match cfwd, cfwd data output must be unset
+                        // nStakeReward must == nTreasuryBfwd + nCalculatedStakeReward
+
+                        if (nStakeReward != nTreasuryBfwd + nCalculatedStakeReward) {
+                            LogPrintf("ERROR: %s: Bad stake-reward (actual=%d vs expected=%d)\n", __func__, nStakeReward, nTreasuryBfwd + nCalculatedStakeReward);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
+                        }
+
+                        CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
+                        if (dfDest.type() == typeid(CNoDestination)) {
+                            return error("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
+                        }
+                        CScript fundScriptPubKey = GetScriptForDestination(dfDest);
+
+                        // Output 1 must be to the treasury fund
+                        const CTxOutStandard *outputDF = txCoinstake->vpout[1]->GetStandardOutput();
+                        if (!outputDF) {
+                            LogPrintf("ERROR: %s: Bad treasury fund output.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                        }
+                        if (outputDF->scriptPubKey != fundScriptPubKey) {
+                            LogPrintf("ERROR: %s: Bad treasury fund output script.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                        }
+                        if (outputDF->nValue < nTreasuryBfwd + nMinTreasuryPart) { // Max value is clamped already
+                            LogPrintf("ERROR: %s: Bad treasury-reward (actual=%d vs minfundpart=%d)\n", __func__, nStakeReward, nTreasuryBfwd + nMinTreasuryPart);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-fund-amount");
+                        }
+                        if (txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)) {
+                            LogPrintf("ERROR: %s: Coinstake treasury cfwd must be unset.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
+                    } else {
+                        // Ensure cfwd data output is correct and nStakeReward is <= nHolderPart
+                        // cfwd must == nTreasuryBfwd + (nCalculatedStakeReward - nStakeReward) // Allowing users to set a higher split
+                        //One time gvrpay check
+                        if(pindex->nHeight == consensus.nOneTimeGVRPayHeight){
+                            //Make sure stakeout pays the one time pay
+                            if(txCoinstake->vpout.size() > 1 && nStakeReward > nMaxHolderPart){
+                                CScript gvrPayeeSCP = GetScriptForDestination(DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses));
+                                const CTxOutStandard *outputDF = txCoinstake->vpout[1]->GetStandardOutput();
+                                //Check output script
+                                if (outputDF->scriptPubKey != gvrPayeeSCP) {
+                                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvrpay");
+                                }
+                                //Check payout
+                                if(outputDF->nValue != consensus.nGVRPayOnetimeAmt){
+                                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvronetime-pay");
+                                }
+                                //Now if this passes set stakereward to actual reward so that we can check coinstake
+                                nStakeReward -= consensus.nGVRPayOnetimeAmt;
+                            }
+                            else{
+                                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvronetime-pay");
+                            }
+                        }
+                        if (nStakeReward < 0 || nStakeReward > nMaxHolderPart) {
+                            LogPrintf("ERROR: %s: Bad stake-reward (actual=%d vs maxholderpart=%d)\n", __func__, nStakeReward, nMaxHolderPart);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
+                        }
+                        CAmount nTreasuryCfwd = nTreasuryBfwd + nCalculatedStakeReward - nStakeReward;
+                        if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
+                            || nTreasuryCfwdCheck != nTreasuryCfwd) {
+                            LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
+                    }
+
+                } else {
+
+                    CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
+                    CAmount nTreasuryBfwd = 0, nTreasuryCfwdCheck = 0;
+
+                    if (pindex->pprev->nHeight > 0) { // Genesis block is pow
+                        if (!txPrevCoinstake
+                            && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
+                            LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
+                        }
+
+                        assert(txPrevCoinstake->IsCoinStake()); // Sanity check
+                        if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
+                            nTreasuryBfwd = 0;
+                        }
+                    }
+
+                    if (dfDest.type() == typeid(CNoDestination)) {
+                        return error("%s: Failed to get dev fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
+                    }
+
+                    if (pindex->nHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
+                        CScript fundScriptPubKey = GetScriptForDestination(dfDest);
+
+                        // Output 1 must be to the dev fund
+                        const CTxOutStandard* outputDF = txCoinstake->vpout[1]->GetStandardOutput();
+                        if (!outputDF) {
+                            LogPrintf("ERROR: %s: Bad dev fund output.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                        }
+                        if (outputDF->scriptPubKey != fundScriptPubKey) {
+                            LogPrintf("ERROR: %s: Bad dev fund output script.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-script");
+                        }
+
+                        if (txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)) {
+                            LogPrintf("ERROR: %s: Coinstake treasury cfwd must be unset.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
+
+                        const CAmount devFundPart = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * 16) / 100);
+                        if (outputDF->nValue != devFundPart) {
+                            LogPrintf("ERROR: %s: Bad dev fund output value.\n", __func__);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
+                        }
+                        devFundPaidOut = true;
+                    } else {
+                        // The dev fund carried forward has to be set
+                        CAmount nTreasuryCfwd = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * 16) / 100);;
+                        if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
+                            || nTreasuryCfwdCheck != nTreasuryCfwd) {
+                            LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
+                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                        }
+                    }
                 }
+            }
 
+            if (pindex->nHeight >= consensus.automatedGvrActivationHeight && pindex->nHeight > consensus.agvrStartPayingHeight) {
                 if (pindex->pprev->nHeight > 0) { // Genesis block is pow
                     if (!txPrevCoinstake
                         && !coinStakeCache.GetCoinStake(pindex->pprev->GetBlockHash(), txPrevCoinstake)) {
                         LogPrintf("ERROR: %s: Failed to get previous coinstake.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-prev");
                     }
-
                     assert(txPrevCoinstake->IsCoinStake()); // Sanity check
-                    if (!txPrevCoinstake->GetTreasuryFundCfwd(nTreasuryBfwd)) {
-                        nTreasuryBfwd = 0;
+                    if (!txPrevCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
+                        ngvrBfwd = 0;
                     }
                 }
 
-                if (pindex->nHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
-                    // Fund output must exist and match cfwd, cfwd data output must be unset
-                    // nStakeReward must == nTreasuryBfwd + nCalculatedStakeReward
+                auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
+                CTxDestination stakerAddrDest;
+                uint256 kernelhash, kernelblockhash;
 
-                    if (nStakeReward != nTreasuryBfwd + nCalculatedStakeReward) {
-                        LogPrintf("ERROR: %s: Bad stake-reward (actual=%d vs expected=%d)\n", __func__, nStakeReward, nTreasuryBfwd + nCalculatedStakeReward);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
+                const COutPoint& prevout = (*block.vtx[0]).vin[0].prevout;
+
+                CTransactionRef txPrev;
+                CBlock blockKernel;
+
+                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel, true)) {
+                    return error("Can't get kernel transaction details\n");
+                }
+
+                const CTxOutBase* outPrev = txPrev->vpout[prevout.n].get();
+                kernelvalue = outPrev->GetValue();
+                outPrev->GetScriptPubKey(kernelScriptPubKey);
+                ExtractDestination(kernelScriptPubKey, stakerAddrDest);
+                LogPrintf("%s Kernel out value=%s kernel out addr=%s\n", __func__, outPrev->GetValue(), EncodeDestination(stakerAddrDest));
+
+                // Check if the staker of the block was eligible and that the gvr went to him
+
+                auto wasEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(),
+                                            [&stakerAddrDest](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                                        const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
+                                        return trackedAddrDest == stakerAddrDest;
+                                    });
+
+                if (wasEligible != eligibleAddresses.end()) {
+                    // if he was elig then the vpout[2] is the gvr out
+                    // The staker was eligible then compare scripts
+                    CScript gvrReceiverScript;
+
+                    if (devFundPaidOut) {
+                        txCoinstake->vpout[2]->GetScriptPubKey(gvrReceiverScript);
+                        LogPrintf("%s Dev fund was paid out using index 2 for gvr\n", __func__);
+                    } else {
+                        txCoinstake->vpout[1]->GetScriptPubKey(gvrReceiverScript);
+                        LogPrintf("%s Dev fund was not paid out using index 1 for gvr\n", __func__);
                     }
 
-                    CTxDestination dfDest = DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses);
-                    if (dfDest.type() == typeid(CNoDestination)) {
-                        return error("%s: Failed to get treasury fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
-                    }
-                    CScript fundScriptPubKey = GetScriptForDestination(dfDest);
+                    if (kernelScriptPubKey != gvrReceiverScript) {
+                        CTxDestination actualDest;
+                        ExtractDestination(gvrReceiverScript, actualDest);
+                        auto actual = EncodeDestination(actualDest);
 
-                    // Output 1 must be to the treasury fund
-                    const CTxOutStandard *outputDF = txCoinstake->vpout[1]->GetStandardOutput();
-                    if (!outputDF) {
-                        LogPrintf("ERROR: %s: Bad treasury fund output.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
+                        LogPrintf("ERROR: %s: Kernel script and rewarded script doesn't match (actual=%, expected=%)\n", __func__, actual, EncodeDestination(stakerAddrDest));
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvr-script");
                     }
-                    if (outputDF->scriptPubKey != fundScriptPubKey) {
-                        LogPrintf("ERROR: %s: Bad treasury fund output script.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs");
-                    }
-                    if (outputDF->nValue < nTreasuryBfwd + nMinTreasuryPart) { // Max value is clamped already
-                        LogPrintf("ERROR: %s: Bad treasury-reward (actual=%d vs minfundpart=%d)\n", __func__, nStakeReward, nTreasuryBfwd + nMinTreasuryPart);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-fund-amount");
-                    }
-                    if (txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)) {
-                        LogPrintf("ERROR: %s: Coinstake treasury cfwd must be unset.\n", __func__);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
-                    }
+
                 } else {
-                    // Ensure cfwd data output is correct and nStakeReward is <= nHolderPart
-                    // cfwd must == nTreasuryBfwd + (nCalculatedStakeReward - nStakeReward) // Allowing users to set a higher split
-                    //One time gvrpay check
-                    if(pindex->nHeight == consensus.nOneTimeGVRPayHeight){
-                        //Make sure stakeout pays the one time pay
-                        if(txCoinstake->vpout.size() > 1 && nStakeReward > nMaxHolderPart){
-                            CScript gvrPayeeSCP = GetScriptForDestination(DecodeDestination(pTreasuryFundSettings->sTreasuryFundAddresses));
-                            const CTxOutStandard *outputDF = txCoinstake->vpout[1]->GetStandardOutput();
-                            //Check output script
-                            if (outputDF->scriptPubKey != gvrPayeeSCP) {
-                                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvrpay");
-                            }
-                            //Check payout
-                            if(outputDF->nValue != consensus.nGVRPayOnetimeAmt){
-                                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvronetime-pay");
-                            }
-                            //Now if this passes set stakereward to actual reward so that we can check coinstake
-                            nStakeReward -= consensus.nGVRPayOnetimeAmt;
-                        }
-                        else{
-                            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-gvronetime-pay");
-                        }
+                    // The staker was not eligible so the carried forward has to be set
+                    // The carried forward is set since there were no gvr output
+                    if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)) {
+                        LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                     }
-                    if (nStakeReward < 0 || nStakeReward > nMaxHolderPart) {
-                        LogPrintf("ERROR: %s: Bad stake-reward (actual=%d vs maxholderpart=%d)\n", __func__, nStakeReward, nMaxHolderPart);
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
-                    }
-                    CAmount nTreasuryCfwd = nTreasuryBfwd + nCalculatedStakeReward - nStakeReward;
-                    if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
-                        || nTreasuryCfwdCheck != nTreasuryCfwd) {
-                        LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
+
+                    CAmount nGvrCfwd = ngvrBfwd + ((nCalculatedStakeRewardWithoutFees * 50) / 100);
+                    if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)
+                        || ngvrCfwdCheck != nGvrCfwd) {
+                        LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nGvrCfwd, ngvrCfwdCheck);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                     }
                 }
-
-                coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
             }
+
+            if (pindex->nHeight == consensus.agvrStartPayingHeight) {
+                // Check that total carried forward was paid
+                const auto* outGvr = devFundPaidOut? txCoinstake->vpout[0]->GetStandardOutput() : txCoinstake->vpout[1]->GetStandardOutput();
+
+                auto gvrAmount = (nCalculatedStakeRewardWithoutFees * 50) / 100;
+                auto expectedGvrAmount = (consensus.minRewardRangeSpan + 2) * gvrAmount;
+                if (outGvr->nValue != expectedGvrAmount) {
+                    LogPrintf("[GVR activation] ERROR: %s: Paid GVR amount mismatch (actual=%d vs expected=%d)\n", __func__, outGvr->nValue, expectedGvrAmount);
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                }
+            }
+
+            if (pindex->nHeight >= consensus.automatedGvrActivationHeight && pindex->nHeight < consensus.agvrStartPayingHeight) {
+                // Check that amount was carried
+
+                if (!txCoinstake->GetGvrFundCfwd(ngvrBfwd)) {
+                    LogPrintf("[GVR activation] ERROR: %s: Carried forward must be set\n", __func__);
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
+                }
+            }
+
+            coinStakeCache.InsertCoinStake(blockHash, txCoinstake);
         } else {
             if (blockHash != chainparams.GetConsensus().hashGenesisBlock) {
                 LogPrintf("ERROR: %s: Block isn't coinstake or genesis.\n", __func__);
@@ -3135,6 +3374,89 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
         }
     }
+
+    std::int64_t readHeight;
+
+    if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadLastTrackedHeight(readHeight)) {
+        if (pindex->nHeight == 1 || pindex->nHeight == consensus.automatedGvrActivationHeight) {
+            readHeight = 0;
+        } else {
+            LogPrintf("%s Impossible to read last tracked height attempted height %s\n", __func__, pindex->nHeight);
+            return false;
+        }
+    }
+
+    // Track the inputs/outputs for any balance changes
+
+    if (readHeight < pindex->nHeight && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+
+        LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
+
+        rewardTracker.startPersistedTransaction();
+
+        for (const auto& txs: block.vtx) { 
+            for (const auto& txout: txs->vpout) {
+                if (txout->IsStandardOutput()) {
+                    CTxDestination dest;
+                    CScript outScript;
+                    txout->GetScriptPubKey(outScript);
+
+                    if (ExtractDestination(outScript, dest)) {
+                        const std::string& str = EncodeDestination(dest);
+                        const auto& addr = AddressType(str.cbegin(), str.cend());
+                        rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
+                        rewardUndo.outputs[pindex->nHeight].emplace_back(make_pair(addr, txout->GetValue()));
+                    } else {
+                        LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
+                        return error("ConnectBlock(): Can't extract destination address for outputs\n");
+                    }
+                }
+            }
+        }
+
+        for (const auto& trackedInput: inputsTrackingData) {
+            CTxDestination dest;
+            CScript trackedScript;
+            CAmount amountDeducted;
+
+            if (trackedInput.second.out.IsNull()) {
+                continue;
+            }
+
+            if (trackedInput.first) {
+                trackedScript = trackedInput.second.out.scriptPubKey;
+                amountDeducted = trackedInput.second.out.nValue;
+                LogPrintf("%s Tracking kernel inputs value %d KernelValue=%d\n", __func__, trackedInput.second.out.nValue, kernelvalue);
+
+            } else {
+                trackedScript = trackedInput.second.out.scriptPubKey;
+                amountDeducted = trackedInput.second.out.nValue;
+            }
+
+            if (ExtractDestination(trackedScript, dest)) {
+                std::string str = EncodeDestination(dest);
+                const auto& addr = AddressType(str.cbegin(), str.cend());
+                rewardTracker.addAddressTransaction(pindex->nHeight, addr, - amountDeducted, ::Params().GetGvrCheckpoints());
+                rewardUndo.inputs[pindex->nHeight].emplace_back(std::make_pair(addr, amountDeducted));
+            } else {
+                LogPrintf("%s Can't extract destination address for tracking inputs\n", __func__);
+                return error("ConnectBlock(): Can't extract destination address for inputs\n");
+            }
+        }
+
+        if (!fVerifyingDB) {
+            if (!pblocktree->WriteLastTrackedHeight(pindex->nHeight)) {
+                LogPrintf("%s Impossible to write last tracked height attempted height %d\n", __func__, pindex->nHeight);
+                return false;
+            } else {
+                LogPrintf("%s Wrote last tracked index %d\n", __func__, pindex->nHeight);
+            }
+        } else {
+            LogPrintf("%s Still verifying DB fVerifyingDB=%d\n", __func__, fVerifyingDB);
+        }
+
+    }
+    
 
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
@@ -3157,6 +3479,10 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     if ((!fIsGenesisBlock || fParticlMode)
      && !WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
         return false;
+
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->WriteRewardTrackerUndo(rewardUndo)) {
+        return false;
+    }
 
     if (!pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
         pindex->RaiseValidity(BLOCK_VALID_SCRIPTS);
@@ -3419,6 +3745,125 @@ static void ClearSpentCache(CDBBatch &batch, int height)
     }
 }
 
+void balanceSetter(const AddressType& addr, const CAmount& amount) {
+    CDBBatch batch(*pblocktree);
+    batch.Write(std::make_pair(DB_GVR_BALANCE, addr), amount);
+
+    if (!pblocktree->WriteBatch(batch)) {
+        LogPrintf("%s: Write index data failed.", __func__);
+    }
+}
+
+void rangesSetter(const AddressType& addr, const std::vector<BlockHeightRange>& vranges) {
+    CDBBatch batch(*pblocktree);
+    batch.Write(std::make_pair(DB_GVR_RANGE, addr), vranges);
+
+    if (!pblocktree->WriteBatch(batch)) {
+        LogPrintf("%s: Write index data failed.", __func__);
+    }
+}
+
+void checkpointSetter(int newCheckpoint) {
+    CDBBatch batch(*pblocktree);
+    batch.Write(std::make_pair(DB_GVR_CHECKPOINT, 0), newCheckpoint);
+
+    if (!pblocktree->WriteBatch(batch)) {
+        LogPrintf("%s: Write index data failed.", __func__);
+    }
+}
+
+std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
+    std::map<AddressType, std::vector<BlockHeightRange>> ranges;
+    const std::unique_ptr<CDBIterator> pcursor(pblocktree->NewIterator());
+
+    pcursor->Seek(std::make_pair(DB_GVR_RANGE, std::vector<BlockHeightRange>()));
+
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) {
+            return std::map<AddressType, std::vector<BlockHeightRange>>();
+        }
+        std::pair<char, AddressType> key;
+        if (pcursor->GetKey(key) && key.first == DB_GVR_RANGE) {
+            std::vector<BlockHeightRange> vBlockHeightRanges;
+            if (pcursor->GetValue(vBlockHeightRanges)) {
+                ranges.emplace(std::make_pair(key.second, vBlockHeightRanges));
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+    return ranges;
+}
+
+void clearTrackedData() {
+    auto allRanges = allRangesGetter();
+
+    for (auto& range: allRanges) {
+        pblocktree->Erase(std::make_pair(DB_GVR_RANGE, range.first));
+        pblocktree->Erase(std::make_pair(DB_GVR_BALANCE, range.first));
+    }
+
+    allRanges = allRangesGetter();
+    assert(allRanges.size() == 0 && "Tracked data not reset during -reindex-chainstate or -reindex");
+
+    ColdRewardUndo undoData;
+    pblocktree->ReadRewardTrackerUndo(undoData, 1);
+
+    for(auto& inputs: undoData.inputs) {
+        pblocktree->Erase(std::make_pair(DB_TRACKER_INPUTS_UNDO, inputs.first));
+    }
+
+    for(auto& outputs: undoData.outputs) {
+        pblocktree->Erase(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, outputs.first));
+    }
+
+    undoData.inputs.clear();
+    undoData.outputs.clear();
+
+    pblocktree->ReadRewardTrackerUndo(undoData, 1);
+    assert(undoData.inputs.size() == 0 && "Undo inputs tracked data not reset during -reindex-chainstate or -reindex");
+    assert(undoData.outputs.size() == 0 && "Undo outputs tracked data not reset during -reindex-chainstate or -reindex");
+}
+
+CAmount balanceGetter(const AddressType& addr) {
+    CAmount balance{0};
+    pblocktree->Read(std::make_pair(DB_GVR_BALANCE, addr), balance);
+    return balance;
+}
+
+std::vector<BlockHeightRange> rangesGetter(const AddressType& addr) {
+    std::vector<BlockHeightRange> vBlockHeightRanges;
+    pblocktree->Read(std::make_pair(DB_GVR_RANGE, addr), vBlockHeightRanges);
+    return vBlockHeightRanges;
+}
+
+int checkpointGetter() {
+    int checkpoint{0};
+    pblocktree->Read(std::make_pair(DB_GVR_CHECKPOINT, 0), checkpoint);
+    return checkpoint;
+}
+
+void transactionStarter() {}
+void transactionEnder() {}
+
+ColdRewardTracker& initColdReward() {
+
+    rewardTracker.setGvrThreshold(::Params().GetConsensus().gvrThreshold);
+    rewardTracker.setMinRewardRangeSpan(::Params().GetConsensus().minRewardRangeSpan);
+
+    rewardTracker.setPersistedRangesGetter(rangesGetter);
+    rewardTracker.setPersistedRangesSetter(rangesSetter);
+    rewardTracker.setPersistedBalanceGetter(balanceGetter);
+    rewardTracker.setPersistedBalanceSetter(balanceSetter);
+    rewardTracker.setPersistedCheckpointGetter(checkpointGetter);
+    rewardTracker.setPersistedCheckpointSetter(checkpointSetter);
+    rewardTracker.setPersistedTransactionStarter(transactionStarter);
+    rewardTracker.setPersisterTransactionEnder(transactionEnder);
+    rewardTracker.setAllRangesGetter(allRangesGetter);
+    return rewardTracker;
+}
+
 bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting)
 {
     if (!view->Flush())
@@ -3591,10 +4036,14 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
     int64_t nStart = GetTimeMicros();
     {
         CCoinsViewCache view(&CoinsTip());
+        ColdRewardTracker& tracker = initColdReward();
+
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
         bool flushed = FlushView(&view, state, true);
+
+        tracker.endPersistedTransaction();
         assert(flushed);
     }
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
@@ -3701,6 +4150,8 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
     {
         CCoinsViewCache view(&CoinsTip());
+        ColdRewardTracker& tracker = initColdReward();
+
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
         if (pindexNew->nFlags & BLOCK_FAILED_DUPLICATE_STAKE)
             state.nFlags |= BLOCK_FAILED_DUPLICATE_STAKE;
@@ -3714,6 +4165,8 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
         assert(nBlocksTotal > 0);
         LogPrint(BCLog::BENCH, "  - Connect total: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime3 - nTime2) * MILLI, nTimeConnectTotal * MICRO, nTimeConnectTotal * MILLI / nBlocksTotal);
         bool flushed = FlushView(&view, state, false);
+
+        tracker.endPersistedTransaction();
         assert(flushed);
     }
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
@@ -4449,7 +4902,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
     if (!fParticlMode
         && fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
-        
+
     return true;
 }
 
@@ -6030,6 +6483,9 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     int nGoodTransactions = 0;
     BlockValidationState state;
     int reportDone = 0;
+    [[maybe_unused]] ColdRewardTracker& tracker = initColdReward();
+    tracker.revertPersistedTransaction();
+
     LogPrintf("[0%%]..."); /* Continued */
     for (pindex = ::ChainActive().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
         const int percentageDone = std::max(1, std::min(99, (int)(((double)(::ChainActive().Height() - pindex->nHeight)) / (double)nCheckDepth * (nCheckLevel >= 4 ? 50 : 100))));
@@ -6107,6 +6563,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         }
     }
 
+    rewardTracker.revertPersistedTransaction();
     LogPrintf("[DONE].\n");
     LogPrintf("No coin database inconsistencies in last %i blocks (%i transactions)\n", block_count, nGoodTransactions);
     fVerifyingDB = false;

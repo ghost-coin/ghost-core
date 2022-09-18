@@ -234,6 +234,11 @@ void OutputToJSON(uint256 &txid, int i,
             if (s->GetTreasuryFundCfwd(nValue)) {
                 entry.pushKV("treasury_fund_cfwd", ValueFromAmount(nValue));
             }
+
+            if (s->GetGvrFundCfwd(nValue)) {
+                entry.pushKV("gvr_fund_cfwd", ValueFromAmount(nValue));
+            }
+
             if (s->GetSmsgFeeRate(nValue)) {
                 entry.pushKV("smsgfeerate", ValueFromAmount(nValue));
             }

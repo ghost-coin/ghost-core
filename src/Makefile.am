@@ -146,6 +146,8 @@ BITCOIN_CORE_H = \
   consensus/tx_verify.h \
   core_io.h \
   core_memusage.h \
+  coldreward/coldrewardtracker.h \
+  coldreward/blockheightrange.h \
   cuckoocache.h \
   dbwrapper.h \
   flatfile.h \
@@ -336,6 +338,8 @@ libghost_server_a_SOURCES = \
   blockfilter.cpp \
   chain.cpp \
   consensus/tx_verify.cpp \
+  coldreward/coldrewardtracker.cpp \
+  coldreward/blockheightrange.cpp \
   dbwrapper.cpp \
   flatfile.cpp \
   httprpc.cpp \
@@ -584,6 +588,8 @@ libghost_common_a_SOURCES = \
   bloom.cpp \
   chainparams.cpp \
   coins.cpp \
+  coldreward/coldrewardtracker.cpp \
+  coldreward/blockheightrange.cpp \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \

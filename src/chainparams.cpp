@@ -535,6 +535,11 @@ public:
         consensus.nGVRPayOnetimeAmt = 129000 * COIN;
         consensus.nOneTimeGVRPayHeight = 42308;
         consensus.nGVRTreasuryFundAdjustment = 458743;
+        consensus.automatedGvrActivationHeight = 591621; // @TODO update this before release
+        consensus.minRewardRangeSpan = DEFAULT_MIN_REWARD_RANGE_SPAN;
+        consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
+        consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
+
         nBlockRewardIncrease = 2;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
 
@@ -555,10 +560,10 @@ public:
         // release ASAP to avoid it where possible.
         vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
-        vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66.67, 5040));
-        vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66.67, 5040));
-        vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66.67, 5040)); //Approx each week to GVR Funds addr
-        vTreasuryFundSettings.emplace_back(0,      TreasuryFundSettings("GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV", 33.00, 360));  //Approx each 12 hr payment to dev fund
+        vTreasuryFundSettings.emplace_back(458743, TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66, 5040));
+        vTreasuryFundSettings.emplace_back(140536, TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66, 5040));
+        vTreasuryFundSettings.emplace_back(40862,  TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66, 5040)); //Approx each week to GVR Funds addr
+        vTreasuryFundSettings.emplace_back(0,      TreasuryFundSettings("GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV", 33, 360));  //Approx each 12 hr payment to dev fund
 
         base58Prefixes[PUBKEY_ADDRESS]     = {0x26}; // G
         base58Prefixes[SCRIPT_ADDRESS]     = {0x61}; // g
@@ -736,6 +741,7 @@ public:
         consensus.nMinRCTOutputDepth = 2;
         consensus.m_frozen_anon_index = 20;
         consensus.anonRestrictionStartHeight = 50;
+        consensus.automatedGvrActivationHeight = 1000;
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
@@ -759,17 +765,18 @@ public:
         consensus.nGVRTreasuryFundAdjustment = 140536;
         consensus.m_frozen_blinded_height = 884433;
 
-        nBlockRewardIncrease = 2;
+        nBlockRewardIncrease = 1;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
 
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
 
-        genesis = CreateGenesisBlockTestNet(1645041600, 39904, 0x1f00ffff);
+        genesis = CreateGenesisBlockTestNet(1663437816, 151165, 0x1f00ffff);
 
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x00009f9cb2deb45406db7b8e34961eb1afdb6c4f2908d58bddf3312e8c15a43a"));
+
+        assert(consensus.hashGenesisBlock == uint256S("0x0000f7a29616311da755c7ebbcaf69eac2cac94d39f7361d773dafd610174f8f"));
         assert(genesis.hashMerkleRoot == uint256S("0xc088a85a1e2aa0a55900f079078075af187600d5d242c09d5139fc3bbb23f1f8"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5e35a3292cbf2e112a65236817519565a3c50544dd24d602ceba985dba4e806c"));
 
@@ -819,7 +826,11 @@ public:
                 { 0, genesis.GetHash()},
             }
         };
-
+        
+        vTreasuryFundSettings.emplace_back(1, TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 66, 14));
+        consensus.gvrThreshold = 10000 * COIN;
+        consensus.minRewardRangeSpan = 500; // 500 blocks for testnet
+        consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809
             /* nTime    */ 0,
@@ -1009,6 +1020,7 @@ public:
         consensus.nMinRCTOutputDepth = 2;
 
         consensus.anonRestrictionStartHeight = gArgs.GetArg("-anonrestrictionstartheight", DEFAULT_ANON_RESTRICTION_START_HEIGHT);
+        consensus.automatedGvrActivationHeight = gArgs.GetArg("-automatedgvrstartheight", DEFAULT_GVR_START_HEIGHT);
 
         pchMessageStart[0] = 0x09;
         pchMessageStart[1] = 0x12;
@@ -1096,13 +1108,18 @@ public:
             0
         };
 
+
+        gvrCheckpoints = {
+            {0, uint256S("0x0df42459b6ced4f7c9ec8c7d4c4efe1a9ca89441f17e8c2485a80c247d0544b2")}
+        };
+
         anonRestricted = gArgs.GetBoolArg("-anonrestricted", DEFAULT_ANON_RESTRICTED);
         consensus.m_frozen_anon_index = gArgs.GetArg("-lastanonindex", DEFAULT_LAST_ANON_INDEX);
-
-        // Full Script pubkey of the recovery addr: 76a91418cf988c85fdff42269cf1d39c526aa3530c778d88ac
         anonRecoveryAddress = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it";
-        // Pubkey:  pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it
-        // PrivKey: 7shnesmjFcQZoxXCsNV55v7hrbQMtBfMNscuBkYrLa1mcJNPbXhU
+
+        consensus.gvrThreshold = gArgs.GetArg("-gvrthreshold", DEFAULT_GVR_THRESHOLD);
+        consensus.minRewardRangeSpan = gArgs.GetArg("-minrewardrangespan", DEFAULT_MIN_REWARD_RANGE_SPAN);
+        consensus.agvrStartPayingHeight = gArgs.GetArg("-startpayingheight", 0);
     }
 
     void SetOld()
