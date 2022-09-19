@@ -62,6 +62,7 @@ enum DataOutputTypes
     DO_SMSG_FEE             = 9,
     DO_SMSG_DIFFICULTY      = 10,
     DO_MASK                 = 11,
+    DO_GVR_FUND_CFWD        = 12,
 };
 
 bool ExtractCoinStakeInt64(const std::vector<uint8_t> &vData, DataOutputTypes get_type, CAmount &out);
@@ -303,6 +304,7 @@ public:
     virtual bool GetCTFee(CAmount &nFee) const { return false; };
     virtual bool SetCTFee(CAmount &nFee) { return false; };
     virtual bool GetTreasuryFundCfwd(CAmount &nCfwd) const { return false; };
+    virtual bool GetGvrFundCfwd(CAmount& nCfwd) const { return false; };
     virtual bool GetSmsgFeeRate(CAmount &nCfwd) const { return false; };
     virtual bool GetSmsgDifficulty(uint32_t &compact) const { return false; };
 
@@ -546,6 +548,11 @@ public:
     bool GetTreasuryFundCfwd(CAmount &nCfwd) const override
     {
         return ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, nCfwd);
+    }
+
+    bool GetGvrFundCfwd(CAmount& nCfwd) const override
+    {
+        return ExtractCoinStakeInt64(vData, DO_GVR_FUND_CFWD, nCfwd);
     }
 
     bool GetSmsgFeeRate(CAmount &fee_rate) const override
@@ -947,6 +954,14 @@ public:
             return false;
         }
         return vpout[0]->GetTreasuryFundCfwd(nCfwd);
+    }
+
+    bool GetGvrFundCfwd(CAmount& nCfwd) const
+    {
+        if (vpout.size() < 1 || vpout[0]->nVersion != OUTPUT_DATA) {
+            return false;
+        }
+        return vpout[0]->GetGvrFundCfwd(nCfwd);
     }
 
     bool GetSmsgFeeRate(CAmount &fee_rate) const

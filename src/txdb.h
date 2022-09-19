@@ -16,6 +16,7 @@
 #include <rctindex.h>
 #include <primitives/block.h>
 
+#include "coldreward/coldrewardtracker.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -29,7 +30,12 @@ const char DB_RCTOUTPUT = 'A';
 const char DB_RCTOUTPUT_LINK = 'L';
 const char DB_RCTKEYIMAGE = 'K';
 const char DB_SPENTCACHE = 'S';
-
+const char DB_GVR_RANGE = 'g';
+const char DB_GVR_BALANCE = 'v';
+const char DB_GVR_CHECKPOINT = 'r';
+static const char DB_TRACKER_INPUTS_UNDO = 'U';
+static const char DB_TRACKER_OUTPUTS_UNDO = 'N';
+static const char DB_LAST_TRACKED_HEIGHT = 'h';
 
 //! -dbcache default (MiB)
 static const int64_t nDefaultDbCache = 450;
@@ -152,6 +158,14 @@ public:
 
     bool ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin);
     bool EraseSpentCache(const COutPoint &outpoint);
+
+    bool WriteRewardTrackerUndo(const ColdRewardUndo& ro);
+    bool ReadRewardTrackerUndo(ColdRewardUndo& ro, int nHeight);
+    bool EraseRewardTrackerUndo(int nHeight);
+
+    bool WriteLastTrackedHeight(std::int64_t lastHeight);
+    bool ReadLastTrackedHeight(std::int64_t& rv);
+    bool EraseLastTrackedHeight();
 
     //bool WriteRCTOutputBatch(std::vector<std::pair<int64_t, CAnonOutput> > &vao);
 };

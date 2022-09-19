@@ -16,8 +16,11 @@
 #include <memory>
 #include <vector>
 
+
 static const uint32_t CHAIN_NO_GENESIS = 444444;
 static const uint32_t CHAIN_NO_STEALTH_SPEND = 444445; // used hardened
+
+using AddressType = std::vector<uint8_t>;
 
 struct SeedSpec6 {
     uint8_t addr[16];
@@ -59,7 +62,7 @@ class TreasuryFundSettings
 {
 public:
     TreasuryFundSettings(std::string sAddrTo, int nMinTreasuryStakePercent_, int nTreasuryOutputPeriod_)
-        : sTreasuryFundAddresses(sAddrTo), nMinTreasuryStakePercent(nMinTreasuryStakePercent_), nTreasuryOutputPeriod(nTreasuryOutputPeriod_) {};
+        : sTreasuryFundAddresses(std::move(sAddrTo)), nMinTreasuryStakePercent(nMinTreasuryStakePercent_), nTreasuryOutputPeriod(nTreasuryOutputPeriod_) {};
 
     std::string sTreasuryFundAddresses;
     int nMinTreasuryStakePercent; // [0, 100]
@@ -203,6 +206,10 @@ public:
         blacklistedAnonTxs = anonIndexes;
     }
 
+    MapCheckpoints GetGvrCheckpoints() const {
+        return gvrCheckpoints;
+    }
+    
 protected:
     CChainParams() {}
 
@@ -248,6 +255,7 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
     std::set<std::uint64_t> blacklistedAnonTxs;
+    MapCheckpoints gvrCheckpoints;
 };
 
 /**
