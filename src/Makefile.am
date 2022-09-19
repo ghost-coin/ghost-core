@@ -491,7 +491,7 @@ libparticl_node_a_SOURCES += dummywallet.cpp
 endif
 
 if ENABLE_ZMQ
-libparticl_zmq_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(ZMQ_CFLAGS)
+libparticl_zmq_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
 libparticl_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
@@ -919,7 +919,7 @@ particl_cli_LDADD += $(EVENT_LIBS)
 
 # bitcoin-tx binary #
 particl_tx_SOURCES = bitcoin-tx.cpp
-particl_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
+particl_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 particl_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 particl_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 

@@ -29,8 +29,6 @@ protected:
     bool CustomAppend(const interfaces::BlockInfo& block) override;
     bool DisconnectBlock(const CBlock& block) override;
 
-    const char* GetName() const override { return "txindex"; }
-
     bool IndexCSOutputs(const interfaces::BlockInfo& block);
 
 public:

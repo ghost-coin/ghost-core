@@ -10,6 +10,8 @@
 #include <threadinterrupt.h>
 #include <validationinterface.h>
 
+#include <string>
+
 class CBlock;
 class CBlockIndex;
 class Chainstate;
@@ -97,6 +99,7 @@ protected:
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
     Chainstate* m_chainstate{nullptr};
+    const std::string m_name;
 
     void BlockConnected(const std::shared_ptr<const CBlock>& block, const CBlockIndex* pindex) override;
 
@@ -124,13 +127,13 @@ protected:
     virtual DB& GetDB() const = 0;
 
     /// Get the name of the index for display in logs.
-    virtual const char* GetName() const = 0;
+    const std::string& GetName() const LIFETIMEBOUND { return m_name; }
 
     /// Update the internal best block index as well as the prune lock.
     void SetBestBlockIndex(const CBlockIndex* block);
 
 public:
-    BaseIndex(std::unique_ptr<interfaces::Chain> chain);
+    BaseIndex(std::unique_ptr<interfaces::Chain> chain, std::string name);
     /// Destructor interrupts sync thread if running and blocks until it exits.
     virtual ~BaseIndex();
 

@@ -69,7 +69,7 @@ int errorN(int n, std::string &s, const char *func, const char *fmt, const Args&
 }
 
 
-void PrintExceptionContinue(const std::exception *pex, const char* pszThread);
+void PrintExceptionContinue(const std::exception *pex, std::string_view thread_name);
 
 /**
  * Ensure file contents are fully committed to disk, using a platform-specific
