@@ -2001,8 +2001,12 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     }
 }
 
+Mutex NetEventsInterface::g_msgproc_mutex;
+
 void CConnman::ThreadMessageHandler()
 {
+    LOCK(NetEventsInterface::g_msgproc_mutex);
+
     SetSyscallSandboxPolicy(SyscallSandboxPolicy::MESSAGE_HANDLER);
 
     const int64_t nTimeDecBanThreshold = 60; // TODO: make option
@@ -2028,10 +2032,8 @@ void CConnman::ThreadMessageHandler()
                 if (flagInterruptMsgProc)
                     return;
                 // Send messages
-                {
-                    LOCK(pnode->cs_sendProcessing);
-                    m_msgproc->SendMessages(pnode);
-                }
+                m_msgproc->SendMessages(pnode);
+
                 if (flagInterruptMsgProc)
                     return;
             }

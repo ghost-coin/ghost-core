@@ -27,11 +27,12 @@
 #include <util/system.h>
 #include <util/translation.h>
 
-#include <key/stealth.h>
-
+#include <cstdio>
 #include <functional>
 #include <memory>
-#include <stdio.h>
+
+// Particl
+#include <key/stealth.h>
 
 static bool fCreateBlank;
 static std::map<std::string,UniValue> registers;
