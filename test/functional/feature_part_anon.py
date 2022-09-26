@@ -75,7 +75,7 @@ class AnonTest(ParticlTestFramework):
         addr_info = nodes[2].getaddressinfo(change_addr2)
         assert (addr_info['ischange'] is True)
 
-        # Recieving wallet should not mark an output as change if tx spends no inputs
+        # Receiving wallet should not mark an output as change if tx spends no inputs
         txnHash2 = nodes[1].sendtypeto('anon', 'part', [{'address': change_addr2, 'amount': 1, 'narr': 'node1 -> node2 a->p'}, ], '', '', 5)
         txnHashes.append(txnHash2)
 

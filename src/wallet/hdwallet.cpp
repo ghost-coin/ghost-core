@@ -12116,7 +12116,7 @@ std::map<CTxDestination, std::vector<COutput>> CHDWallet::ListCoins() const
         if (coin.spendable &&
             GetTransaction(coin.outpoint.hash, tx) &&
             ExtractDestination(*(FindNonChangeParentOutput(*tx, coin.outpoint.n)->GetPScriptPubKey()), address)) {
-            result[address].emplace_back(std::move(coin));
+            result[address].emplace_back(coin);
         }
     }
 
@@ -12250,7 +12250,7 @@ std::map<CTxDestination, std::vector<COutputR>> CHDWallet::ListCoins(OutputTypes
 
         const COutputRecord *oR = coin.rtx->second.GetOutput(coin.i);
         if (GetFirstNonChangeAddress(coin.rtx->first, coin.rtx->second, oR, address)) {
-            result[address].emplace_back(std::move(coin));
+            result[address].emplace_back(coin);
         } else {
             // Using CNoDestination as the key corrupts the result map, warn instead
             WalletLogPrintf("WARNING - Missing address for %s.%d\n", coin.rtx->first.ToString(), coin.i);

@@ -101,9 +101,9 @@ class ExtKeyTest(ParticlTestFramework):
 
         ro = node.listtransactions('*', 24)
         assert (len(ro) == 24)
-        assert[isclose(ro[0]['amount'], 0.01)]
-        assert[isclose(ro[23]['amount'], 0.24)]
-        assert[ro[23]['address'] == 'pm23xKs3gy6AhZZ7JZe61Rn1m8VB83P49d']
+        assert (isclose(ro[0]['amount'], 0.01))
+        assert (isclose(ro[23]['amount'], 0.24))
+        assert (ro[23]['address'] == 'pm23xKs3gy6AhZZ7JZe61Rn1m8VB83P49d')
 
         self.stakeBlocks(1)
 

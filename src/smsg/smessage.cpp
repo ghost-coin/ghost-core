@@ -1440,7 +1440,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
                 }
 
                 // If this node has more than the peer node, peer node will pull from this
-                //  if then peer node has more this node will pull fom peer
+                //  if then peer node has more this node will pull from peer
 
                 if (it_lb == buckets.end()
                     || it_lb->second.nActive < ncontent
@@ -2578,7 +2578,7 @@ int CSMSG::ScanMessage(const uint8_t *pHeader, const uint8_t *pPayload, uint32_t
     if (!fOwnMessage && was_locked && !unlocking) {
         LogPrint(BCLog::SMSG, "%s: Wallet is locked, storing message to scan later.\n", __func__);
         // Only save unscanned if there are addresses
-        // was_locked will onlye be set if addresses.size() > 0
+        // was_locked will only be set if addresses.size() > 0
         int rv;
         if ((rv = StoreUnscanned(pHeader, pPayload, nPayload)) != 0) {
             return SMSG_GENERAL_ERROR;

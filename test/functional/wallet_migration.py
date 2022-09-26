@@ -395,15 +395,15 @@ class WalletMigrationTest(BitcoinTestFramework):
 
     def run_test(self):
         # Particl: TODO
-        return
-        self.generate(self.nodes[0], 101)
+        pass
+        #self.generate(self.nodes[0], 101)
 
         # TODO: Test the actual records in the wallet for these tests too. The behavior may be correct, but the data written may not be what we actually want
-        self.test_basic()
-        self.test_multisig()
-        self.test_other_watchonly()
-        self.test_no_privkeys()
-        self.test_pk_coinbases()
+        #self.test_basic()
+        #self.test_multisig()
+        #self.test_other_watchonly()
+        #self.test_no_privkeys()
+        #self.test_pk_coinbases()
 
 if __name__ == '__main__':
     WalletMigrationTest().main()

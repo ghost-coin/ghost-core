@@ -71,7 +71,7 @@ def SerializeNum(n):
         return rv
     neg = n < 0
     absvalue = -n if neg else n
-    while(absvalue):
+    while (absvalue):
         rv.append(absvalue & 0xff)
         absvalue >>= 8
 
