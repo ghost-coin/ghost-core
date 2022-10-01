@@ -1146,7 +1146,7 @@ if BUILD_BITCOIN_LIBS
 lib_LTLIBRARIES += $(LIBPARTICLCONSENSUS)
 
 include_HEADERS = script/particlconsensus.h
-libparticlconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libparticl_crypto_base_a_SOURCES) $(libparticl_consensus_a_SOURCES)
+libparticlconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libparticl_crypto_base_la_SOURCES) $(libparticl_consensus_a_SOURCES)
 
 libparticlconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libparticlconsensus_la_LIBADD = $(LIBSECP256K1)
