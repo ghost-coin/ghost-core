@@ -2152,7 +2152,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             }
 
             if (rewardUndo.outputs.at(pindex->nHeight).size() != outputsSize) {
-                error("DisconnectBlock(): block and undo outputs size of tracker inconsistent for height %d (Got %d Expected %d)",
+                error("DisconnectBlock(): block and undo outputs size of tracker inconsistent for height %d (Expected %d, Got %d)",
                      pindex->nHeight, rewardUndo.outputs.at(pindex->nHeight).size(), outputsSize - 1);
                 return DISCONNECT_FAILED;
             }
