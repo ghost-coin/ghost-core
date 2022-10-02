@@ -138,13 +138,9 @@ def check_PE_control_flow(binary) -> bool:
     '''
     Check for control flow instrumentation
     '''
-    try:
-        if binary.abstract.header.is_32:
-            return True
-    except Exception:
-        # win64 fails with:
-        #    AttributeError: 'lief.Binary' object has no attribute 'section_from_rva'
-        pass
+    if binary.header.machine != lief.PE.MACHINE_TYPES.AMD64:
+        # TODO: Check for [243, 15, 30, 251]: # endbr32
+        return True
 
     main = binary.get_symbol('main').value
 
