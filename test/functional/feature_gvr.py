@@ -243,6 +243,7 @@ class GhostVeteranRewardTest(GhostTestFramework):
 
         nodes[0].verifychain()
         nodes[0].verifychain(4)
+        nodes[0].verifychain(3)
         self.stop_nodes()
 
         # Make sure that after nodes restarts the tracked balances are the same

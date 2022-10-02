@@ -535,7 +535,7 @@ public:
         consensus.nGVRPayOnetimeAmt = 129000 * COIN;
         consensus.nOneTimeGVRPayHeight = 42308;
         consensus.nGVRTreasuryFundAdjustment = 458743;
-        consensus.automatedGvrActivationHeight = 591621; // @TODO update this before release
+        consensus.automatedGvrActivationHeight = 591621;
         consensus.minRewardRangeSpan = DEFAULT_MIN_REWARD_RANGE_SPAN;
         consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
         consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;

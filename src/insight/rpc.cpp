@@ -1061,7 +1061,7 @@ UniValue getblockreward(const JSONRPCRequest& request)
     CAmount value_out = 0, value_in = 0, value_treasury = 0;
 
     bool gvrOutExists = false;
-    bool devFundExists = (pblockindex->nHeight % fundconf->nTreasuryOutputPeriod) == 0;
+    bool devFundExists = !fundconf? false : (pblockindex->nHeight % fundconf->nTreasuryOutputPeriod) == 0;
     CAmount gvrAmount = 0;
 
     for (const auto &txout : tx->vpout) {

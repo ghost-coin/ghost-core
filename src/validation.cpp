@@ -2134,8 +2134,16 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             std::size_t inputsSize = 0;
             std::size_t outputsSize = 0;
             for(const auto& tx: block.vtx) {
-                inputsSize += tx->vin.size();
-                outputsSize += tx->vpout.size();
+                for (const auto& txout: tx->vpout) {
+                    if (txout->IsStandardOutput()) {
+                        outputsSize++;
+                    }
+                }
+                for (const auto& txin: tx->vin) {
+                    if (!txin.IsAnonInput()) {
+                        inputsSize++;
+                    }
+                }
             }
 
             if (rewardUndo.inputs.at(pindex->nHeight).size() != inputsSize) {
@@ -2143,9 +2151,9 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 return DISCONNECT_FAILED;
             }
 
-            // outpuSize - 1 to remove the data output
-            if (rewardUndo.outputs.at(pindex->nHeight).size() != outputsSize - 1) {
-                error("DisconnectBlock(): block and undo outputs size of tracker inconsistent");
+            if (rewardUndo.outputs.at(pindex->nHeight).size() != outputsSize) {
+                error("DisconnectBlock(): block and undo outputs size of tracker inconsistent for height %d (Expected %d, Got %d)",
+                     pindex->nHeight, rewardUndo.outputs.at(pindex->nHeight).size(), outputsSize - 1);
                 return DISCONNECT_FAILED;
             }
         }
