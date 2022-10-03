@@ -105,19 +105,19 @@ static RPCHelpMan pushtreasuryfundsetting()
     return RPCHelpMan{"pushtreasuryfundsetting",
         "\nAdd a treasury fund setting.\n",
         {
-            {"setting", RPCArg::Type::OBJ, RPCArg::Optional::NO, "JSON with treasury fund setting",
+            {"setting", RPCArg::Type::OBJ, RPCArg::Optional::NO, "JSON with treasury fund setting\n",
                 {
                     {"timefrom", RPCArg::Type::NUM, RPCArg::Optional::NO, "Block time setting will apply from"},
                     {"fundaddress", RPCArg::Type::STR, RPCArg::Optional::NO, "Address accumulated treasury fund coin is paid out to"},
                     {"minstakepercent", RPCArg::Type::NUM, RPCArg::Optional::NO, "Minimum percentage of the block reward allocated to treasury fund"},
                     {"outputperiod", RPCArg::Type::NUM, RPCArg::Optional::NO, "Blocks between treasury fund outputs"},
                 },
-            "setting"},
+            },
         },
         RPCResult{RPCResult::Type::NONE, "", ""},
-        RPCExamples{""},
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-{
+        RPCExamples{
+            HelpExampleCli("pushtreasuryfundsetting", "") + HelpExampleRpc("pushtreasuryfundsetting", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
     if (!Params().IsMockableChain()) {
         throw std::runtime_error("pushtreasuryfundsetting is for regression testing (-regtest mode) only");
     }

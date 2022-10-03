@@ -554,7 +554,7 @@ static RPCHelpMan smsgscanbuckets()
                         {
                             {"scanexpired", RPCArg::Type::BOOL, RPCArg::Default{false}, "Scan all messages."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ANY, "", ""
@@ -838,7 +838,7 @@ static RPCHelpMan smsgsend()
                             {"rct_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size to use with fund_from_rct."},
                             {"fundmsg", RPCArg::Type::BOOL, RPCArg::Default{true}, "Fund paid message, if false message will be stashed for later funding."},
                         },
-                        "options"},
+                    },
                     {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
                             {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change"},
@@ -1064,7 +1064,7 @@ static RPCHelpMan smsgfund()
                     {"testfee", RPCArg::Type::BOOL, RPCArg::Default{false}, "Test fee only."},
                     {"rct_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size to use with fund_from_rct."},
                 },
-                "options"},
+            },
             {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                 {
                     {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change"},
@@ -1309,7 +1309,7 @@ static RPCHelpMan smsginbox()
                             {"max_results", RPCArg::Type::NUM, RPCArg::Default{""}, "Return only \"max_results\" messages"},
                             {"unread_only", RPCArg::Type::BOOL, RPCArg::Default{false}, "Count only unread messages"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -1545,7 +1545,7 @@ static RPCHelpMan smsgoutbox()
                             {"offset", RPCArg::Type::NUM, RPCArg::Default{""}, "Skip the first \"offset\" messages"},
                             {"max_results", RPCArg::Type::NUM, RPCArg::Default{""}, "Return only \"max_results\" messages"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -2165,7 +2165,7 @@ static RPCHelpMan smsgone()
                             {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
                             {"export", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display the full smsg as a hex encoded string."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -2351,7 +2351,7 @@ static RPCHelpMan smsgimport()
                             {"submitmsg", RPCArg::Type::BOOL, RPCArg::Default{false}, "Submit msg to network if true."},
                             {"setread", RPCArg::Type::BOOL, RPCArg::Default{false}, "Set read status to value."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -2657,7 +2657,7 @@ static RPCHelpMan smsgzmqpush()
                         {"timeto", RPCArg::Type::NUM, RPCArg::Default{"max_int"}, "Skip messages received after timestamp."},
                         {"unreadonly", RPCArg::Type::BOOL, RPCArg::Default{true}, "Resend only unread messages."},
                     },
-                    "options"},
+                },
             },
             RPCResult{
                 RPCResult::Type::OBJ, "", "", {

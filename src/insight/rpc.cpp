@@ -857,7 +857,7 @@ static RPCHelpMan getblockhashes()
                             {"noOrphans", RPCArg::Type::BOOL, RPCArg::Default{false}, "Only include blocks on the main chain."},
                             {"logicalTimes", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include logical timestamps with hashes."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResults{
                     {RPCResult::Type::ARR, "", "", {
@@ -1226,7 +1226,7 @@ return RPCHelpMan{"getblockbalances",
                 {
                     {"in_sats", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display values in satoshis"},
                 },
-                "options"},
+            },
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
@@ -1294,7 +1294,7 @@ static RPCHelpMan listcoldstakeunspent()
                             {"all_staked", RPCArg::Type::BOOL, RPCArg::Default{false}, "Ignore maturity check for outputs of coinstake transactions."},
                             {"show_outpoints", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display txid and index per output."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", {

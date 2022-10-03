@@ -854,7 +854,7 @@ static RPCHelpMan signrawtransactionwithkey()
                                 },
                             },
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",

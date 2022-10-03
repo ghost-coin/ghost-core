@@ -7,7 +7,7 @@
 import os
 import random
 from test_framework.descriptors import descsum_create
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BitcoinTestFramework, SkipTest
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -29,6 +29,7 @@ class WalletMigrationTest(BitcoinTestFramework):
         self.skip_if_no_wallet()
         self.skip_if_no_sqlite()
         self.skip_if_no_bdb()
+        raise SkipTest("Particl: TODO")
 
     def assert_is_sqlite(self, wallet_name):
         wallet_file_path = os.path.join(self.nodes[0].datadir, "regtest/wallets", wallet_name, self.wallet_data_filename)
@@ -394,16 +395,14 @@ class WalletMigrationTest(BitcoinTestFramework):
         assert_equal(bals, wallet.getbalances())
 
     def run_test(self):
-        # Particl: TODO
-        pass
-        #self.generate(self.nodes[0], 101)
+        self.generate(self.nodes[0], 101)
 
         # TODO: Test the actual records in the wallet for these tests too. The behavior may be correct, but the data written may not be what we actually want
-        #self.test_basic()
-        #self.test_multisig()
-        #self.test_other_watchonly()
-        #self.test_no_privkeys()
-        #self.test_pk_coinbases()
+        self.test_basic()
+        self.test_multisig()
+        self.test_other_watchonly()
+        self.test_no_privkeys()
+        self.test_pk_coinbases()
 
 if __name__ == '__main__':
     WalletMigrationTest().main()

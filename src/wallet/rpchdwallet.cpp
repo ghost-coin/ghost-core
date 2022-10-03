@@ -1884,7 +1884,7 @@ static RPCHelpMan extkeyimportmaster()
                             {"stealthv1lookaheadsize", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_STEALTH_LOOKAHEAD_SIZE}, "Override the stealthv1lookaheadsize parameter."},
                             {"stealthv2lookaheadsize", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_STEALTH_LOOKAHEAD_SIZE}, "Override the stealthv2lookaheadsize parameter."},
                         },
-                        "options"},
+                    },
                 },
             RPCResult{
                 RPCResult::Type::ANY, "", ""
@@ -1928,7 +1928,7 @@ static RPCHelpMan extkeygenesisimport()
                             {"stealthv1lookaheadsize", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_STEALTH_LOOKAHEAD_SIZE}, "Override the stealthv1lookaheadsize parameter."},
                             {"stealthv2lookaheadsize", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_STEALTH_LOOKAHEAD_SIZE}, "Override the stealthv2lookaheadsize parameter."},
                         },
-                        "options"},
+                    },
                 },
             RPCResult{
                 RPCResult::Type::ANY, "", ""
@@ -2402,7 +2402,7 @@ static RPCHelpMan liststealthaddresses()
                             {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display addresses in bech32 format"},
                             {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display extra details"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
@@ -3686,7 +3686,7 @@ static RPCHelpMan filtertransactions()
                             {"show_change", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display change outputs (for anon and blind txns)"},
                             {"show_smsg_fees", RPCArg::Type::BOOL, RPCArg::Default{false}, "List the smsgids funded by the transactions"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ANY, "", ""
@@ -4706,7 +4706,7 @@ static RPCHelpMan listunspentanon()
                             {"include_tainted_frozen", RPCArg::Type::BOOL, RPCArg::Default{false}, "Show tainted frozen outputs"},
                             {"show_pubkeys", RPCArg::Type::BOOL, RPCArg::Default{false}, "Show anon output public keys"},
                         },
-                        "query_options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", {
@@ -4950,7 +4950,7 @@ static RPCHelpMan listunspentblind()
                             {"frozen", RPCArg::Type::BOOL, RPCArg::Default{false}, "Show frozen outputs only"},
                             {"include_tainted_frozen", RPCArg::Type::BOOL, RPCArg::Default{false}, "Show tainted frozen outputs"},
                         },
-                        "query_options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", {
@@ -6022,7 +6022,7 @@ static RPCHelpMan createsignaturewithwallet()
                             {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "(required for P2SH or P2WSH)"},
                             {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount spent"},
                             {"amount_commitment", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The amount commitment spent"},
-                        }, "prevtxn"
+                        },
                     },
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The address of the private key to sign with."},
                     {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"ALL"}, "The signature hash type. Must be one of\n"
@@ -6036,7 +6036,7 @@ static RPCHelpMan createsignaturewithwallet()
                         {
                             {"force_segwit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Force creating a segwit compatible signature"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::STR_HEX, "", "The hex encoded signature",
@@ -6083,7 +6083,7 @@ static RPCHelpMan createsignaturewithkey()
                             {"redeemScript", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "(required for P2SH or P2WSH)"},
                             {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The amount spent"},
                             {"amount_commitment", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The amount commitment spent"},
-                        }, "prevtxn"
+                        },
                     },
                     {"privkey", RPCArg::Type::STR, RPCArg::Optional::NO, "A base58-encoded private key to sign with."},
                     {"sighashtype", RPCArg::Type::STR, RPCArg::Default{"ALL"}, "The signature hash type. Must be one of\n"
@@ -6097,7 +6097,7 @@ static RPCHelpMan createsignaturewithkey()
                         {
                             {"force_segwit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Force creating a segwit compatible signature"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::STR_HEX, "", "The hex encoded signature",
@@ -6556,7 +6556,7 @@ static RPCHelpMan debugwallet()
                                                                                              "All loaded wallets must be unlocked."},
                             {"exit_ibd", RPCArg::Type::BOOL, RPCArg::Default{false}, "Exit initial block download state."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::ANY, "", ""
@@ -7134,7 +7134,7 @@ static RPCHelpMan walletsettings()
                         {
                             {"...", RPCArg::Type::STR, RPCArg::Default{""}, ""},
                         },
-                    "setting_value"},
+                    },
                 },
                 {
                 RPCResult{
@@ -8494,7 +8494,7 @@ static RPCHelpMan fundrawtransactionfrom()
                             {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
                             {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO to select in " + CURRENCY_UNIT + ""},
                         },
-                    "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -9209,7 +9209,7 @@ static RPCHelpMan verifyrawtransaction()
                             {"particlmode", RPCArg::Type::BOOL, RPCArg::Default{true}, "Check amounts and amount commitments match up."},
                             {"spendheight", RPCArg::Type::NUM, RPCArg::Default{"chainheight"}, "Height the tx is spent at, set to current chain height if not provided."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "",

@@ -610,7 +610,7 @@ RPCHelpMan listunspent()
                             {"cc_format", RPCArg::Type::BOOL, RPCArg::Default{false}, "Format output for coincontrol"},
                             {"include_immature", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include immature staked outputs"},
                         },
-                        "query_options"},
+                        RPCArgOptions{.oneline_description="query_options"}},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "",
