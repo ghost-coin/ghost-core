@@ -1063,15 +1063,16 @@ UniValue getblockreward(const JSONRPCRequest& request)
     bool gvrOutExists = false;
     bool devFundExists = !fundconf? false : (pblockindex->nHeight % fundconf->nTreasuryOutputPeriod) == 0;
     CAmount gvrAmount = 0;
+    int numDataOutput = 0;
 
     for (const auto &txout : tx->vpout) {
 
         if (gvrActivationHeight) {
             if (txout->IsType(OutputTypes::OUTPUT_DATA)) {
-                if (!txout->GetGvrFundCfwd(gvrAmount)) {
+                if (numDataOutput == 0 && !txout->GetGvrFundCfwd(gvrAmount)) {
                     gvrOutExists = true;
                 }
-                continue;
+                numDataOutput++;
             }
         }
 
