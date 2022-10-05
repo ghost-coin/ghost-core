@@ -7,7 +7,17 @@
 
 #include <index/base.h>
 
+static constexpr bool DEFAULT_TXINDEX{false};
 class CBlockHeader;
+
+namespace particl {
+static constexpr bool DEFAULT_CSINDEX{false};
+static constexpr bool DEFAULT_ADDRESSINDEX{false};
+static constexpr bool DEFAULT_TIMESTAMPINDEX{false};
+static constexpr bool DEFAULT_SPENTINDEX{false};
+static constexpr bool DEFAULT_BALANCESINDEX{false};
+} // particl
+
 
 /**
  * TxIndex is used to look up transactions included in the blockchain by hash.

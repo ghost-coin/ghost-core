@@ -31,6 +31,7 @@
 #include <util/hasher.h>
 #include <util/translation.h>
 #include <versionbits.h>
+#include <index/txindex.h>
 
 #include <atomic>
 #include <map>
@@ -65,11 +66,7 @@ static const int MAX_SCRIPTCHECK_THREADS = 15;
 static const int DEFAULT_SCRIPTCHECK_THREADS = 0;
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
 static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
-static const bool DEFAULT_TXINDEX = false;
-static constexpr bool DEFAULT_COINSTATSINDEX{false};
-static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 
-typedef int64_t NodeId;
 /** Default for -stopatheight */
 static const int DEFAULT_STOPATHEIGHT = 0;
 /** Block files containing a block-height within MIN_BLOCKS_TO_KEEP of ActiveChain().Tip() will not be pruned. */
@@ -124,15 +121,11 @@ void StartScriptCheckWorkerThreads(int threads_num);
 /** Stop all of the script checking worker threads */
 void StopScriptCheckWorkerThreads();
 
+typedef int64_t NodeId;
 namespace particl {
 static constexpr size_t MAX_STAKE_SEEN_SIZE = 1000;
 inline int64_t FutureDrift(int64_t nTime) { return nTime + 15; } // FutureDriftV2
 
-static constexpr bool DEFAULT_CSINDEX = false;
-static constexpr bool DEFAULT_ADDRESSINDEX = false;
-static constexpr bool DEFAULT_TIMESTAMPINDEX = false;
-static constexpr bool DEFAULT_SPENTINDEX = false;
-static constexpr bool DEFAULT_BALANCESINDEX = false;
 static constexpr unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
 static constexpr bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
 static constexpr bool DEFAULT_AUTOMATIC_BANS = true;
