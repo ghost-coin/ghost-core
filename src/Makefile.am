@@ -147,6 +147,7 @@ BITCOIN_CORE_H = \
   clientversion.h \
   coins.h \
   common/bloom.h \
+  common/run_command.h \
   compat/assumptions.h \
   compat/byteswap.h \
   compat/compat.h \
@@ -711,7 +712,7 @@ libparticl_consensus_a_SOURCES = \
   version.h
 
 # common: shared between bitcoind, and bitcoin-qt and non-server tools
-libparticl_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libparticl_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 libparticl_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_common_a_SOURCES = \
   base58.cpp \
@@ -719,6 +720,7 @@ libparticl_common_a_SOURCES = \
   chainparams.cpp \
   coins.cpp \
   common/bloom.cpp \
+  common/run_command.cpp \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \

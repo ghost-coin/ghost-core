@@ -58,6 +58,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "net_processing -> validation -> net_processing",
     "consensus/tx_verify -> validation -> txmempool -> consensus/tx_verify",
     "index/base -> node/context -> smsg/manager -> smsg/smessage -> wallet/hdwallet -> pos/kernel -> node/transaction -> index/txindex -> index/base",
+    "index/txindex -> validation -> index/txindex",
 )
 
 CODE_DIR = "src"

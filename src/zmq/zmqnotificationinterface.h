@@ -5,13 +5,17 @@
 #ifndef BITCOIN_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 #define BITCOIN_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 
+#include <primitives/transaction.h>
 #include <validationinterface.h>
 #include <netaddress.h>
+
+#include <cstdint>
 #include <list>
 #include <memory>
 #include <thread>
 #include <atomic>
 
+class CBlock;
 class CBlockIndex;
 namespace smsg {
 class SecureMessage;

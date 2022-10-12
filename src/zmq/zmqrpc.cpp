@@ -14,6 +14,10 @@
 
 #include <univalue.h>
 
+#include <list>
+#include <string>
+
+class JSONRPCRequest;
 
 int GetNewZMQKeypair(char *server_public_key, char *server_secret_key)
 {

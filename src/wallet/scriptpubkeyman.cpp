@@ -651,7 +651,7 @@ bool LegacyScriptPubKeyMan::CanProvide(const CScript& script, SignatureData& sig
                 return true;
             }
         }
-        // If, given the stuff in sigdata, we could make a valid sigature, then we can provide for this script
+        // If, given the stuff in sigdata, we could make a valid signature, then we can provide for this script
         ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR, script, sigdata);
         if (!sigdata.signatures.empty()) {
             // If we could make signatures, make sure we have a private key to actually make a signature

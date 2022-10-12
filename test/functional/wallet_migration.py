@@ -332,7 +332,7 @@ class WalletMigrationTest(BitcoinTestFramework):
             }])
         assert_equal(res[0]['success'], True)
         default.sendtoaddress(addr, 10)
-        txid=self.generate(self.nodes[0], 1)
+        self.generate(self.nodes[0], 1)
 
         watchonly0.migratewallet()
         assert_equal("watchonly0_watchonly" in self.nodes[0].listwallets(), False)

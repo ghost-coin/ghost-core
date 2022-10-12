@@ -3,13 +3,25 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <zmq/zmqnotificationinterface.h>
+
+#include <logging.h>
+#include <primitives/block.h>
+#include <primitives/transaction.h>
+#include <util/system.h>
+#include <validationinterface.h>
+#include <zmq/zmqabstractnotifier.h>
 #include <zmq/zmqpublishnotifier.h>
 #include <zmq/zmqutil.h>
 
 #include <zmq.h>
 
-#include <primitives/block.h>
-#include <util/system.h>
+#include <cassert>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+// Particl
 #include <netbase.h>
 #include <util/thread.h>
 
