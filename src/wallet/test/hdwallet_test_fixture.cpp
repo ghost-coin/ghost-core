@@ -20,7 +20,7 @@
 
 
 HDWalletTestingSetup::HDWalletTestingSetup(const std::string &chainName):
-    TestingSetup(chainName, { "-balancesindex" }, true /* fParticlMode */),
+    TestingSetup(chainName, { "-balancesindex" }, true, true, true /* fParticlMode */),
     m_wallet_loader{interfaces::MakeWalletLoader(*m_node.chain, *Assert(m_node.args))}
 {
     pwalletMain = std::make_shared<CHDWallet>(m_node.chain.get(), "", m_args, CreateMockWalletDatabaseBDB());

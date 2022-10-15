@@ -134,7 +134,7 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(wallet::WalletContext& wallet
 
 static void AddTx(benchmark::Bench& bench, const std::string from, const std::string to, const bool owned)
 {
-    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
+    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true, true, true /* fParticlMode */};
     const auto context = util::AnyPtr<node::NodeContext>(&test_setup.m_node);
 
     std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain(test_setup.m_node);

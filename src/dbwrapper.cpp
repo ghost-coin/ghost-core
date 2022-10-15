@@ -129,7 +129,7 @@ static leveldb::Options GetOptions(size_t nCacheSize, bool compression, int maxO
 }
 
 CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool obfuscate, bool compression, int maxOpenFiles)
-    : m_name{fs::PathToString(path.stem())}
+    : m_name{fs::PathToString(path.stem())}, m_path{path}, m_is_memory{fMemory}
 {
     penv = nullptr;
     readoptions.verify_checksums = true;

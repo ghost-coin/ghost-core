@@ -18,7 +18,7 @@
 
 static void Mlsag(benchmark::Bench& bench)
 {
-    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
+    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true, true, true /* fParticlMode */};
 
     const size_t nInputs = 2;
     const size_t nCols = 4;

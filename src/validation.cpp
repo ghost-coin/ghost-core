@@ -1639,7 +1639,7 @@ void Chainstate::InitCoinsDB(
     fs::path leveldb_name)
 {
     if (m_from_snapshot_blockhash) {
-        leveldb_name += "_" + m_from_snapshot_blockhash->ToString();
+        leveldb_name += node::SNAPSHOT_CHAINSTATE_SUFFIX;
     }
 
     m_coins_views = std::make_unique<CoinsViews>(
@@ -2033,6 +2033,16 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
     }
 
     int nVtxundo = (int)blockUndo.vtxundo.size()-1;
+
+    // Ignore blocks that contain transactions which are 'overwritten' by later transactions,
+    // unless those are already completely spent.
+    // See https://github.com/bitcoin/bitcoin/issues/22596 for additional information.
+    // Note: the blocks specified here are different than the ones used in ConnectBlock because DisconnectBlock
+    // unwinds the blocks in reverse. As a result, the inconsistency is not discovered until the earlier
+    // blocks with the duplicate coinbase transactions are disconnected.
+    bool fEnforceBIP30 = fParticlMode || (!((pindex->nHeight==91842 && pindex->GetBlockHash() == uint256S("0x00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec")) ||
+                           (pindex->nHeight==91880 && pindex->GetBlockHash() == uint256S("0x00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721"))));
+
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--)
     {
@@ -2043,8 +2053,8 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
             if (txin.IsAnonInput()) {
                 uint32_t nInputs, nRingSize;
                 txin.GetAnonInfo(nInputs, nRingSize);
-                if (txin.scriptData.stack.size() != 1
-                    || txin.scriptData.stack[0].size() != 33 * nInputs) {
+                if (txin.scriptData.stack.size() != 1 ||
+                    txin.scriptData.stack[0].size() != 33 * nInputs) {
                     error("%s: Bad scriptData stack, %s.", __func__, hash.ToString());
                     return DISCONNECT_FAILED;
                 }
@@ -2061,6 +2071,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
         }
 
         bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
+        bool is_bip30_exception = (is_coinbase && !fEnforceBIP30);
 
         for (int k = (int)tx.vpout.size(); k-- > 0;) {
             const CTxOutBase *out = tx.vpout[k].get();
@@ -2106,7 +2117,9 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     }
                     bool is_spent = view.SpendCoin(op, &coin);
                     if (!is_spent || txout != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
-                        fClean = false; // transaction output mismatch
+                        if (!is_bip30_exception) {
+                            fClean = false; // transaction output mismatch
+                        }
                     }
                 }
             }
@@ -2121,8 +2134,8 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
             std::vector<unsigned char> hashBytes;
             int scriptType = 0;
             CAmount nValue;
-            if (!ExtractIndexInfo(out, scriptType, hashBytes, nValue, pScript)
-                || scriptType == 0) {
+            if (!ExtractIndexInfo(out, scriptType, hashBytes, nValue, pScript) ||
+                scriptType == 0) {
                 continue;
             }
             // undo receiving activity
@@ -2179,8 +2192,8 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                         CAmount nValue = coin.nType == OUTPUT_CT ? 0 : coin.out.nValue;
                         std::vector<uint8_t> hashBytes;
                         int scriptType = 0;
-                        if (!ExtractIndexInfo(pScript, scriptType, hashBytes)
-                            || scriptType == 0) {
+                        if (!ExtractIndexInfo(pScript, scriptType, hashBytes) ||
+                            scriptType == 0) {
                             continue;
                         }
 
@@ -2790,8 +2803,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 std::vector<unsigned char> hashBytes;
                 int scriptType = 0;
                 CAmount nValue;
-                if (!ExtractIndexInfo(out, scriptType, hashBytes, nValue, pScript)
-                    || scriptType == 0) {
+                if (!ExtractIndexInfo(out, scriptType, hashBytes, nValue, pScript) ||
+                    scriptType == 0) {
                     continue;
                 }
 
@@ -2834,10 +2847,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
             if (block.nTime >= consensus.smsg_fee_time) {
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
-                if (pindex->pprev->nHeight > 0 // Skip genesis block (POW)
-                    && pindex->pprev->nTime >= consensus.smsg_fee_time) {
-                    if (!particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)
-                        || !txPrevCoinstake->GetSmsgFeeRate(smsg_fee_prev)) {
+                if (pindex->pprev->nHeight > 0 && // Skip genesis block (POW)
+                    pindex->pprev->nTime >= consensus.smsg_fee_time) {
+                    if (!particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake) ||
+                        !txPrevCoinstake->GetSmsgFeeRate(smsg_fee_prev)) {
                         LogPrintf("ERROR: %s: Failed to get previous smsg fee.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-fee-prev");
                     }
@@ -2861,10 +2874,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
             if (block.nTime >= consensus.smsg_difficulty_time) {
                 uint32_t smsg_difficulty_new, smsg_difficulty_prev = consensus.smsg_min_difficulty;
-                if (pindex->pprev->nHeight > 0 // Skip genesis block (POW)
-                    && pindex->pprev->nTime >= consensus.smsg_difficulty_time) {
-                    if (!particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake)
-                        || !txPrevCoinstake->GetSmsgDifficulty(smsg_difficulty_prev)) {
+                if (pindex->pprev->nHeight > 0 && // Skip genesis block (POW)
+                    pindex->pprev->nTime >= consensus.smsg_difficulty_time) {
+                    if (!particl::coinStakeCache.GetCoinStake(*this, pindex->pprev->GetBlockHash(), txPrevCoinstake) ||
+                        !txPrevCoinstake->GetSmsgDifficulty(smsg_difficulty_prev)) {
                         LogPrintf("ERROR: %s: Failed to get previous smsg difficulty.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-smsg-diff-prev");
                     }
@@ -2956,8 +2969,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-amount");
                     }
                     CAmount nTreasuryCfwd = nTreasuryBfwd + nCalculatedStakeReward - nStakeReward;
-                    if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
-                        || nTreasuryCfwdCheck != nTreasuryCfwd) {
+                    if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck) ||
+                        nTreasuryCfwdCheck != nTreasuryCfwd) {
                         LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                     }
@@ -5712,7 +5725,18 @@ void Chainstate::LoadExternalBlockFile(
                     }
                 }
             } catch (const std::exception& e) {
-                LogPrintf("%s: Deserialize or I/O error - %s\n", __func__, e.what());
+                // historical bugs added extra data to the block files that does not deserialize cleanly.
+                // commonly this data is between readable blocks, but it does not really matter. such data is not fatal to the import process.
+                // the code that reads the block files deals with invalid data by simply ignoring it.
+                // it continues to search for the next {4 byte magic message start bytes + 4 byte length + block} that does deserialize cleanly
+                // and passes all of the other block validation checks dealing with POW and the merkle root, etc...
+                // we merely note with this informational log message when unexpected data is encountered.
+                // we could also be experiencing a storage system read error, or a read of a previous bad write. these are possible, but
+                // less likely scenarios. we don't have enough information to tell a difference here.
+                // the reindex process is not the place to attempt to clean and/or compact the block files. if so desired, a studious node operator
+                // may use knowledge of the fact that the block files are not entirely pristine in order to prepare a set of pristine, and
+                // perhaps ordered, block files for later reindexing.
+                LogPrint(BCLog::REINDEX, "%s: unexpected data at file offset 0x%x - %s. continuing\n", __func__, (nRewind - 1), e.what());
             }
         }
     } catch (const std::runtime_error& e) {
@@ -6029,28 +6053,15 @@ std::vector<Chainstate*> ChainstateManager::GetAll()
     return out;
 }
 
-Chainstate& ChainstateManager::InitializeChainstate(
-    CTxMemPool* mempool, const std::optional<uint256>& snapshot_blockhash)
+Chainstate& ChainstateManager::InitializeChainstate(CTxMemPool* mempool)
 {
     AssertLockHeld(::cs_main);
-    bool is_snapshot = snapshot_blockhash.has_value();
-    std::unique_ptr<Chainstate>& to_modify =
-        is_snapshot ? m_snapshot_chainstate : m_ibd_chainstate;
+    assert(!m_ibd_chainstate);
+    assert(!m_active_chainstate);
 
-    if (to_modify) {
-        throw std::logic_error("should not be overwriting a chainstate");
-    }
-    to_modify.reset(new Chainstate(mempool, m_blockman, *this, snapshot_blockhash));
-
-    // Snapshot chainstates and initial IBD chaintates always become active.
-    if (is_snapshot || (!is_snapshot && !m_active_chainstate)) {
-        LogPrintf("Switching active chainstate to %s\n", to_modify->ToString());
-        m_active_chainstate = to_modify.get();
-    } else {
-        throw std::logic_error("unexpected chainstate activation");
-    }
-
-    return *to_modify;
+    m_ibd_chainstate = std::make_unique<Chainstate>(mempool, m_blockman, *this);
+    m_active_chainstate = m_ibd_chainstate.get();
+    return *m_active_chainstate;
 }
 
 const AssumeutxoData* ExpectedAssumeutxo(
@@ -6063,6 +6074,46 @@ const AssumeutxoData* ExpectedAssumeutxo(
         return &assumeutxo_found->second;
     }
     return nullptr;
+}
+
+static bool DeleteCoinsDBFromDisk(const fs::path db_path, bool is_snapshot)
+    EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+{
+    AssertLockHeld(::cs_main);
+
+    if (is_snapshot) {
+        fs::path base_blockhash_path = db_path / node::SNAPSHOT_BLOCKHASH_FILENAME;
+
+        if (fs::exists(base_blockhash_path)) {
+            bool removed = fs::remove(base_blockhash_path);
+            if (!removed) {
+                LogPrintf("[snapshot] failed to remove file %s\n",
+                          fs::PathToString(base_blockhash_path));
+            }
+        } else {
+            LogPrintf("[snapshot] snapshot chainstate dir being removed lacks %s file\n",
+                    fs::PathToString(node::SNAPSHOT_BLOCKHASH_FILENAME));
+        }
+    }
+
+    std::string path_str = fs::PathToString(db_path);
+    LogPrintf("Removing leveldb dir at %s\n", path_str);
+
+    // We have to destruct before this call leveldb::DB in order to release the db
+    // lock, otherwise `DestroyDB` will fail. See `leveldb::~DBImpl()`.
+    const bool destroyed = dbwrapper::DestroyDB(path_str, {}).ok();
+
+    if (!destroyed) {
+        LogPrintf("error: leveldb DestroyDB call failed on %s\n", path_str);
+    }
+
+    // Datadir should be removed from filesystem; otherwise initialization may detect
+    // it on subsequent statups and get confused.
+    //
+    // If the base_blockhash_path removal above fails in the case of snapshot
+    // chainstates, this will return false since leveldb won't remove a non-empty
+    // directory.
+    return destroyed && !fs::exists(db_path);
 }
 
 bool ChainstateManager::ActivateSnapshot(
@@ -6122,11 +6173,34 @@ bool ChainstateManager::ActivateSnapshot(
             static_cast<size_t>(current_coinstip_cache_size * SNAPSHOT_CACHE_PERC));
     }
 
-    const bool snapshot_ok = this->PopulateAndValidateSnapshot(
+    bool snapshot_ok = this->PopulateAndValidateSnapshot(
         *snapshot_chainstate, coins_file, metadata);
 
+    // If not in-memory, persist the base blockhash for use during subsequent
+    // initialization.
+    if (!in_memory) {
+        LOCK(::cs_main);
+        if (!node::WriteSnapshotBaseBlockhash(*snapshot_chainstate)) {
+            snapshot_ok = false;
+        }
+    }
     if (!snapshot_ok) {
-        WITH_LOCK(::cs_main, this->MaybeRebalanceCaches());
+        LOCK(::cs_main);
+        this->MaybeRebalanceCaches();
+
+        // PopulateAndValidateSnapshot can return (in error) before the leveldb datadir
+        // has been created, so only attempt removal if we got that far.
+        if (auto snapshot_datadir = node::FindSnapshotChainstateDir()) {
+            // We have to destruct leveldb::DB in order to release the db lock, otherwise
+            // DestroyDB() (in DeleteCoinsDBFromDisk()) will fail. See `leveldb::~DBImpl()`.
+            // Destructing the chainstate (and so resetting the coinsviews object) does this.
+            snapshot_chainstate.reset();
+            bool removed = DeleteCoinsDBFromDisk(*snapshot_datadir, /*is_snapshot=*/true);
+            if (!removed) {
+                AbortNode(strprintf("Failed to remove snapshot chainstate dir (%s). "
+                    "Manually remove it before restarting.\n", fs::PathToString(*snapshot_datadir)));
+            }
+        }
         return false;
     }
 
@@ -6402,6 +6476,13 @@ void ChainstateManager::MaybeRebalanceCaches()
     }
 }
 
+void ChainstateManager::ResetChainstates()
+{
+    m_ibd_chainstate.reset();
+    m_snapshot_chainstate.reset();
+    m_active_chainstate = nullptr;
+}
+
 ChainstateManager::~ChainstateManager()
 {
     LOCK(::cs_main);
@@ -6412,6 +6493,34 @@ ChainstateManager::~ChainstateManager()
     for (auto& i : warningcache) {
         i.clear();
     }
+}
+
+bool ChainstateManager::DetectSnapshotChainstate(CTxMemPool* mempool)
+{
+    assert(!m_snapshot_chainstate);
+    std::optional<fs::path> path = node::FindSnapshotChainstateDir();
+    if (!path) {
+        return false;
+    }
+    std::optional<uint256> base_blockhash = node::ReadSnapshotBaseBlockhash(*path);
+    if (!base_blockhash) {
+        return false;
+    }
+    LogPrintf("[snapshot] detected active snapshot chainstate (%s) - loading\n",
+        fs::PathToString(*path));
+
+    this->ActivateExistingSnapshot(mempool, *base_blockhash);
+    return true;
+}
+
+Chainstate& ChainstateManager::ActivateExistingSnapshot(CTxMemPool* mempool, uint256 base_blockhash)
+{
+    assert(!m_snapshot_chainstate);
+    m_snapshot_chainstate =
+        std::make_unique<Chainstate>(mempool, m_blockman, *this, base_blockhash);
+    LogPrintf("[snapshot] switching active chainstate to %s\n", m_snapshot_chainstate->ToString());
+    m_active_chainstate = m_snapshot_chainstate.get();
+    return *m_snapshot_chainstate;
 }
 
 namespace particl {
@@ -6899,6 +7008,7 @@ bool CheckStakeUnique(const CBlock &block, bool fUpdate)
 bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool *mempool)
 {
     AssertLockNotHeld(cs_main);
+    assert(chainman.m_smsgman);
 
     CBlockIndex *pindex_tip{nullptr};
     uint256 best_smsg_block_hash;
