@@ -230,6 +230,7 @@ BITCOIN_CORE_H = \
   node/minisketchwrapper.h \
   node/psbt.h \
   node/transaction.h \
+  node/txreconciliation.h \
   node/utxo_snapshot.h \
   node/validation_cache_args.h \
   noui.h \
@@ -390,11 +391,7 @@ obj/build.h: FORCE
 	  "$(abs_top_srcdir)"
 libparticl_util_a-clientversion.$(OBJEXT): obj/build.h
 
-
-# server: shared between bitcoind and bitcoin-qt
-# Contains code accessing mempool and chain state that is meant to be separated
-# from wallet and gui code (see node/README.md). Shared code should go in
-# libbitcoin_common or libbitcoin_util libraries, instead.
+# node #
 libparticl_node_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libparticl_node_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_node_a_SOURCES = \
@@ -441,6 +438,7 @@ libparticl_node_a_SOURCES = \
   node/minisketchwrapper.cpp \
   node/psbt.cpp \
   node/transaction.cpp \
+  node/txreconciliation.cpp \
   node/utxo_snapshot.cpp \
   node/validation_cache_args.cpp \
   noui.cpp \
@@ -491,7 +489,9 @@ endif
 if !ENABLE_WALLET
 libparticl_node_a_SOURCES += dummywallet.cpp
 endif
+#
 
+# zmq #
 if ENABLE_ZMQ
 libparticl_zmq_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(ZMQ_CFLAGS)
 libparticl_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -502,7 +502,9 @@ libparticl_zmq_a_SOURCES = \
   zmq/zmqrpc.cpp \
   zmq/zmqutil.cpp
 endif
+#
 
+# usbdevice #
 if ENABLE_USBDEVICE
 libparticl_usbdevice_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(AM_CPPFLAGS) $(PROTOBUF_CFLAGS)
 libparticl_usbdevice_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -538,9 +540,9 @@ nodist_libparticl_usbdevice_a_SOURCES = \
   usbdevice/trezor/messages-bitcoin.pb.cc
 BUILT_SOURCES = $(nodist_libparticl_usbdevice_a_SOURCES)
 endif
+#
 
-# wallet: shared between bitcoind and bitcoin-qt, but only linked
-# when wallet enabled
+# wallet #
 libparticl_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(BDB_CPPFLAGS) $(SQLITE_CFLAGS)
 libparticl_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_wallet_a_SOURCES = \
@@ -587,14 +589,17 @@ endif
 if USE_BDB
 libparticl_wallet_a_SOURCES += wallet/bdb.cpp wallet/salvage.cpp
 endif
+#
 
+# wallet tool #
 libparticl_wallet_tool_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 libparticl_wallet_tool_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_wallet_tool_a_SOURCES = \
   wallet/wallettool.cpp \
   $(BITCOIN_CORE_H)
+#
 
-# crypto primitives library
+# crypto #
 crypto_libparticl_crypto_base_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 # Specify -static in both CXXFLAGS and LDFLAGS so libtool will only build a
@@ -674,8 +679,9 @@ crypto_libparticl_crypto_arm_shani_la_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libparticl_crypto_arm_shani_la_CXXFLAGS += $(ARM_SHANI_CXXFLAGS)
 crypto_libparticl_crypto_arm_shani_la_CPPFLAGS += -DENABLE_ARM_SHANI
 crypto_libparticl_crypto_arm_shani_la_SOURCES = crypto/sha256_arm_shani.cpp
+#
 
-# consensus: shared between all executables that validate any consensus rules.
+# consensus #
 libparticl_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libparticl_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_consensus_a_SOURCES = \
@@ -711,8 +717,9 @@ libparticl_consensus_a_SOURCES = \
   util/strencodings.cpp \
   util/strencodings.h \
   version.h
+#
 
-# common: shared between bitcoind, and bitcoin-qt and non-server tools
+# common #
 libparticl_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 libparticl_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_common_a_SOURCES = \
@@ -757,8 +764,9 @@ libparticl_common_a_SOURCES = \
   script/standard.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
+#
 
-# util: shared between all executables.
+# util #
 libparticl_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 libparticl_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_util_a_SOURCES = \
@@ -806,7 +814,9 @@ libparticl_util_a_SOURCES = \
 if USE_LIBEVENT
 libparticl_util_a_SOURCES += util/url.cpp
 endif
+#
 
+# smsg #
 libparticl_smsg_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libparticl_smsg_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_smsg_a_CFLAGS = $(AM_CFLAGS) $(PIE_FLAGS)
@@ -823,8 +833,9 @@ libparticl_smsg_a_SOURCES = \
   smsg/smessage.cpp \
   smsg/manager.cpp \
   smsg/rpcsmessage.cpp
+#
 
-
+# mnemonic #
 libparticl_mnemonic_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libparticl_mnemonic_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_mnemonic_a_CFLAGS = $(AM_CFLAGS) $(PIE_FLAGS)
@@ -845,8 +856,9 @@ libparticl_mnemonic_a_SOURCES = \
   key/mnemonic.h \
   key/mnemonic.cpp \
   rpc/mnemonic.cpp
+#
 
-# cli: shared between bitcoin-cli and bitcoin-qt
+# cli #
 libparticl_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libparticl_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_cli_a_SOURCES = \
