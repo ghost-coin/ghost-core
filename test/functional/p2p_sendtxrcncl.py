@@ -28,7 +28,7 @@ class PeerNoVerack(P2PInterface):
         # Avoid sending verack in response to version.
         # When calling add_p2p_connection, wait_for_verack=False must be set (see
         # comment in add_p2p_connection).
-        if message.nVersion >= 70016 and self.wtxidrelay:
+        if message.nVersion >= 90034 and self.wtxidrelay:  # BTC: 70016
             self.send_message(msg_wtxidrelay())
 
 class SendTxrcnclReceiver(P2PInterface):
@@ -81,7 +81,7 @@ class SendTxRcnclTest(BitcoinTestFramework):
         self.log.info('SENDTXRCNCL on pre-WTXID version should not be sent')
         peer = self.nodes[0].add_p2p_connection(SendTxrcnclReceiver(), send_version=False, wait_for_verack=False)
         pre_wtxid_version_msg = msg_version()
-        pre_wtxid_version_msg.nVersion = 70015
+        pre_wtxid_version_msg.nVersion = 90033
         pre_wtxid_version_msg.strSubVer = P2P_SUBVERSION
         pre_wtxid_version_msg.nServices = P2P_SERVICES
         pre_wtxid_version_msg.relay = 1

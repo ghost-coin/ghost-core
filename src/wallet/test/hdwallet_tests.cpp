@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     pkTemp = kSpendOut_test2.GetPubKey();
     BOOST_CHECK(CPubKey(pkSendTo) == pkTemp);
 
-    BOOST_MESSAGE("----------------Setup Recipient---------------------\n");
+    // ----------------Setup Recipient---------------------
     CTempRecipient r;
     r.nType = OUTPUT_RINGCT;
     CAmount nValue = 20*COIN;
@@ -331,24 +331,24 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     {
     LOCK(wallet->cs_wallet);
 
-    BOOST_MESSAGE("---------------- Make RingCT Output : SetCTOutVData ---------------------\n");
+    // ---------------- Make RingCT Output : SetCTOutVData ---------------------
     auto txout = MAKE_OUTPUT<CTxOutRingCT>();
     txout->pk = CCmpPubKey(r.pkTo);
 
     CPubKey pkEphem = r.sEphem.GetPubKey();
     SetCTOutVData(txout->vData, pkEphem, r);
 
-    BOOST_MESSAGE("---------------- Make RingCT Output : AddCTData ---------------------\n");
+    // ---------------- Make RingCT Output : AddCTData ---------------------
     std::string strError;
     CCoinControl cctl;
     BOOST_CHECK_MESSAGE(wallet->AddCTData(&cctl, txout.get(), r, strError) == 0, "failed to add CT Data");
 
-    BOOST_MESSAGE("---------------- Checking RingCT Output---------------------\n");
+    // ---------------- Checking RingCT Output---------------------
     TxValidationState state;
     state.rct_active = true;
     BOOST_CHECK_MESSAGE(CheckAnonOutput(state, (CTxOutRingCT*)txout.get()), "failed to check ringct output");
 
-    BOOST_MESSAGE("---------------- Serialize Transaction with No Segwit ---------------------\n");
+    // ---------------- Serialize Transaction with No Segwit ---------------------
     CMutableTransaction tx;
     tx.vpout.emplace_back(txout);
     tx.nVersion = 2|PARTICL_TXN_VERSION;
@@ -358,14 +358,14 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION|SERIALIZE_TRANSACTION_NO_WITNESS);
     ss << tx;
 
-    BOOST_MESSAGE("---------------- Deserialize Transaction ---------------------\n");
+    // ---------------- Deserialize Transaction ---------------------
     CMutableTransaction txCheck;
     ss >> txCheck;
     BOOST_CHECK_MESSAGE(!txCheck.HasWitness(), "deserialize shows witness");
     auto txout_check = txCheck.vpout.at(0);
     BOOST_CHECK_MESSAGE(txout_check->GetType() == OUTPUT_RINGCT, "deserialized output is not ringct");
 
-    BOOST_MESSAGE("---------------- Check RingCT Output ---------------------\n");
+    // ---------------- Check RingCT Output ---------------------
     BOOST_CHECK_MESSAGE(!CheckAnonOutput(state, (CTxOutRingCT*)txout_check.get()), "passed check ringct output");
     }
 

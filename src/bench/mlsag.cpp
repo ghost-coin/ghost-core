@@ -110,4 +110,4 @@ static void Mlsag(benchmark::Bench& bench)
     });
 }
 
-BENCHMARK(Mlsag);
+BENCHMARK(Mlsag, benchmark::PriorityLevel::HIGH);

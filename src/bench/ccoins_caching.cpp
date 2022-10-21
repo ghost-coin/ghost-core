@@ -55,4 +55,4 @@ static void CCoinsCaching(benchmark::Bench& bench)
     ECC_Stop();
 }
 
-BENCHMARK(CCoinsCaching);
+BENCHMARK(CCoinsCaching, benchmark::PriorityLevel::HIGH);

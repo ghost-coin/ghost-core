@@ -62,5 +62,5 @@ static void Blind(benchmark::Bench& bench)
     ECC_Stop();
 }
 
-BENCHMARK(Blind);
+BENCHMARK(Blind, benchmark::PriorityLevel::HIGH);
 

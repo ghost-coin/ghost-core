@@ -252,23 +252,23 @@ static void ParticlAddTxAnonBlindOwned(benchmark::Bench& bench) { AddTx(bench, "
 static void ParticlAddTxAnonAnonNotOwned(benchmark::Bench& bench) { AddTx(bench, "anon", "anon", false); }
 static void ParticlAddTxAnonAnonOwned(benchmark::Bench& bench) { AddTx(bench, "anon", "anon", true); }
 
-BENCHMARK(ParticlAddTxPlainPlainNotOwned);
-BENCHMARK(ParticlAddTxPlainPlainOwned);
-BENCHMARK(ParticlAddTxPlainBlindNotOwned);
-BENCHMARK(ParticlAddTxPlainBlindOwned);
-// BENCHMARK(ParticlAddTxPlainAnonNotOwned);
-// BENCHMARK(ParticlAddTxPlainAnonOwned);
+BENCHMARK(ParticlAddTxPlainPlainNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxPlainPlainOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxPlainBlindNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxPlainBlindOwned, benchmark::PriorityLevel::HIGH);
+// BENCHMARK(ParticlAddTxPlainAnonNotOwned, benchmark::PriorityLevel::HIGH);
+// BENCHMARK(ParticlAddTxPlainAnonOwned, benchmark::PriorityLevel::HIGH);
 
-BENCHMARK(ParticlAddTxBlindPlainNotOwned);
-BENCHMARK(ParticlAddTxBlindPlainOwned);
-BENCHMARK(ParticlAddTxBlindBlindNotOwned);
-BENCHMARK(ParticlAddTxBlindBlindOwned);
-BENCHMARK(ParticlAddTxBlindAnonNotOwned);
-BENCHMARK(ParticlAddTxBlindAnonOwned);
+BENCHMARK(ParticlAddTxBlindPlainNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindPlainOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindBlindNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindBlindOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindAnonNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindAnonOwned, benchmark::PriorityLevel::HIGH);
 
-BENCHMARK(ParticlAddTxAnonPlainNotOwned);
-BENCHMARK(ParticlAddTxAnonPlainOwned);
-BENCHMARK(ParticlAddTxAnonBlindNotOwned);
-BENCHMARK(ParticlAddTxAnonBlindOwned);
-BENCHMARK(ParticlAddTxAnonAnonNotOwned);
-BENCHMARK(ParticlAddTxAnonAnonOwned);
+BENCHMARK(ParticlAddTxAnonPlainNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonPlainOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonBlindNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonBlindOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonAnonNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonAnonOwned, benchmark::PriorityLevel::HIGH);

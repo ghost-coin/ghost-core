@@ -127,7 +127,6 @@ public:
 
 void RunDeriveTest(std::vector<DeriveTestData> &vData)
 {
-    int rv;
     CBitcoinExtKey extKey58;
     CExtKey evkeyM;
     CExtPubKey epkeyM;
@@ -138,29 +137,22 @@ void RunDeriveTest(std::vector<DeriveTestData> &vData)
         if (dt.nDerives == 0) {
             // Set master
 
-            BOOST_CHECK(0 == (rv = extKey58.Set58(dt.vKey58.c_str())));
-            BOOST_CHECK(0 == (rv += abs(strcmp(extKey58.ToString().c_str(), dt.vKey58.c_str()))));
+            BOOST_REQUIRE(0 == extKey58.Set58(dt.vKey58.c_str()));
+            BOOST_REQUIRE(0 == abs(strcmp(extKey58.ToString().c_str(), dt.vKey58.c_str())));
 
             evkeyM = extKey58.GetKey();
-            BOOST_CHECK(0 == (rv += abs(strcmp(CBitcoinExtKey(evkeyM).ToString().c_str(), dt.vKey58.c_str()))));
+            BOOST_REQUIRE(0 == abs(strcmp(CBitcoinExtKey(evkeyM).ToString().c_str(), dt.vKey58.c_str())));
             epkeyM = evkeyM.Neutered();
 
-            BOOST_CHECK(0 == (rv += abs(strcmp(CBitcoinExtPubKey(epkeyM).ToString().c_str(), dt.pKey58.c_str()))));
-
-            BOOST_CHECK(CBitcoinExtPubKey(epkeyM).ToString().c_str());
-
-            if (rv != 0) {
-                BOOST_MESSAGE("Set master failed, aborting test.");
-                break;
-            }
-            continue;
+            BOOST_REQUIRE(0 == abs(strcmp(CBitcoinExtPubKey(epkeyM).ToString().c_str(), dt.pKey58.c_str())));
+            BOOST_REQUIRE(CBitcoinExtPubKey(epkeyM).ToString().c_str());
         }
 
 
         CExtKey evkey[2], evkeyOut;
         CExtPubKey epkeyOut;
         evkey[0] = evkeyM;
-        rv = 0;
+        int rv = 0;
         for (uint32_t d = 0; d < dt.nDerives; ++d) {
             rv += evkey[d % 2].Derive(evkey[(d+1) % 2], 1);
         }
