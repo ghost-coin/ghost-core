@@ -11245,9 +11245,9 @@ void CHDWallet::ResubmitWalletTransactions(bool relay, bool force) {
 
     // Do this infrequently and randomly to avoid giving away
     // that these are our transactions.
-    if (!force && GetTime() < m_next_resend) return;
+    if (!force && NodeClock::now() < m_next_resend) return;
     // resend 12-36 hours from now, ~1 day on average.
-    m_next_resend = GetTime() + (12 * 60 * 60) + GetRand(24 * 60 * 60);
+    SetNextResend();
 
     int submitted_tx_count = 0;
 
