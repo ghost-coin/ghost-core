@@ -130,7 +130,7 @@ class SmsgMultiWalletTest(ParticlTestFramework):
         assert (ro['fee'] > 0.00137)
 
         # Check funding fails if coincontrol inputs are too low
-        coincontrol = {'inputs': [{'tx': cantspend['txid'], 'n': cantspend['vout']}]}
+        coincontrol = {'inputs': [{'tx': cantspend['txid'], 'n': cantspend['vout']}], 'allow_other_inputs': False}
         ro = nodes[2].smsgsend(address2_3, address1, msg, True, 6, True, sendoptions, coincontrol)
         assert ('Insufficient funds' in ro['error'])
 

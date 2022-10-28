@@ -1,6 +1,13 @@
 Next Major Version
 ==============
 
+- Coincontrol allow_other_inputs defaults to true
+  - Added allow_other_inputs to smsg rpc functions which accept a coincontrol parameter.
+
+
+24.0.1
+==============
+
 - rpc changes
   - Reverted bip125_replaceable change back to bip125-replaceable.
   - smsgsend

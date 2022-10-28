@@ -951,6 +951,12 @@ void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoi
     if (obj.exists("maximumAmount")) {
         coin_control.m_maximum_output_amount = AmountFromValue(obj["maximumAmount"]);
     }
+    if (obj.exists("allow_other_inputs")) {
+        coin_control.m_allow_other_inputs = obj["allow_other_inputs"].get_bool();
+    }
+    if (obj.exists("allow_change_output")) {
+        coin_control.m_addChangeOutput = obj["allow_change_output"].get_bool();
+    }
 
     coin_control.m_avoid_address_reuse = GetAvoidReuseFlag(*pwallet, obj["avoid_reuse"]);
 };
@@ -2817,9 +2823,9 @@ static RPCHelpMan deriverangekeys()
             CBitcoinAddress addr;
             CKeyID idk;
 
-            if (addr.SetString(sInKey)
-                && addr.IsValid(CChainParams::EXT_KEY_HASH)
-                && addr.GetKeyID(idk, CChainParams::EXT_KEY_HASH)) {
+            if (addr.SetString(sInKey) &&
+                addr.IsValid(CChainParams::EXT_KEY_HASH) &&
+                addr.GetKeyID(idk, CChainParams::EXT_KEY_HASH)) {
                 // idk is set
             } else
             if (eKey58.Set58(sInKey.c_str()) == 0) {
@@ -5776,6 +5782,8 @@ static RPCHelpMan sendtypeto()
                             {"show_fee", RPCArg::Type::BOOL, RPCArg::Default{false}, "Return the fee"},
                             {"submit_tx", RPCArg::Type::BOOL, RPCArg::Default{true}, "Send the tx"},
                             {"includeWatching", RPCArg::Type::BOOL, RPCArg::Default{false}, "Also select inputs which are watch only."},
+                            {"allow_other_inputs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow inputs to be added if any inputs already exist."},
+                            {"allow_change_output", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow change output to be added if needed (only for 'blind' input_type)."},
                             {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
                             {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO to select in " + CURRENCY_UNIT + ""},
                         },
@@ -8485,8 +8493,7 @@ static RPCHelpMan fundrawtransactionfrom()
                             {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
             "                             dirty if they have previously been used in a transaction."},
                             {"allow_other_inputs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow inputs to be added if any inputs already exist."},
-                            {"allow_change_output", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow change output to be added if needed (only for 'blind' input_type).\n"
-            "                              Allows this transaction to be replaced by a transaction with higher fees."},
+                            {"allow_change_output", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow change output to be added if needed (only for 'blind' input_type)."},
                             {"sign_tx", RPCArg::Type::BOOL, RPCArg::Default{false}, "Sign transaction."},
                             {"anon_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size for anon transactions."},
                             {"anon_inputs_per_sig", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_INPUTS_PER_SIG}, "Real inputs per ring signature."},
@@ -8588,12 +8595,6 @@ static RPCHelpMan fundrawtransactionfrom()
         }
         if (options.exists("subtractFeeFromOutputs")) {
             subtractFeeFromOutputs = options["subtractFeeFromOutputs"].get_array();
-        }
-        if (options.exists("allow_other_inputs")) {
-            coinControl.m_allow_other_inputs = options["allow_other_inputs"].get_bool();
-        }
-        if (options.exists("allow_change_output")) {
-            coinControl.m_addChangeOutput = options["allow_change_output"].get_bool();
         }
 
         if (options.exists("sign_tx")) {
