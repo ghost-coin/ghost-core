@@ -3600,7 +3600,7 @@ bool CHDWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r
             WalletLogPrintf("%s: Adding coldstaking script.\n", __func__);
             std::string sAddress = jsonSettings["coldstakingaddress"].get_str();
 
-            CTxDestination destStake = DecodeDestination(sAddress, true);
+            CTxDestination destStake = DecodeDestination(sAddress, /* allow_stake_only */ true);
             if (destStake.index() == DI::_CNoDestination) {
                 return wserrorN(0, sError, __func__, "Invalid coldstaking address setting.");
             }
@@ -13356,7 +13356,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                         WalletLogPrintf("%s: Sending output to coldstakingscript %s.\n", __func__, sAddress);
                     }
 
-                    CTxDestination destColdStake = DecodeDestination(sAddress, true);
+                    CTxDestination destColdStake = DecodeDestination(sAddress, /* allow_stake_only */ true);
                     CScript scriptStaking;
                     if (!GetScriptForDest(scriptStaking, destColdStake, true, nullptr)) {
                         return werror("%s: GetScriptForDest failed.", __func__);

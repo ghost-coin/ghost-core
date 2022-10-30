@@ -5426,7 +5426,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
             if (!IsValidDestinationString(str_stake_address, true)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "\"stakeaddress\" is invalid");
             }
-            r.addressColdStaking = DecodeDestination(str_stake_address, true);
+            r.addressColdStaking = DecodeDestination(str_stake_address, /* allow_stake_only */ true);
             if (r.address.index() == DI::_PKHash) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid addrspend, can't be p2pkh.");
             }
@@ -8022,7 +8022,7 @@ return RPCHelpMan{"buildscript",
             {"addrspend", UniValueType(UniValue::VSTR)},
         });
 
-        CTxDestination destStake = DecodeDestination(params["addrstake"].get_str(), true);
+        CTxDestination destStake = DecodeDestination(params["addrstake"].get_str(), /* allow_stake_only */ true);
         CTxDestination destSpend = DecodeDestination(params["addrspend"].get_str());
 
         if (!IsValidDestination(destStake)) {
