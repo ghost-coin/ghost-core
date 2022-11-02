@@ -148,6 +148,7 @@ BITCOIN_CORE_H = \
   coins.h \
   common/bloom.h \
   common/run_command.h \
+  common/url.h \
   compat/assumptions.h \
   compat/byteswap.h \
   compat/compat.h \
@@ -335,7 +336,6 @@ BITCOIN_CORE_H = \
   util/translation.h \
   util/types.h \
   util/ui_change_type.h \
-  util/url.h \
   util/vector.h \
   validation.h \
   validationinterface.h \
@@ -766,6 +766,11 @@ libparticl_common_a_SOURCES = \
   script/standard.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
+
+if USE_LIBEVENT
+libparticl_common_a_CPPFLAGS += $(EVENT_CFLAGS)
+libparticl_common_a_SOURCES += common/url.cpp
+endif
 #
 
 # util #
@@ -812,10 +817,6 @@ libparticl_util_a_SOURCES = \
   util/time.cpp \
   util/tokenpipe.cpp \
   $(BITCOIN_CORE_H)
-
-if USE_LIBEVENT
-libparticl_util_a_SOURCES += util/url.cpp
-endif
 #
 
 # smsg #
@@ -928,6 +929,7 @@ endif
 particl_cli_LDADD = \
   $(LIBPARTICL_CLI) \
   $(LIBUNIVALUE) \
+  $(LIBPARTICL_COMMON) \
   $(LIBPARTICL_UTIL) \
   $(LIBPARTICL_CRYPTO)
 
@@ -1126,7 +1128,6 @@ libparticlkernel_la_SOURCES = \
   support/cleanse.cpp \
   support/lockedpool.cpp \
   sync.cpp \
-  threadinterrupt.cpp \
   txdb.cpp \
   txmempool.cpp \
   uint256.cpp \
