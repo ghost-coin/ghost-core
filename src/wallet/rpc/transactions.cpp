@@ -66,7 +66,171 @@ void WalletTxToJSON(const CWallet& wallet, const CWalletTx& wtx, UniValue& entry
     }
 }
 
-void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint256 &hash, const CTransactionRecord& rtx, UniValue &entry) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
+static void AddSmsgFundingInfo(const CTransaction &tx, UniValue &entry)
+{
+    CAmount smsg_fees = 0;
+    UniValue smsges(UniValue::VARR);
+    for (const auto &v : tx.vpout) {
+        if (!v->IsType(OUTPUT_DATA)) {
+            continue;
+        }
+        CTxOutData *txd = (CTxOutData*) v.get();
+        if (txd->vData.size() < 25 || txd->vData[0] != DO_FUND_MSG) {
+            continue;
+        }
+        size_t n = (txd->vData.size()-1) / 24;
+        for (size_t k = 0; k < n; ++k) {
+            uint32_t nAmount;
+            memcpy(&nAmount, &txd->vData[1+k*24+20], 4);
+            nAmount = le32toh(nAmount);
+            smsg_fees += nAmount;
+            UniValue funded_smsg(UniValue::VOBJ);
+            funded_smsg.pushKV("smsghash", HexStr(Span<const unsigned char>(&txd->vData[1+k*24], 20)));
+            funded_smsg.pushKV("fee", ValueFromAmount(nAmount));
+            smsges.push_back(funded_smsg);
+        }
+    }
+    if (smsg_fees > 0) {
+        entry.pushKV("smsgs_funded", smsges);
+        entry.pushKV("smsg_fees", ValueFromAmount(smsg_fees));
+    }
+}
+
+static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransactionRecord &rtx,
+    const std::string &strAccount, int nMinDepth, bool with_tx_details, UniValue &ret, const isminefilter &filter) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
+{
+    bool fAllAccounts = (strAccount == std::string("*"));
+
+    for (const auto &r : rtx.vout) {
+        if (r.nFlags & ORF_CHANGE) {
+            continue;
+        }
+
+        if (!(r.nFlags & ORF_FROM) && !(r.nFlags & ORF_OWNED) && !(filter & ISMINE_WATCH_ONLY)) {
+            continue;
+        }
+
+        std::string account;
+        CBitcoinAddress addr;
+        CTxDestination dest;
+        if (ExtractDestination(r.scriptPubKey, dest) && !r.scriptPubKey.IsUnspendable()) {
+            addr.Set(dest);
+
+            std::map<CTxDestination, CAddressBookData>::const_iterator mai = phdw->m_address_book.find(dest);
+            if (mai != phdw->m_address_book.end() && !mai->second.GetLabel().empty()) {
+                account = mai->second.GetLabel();
+            }
+        }
+
+        if (!fAllAccounts && (account != strAccount)) {
+            continue;
+        }
+
+        UniValue entry(UniValue::VOBJ);
+        if (r.nFlags & ORF_OWN_WATCH) {
+            entry.pushKV("involvesWatchonly", true);
+        }
+        entry.pushKV("account", account);
+
+        if (r.vPath.size() > 0) {
+            if (r.vPath[0] == ORA_STEALTH) {
+                if (r.vPath.size() < 5) {
+                    LogPrintf("%s: Warning, malformed vPath.\n", __func__);
+                } else {
+                    uint32_t sidx;
+                    memcpy(&sidx, &r.vPath[1], 4);
+                    CStealthAddress sx;
+                    if (phdw->GetStealthByIndex(sidx, sx)) {
+                        entry.pushKV("stealth_address", sx.Encoded());
+                    }
+                }
+            }
+        } else {
+            PKHash *pkh = std::get_if<PKHash>(&dest);
+            if (pkh) {
+                CStealthAddress sx;
+                CKeyID idK = ToKeyID(*pkh);
+                if (phdw->GetStealthLinked(idK, sx)) {
+                    entry.pushKV("stealth_address", sx.Encoded());
+                }
+            }
+        }
+
+        if (r.nFlags & ORF_LOCKED) {
+            entry.pushKV("requires_unlock", true);
+        }
+
+        if (dest.index() == DI::_CNoDestination) {
+            entry.pushKV("address", "none");
+        } else {
+            entry.pushKV("address", addr.ToString());
+        }
+
+        std::string sCategory;
+        if (r.nFlags & ORF_OWNED && r.nFlags & ORF_FROM) {
+            // Sent to self
+            sCategory = "receive";
+        } else
+        if (r.nFlags & ORF_OWN_ANY) {
+            sCategory = "receive";
+        } else
+        if (r.nFlags & ORF_FROM) {
+            sCategory = "send";
+        }
+
+        entry.pushKV("category", sCategory);
+        entry.pushKV("type", r.nType == OUTPUT_STANDARD ? "standard"
+                           : r.nType == OUTPUT_CT ? "blind"
+                           : r.nType == OUTPUT_RINGCT ? "anon" : "unknown");
+
+        if (r.nFlags & ORF_OWNED && r.nFlags & ORF_FROM) {
+            entry.pushKV("fromself", true);
+        }
+
+        entry.pushKV("amount", ValueFromAmount(r.nValue * ((r.nFlags & ORF_OWN_ANY) ? 1 : -1)));
+
+        if (r.nFlags & ORF_FROM) {
+            entry.pushKV("fee", ValueFromAmount(-rtx.nFee));
+        }
+
+        entry.pushKV("vout", r.n);
+
+        if (with_tx_details) {
+            int confirms = phdw->GetDepthInMainChain(rtx);
+            entry.pushKV("confirmations", confirms);
+            if (confirms > 0) {
+                entry.pushKV("blockhash", rtx.blockHash.GetHex());
+                entry.pushKV("blockindex", rtx.nIndex);
+                PushTime(entry, "blocktime", rtx.nBlockTime);
+            } else {
+                entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
+            }
+
+            entry.pushKV("txid", hash.ToString());
+
+            UniValue conflicts(UniValue::VARR);
+            std::set<uint256> setconflicts = phdw->GetConflicts(hash);
+            setconflicts.erase(hash);
+            for (const auto &conflict : setconflicts) {
+                conflicts.push_back(conflict.GetHex());
+            }
+            entry.pushKV("walletconflicts", conflicts);
+
+            PushTime(entry, "time", rtx.GetTxTime());
+            if (r.nFlags & ORF_FROM) {
+                entry.pushKV("abandoned", rtx.IsAbandoned());
+            }
+        }
+
+        if (!r.sNarration.empty()) {
+            entry.pushKV("narration", r.sNarration);
+        }
+
+        ret.push_back(entry);
+    }
+}
+
+void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint256 &hash, const CTransactionRecord& rtx, UniValue &entry, isminefilter filter, bool verbose) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
 {
     int confirms = phdw->GetDepthInMainChain(rtx);
     entry.pushKV("confirmations", confirms);
@@ -117,35 +281,26 @@ void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint2
     }
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
     */
-}
 
-static void AddSmsgFundingInfo(const CTransaction &tx, UniValue &entry)
-{
-    CAmount smsg_fees = 0;
-    UniValue smsges(UniValue::VARR);
-    for (const auto &v : tx.vpout) {
-        if (!v->IsType(OUTPUT_DATA)) {
-            continue;
+
+    UniValue details(UniValue::VARR);
+    ListRecord(phdw, hash, rtx, "*", 0, false, details, filter);
+    entry.pushKV("details", details);
+
+    CStoredTransaction stx;
+    if (CHDWalletDB(phdw->GetDatabase()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
+        std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
+        entry.pushKV("hex", strHex);
+
+        if (verbose) {
+            UniValue decoded(UniValue::VOBJ);
+            TxToUniv(*(stx.tx.get()), uint256(), decoded, false);
+            entry.pushKV("decoded", decoded);
         }
-        CTxOutData *txd = (CTxOutData*) v.get();
-        if (txd->vData.size() < 25 || txd->vData[0] != DO_FUND_MSG) {
-            continue;
+        mapRTxValue_t::const_iterator mvi = rtx.mapValue.find(RTXVT_SMSG_FEES);
+        if (mvi != rtx.mapValue.end()) {
+            AddSmsgFundingInfo(*(stx.tx.get()), entry);
         }
-        size_t n = (txd->vData.size()-1) / 24;
-        for (size_t k = 0; k < n; ++k) {
-            uint32_t nAmount;
-            memcpy(&nAmount, &txd->vData[1+k*24+20], 4);
-            nAmount = le32toh(nAmount);
-            smsg_fees += nAmount;
-            UniValue funded_smsg(UniValue::VOBJ);
-            funded_smsg.pushKV("smsghash", HexStr(Span<const unsigned char>(&txd->vData[1+k*24], 20)));
-            funded_smsg.pushKV("fee", ValueFromAmount(nAmount));
-            smsges.push_back(funded_smsg);
-        }
-    }
-    if (smsg_fees > 0) {
-        entry.pushKV("smsgs_funded", smsges);
-        entry.pushKV("smsg_fees", ValueFromAmount(smsg_fees));
     }
 }
 
@@ -194,24 +349,25 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, bool
             continue;
 
         // Coinbase with less than 1 confirmation is no longer in the main chain
-        if ((wtx.IsCoinBase() && (nDepth < 1))
-            || (wallet.IsTxImmatureCoinBase(wtx) && !include_immature_coinbase)) {
+        if ((wtx.IsCoinBase() && (nDepth < 1)) ||
+            (wallet.IsTxImmatureCoinBase(wtx) && !include_immature_coinbase)) {
             continue;
         }
 
         for (auto &txout : wtx.tx->vpout) {
-            if (!txout->IsType(OUTPUT_STANDARD))
+            if (!txout->IsType(OUTPUT_STANDARD)) {
                 continue;
+            }
             CTxOutStandard *pOut = (CTxOutStandard*)txout.get();
 
             CTxDestination address;
-            if (!ExtractDestination(pOut->scriptPubKey, address))
+            if (!ExtractDestination(pOut->scriptPubKey, address)) {
                 continue;
-
+            }
             isminefilter mine = wallet.IsMine(address);
-            if (!(mine & filter))
+            if (!(mine & filter)) {
                 continue;
-
+            }
             tallyitem& item = mapTally[address];
             item.nAmount += pOut->nValue;
             item.nConf = std::min(item.nConf, nDepth);
@@ -584,140 +740,6 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
     }
 }
 
-static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransactionRecord &rtx,
-    const std::string &strAccount, int nMinDepth, bool with_tx_details, UniValue &ret, const isminefilter &filter) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet)
-{
-    bool fAllAccounts = (strAccount == std::string("*"));
-
-    for (const auto &r : rtx.vout) {
-        if (r.nFlags & ORF_CHANGE) {
-            continue;
-        }
-
-        if (!(r.nFlags & ORF_FROM) && !(r.nFlags & ORF_OWNED) && !(filter & ISMINE_WATCH_ONLY)) {
-            continue;
-        }
-
-        std::string account;
-        CBitcoinAddress addr;
-        CTxDestination dest;
-        if (ExtractDestination(r.scriptPubKey, dest) && !r.scriptPubKey.IsUnspendable()) {
-            addr.Set(dest);
-
-            std::map<CTxDestination, CAddressBookData>::const_iterator mai = phdw->m_address_book.find(dest);
-            if (mai != phdw->m_address_book.end() && !mai->second.GetLabel().empty()) {
-                account = mai->second.GetLabel();
-            }
-        }
-
-        if (!fAllAccounts && (account != strAccount)) {
-            continue;
-        }
-
-        UniValue entry(UniValue::VOBJ);
-        if (r.nFlags & ORF_OWN_WATCH) {
-            entry.pushKV("involvesWatchonly", true);
-        }
-        entry.pushKV("account", account);
-
-        if (r.vPath.size() > 0) {
-            if (r.vPath[0] == ORA_STEALTH) {
-                if (r.vPath.size() < 5) {
-                    LogPrintf("%s: Warning, malformed vPath.\n", __func__);
-                } else {
-                    uint32_t sidx;
-                    memcpy(&sidx, &r.vPath[1], 4);
-                    CStealthAddress sx;
-                    if (phdw->GetStealthByIndex(sidx, sx)) {
-                        entry.pushKV("stealth_address", sx.Encoded());
-                    }
-                }
-            }
-        } else {
-            PKHash *pkh = std::get_if<PKHash>(&dest);
-            if (pkh) {
-                CStealthAddress sx;
-                CKeyID idK = ToKeyID(*pkh);
-                if (phdw->GetStealthLinked(idK, sx)) {
-                    entry.pushKV("stealth_address", sx.Encoded());
-                }
-            }
-        }
-
-        if (r.nFlags & ORF_LOCKED) {
-            entry.pushKV("requires_unlock", true);
-        }
-
-        if (dest.index() == DI::_CNoDestination) {
-            entry.pushKV("address", "none");
-        } else {
-            entry.pushKV("address", addr.ToString());
-        }
-
-        std::string sCategory;
-        if (r.nFlags & ORF_OWNED && r.nFlags & ORF_FROM) {
-            // Sent to self
-            sCategory = "receive";
-        } else
-        if (r.nFlags & ORF_OWN_ANY) {
-            sCategory = "receive";
-        } else
-        if (r.nFlags & ORF_FROM) {
-            sCategory = "send";
-        }
-
-        entry.pushKV("category", sCategory);
-        entry.pushKV("type", r.nType == OUTPUT_STANDARD ? "standard"
-                           : r.nType == OUTPUT_CT ? "blind"
-                           : r.nType == OUTPUT_RINGCT ? "anon" : "unknown");
-
-        if (r.nFlags & ORF_OWNED && r.nFlags & ORF_FROM) {
-            entry.pushKV("fromself", true);
-        }
-
-        entry.pushKV("amount", ValueFromAmount(r.nValue * ((r.nFlags & ORF_OWN_ANY) ? 1 : -1)));
-
-        if (r.nFlags & ORF_FROM) {
-            entry.pushKV("fee", ValueFromAmount(-rtx.nFee));
-        }
-
-        entry.pushKV("vout", r.n);
-
-        if (with_tx_details) {
-            int confirms = phdw->GetDepthInMainChain(rtx);
-            entry.pushKV("confirmations", confirms);
-            if (confirms > 0) {
-                entry.pushKV("blockhash", rtx.blockHash.GetHex());
-                entry.pushKV("blockindex", rtx.nIndex);
-                PushTime(entry, "blocktime", rtx.nBlockTime);
-            } else {
-                entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
-            }
-
-            entry.pushKV("txid", hash.ToString());
-
-            UniValue conflicts(UniValue::VARR);
-            std::set<uint256> setconflicts = phdw->GetConflicts(hash);
-            setconflicts.erase(hash);
-            for (const auto &conflict : setconflicts) {
-                conflicts.push_back(conflict.GetHex());
-            }
-            entry.pushKV("walletconflicts", conflicts);
-
-            PushTime(entry, "time", rtx.GetTxTime());
-            if (r.nFlags & ORF_FROM) {
-                entry.pushKV("abandoned", rtx.IsAbandoned());
-            }
-        }
-
-        if (!r.sNarration.empty()) {
-            entry.pushKV("narration", r.sNarration);
-        }
-
-        ret.push_back(entry);
-    }
-};
-
 static const std::vector<RPCResult> TransactionDescriptionString()
 {
     return{{RPCResult::Type::NUM, "confirmations", "The number of confirmations for the transaction. Negative confirmations means the\n"
@@ -1083,95 +1105,6 @@ RPCHelpMan listsinceblock()
     };
 }
 
-UniValue gettransaction_inner(JSONRPCRequest const &request)
-{
-    const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
-    if (!pwallet) return UniValue::VNULL;
-
-    // Make sure the results are valid at least up to the most recent block
-    // the user could have gotten from another RPC command prior to now
-    if (!request.fSkipBlock)
-        pwallet->BlockUntilSyncedToCurrentChain();
-
-    LOCK(pwallet->cs_wallet);
-
-    uint256 hash(ParseHashV(request.params[0], "txid"));
-
-    isminefilter filter = ISMINE_SPENDABLE;
-
-    if (ParseIncludeWatchonly(request.params[1], *pwallet)) {
-        filter |= ISMINE_WATCH_ONLY;
-    }
-
-    bool verbose = request.params[2].isNull() ? false : request.params[2].get_bool();
-
-    UniValue entry(UniValue::VOBJ);
-    auto it = pwallet->mapWallet.find(hash);
-    if (it == pwallet->mapWallet.end()) {
-        if (IsParticlWallet(pwallet.get())) {
-            const CHDWallet *phdw = GetParticlWallet(pwallet.get());
-            LOCK_ASSERTION(phdw->cs_wallet);
-            MapRecords_t::const_iterator mri = phdw->mapRecords.find(hash);
-
-            if (mri != phdw->mapRecords.end()) {
-                const CTransactionRecord &rtx = mri->second;
-                RecordTxToJSON(pwallet->chain(), phdw, mri->first, rtx, entry);
-
-                UniValue details(UniValue::VARR);
-                ListRecord(phdw, hash, rtx, "*", 0, false, details, filter);
-                entry.pushKV("details", details);
-
-                CStoredTransaction stx;
-                if (CHDWalletDB(phdw->GetDatabase()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
-                    std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
-                    entry.pushKV("hex", strHex);
-
-                    if (verbose) {
-                        UniValue decoded(UniValue::VOBJ);
-                        TxToUniv(*(stx.tx.get()), uint256(), decoded, false);
-                        entry.pushKV("decoded", decoded);
-                    }
-                    mapRTxValue_t::const_iterator mvi = rtx.mapValue.find(RTXVT_SMSG_FEES);
-                    if (mvi != rtx.mapValue.end()) {
-                        AddSmsgFundingInfo(*(stx.tx.get()), entry);
-                    }
-                }
-
-                return entry;
-            }
-        }
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
-    }
-    const CWalletTx& wtx = it->second;
-
-    CAmount nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
-    CAmount nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
-    CAmount nNet = nCredit - nDebit;
-    CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
-
-    entry.pushKV("amount", ValueFromAmount(nNet - nFee));
-    if (CachedTxIsFromMe(*pwallet, wtx, filter))
-        entry.pushKV("fee", ValueFromAmount(nFee));
-
-    WalletTxToJSON(*pwallet, wtx, entry);
-
-    UniValue details(UniValue::VARR);
-    ListTransactions(*pwallet, wtx, 0, false, details, filter, nullptr /* filter_label */);
-    entry.pushKV("details", details);
-
-    std::string strHex = EncodeHexTx(*wtx.tx, pwallet->chain().rpcSerializationFlags());
-    entry.pushKV("hex", strHex);
-
-    if (verbose) {
-        UniValue decoded(UniValue::VOBJ);
-        TxToUniv(*wtx.tx, /*block_hash=*/uint256(), /*entry=*/decoded, /*include_hex=*/false);
-        entry.pushKV("decoded", decoded);
-    }
-    AddSmsgFundingInfo(*wtx.tx, entry);
-
-    return entry;
-}
-
 RPCHelpMan gettransaction()
 {
     return RPCHelpMan{"gettransaction",
@@ -1247,7 +1180,70 @@ RPCHelpMan gettransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    return gettransaction_inner(request);
+const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
+    if (!pwallet) return UniValue::VNULL;
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    if (!request.fSkipBlock)
+        pwallet->BlockUntilSyncedToCurrentChain();
+
+    LOCK(pwallet->cs_wallet);
+
+    uint256 hash(ParseHashV(request.params[0], "txid"));
+
+    isminefilter filter = ISMINE_SPENDABLE;
+
+    if (ParseIncludeWatchonly(request.params[1], *pwallet)) {
+        filter |= ISMINE_WATCH_ONLY;
+    }
+
+    bool verbose = request.params[2].isNull() ? false : request.params[2].get_bool();
+
+    UniValue entry(UniValue::VOBJ);
+    auto it = pwallet->mapWallet.find(hash);
+    if (it == pwallet->mapWallet.end()) {
+        if (IsParticlWallet(pwallet.get())) {
+            const CHDWallet *phdw = GetParticlWallet(pwallet.get());
+            LOCK_ASSERTION(phdw->cs_wallet);
+            MapRecords_t::const_iterator mri = phdw->mapRecords.find(hash);
+
+            if (mri != phdw->mapRecords.end()) {
+                const CTransactionRecord &rtx = mri->second;
+                RecordTxToJSON(pwallet->chain(), phdw, mri->first, rtx, entry, filter, verbose);
+                return entry;
+            }
+        }
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
+    }
+    const CWalletTx& wtx = it->second;
+
+    CAmount nCredit = CachedTxGetCredit(*pwallet, wtx, filter);
+    CAmount nDebit = CachedTxGetDebit(*pwallet, wtx, filter);
+    CAmount nNet = nCredit - nDebit;
+    CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
+
+    entry.pushKV("amount", ValueFromAmount(nNet - nFee));
+    if (CachedTxIsFromMe(*pwallet, wtx, filter))
+        entry.pushKV("fee", ValueFromAmount(nFee));
+
+    WalletTxToJSON(*pwallet, wtx, entry);
+
+    UniValue details(UniValue::VARR);
+    ListTransactions(*pwallet, wtx, 0, false, details, filter, nullptr /* filter_label */);
+    entry.pushKV("details", details);
+
+    std::string strHex = EncodeHexTx(*wtx.tx, pwallet->chain().rpcSerializationFlags());
+    entry.pushKV("hex", strHex);
+
+    if (verbose) {
+        UniValue decoded(UniValue::VOBJ);
+        TxToUniv(*wtx.tx, /*block_hash=*/uint256(), /*entry=*/decoded, /*include_hex=*/false);
+        entry.pushKV("decoded", decoded);
+    }
+    AddSmsgFundingInfo(*wtx.tx, entry);
+
+    return entry;
 },
     };
 }

@@ -29,6 +29,8 @@
 #include <key/stealth.h>               // For CTxDestination
 #include <key/extkey.h>                // For CTxDestination
 #include <wallet/hdwallettypes.h>
+#include <univalue.h>
+
 
 class CFeeRate;
 class CKey;
@@ -340,6 +342,7 @@ public:
     virtual bool isHardwareLinkedWallet() = 0;
     virtual CAmount getCredit(const CTxOutBase *txout, wallet::isminefilter filter) = 0;
     virtual wallet::isminetype txoutIsMine(const CTxOutBase *txout) = 0;
+    virtual bool describeRecordTx(const uint256 &txid, const CTransactionRecord &rtx, UniValue &rv) = 0;
 };
 
 //! Wallet chain client that in addition to having chain client methods for
@@ -414,13 +417,13 @@ struct WalletBalances
         return balance != prev.balance || unconfirmed_balance != prev.unconfirmed_balance ||
                immature_balance != prev.immature_balance || watch_only_balance != prev.watch_only_balance ||
                unconfirmed_watch_only_balance != prev.unconfirmed_watch_only_balance ||
-               immature_watch_only_balance != prev.immature_watch_only_balance
+               immature_watch_only_balance != prev.immature_watch_only_balance ||
 
-               || balanceStaked != prev.balanceStaked
-               || balanceBlind != prev.balanceBlind
-               || balanceAnon != prev.balanceAnon
-               || balanceWatchStaked != prev.balanceWatchStaked
-               || immature_anon_balance != prev.immature_anon_balance;
+               balanceStaked != prev.balanceStaked ||
+               balanceBlind != prev.balanceBlind ||
+               balanceAnon != prev.balanceAnon ||
+               balanceWatchStaked != prev.balanceWatchStaked ||
+               immature_anon_balance != prev.immature_anon_balance;
     }
 };
 

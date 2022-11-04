@@ -44,8 +44,8 @@ UniValue CallRPC(std::string args, const std::any& context, std::string wallet, 
     std::string s;
     for (size_t i = 0; i < args.size(); ++i) {
         char c = args[i];
-        if (!fInQuotes
-            && (c == ' ' || c == '\t')) {
+        if (!fInQuotes &&
+            (c == ' ' || c == '\t')) {
             if (s.empty()) continue; // trim whitespace
             vArgs.push_back(part::TrimQuotes(s));
             s.clear();

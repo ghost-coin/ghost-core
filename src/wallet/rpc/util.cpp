@@ -99,8 +99,8 @@ void EnsureWalletIsUnlocked(const CWallet& wallet)
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
 
-    if (IsParticlWallet(&wallet)
-        && GetParticlWallet(&wallet)->fUnlockForStakingOnly) {
+    if (IsParticlWallet(&wallet) &&
+        GetParticlWallet(&wallet)->fUnlockForStakingOnly) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Wallet is unlocked for staking only.");
     }
 }

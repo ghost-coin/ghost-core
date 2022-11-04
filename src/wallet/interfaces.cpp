@@ -42,6 +42,10 @@
 #include <usbdevice/rpcusbdevice.h>
 #endif
 
+namespace wallet {
+extern void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint256 &hash, const CTransactionRecord& rtx, UniValue &entry, isminefilter filter, bool verbose) EXCLUSIVE_LOCKS_REQUIRED(phdw->cs_wallet);
+} // namespace wallet
+
 
 void LockWallet(CWallet* pWallet)
 {
@@ -830,6 +834,18 @@ public:
             return ISMINE_NO;
         LOCK(m_wallet_part->cs_wallet);
         return m_wallet_part->IsMine(txout);
+    }
+
+    virtual bool describeRecordTx(const uint256 &txid, const CTransactionRecord &rtx, UniValue &rv) override
+    {
+        if (!m_wallet_part)
+            return false;
+        LOCK(m_wallet_part->cs_wallet);
+
+        isminefilter filter = ISMINE_SPENDABLE;
+        RecordTxToJSON(m_wallet_part->chain(), m_wallet_part, txid, rtx, rv, filter, false);
+
+        return true;
     }
 
     CHDWallet *m_wallet_part = nullptr;

@@ -25,10 +25,7 @@
 #include <wallet/ismine.h>
 
 #include <wallet/hdwallet.h>
-
 #include <univalue.h>
-#include <rpc/server.h>
-#include <rpc/client.h>
 
 #include <stdint.h>
 #include <string>
@@ -36,9 +33,6 @@
 #include <QLatin1String>
 
 #include <QUrl>
-namespace wallet {
-extern UniValue gettransaction_inner(const JSONRPCRequest& request);
-} // namespace wallet
 
 using wallet::ISMINE_ALL;
 using wallet::ISMINE_SPENDABLE;
@@ -142,17 +136,10 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     if (wtx.is_record) {
         strHTML += "<b>" + tr("Transaction ID") + ":</b> " + QString::fromStdString(wtx.irtx->first.ToString()) + "<br>";
 
-        auto context = util::AnyPtr<node::NodeContext>(&node);
-        JSONRPCRequest request;
-        request.context = context;
-        QByteArray encodedName = QUrl::toPercentEncoding(QString::fromStdString(wallet.getWalletName()));
-        request.URI = "/wallet/" + std::string(encodedName.constData(), encodedName.length());
-        //request.mode = EXECUTE;
-        request.fSkipBlock = true;
-        UniValue params(UniValue::VARR);
-        params.push_back(wtx.irtx->first.ToString());
-        request.params = params;
-        UniValue rv = wallet::gettransaction_inner(request);
+        UniValue rv(UniValue::VOBJ);
+        if (!wallet.describeRecordTx(wtx.irtx->first, wtx.irtx->second, rv)) {
+            strHTML += "<b>" + tr("ERROR") + ":</b> Describe record tx failed.<br>";
+        }
 
         if (!rv["hex"].isNull()) {
             strHTML += "<b>" + tr("Transaction total size") + ":</b> " + QString::number(rv["hex"].get_str().length() / 2) + " bytes<br>";
@@ -166,16 +153,12 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
             strHTML += "<b>" + tr("Block time") + ":</b> " + GUIUtil::dateTimeStr(rv["blocktime"].getInt<int>()) + "<br>";
         }
 
-        strHTML += "<b>Details:</b><br>";
-        strHTML += "<p>";
-
+        strHTML += "<b>Details:</b><br><p>";
         std::string sDetails = rv["details"].write(1);
         part::ReplaceStrInPlace(sDetails, "\n", "<br>");
         strHTML += QString::fromStdString(sDetails);
 
-        strHTML += "</p>";
-
-        strHTML += "</font></html>";
+        strHTML += "</p></font></html>";
         return strHTML;
     }
 

@@ -1,4 +1,15 @@
+
 Next Major Version
+==============
+
+
+23.0.3
+==============
+
+- qt: Fix crash when retreiving record transaction descriptions.
+
+
+23.0.2
 ==============
 
 - Coincontrol allow_other_inputs defaults to true
