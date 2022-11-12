@@ -3,19 +3,6 @@ Next Major Version
 ==============
 
 
-23.0.3
-==============
-
-- qt: Fix crash when retreiving record transaction descriptions.
-
-
-23.0.2
-==============
-
-- Coincontrol allow_other_inputs defaults to true
-  - Added allow_other_inputs to smsg rpc functions which accept a coincontrol parameter.
-
-
 24.0.1
 ==============
 
@@ -30,6 +17,20 @@ Next Major Version
     - Removed duplicate tx info in details section.
   - getstakinginfo
     - errors -> warnings
+
+
+23.0.3
+==============
+
+- qt: Fix crash when retreiving record transaction descriptions.
+- wallet: Fix walletpassphrasechange after encryptwallet without restarting.
+
+
+23.0.2
+==============
+
+- Coincontrol allow_other_inputs defaults to true
+  - Added allow_other_inputs to smsg rpc functions which accept a coincontrol parameter.
 
 
 23.0.1
