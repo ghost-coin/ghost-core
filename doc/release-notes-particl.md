@@ -2,6 +2,8 @@
 Next Major Version
 ==============
 
+- listunspent include_immature parameter is deprecated, repalced by include_immature_coinbase
+
 
 24.0.1
 ==============
