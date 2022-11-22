@@ -103,8 +103,8 @@ public:
     virtual bool getPubKey(const CScript& script, const CKeyID& address, CPubKey& pub_key) = 0;
 
     //! Sign message
-    virtual SigningResult signMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) = 0;
-    virtual SigningResult signMessage(const std::string& message, const CKeyID256& pkhash, std::string& str_sig) = 0;
+    virtual SigningResult signMessage(const std::string& message, const PKHash& pkhash, const std::string &message_magic, std::string& str_sig) = 0;
+    virtual SigningResult signMessage(const std::string& message, const CKeyID256& pkhash, const std::string &message_magic, std::string& str_sig) = 0;
 
     //! Return whether wallet has private key.
     virtual bool isSpendable(const CTxDestination& dest) = 0;

@@ -22,7 +22,7 @@ static RPCHelpMan verifymessage()
             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address to use for the signature."},
             {"signature", RPCArg::Type::STR, RPCArg::Optional::NO, "The signature provided by the signer in base 64 encoding (see signmessage)."},
             {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message that was signed."},
-            {"message_magic", RPCArg::Type::STR, RPCArg::Default{"Bitcoin Signed Message:\\n"}, "The magic string to use."},
+            {"message_magic", RPCArg::Type::STR, RPCArg::Default{"Particl Signed Message:\\n"}, "The magic string to use."},
         },
         RPCResult{
             RPCResult::Type::BOOL, "", "If the signature is verified or not."
@@ -70,6 +70,7 @@ static RPCHelpMan signmessagewithprivkey()
         {
             {"privkey", RPCArg::Type::STR, RPCArg::Optional::NO, "The private key to sign the message with."},
             {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message to create a signature of."},
+            {"message_magic", RPCArg::Type::STR, RPCArg::Default{"Particl Signed Message:\\n"}, "The magic string to use."},
         },
         RPCResult{
             RPCResult::Type::STR, "signature", "The signature of the message encoded in base 64"
@@ -86,6 +87,7 @@ static RPCHelpMan signmessagewithprivkey()
         {
             std::string strPrivkey = request.params[0].get_str();
             std::string strMessage = request.params[1].get_str();
+            std::string message_magic = request.params[2].isNull() ? MESSAGE_MAGIC : request.params[2].get_str();
 
             CKey key = DecodeSecret(strPrivkey);
             if (!key.IsValid()) {
@@ -94,7 +96,7 @@ static RPCHelpMan signmessagewithprivkey()
 
             std::string signature;
 
-            if (!MessageSign(key, strMessage, signature)) {
+            if (!MessageSign(key, strMessage, signature, message_magic)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Sign failed");
             }
 

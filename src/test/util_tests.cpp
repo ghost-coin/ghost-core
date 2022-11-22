@@ -1582,7 +1582,7 @@ BOOST_AUTO_TEST_CASE(message_sign)
     BOOST_REQUIRE_MESSAGE(privkey.IsValid(),
         "Confirm the private key is valid");
 
-    BOOST_CHECK_MESSAGE(MessageSign(privkey, message, generated_signature),
+    BOOST_CHECK_MESSAGE(MessageSign(privkey, message, generated_signature, BTC_MESSAGE_MAGIC),
         "Sign with a valid private key");
 
     BOOST_CHECK_EQUAL(expected_signature, generated_signature);
@@ -1622,21 +1622,24 @@ BOOST_AUTO_TEST_CASE(message_verify)
         MessageVerify(
             "15CRxFdyRpGZLW9w8HnHvVduizdL5jKNbs",
             "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=",
-            "I never signed this"),
+            "I never signed this",
+            BTC_MESSAGE_MAGIC),
         MessageVerificationResult::ERR_NOT_SIGNED);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
             "15CRxFdyRpGZLW9w8HnHvVduizdL5jKNbs",
             "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=",
-            "Trust no one"),
+            "Trust no one",
+            BTC_MESSAGE_MAGIC),
         MessageVerificationResult::OK);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
             "11canuhp9X2NocwCq7xNrQYTmUgZAnLK3",
             "IIcaIENoYW5jZWxsb3Igb24gYnJpbmsgb2Ygc2Vjb25kIGJhaWxvdXQgZm9yIGJhbmtzIAaHRtbCeDZINyavx14=",
-            "Trust me"),
+            "Trust me",
+            BTC_MESSAGE_MAGIC),
         MessageVerificationResult::OK);
 }
 

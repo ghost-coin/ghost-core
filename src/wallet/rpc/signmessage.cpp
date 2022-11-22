@@ -19,6 +19,7 @@ RPCHelpMan signmessage()
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address to use for the private key."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message to create a signature of."},
+                    {"message_magic", RPCArg::Type::STR, RPCArg::Default{"Particl Signed Message:\\n"}, "The magic string to use."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "signature", "The signature of the message encoded in base 64"
@@ -44,6 +45,7 @@ RPCHelpMan signmessage()
 
             std::string strAddress = request.params[0].get_str();
             std::string strMessage = request.params[1].get_str();
+            std::string message_magic = request.params[2].isNull() ? MESSAGE_MAGIC : request.params[2].get_str();
 
             CTxDestination dest = DecodeDestination(strAddress);
             if (!IsValidDestination(dest)) {
@@ -58,8 +60,8 @@ RPCHelpMan signmessage()
             }
 
             std::string signature;
-            SigningResult err = keyID256 ? pwallet->SignMessage(strMessage, *keyID256, signature)
-                                         : pwallet->SignMessage(strMessage, *pkhash, signature);
+            SigningResult err = keyID256 ? pwallet->SignMessage(strMessage, *keyID256, message_magic, signature)
+                                         : pwallet->SignMessage(strMessage, *pkhash, message_magic, signature);
             if (err == SigningResult::SIGNING_FAILED) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, SigningResultString(err));
             } else if (err != SigningResult::OK){

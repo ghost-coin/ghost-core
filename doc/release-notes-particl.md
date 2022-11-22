@@ -19,6 +19,14 @@ Next Major Version
     - Removed duplicate tx info in details section.
   - getstakinginfo
     - errors -> warnings
+  - verifymessage
+    signmessage
+    signmessagewithprivkey
+    devicesignmessage
+    - Switched default message magic string to 'Particl Signed Message:\\n'
+    - Sign functions accept a message magic parameter.
+      Note: The ledger firmware will still use the Bitcoin message magic string.
+
 
 
 23.0.3

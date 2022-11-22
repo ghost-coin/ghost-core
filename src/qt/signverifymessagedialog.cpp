@@ -138,7 +138,7 @@ void SignVerifyMessageDialog::on_signMessageButton_SM_clicked()
 
     const std::string& message = ui->messageIn_SM->document()->toPlainText().toStdString();
     std::string signature;
-    SigningResult res = model->wallet().signMessage(message, *pkhash, signature);
+    SigningResult res = model->wallet().signMessage(message, *pkhash, MESSAGE_MAGIC, signature);
 
     QString error;
     switch (res) {

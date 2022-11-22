@@ -262,13 +262,13 @@ public:
         }
         return false;
     }
-    SigningResult signMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) override
+    SigningResult signMessage(const std::string& message, const PKHash& pkhash, const std::string& message_magic, std::string& str_sig) override
     {
-        return m_wallet->SignMessage(message, pkhash, str_sig);
+        return m_wallet->SignMessage(message, pkhash, message_magic, str_sig);
     }
-    SigningResult signMessage(const std::string& message, const CKeyID256& pkhash, std::string& str_sig) override
+    SigningResult signMessage(const std::string& message, const CKeyID256& pkhash, const std::string& message_magic, std::string& str_sig) override
     {
-        return m_wallet->SignMessage(message, pkhash, str_sig);
+        return m_wallet->SignMessage(message, pkhash, message_magic, str_sig);
     }
     bool isSpendable(const CTxDestination& dest) override
     {

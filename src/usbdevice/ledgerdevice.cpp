@@ -355,7 +355,7 @@ int CLedgerDevice::GetXPub(const std::vector<uint32_t> &vPath, CExtPubKey &ekp, 
     return 0;
 };
 
-int CLedgerDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::string &sMessage, std::vector<uint8_t> &vchSig, std::string &sError)
+int CLedgerDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::string &sMessage, const std::string &message_magic, std::vector<uint8_t> &vchSig, std::string &sError)
 {
     if (vPath.size() < 1 || vPath.size() > MAX_BIP32_PATH) {
         return errorN(1, sError, __func__, "Path depth out of range.");
@@ -402,7 +402,6 @@ int CLedgerDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::st
         Close();
         return errorN(1, sError, __func__, "Message signature prepared, please powercycle to get the second factor then proceed with signing");
     }
-
 
     apduSize = 0;
     in[apduSize++] = BTCHIP_CLA;

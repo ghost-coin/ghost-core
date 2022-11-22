@@ -2262,26 +2262,26 @@ TransactionError CWallet::FillPSBT(PartiallySignedTransaction& psbtx, bool& comp
     return TransactionError::OK;
 }
 
-SigningResult CWallet::SignMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) const
+SigningResult CWallet::SignMessage(const std::string& message, const PKHash& pkhash, const std::string &message_magic, std::string& str_sig) const
 {
     SignatureData sigdata;
     CScript script_pub_key = GetScriptForDestination(pkhash);
     for (const auto& spk_man_pair : m_spk_managers) {
         if (spk_man_pair.second->CanProvide(script_pub_key, sigdata)) {
             LOCK(cs_wallet);  // DescriptorScriptPubKeyMan calls IsLocked which can lock cs_wallet in a deadlocking order
-            return spk_man_pair.second->SignMessage(message, pkhash, str_sig);
+            return spk_man_pair.second->SignMessage(message, pkhash, message_magic, str_sig);
         }
     }
     return SigningResult::PRIVATE_KEY_NOT_AVAILABLE;
 }
 
-SigningResult CWallet::SignMessage(const std::string& message, const CKeyID256 &keyID256, std::string& str_sig) const
+SigningResult CWallet::SignMessage(const std::string& message, const CKeyID256 &keyID256, const std::string &message_magic, std::string& str_sig) const
 {
     SignatureData sigdata;
     CScript script_pub_key = GetScriptForDestination(keyID256);
     for (const auto& spk_man_pair : m_spk_managers) {
         if (spk_man_pair.second->CanProvide(script_pub_key, sigdata)) {
-            return spk_man_pair.second->SignMessage(message, keyID256, str_sig);
+            return spk_man_pair.second->SignMessage(message, keyID256, message_magic, str_sig);
         }
     }
     return SigningResult::PRIVATE_KEY_NOT_AVAILABLE;

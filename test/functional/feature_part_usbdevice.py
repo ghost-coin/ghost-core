@@ -71,7 +71,12 @@ class USBDeviceTest(ParticlTestFramework):
 
         message = 'This is just a test message'
         sig = nodes[1].devicesignmessage('0/1', message)
-        assert (True == nodes[1].verifymessage('peWvjy33QptC2Gz3ww7jTTLPjC2QJmifBR', sig, message))
+        assert (nodes[1].verifymessage('peWvjy33QptC2Gz3ww7jTTLPjC2QJmifBR', sig, message))
+
+        btc_message_magic = 'Bitcoin Signed Message:\n'
+        sig = nodes[1].devicesignmessage('0/1', message, "m/44'/1'/0'", btc_message_magic)
+        assert (not nodes[1].verifymessage('peWvjy33QptC2Gz3ww7jTTLPjC2QJmifBR', sig, message))
+        assert (nodes[1].verifymessage('peWvjy33QptC2Gz3ww7jTTLPjC2QJmifBR', sig, message, btc_message_magic))
 
         ro = nodes[1].initaccountfromdevice('test_acc')
         assert (ro['extkey'] == 'pparszKXPyRegWYwPacdPduNPNEryRbZDCAiSyo8oZYSsbTjc6FLP4TCPEX58kAeCB6YW9cSdR6fsbpeWDBTgjbkYjXCoD9CNoFVefbkg3exzpQE')

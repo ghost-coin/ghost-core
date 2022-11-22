@@ -429,6 +429,7 @@ static RPCHelpMan devicesignmessage()
             "                           The full path is \"accountpath\"/\"path\"."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message to sign for."},
                     {"accountpath", RPCArg::Type::STR, RPCArg::Default{GetDefaultAccountPath()}, "Account path, set to empty string to ignore."},
+                    {"message_magic", RPCArg::Type::STR, RPCArg::Default{"Particl Signed Message:\\n"}, "The magic string to use."},
                 },
                 RPCResult{
                     RPCResult::Type::STR, "signature", "The signature of the message encoded in base 64"
@@ -452,8 +453,9 @@ static RPCHelpMan devicesignmessage()
     }
 
     std::string sError, sMessage = request.params[1].get_str();
+    std::string message_magic = request.params[3].isNull() ? MESSAGE_MAGIC : request.params[3].get_str();
     std::vector<uint8_t> vchSig;
-    if (0 != pDevice->SignMessage(vPath, sMessage, vchSig, sError)) {
+    if (0 != pDevice->SignMessage(vPath, sMessage, message_magic, vchSig, sError)) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("SignMessage failed %s.", sError));
     }
 
@@ -904,9 +906,10 @@ static RPCHelpMan initaccountfromdevice()
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "GetFullChainPath failed.");
             }
 
+            // Use BTC_MESSAGE_MAGIC for backwards compatibility
             vSigPath.push_back(0);
             uiInterface.NotifyWaitingForDevice(false);
-            if (0 != pDevice->SignMessage(vSigPath, msg, vchSig, sError)) {
+            if (0 != pDevice->SignMessage(vSigPath, msg, BTC_MESSAGE_MAGIC, vchSig, sError)) {
                 sea->FreeChains();
                 uiInterface.NotifyWaitingForDevice(true);
                 throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("Could not generate scan chain seed from signed message %s.", sError));

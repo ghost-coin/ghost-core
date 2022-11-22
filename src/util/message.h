@@ -13,6 +13,7 @@
 class CKey;
 
 extern const std::string MESSAGE_MAGIC;
+extern const std::string BTC_MESSAGE_MAGIC;
 
 /** The result of a signed message verification.
  * Message verification takes as an input:
@@ -65,7 +66,8 @@ MessageVerificationResult MessageVerify(
 bool MessageSign(
     const CKey& privkey,
     const std::string& message,
-    std::string& signature);
+    std::string& signature,
+    const std::string& message_magic = MESSAGE_MAGIC);
 
 /**
  * Hashes a message for signing and verification in a manner that prevents

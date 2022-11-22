@@ -22,7 +22,8 @@
  * Text used to signify that a signed message follows and to prevent
  * inadvertently signing a transaction.
  */
-const std::string MESSAGE_MAGIC = "Bitcoin Signed Message:\n";
+const std::string MESSAGE_MAGIC = "Particl Signed Message:\n";
+const std::string BTC_MESSAGE_MAGIC = "Bitcoin Signed Message:\n";
 
 MessageVerificationResult MessageVerify(
     const std::string& address,
@@ -68,11 +69,12 @@ MessageVerificationResult MessageVerify(
 bool MessageSign(
     const CKey& privkey,
     const std::string& message,
-    std::string& signature)
+    std::string& signature,
+    const std::string& message_magic)
 {
     std::vector<unsigned char> signature_bytes;
 
-    if (!privkey.SignCompact(MessageHash(message), signature_bytes)) {
+    if (!privkey.SignCompact(MessageHash(message, message_magic), signature_bytes)) {
         return false;
     }
 

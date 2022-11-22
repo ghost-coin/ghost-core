@@ -80,7 +80,7 @@ int CDebugDevice::GetXPub(const std::vector<uint32_t> &vPath, CExtPubKey &ekp, s
     return 0;
 };
 
-int CDebugDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::string &sMessage, std::vector<uint8_t> &vchSig, std::string &sError)
+int CDebugDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::string &sMessage, const std::string &message_magic, std::vector<uint8_t> &vchSig, std::string &sError)
 {
     CExtKey vkOut, vkWork = ekv;
     for (auto it = vPath.begin(); it != vPath.end(); ++it) {
@@ -90,11 +90,7 @@ int CDebugDevice::SignMessage(const std::vector<uint32_t> &vPath, const std::str
         vkWork = vkOut;
     }
 
-    CHashWriter ss(SER_GETHASH, 0);
-    ss << MESSAGE_MAGIC;
-    ss << sMessage;
-
-    if (!vkOut.key.SignCompact(ss.GetHash(), vchSig)) {
+    if (!vkOut.key.SignCompact(MessageHash(sMessage, message_magic), vchSig)) {
         return errorN(1, sError, __func__, "Sign failed");
     }
 

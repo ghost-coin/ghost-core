@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 The Particl Core developers
+// Copyright (c) 2018-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,6 +14,8 @@
 #include <util/system.h>
 #include <shutdown.h>
 #include <univalue.h>
+
+#include <string>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -423,7 +425,7 @@ int CTrezorDevice::GetXPub(const std::vector<uint32_t>& vPath, CExtPubKey& ekp, 
     return 0;
 };
 
-int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::string& sMessage, std::vector<uint8_t>& vchSig, std::string& sError)
+int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::string& sMessage, const std::string &message_magic, std::vector<uint8_t>& vchSig, std::string& sError)
 {
     if (vPath.size() < 1 || vPath.size() > 10) {
         return errorN(1, sError, __func__, "Path depth out of range.");
@@ -436,7 +438,16 @@ int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::st
         msg_in.add_address_n(i);
     }
 
-    msg_in.set_coin_name("Bitcoin");
+    std::string coin_name;
+    if (message_magic.find("Bitcoin") != std::string::npos) {
+        coin_name = "Bitcoin";
+    } else
+    if (message_magic.find("Particl") != std::string::npos) {
+        coin_name = "Particl";
+    } else {
+        return errorN(1, sError, __func__, "Unknown message magic string.");
+    }
+    msg_in.set_coin_name(coin_name);
     msg_in.set_message(sMessage);
 
     std::vector<uint8_t> vec_in, vec_out;

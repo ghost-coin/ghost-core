@@ -18,6 +18,7 @@
 #include <node/miner.h>
 #include <pos/kernel.h>
 #include <pos/miner.h>
+#include <util/message.h>
 #include <util/moneystr.h>
 #include <util/translation.h>
 #include <script/script.h>
@@ -8093,10 +8094,8 @@ int CHDWallet::InitAccountStealthV2Chains(CHDWalletDB *pwdb, CExtKeyAccount *sea
     std::string msg = "Scan chain secret seed";
     std::vector<uint8_t> vData, vchSig;
 
-    CHashWriter ss(SER_GETHASH, 0);
-    ss << MESSAGE_MAGIC;
-    ss << msg;
-    if (!vkAcc0_0.key.SignCompact(ss.GetHash(), vchSig)) {
+    // Use BTC_MESSAGE_MAGIC for backwards wallet compatibility
+    if (!vkAcc0_0.key.SignCompact(MessageHash(msg, BTC_MESSAGE_MAGIC), vchSig)) {
         return werrorN(1, "%s: Sign failed.", __func__);
     }
 
