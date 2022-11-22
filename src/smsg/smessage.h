@@ -7,7 +7,7 @@
 #define PARTICL_SMSG_SMESSAGE_H
 
 #include <sync.h>
-#include <threadinterrupt.h>
+#include <util/threadinterrupt.h>
 #include <key_io.h>
 #include <serialize.h>
 #include <lz4/lz4.h>

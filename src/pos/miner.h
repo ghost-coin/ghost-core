@@ -6,7 +6,7 @@
 #define PARTICL_POS_MINER_H
 
 #include <thread>
-#include <threadinterrupt.h>
+#include <util/threadinterrupt.h>
 #include <atomic>
 #include <vector>
 #include <string>
