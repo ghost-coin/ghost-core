@@ -294,9 +294,9 @@ static RPCHelpMan splitmnemonic()
     const UniValue &parameters = request.params[0].get_obj();
     RPCTypeCheckObj(parameters,
     {
-        {"mnemonic",                UniValueType(UniValue::VSTR)},
-        {"numshares",               UniValueType(UniValue::VNUM)},
-        {"threshold",               UniValueType(UniValue::VNUM)},
+        {"mnemonic",  UniValueType(UniValue::VSTR)},
+        {"numshares", UniValueType(UniValue::VNUM)},
+        {"threshold", UniValueType(UniValue::VNUM)},
     }, /* allow null */ false, /* strict */ false);
 
     std::string error_str, mnemonic_string = parameters["mnemonic"].get_str();
@@ -307,7 +307,7 @@ static RPCHelpMan splitmnemonic()
     if (parameters.exists("language")) {
         std::string language_str = parameters["language"].get_str();
         if (language_str != "autodetect") {
-            language_ind =mnemonic::GetLanguageOffset(language_str);
+            language_ind = mnemonic::GetLanguageOffset(language_str);
         }
     }
 
@@ -367,7 +367,7 @@ static RPCHelpMan combinemnemonic()
     if (parameters.exists("language")) {
         std::string language_str = parameters["language"].get_str();
         if (language_str != "autodetect") {
-            language_ind =mnemonic::GetLanguageOffset(language_str);
+            language_ind = mnemonic::GetLanguageOffset(language_str);
         }
     }
 
@@ -380,12 +380,104 @@ static RPCHelpMan combinemnemonic()
     };
 }
 
+static RPCHelpMan mnemonictoentropy()
+{
+    return RPCHelpMan{"mnemonictoentropy",
+        "\nConvert mnemonic words to entropy hex.\n",
+        {
+            {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Parameters",
+                {
+                    {"mnemonic", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic to decode"},
+                    {"language", RPCArg::Type::STR, RPCArg::Default{"autodetect"}, "The language to use"},
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::STR_HEX, "entropy", "The entropy bytes"
+        },
+        RPCExamples{
+            HelpExampleCli("mnemonictoentropy", "'{ \"mnemonic\": \"mnemonic words\" }'")
+            + HelpExampleRpc("mnemonictoentropy", "'{ \"mnemonic\": \"mnemonic words\" }'")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const UniValue &parameters = request.params[0].get_obj();
+    RPCTypeCheckObj(parameters,
+    {
+        {"mnemonic", UniValueType(UniValue::VSTR)},
+    }, /* allow null */ false, /* strict */ false);
+
+    int language_ind = -1;
+    if (parameters.exists("language")) {
+        std::string language_str = parameters["language"].get_str();
+        if (language_str != "autodetect") {
+            language_ind = mnemonic::GetLanguageOffset(language_str);
+        }
+    }
+
+    std::string error_str, mnemonic_string = parameters["mnemonic"].get_str();
+    std::vector<uint8_t> entropy;
+    if (0 != mnemonic::Decode(language_ind, mnemonic_string, entropy, error_str)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("mnemonic::Decode failed %s.", error_str.c_str()).c_str());
+    }
+
+    return HexStr(entropy);
+},
+    };
+}
+
+static RPCHelpMan mnemonicfromentropy()
+{
+    return RPCHelpMan{"mnemonicfromentropy",
+        "\nConvert entropy hex to mnemonic words.\n",
+        {
+            {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Parameters",
+                {
+                    {"entropy", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The entropy bytes to be encoded"},
+                    {"language", RPCArg::Type::STR, RPCArg::Default{"english"}, "The language to use"},
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::STR, "mnemonic", "The mnemonic words"
+        },
+        RPCExamples{
+            HelpExampleCli("mnemonicfromentropy", "'{ \"entropy\": \"entropyhex\" }'")
+            + HelpExampleRpc("mnemonicfromentropy", "'{ \"entropy\": \"entropyhex\" }'")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const UniValue &parameters = request.params[0].get_obj();
+    RPCTypeCheckObj(parameters,
+    {
+        {"entropy", UniValueType(UniValue::VSTR)},
+    }, /* allow null */ false, /* strict */ false);
+
+    int language_ind = mnemonic::WLL_ENGLISH;
+    if (parameters.exists("language")) {
+        std::string language_str = parameters["language"].get_str();
+        language_ind = mnemonic::GetLanguageOffset(language_str);
+    }
+
+    std::vector<uint8_t> entropy = ParseHex(parameters["entropy"].get_str());
+    std::string error_str, mnemonic_string;
+    if (0 != mnemonic::Encode(language_ind, entropy, mnemonic_string, error_str)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("mnemonic::Encode failed %s.", error_str.c_str()).c_str());
+    }
+
+    return mnemonic_string;
+},
+    };
+}
+
 void RegisterMnemonicRPCCommands(CRPCTable &t)
 {
     static const CRPCCommand commands[]{
         {"mnemonic", &mnemonicrpc},
-        {"splitmnemonic", &splitmnemonic},
-        {"combinemnemonic", &combinemnemonic},
+        {"mnemonic", &splitmnemonic},
+        {"mnemonic", &combinemnemonic},
+        {"mnemonic", &mnemonictoentropy},
+        {"mnemonic", &mnemonicfromentropy},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

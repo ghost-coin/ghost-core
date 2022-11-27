@@ -39,7 +39,7 @@ class SmsgPaidTest(ParticlTestFramework):
         nodes = self.nodes
 
         nodes[0].extkeyimportmaster(nodes[0].mnemonic('new')['master'])
-        nodes[1].extkeyimportmaster('abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
+        self.import_genesis_coins_a(nodes[1])
 
         address0 = nodes[0].getnewaddress()  # Will be different each run
         address1 = nodes[1].getnewaddress()

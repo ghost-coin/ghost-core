@@ -7,6 +7,7 @@ import random
 
 from test_framework.test_particl import ParticlTestFramework
 from test_framework.authproxy import JSONRPCException
+from test_framework.util import assert_is_hex_string
 
 
 class MnemonicTest(ParticlTestFramework):
@@ -140,7 +141,7 @@ class MnemonicTest(ParticlTestFramework):
         for lang in ro.keys():
             bytes_entropy = random.randint(16, 64)
             mnemonic = node.mnemonic('new', '', lang, bytes_entropy)['mnemonic']
-            num_shares = random.randint(2, 2047)
+            num_shares = random.randint(2, 800)  # Reduced from 2047 for quicker tests
             threshold = random.randint(2, num_shares)
 
             shares = node.splitmnemonic({'mnemonic': mnemonic, 'numshares': num_shares, 'threshold': threshold, 'language': lang})
@@ -156,6 +157,14 @@ class MnemonicTest(ParticlTestFramework):
 
             recovered_mnemonic = node.combinemnemonic({'shares': use_shares})
             assert (mnemonic == recovered_mnemonic)
+
+        self.log.info('Test to and from entropy')
+        test_mnemonic = node.mnemonic('new')['mnemonic']
+        entropy_hex = node.mnemonictoentropy({'mnemonic': test_mnemonic})
+        assert_is_hex_string(entropy_hex)
+
+        mnemonic_out = node.mnemonicfromentropy({'entropy': entropy_hex})
+        assert (mnemonic_out == test_mnemonic)
 
 
 if __name__ == '__main__':

@@ -240,7 +240,7 @@ class WalletParticlTest(ParticlTestFramework):
         nodes[1].encryptwallet('qwerty234')
 
         try:
-            nodes[1].extkeyimportmaster('abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
+            nodes[1].extkeyimportmaster(self.get_genesis_coins_a_mnemonic())
             raise AssertionError('extkeyimportmaster on locked wallet.')
         except JSONRPCException as e:
             assert ('Wallet locked' in e.error['message'])
@@ -250,9 +250,9 @@ class WalletParticlTest(ParticlTestFramework):
         assert (ro['encryptionstatus'] == 'Unlocked')
         assert (ro['unlocked_until'] > int(time.time()) and ro['unlocked_until'] < int(time.time()) + 500)
 
-        decodedRoot = nodes[1].mnemonic('decode', '', 'abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb', 'false')['master']
+        decodedRoot = nodes[1].mnemonic('decode', '', self.get_genesis_coins_a_mnemonic(), 'false')['master']
 
-        roImport1 = nodes[1].extkeyimportmaster('abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
+        roImport1 = nodes[1].extkeyimportmaster(self.get_genesis_coins_a_mnemonic())
         assert (roImport1['master_id'] == 'xHRmcdjD2kssaM5ZY8Cyzj8XWJsBweydyP')
         assert (roImport1['account_id'] == 'aaaZf2qnNr5T7PWRmqgmusuu5ACnBcX2ev')
         assert (nodes[1].getwalletinfo()['total_balance'] == 100000)

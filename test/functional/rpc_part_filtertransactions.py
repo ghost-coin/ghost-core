@@ -29,7 +29,7 @@ class FilterTransactionsTest(ParticlTestFramework):
         nodes = self.nodes
 
         # import keys for node wallets
-        nodes[0].extkeyimportmaster('abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
+        self.import_genesis_coins_a(nodes[0])
         nodes[1].extkeyimportmaster('drip fog service village program equip minute dentist series hawk crop sphere olympic lazy garbage segment fox library good alley steak jazz force inmate')
         nodes[2].extkeyimportmaster('sección grito médula hecho pauta posada nueve ebrio bruto buceo baúl mitad')
 

@@ -8,7 +8,7 @@ Next Major Version
 24.0.1
 ==============
 
-- rpc changes
+- rpc changes:
   - Reverted bip125_replaceable change back to bip125-replaceable.
   - smsgsend
     - Changed tx_bytes to tx_vsize
@@ -31,13 +31,15 @@ Next Major Version
   - new rpc commands:
     - splitmnemonic
     - combinemnemonic
+- rpc: Add mnemonictoentropy and mnemonicfromentropy
+  - Convert mnemonics to and from entropy and word form.
 
 
 
 23.0.3
 ==============
 
-- qt: Fix crash when retreiving record transaction descriptions.
+- qt: Fix crash when retrieving record transaction descriptions.
 - wallet: Fix walletpassphrasechange after encryptwallet without restarting.
 
 

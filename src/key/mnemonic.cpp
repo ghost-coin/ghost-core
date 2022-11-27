@@ -729,7 +729,7 @@ static int build_tables()
         return 0;
     }
     if (building_tables) {
-        LogPrintf("Error: Shamir39 tables are being initialised.");
+        LogPrintf("Error: Shamir39 tables are being initialised.\n");
         return 1;
     }
     building_tables = true;

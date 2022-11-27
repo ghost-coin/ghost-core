@@ -282,6 +282,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "votehistory", 1, "include_future" },
     { "splitmnemonic", 0, "parameters" },
     { "combinemnemonic", 0, "parameters" },
+    { "mnemonictoentropy", 0, "parameters" },
+    { "mnemonicfromentropy", 0, "parameters" },
 
     // Particl: SMSG
     { "smsgsend", 3, "paid_msg" },
