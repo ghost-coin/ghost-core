@@ -579,7 +579,7 @@ static void ProcRand(unsigned char* out, int num, RNGLevel level) noexcept
 
 void GetStrongRandBytes2(unsigned char* out, int num)
 {
-    assert(num < 256); // arbitrary
+    assert(num <= 256); // arbitrary
     int o = 0;
     while (o < num) {
         int nb = num - o > 32 ? 32 : num - o;

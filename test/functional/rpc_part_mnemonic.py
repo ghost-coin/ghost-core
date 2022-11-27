@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2022 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+import random
 
 from test_framework.test_particl import ParticlTestFramework
 from test_framework.authproxy import JSONRPCException
@@ -34,12 +36,10 @@ class MnemonicTest(ParticlTestFramework):
         key = json_obj['master']
         assert (key.startswith('xpar')), 'Key is not bip32.'
 
-
         checkLangs = ['english', 'french', 'japanese', 'spanish', 'chinese_s', 'chinese_t', 'italian', 'korean', 'czech']
 
         for i in range(8):
             for l in checkLangs:
-
                 json_obj = node.mnemonic('new', '', l)
                 keyBip44 = json_obj['master']
                 words = json_obj['mnemonic']
@@ -105,22 +105,23 @@ class MnemonicTest(ParticlTestFramework):
         assert (len(ro) == 9)
 
 
-        # Test incorrect parameter order: mnemonic,password vs password,mnemonic
+        self.log.info('Test incorrect parameter order: mnemonic,password vs password,mnemonic')
         try:
             ro = node.mnemonic('decode', 'abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb', '')
             assert (False), 'Decoded empty word string.'
         except JSONRPCException as e:
             assert ("Mnemonic can't be blank" in e.error['message'])
 
+        self.log.info('Normalisation')
         # Normalise 'alléger'
         ro = node.mnemonic('decode', '', 'sortir hygiène boueux détourer doyen émission prospère tunnel cerveau miracle brioche feuille arbitre terne alléger prison connoter diable méconnu fraise pelle carbone erreur admettre')
         assert (ro['master'] == 'tprv8ZgxMBicQKsPdsKV1vzsQkRQp5TobgyfXsBLcU49jmnC2zBT4Cd5LTCtdoWe5gg7EPjjQnAsxbMG1qyoCn1bHn6n4c1ZEdFLKg1TJAwTriQ')
 
-        # Leading and trailing spaces
+        self.log.info('Leading and trailing spaces')
         ro = node.mnemonic('decode', '', ' sortir hygiène boueux détourer doyen émission prospère tunnel cerveau miracle brioche feuille arbitre terne alléger prison connoter diable méconnu fraise pelle carbone erreur admettre  ')
         assert (ro['master'] == 'tprv8ZgxMBicQKsPdsKV1vzsQkRQp5TobgyfXsBLcU49jmnC2zBT4Cd5LTCtdoWe5gg7EPjjQnAsxbMG1qyoCn1bHn6n4c1ZEdFLKg1TJAwTriQ')
 
-        # Multiple spaces between words
+        self.log.info('Multiple spaces between words')
         try:
             ro = node.mnemonic('decode', '', 'abandon  baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
             assert (False), 'Decoded with multiple spaces.'
@@ -132,6 +133,29 @@ class MnemonicTest(ParticlTestFramework):
             assert (False), 'Decoded with multiple spaces.'
         except JSONRPCException as e:
             assert ("Multiple spaces between words" in e.error['message'])
+
+        self.log.info('Test shamir39 scheme')
+        ro = node.mnemonic('listlanguages')
+        assert (len(ro.keys()) == 9)
+        for lang in ro.keys():
+            bytes_entropy = random.randint(16, 64)
+            mnemonic = node.mnemonic('new', '', lang, bytes_entropy)['mnemonic']
+            num_shares = random.randint(2, 2047)
+            threshold = random.randint(2, num_shares)
+
+            shares = node.splitmnemonic({'mnemonic': mnemonic, 'numshares': num_shares, 'threshold': threshold, 'language': lang})
+            assert (len(shares) == num_shares)
+
+            # Working directly with the data lists is slow
+            offsets = [*range(len(shares))]
+            random.shuffle(offsets)
+
+            use_shares = []
+            for i in range(threshold):
+                use_shares.append(shares[offsets[i]])
+
+            recovered_mnemonic = node.combinemnemonic({'shares': use_shares})
+            assert (mnemonic == recovered_mnemonic)
 
 
 if __name__ == '__main__':

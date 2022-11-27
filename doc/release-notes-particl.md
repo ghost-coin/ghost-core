@@ -26,6 +26,11 @@ Next Major Version
     - Switched default message magic string to 'Particl Signed Message:\\n'
     - Sign functions accept a message magic parameter.
       Note: The ledger firmware will still use the Bitcoin message magic string.
+- Add experimental support for splitting and joining mnemonics according to
+  https://github.com/iancoleman/shamir39/blob/master/specification.md
+  - new rpc commands:
+    - splitmnemonic
+    - combinemnemonic
 
 
 

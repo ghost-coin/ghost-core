@@ -1,5 +1,5 @@
 // Copyright (c) 2015 The ShadowCoin developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -38,7 +38,7 @@ static RPCHelpMan mnemonicrpc()
         "mnemonic dumpwords ( \"language\" )\n"
         "    Print list of words.\n"
         "    language, default english\n"
-         "mnemonic listlanguages\n"
+        "mnemonic listlanguages\n"
         "    Print list of supported languages.\n",
     {
         {"mode", RPCArg::Type::STR, RPCArg::Optional::NO, "One of: new, decode, addchecksum, dumpwords, listlanguages"},
@@ -85,6 +85,9 @@ static RPCHelpMan mnemonicrpc()
         }
 
         if (request.params.size() > 3) {
+            if (request.params[3].isNum()) {
+                nBytesEntropy = request.params[3].getInt<int>();
+            } else
             if (!ParseInt32(request.params[3].get_str(), &nBytesEntropy)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid num bytes entropy");
             }
@@ -259,10 +262,130 @@ static RPCHelpMan mnemonicrpc()
     };
 };
 
+static RPCHelpMan splitmnemonic()
+{
+    return RPCHelpMan{"splitmnemonic",
+        "\nSplit a mnemonic according to shamir39.\n"
+        "Should be compatible with: https://iancoleman.io/shamir39\n"
+        "WARNING: This feature is experimental.\n",
+        {
+            {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Parameters",
+                {
+                    {"mnemonic", RPCArg::Type::STR, RPCArg::Optional::NO, "The mnemonic to be split"},
+                    {"numshares", RPCArg::Type::NUM, RPCArg::Optional::NO, "The number of shares to output"},
+                    {"threshold", RPCArg::Type::NUM, RPCArg::Optional::NO, "Minimum number of shares to recreate the mnemonic"},
+                    {"language", RPCArg::Type::STR, RPCArg::Default{"autodetect"}, "The language to use"},
+                    // {"specification", RPCArg::Type::STR, RPCArg::Default{"shamir39"}, "shamir39/slip39"}, // TODO
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::ARR, "shares", "",
+            {
+                {RPCResult::Type::STR, "share", "Mnemonic share"},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("splitmnemonic", "'{ \"mnemonic\": \"mnemonic words\", \"numsplits\": 2, \"threshold\": 2 }'")
+            + HelpExampleRpc("splitmnemonic", "'{ \"mnemonic\": \"mnemonic words\", \"numsplits\": 2, \"threshold\": 2 }'")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const UniValue &parameters = request.params[0].get_obj();
+    RPCTypeCheckObj(parameters,
+    {
+        {"mnemonic",                UniValueType(UniValue::VSTR)},
+        {"numshares",               UniValueType(UniValue::VNUM)},
+        {"threshold",               UniValueType(UniValue::VNUM)},
+    }, /* allow null */ false, /* strict */ false);
+
+    std::string error_str, mnemonic_string = parameters["mnemonic"].get_str();
+    int num_splits = parameters["numshares"].getInt<int>();
+    int actual_threshold = parameters["threshold"].getInt<int>();
+    std::vector<std::string> shares_out;
+    int language_ind = -1;
+    if (parameters.exists("language")) {
+        std::string language_str = parameters["language"].get_str();
+        if (language_str != "autodetect") {
+            language_ind =mnemonic::GetLanguageOffset(language_str);
+        }
+    }
+
+    if (0 != shamir39::splitmnemonic(mnemonic_string, language_ind, num_splits, actual_threshold, shares_out, error_str)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("splitmnemonic failed %s", error_str.c_str()).c_str());
+    }
+
+    UniValue rv(UniValue::VARR);
+    for (const auto &share : shares_out) {
+        rv.push_back(share);
+    }
+    return rv;
+},
+    };
+}
+
+static RPCHelpMan combinemnemonic()
+{
+    return RPCHelpMan{"combinemnemonic",
+        "\nCombine shamir39 shares into a mnemonic.\n"
+        "WARNING: This feature is experimental.\n",
+        {
+            {"parameters", RPCArg::Type::OBJ, RPCArg::Optional::NO, "Parameters",
+                {
+                    {"shares", RPCArg::Type::ARR, RPCArg::Optional::NO, "The mnemonics to be joined",
+                        {
+                            {"mnemonic", RPCArg::Type::STR, RPCArg::Optional::NO, "mnemonic"},
+                        },
+                    },
+                    {"language", RPCArg::Type::STR, RPCArg::Default{"autodetect"}, "The language to use"},
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::STR, "mnemonic", "The joined mnemonic"
+        },
+        RPCExamples{
+            HelpExampleCli("combinemnemonic", "'{ \"shares\": [ \"mnemonic words 1\", \"mnemonic words 2\" ] }'")
+            + HelpExampleRpc("combinemnemonic", "'{ \"shares\": [ \"mnemonic words 1\", \"mnemonic words 2\" ] }'")
+        },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    const UniValue &parameters = request.params[0].get_obj();
+    RPCTypeCheckObj(parameters,
+    {
+        {"shares", UniValueType(UniValue::VARR)},
+    }, /* allow null */ false, /* strict */ false);
+
+    std::vector<std::string> shares;
+    const UniValue &uv_shares = parameters["shares"];
+    shares.reserve(uv_shares.size());
+    for (size_t i = 0; i < uv_shares.size(); ++i) {
+        shares.push_back(uv_shares[i].get_str());
+    }
+    std::string mnemonic_out, error_str;
+    int language_ind = -1;
+    if (parameters.exists("language")) {
+        std::string language_str = parameters["language"].get_str();
+        if (language_str != "autodetect") {
+            language_ind =mnemonic::GetLanguageOffset(language_str);
+        }
+    }
+
+    if (0 != shamir39::combinemnemonic(shares, language_ind, mnemonic_out, error_str)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, strprintf("combinemnemonic failed %s", error_str.c_str()).c_str());
+    }
+
+    return mnemonic_out;
+},
+    };
+}
+
 void RegisterMnemonicRPCCommands(CRPCTable &t)
 {
     static const CRPCCommand commands[]{
         {"mnemonic", &mnemonicrpc},
+        {"splitmnemonic", &splitmnemonic},
+        {"combinemnemonic", &combinemnemonic},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

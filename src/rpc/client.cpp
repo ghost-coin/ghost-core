@@ -280,6 +280,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "reservebalance", 1, "amount" },
     { "votehistory", 0, "current_only" },
     { "votehistory", 1, "include_future" },
+    { "splitmnemonic", 0, "parameters" },
+    { "combinemnemonic", 0, "parameters" },
 
     // Particl: SMSG
     { "smsgsend", 3, "paid_msg" },

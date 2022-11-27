@@ -9202,7 +9202,7 @@ static RPCHelpMan verifyrawtransaction()
                             },
                         },
                     },
-                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "Options",
                         {
                             {"returndecoded", RPCArg::Type::BOOL, RPCArg::Default{false}, "Return the decoded txn as a json object."},
                             {"checkvalues", RPCArg::Type::BOOL, RPCArg::Default{true}, "Check amounts and amount commitments match up."},
