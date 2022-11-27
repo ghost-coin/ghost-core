@@ -33,8 +33,8 @@ class SignMessagesWithAddressTest(BitcoinTestFramework):
         assert not self.nodes[0].verifymessage(address, other_signature, message)
 
         self.log.info('test parameter validity and error codes')
-        # signmessage has two required parameters
-        for num_params in [0, 1, 3, 4, 5]:
+        # signmessage has three required parameters
+        for num_params in [0, 1, 4, 5]:
             param_list = ["dummy"]*num_params
             assert_raises_rpc_error(-1, "signmessage", self.nodes[0].signmessage, *param_list)
         # invalid key or address provided
