@@ -63,7 +63,7 @@ Build requirements:
 
     sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3
 
-Requirements for dynamically linked binaries:
+Additional requirements for dynamically linked binaries:
 
 	sudo apt-get install libevent-dev libboost-system-dev libboost-filesystem-dev libboost-test-dev libboost-thread-dev
 
@@ -71,8 +71,7 @@ Requirements for dynamically linked binaries:
 Ubuntu and Debian do not have BerkeleyDB 4.8 in their repositories. Their `libdb-dev` and `libdb++-dev` are
 BerkeleyDB 5.1 or later. Installing these will break compatibility of wallet files with the officially distributed executables,
 that are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
-pass flag 
-`--with-incompatible-bdb` to the configure script.
+pass <br />  `--with-incompatible-bdb` to the configure script.
 
 SQLite is required for the wallet:
 
@@ -149,9 +148,11 @@ protobuf (optional) can be installed with:
 
 Build requirements:
 
-	sudo emerge --ask --verbose --onlydeps bitcoin-qt
+    sudo emerge --ask --verbose dev-vcs/git
+	sudo emerge --ask --verbose --onlydeps net-p2p/bitcoin-qt
 
-**Note**: This is the most certain way to fetch and assemble all the necessary tools for building Ghost Core. 
+**Note**: This is the most certain way to fetch and assemble all the necessary tools for building both 
+statically and dynamically linked Ghost Core. 
 However, this way dependencies are installed as orphaned packages. 
 
 (optional) To prevent tools from removing upon dependency cleaning, record the corresponding orphaned packages into the @world set:
@@ -233,7 +234,7 @@ Hardening enables the following features:
 
     To test that you have built PIE executable, install scanelf, part of paxutils, and use:
 
-    	scanelf -e ./ghost-qt
+        scanelf -e ./ghost-qt
 
     The output should contain:
 
