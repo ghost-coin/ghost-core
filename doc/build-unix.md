@@ -2,35 +2,10 @@ UNIX BUILD NOTES
 ====================
 How to build Ghost Core in Unix.
 
-Ghost Core can be built as a statically linked package from natively compiled dependencies.
+Ghost Core can be built as a statically linked package from natively compiled [depends](/depends/README.md).
 This ensures that proper dependency versions are packed into distribution-agnostic executable.
-
-To Build dependencies + statically linked executables for `x86_64-pc-linux-gnu`
----------------------
-
-```git clone https://github.com/ghost-coin/ghost-core.git
-cd ghost-core/depends
-make download-linux
-make HOST=x86_64-pc-linux-gnu
-cd ..
-./autogen.sh
-./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu 
-make```
-
 Dynamically linked package, on the other hand, must rely on libraries from your distributions' reposotory. 
 In this case presence of proper dependency versions is not guaranteed. 
-
-To Build dynamically linked executables
----------------------
-
-```git clone https://github.com/ghost-coin/ghost-core.git
-bash ./autogen.sh
-./configure
-make
-make install # optional
-```
-
-This will build ghost-qt as well, if the dependencies are met.
 
 Dependencies
 ---------------------
@@ -87,8 +62,6 @@ See [*Configure Script*](/doc/build-unix.md#configure-script)
 Build requirements:
 
     sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3
-
-Now, statically linked Ghost Core executables can be built from self-compiled [depends](/depends/README.md). 
 
 Requirements for dynamically linked binaries:
 
@@ -186,7 +159,7 @@ However, this way dependencies are installed as orphaned packages.
 
 Configure Script
 --------------------------
-Generate the configure script
+To generate the configure script:
 
 	./autogen.sh
 	
@@ -214,6 +187,7 @@ turned off by default.  See the configure options for upnp behavior desired:
 
 Berkeley DB
 -----------
+
 It is recommended to use Berkeley DB 4.8. If you have to build it yourself,
 you can use [the installation script included in contrib/](/contrib/install_db4.sh)
 like so:
@@ -291,25 +265,48 @@ In this case there is no dependency on Berkeley DB 4.8 and SQLite.
 
 Staking is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
 
-Notes
--------------
-The release is built with GCC and then "strip ghostd" to strip the debug
+To Build statically linked executables for `x86_64-pc-linux-gnu`
+---------------------
+
+To build statically linked Ghost Core, [depends](/depends/README.md) must be compiled in the first place.
+
+	git clone https://github.com/ghost-coin/ghost-core.git
+	cd ghost-core/depends
+	make download-linux
+	make HOST=x86_64-pc-linux-gnu
+	cd ..
+	./autogen.sh
+	./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
+	make
+
+To Build dynamically linked executables
+---------------------
+
+	git clone https://github.com/ghost-coin/ghost-core.git
+	./autogen.sh
+	./configure
+	make
+	make install # optional
+
+This will build ghost-qt as well, if otherwise is not specified.
+
+**Note**: The release is built with GCC and then "strip ghostd" to strip the debug
 symbols, which reduces the executable size by about 90%.
 
-Setup and Build Example: Arch Linux
+Setup and Build Example: Ubuntu 20.04 x86_64
 -----------------------------------
-This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
 
-    pacman -S git base-devel boost libevent python
-    git clone https://github.com/ghost-coin/ghost-core.git
-    cd ghost-core/
-    ./autogen.sh
-    ./configure --disable-wallet --without-gui --without-miniupnpc
-    make check
+The steps necessary to build fully featured statically linked Ghost Core executables:
 
-**Note**:
-Enabling wallet support requires either compiling against a Berkeley DB newer than 4.8 (package `db`) using `--with-incompatible-bdb`,
-or building and depending on a local version of Berkeley DB 4.8.
+	sudo apt update && sudo apt full-upgrade -y
+	sudo apt install -y git make automake cmake curl g++-multilib libtool binutils-gold bsdmainutils pkg-config python3 patch build-essential libtool autotools-dev
+	git clone https://github.com/ghost-coin/ghost-core.git
+	cd ghost-core/depends
+	make -j$(nproc) HOST=x86_64-pc-linux-gnu
+	cd ..
+	./autogen.sh
+	./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
+	make -j$(nproc)
 
 ARM Cross-compilation
 -------------------
@@ -324,12 +321,12 @@ Then, install the toolchain and curl:
 
 To build executables for ARM:
 
-    ```cd depends
+    cd depends
     make HOST=arm-linux-gnueabihf NO_QT=1
     cd ..
     ./autogen.sh
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
-    make```
+    make
 
 
 For further documentation on the depends system see [README.md](../depends/README.md) in the depends directory.
