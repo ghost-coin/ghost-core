@@ -1,30 +1,35 @@
 UNIX BUILD NOTES
 ====================
-Some notes on how to build Particl Core in Unix.
+How to build Ghost Core in Unix.
 
-(For BSD specific instructions, see `build-*bsd.md` in this directory.)
+Ghost Core can be built as a statically linked package from natively compiled dependencies.
+This ensures that proper dependency versions are packed into distribution-agnostic executable.
 
-Note
+To Build dependencies + statically linked executables for `x86_64-pc-linux-gnu`
 ---------------------
-Always use absolute paths to configure and compile Particl Core and the dependencies.
-For example, when specifying the path of the dependency:
-
-	../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
-
-Here BDB_PREFIX must be an absolute path - it is defined using $(pwd) which ensures
-the usage of the absolute path.
-
-To Build
----------------------
-
-```bash
+```git clone https://github.com/ghost-coin/ghost-core.git
+cd ghost-core/depends
+make download-linux
+make HOST=x86_64-pc-linux-gnu
+cd ..
 ./autogen.sh
+./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu 
+make```
+
+Dynamically linked package, on the other hand, must rely on libraries from your distributions' reposotory. 
+In this case presence of proper dependency versions is not guaranteed. 
+
+To Build dynamically linked executables
+---------------------
+
+```git clone https://github.com/ghost-coin/ghost-core.git
+bash ./autogen.sh
 ./configure
 make
 make install # optional
 ```
 
-This will build particl-qt as well, if the dependencies are met.
+This will build ghost-qt as well, if the dependencies are met.
 
 Dependencies
 ---------------------
@@ -56,9 +61,8 @@ Memory Requirements
 --------------------
 
 C++ compilers are memory-hungry. It is recommended to have at least 1.5 GB of
-memory available when compiling Particl Core. On systems with less, gcc can be
+memory available when compiling Ghost Core. On systems with less, gcc can be
 tuned to conserve memory with additional CXXFLAGS:
-
 
     ./configure CXXFLAGS="--param ggc-min-expand=1 --param ggc-min-heapsize=32768"
 
@@ -71,6 +75,8 @@ Finally, clang (often less resource hungry) can be used instead of gcc, which is
 
     ./configure CXX=clang++ CC=clang
 
+See [*Configure Script*](/doc/build-unix.md#configure-script)
+
 ## Linux Distribution Specific Instructions
 
 ### Ubuntu & Debian
@@ -81,25 +87,23 @@ Build requirements:
 
     sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3
 
-Now, you can either build from self-compiled [depends](/depends/README.md) or install the required dependencies:
+Now, statically linked Ghost Core executables can be built from self-compiled [depends](/depends/README.md). 
 
-    sudo apt-get install libevent-dev libboost-system-dev libboost-filesystem-dev libboost-test-dev libboost-thread-dev
+Requirements for dynamically linked binaries:
 
-BerkeleyDB is required for the wallet.
+	sudo apt-get install libevent-dev libboost-system-dev libboost-filesystem-dev libboost-test-dev libboost-thread-dev
 
-Ubuntu and Debian have their own `libdb-dev` and `libdb++-dev` packages, but these will install
-BerkeleyDB 5.1 or later. This will break binary wallet compatibility with the distributed executables, which
-are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
-pass `--with-incompatible-bdb` to configure.
-
-Otherwise, you can build from self-compiled `depends` (see above).
+**Note**: When building dynamically linked binaries, BerkeleyDB 4.8 is required for the wallet.
+Ubuntu and Debian do not have BerkeleyDB 4.8 in their repositories. Their `libdb-dev` and `libdb++-dev` are
+BerkeleyDB 5.1 or later. Installing these will break compatibility of wallet files with the officially distributed executables,
+that are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
+pass `--with-incompatible-bdb` to the configure script.
 
 SQLite is required for the wallet:
 
     sudo apt install libsqlite3-dev
 
-To build Particl Core without wallet, see [*Disable-wallet mode*](/doc/build-unix.md#disable-wallet-mode)
-
+To build Ghost Core without wallet, see [*Disable-wallet mode*](/doc/build-unix.md#disable-wallet-mode)
 
 Optional (see `--with-miniupnpc` and `--enable-upnp-default`):
 
@@ -111,7 +115,7 @@ ZMQ dependencies (provides ZMQ API):
 
 GUI dependencies:
 
-If you want to build particl-qt, make sure that the required packages for Qt development
+If you want to build ghost-qt, make sure that the required packages for Qt development
 are installed. Qt 5 is necessary to build the GUI.
 To build without GUI pass `--without-gui`.
 
@@ -129,9 +133,8 @@ To build with USB Device support you need the following:
 
 sudo apt-get install libprotobuf-dev protobuf-compiler libhidapi-dev
 
-Once these are installed, they will be found by configure and a particl-qt executable will be
+Once these are installed, they will be found by configure and a ghost-qt executable will be
 built by default.
-
 
 ### Fedora
 
@@ -165,11 +168,37 @@ protobuf (optional) can be installed with:
 
     sudo dnf install protobuf-devel
 
-Notes
------
-The release is built with GCC and then "strip particld" to strip the debug
-symbols, which reduces the executable size by about 90%.
+### Gentoo Linux
 
+### Dependency Build Instructions
+
+Build requirements:
+
+	sudo emerge --ask --verbose --onlydeps bitcoin-qt
+
+**Note**: This is the most certain way to pull and assemble all the necessary tools for building Ghost Core. 
+However, this way dependencies are installed as orphaned packages. 
+
+(optional) To prevent tools from removing upon dependency cleaning, record the corresponding orphaned packages into the @world set:
+
+	sudo emerge --noreplace <package-name>
+
+Configure Script
+--------------------------
+Generate the configure script
+
+	./autogen.sh
+	
+A list of all configure flags can be displayed with:
+
+    ./configure --help
+
+**Note**: Always use absolute paths when passing parameters to configure script. 
+For example, when specifying the path to self-compiled dependencies:
+
+	./configure --prefix=$PWD/depends/x86_64-pc-linux-gnu
+
+Here `--prefix` must be an absolute path - it is defined by $PWD which ensures the usage of the absolute path.
 
 miniupnpc
 ---------
@@ -181,7 +210,6 @@ turned off by default.  See the configure options for upnp behavior desired:
 	--without-miniupnpc      No UPnP support miniupnp not required
 	--disable-upnp-default   (the default) UPnP support turned off by default at runtime
 	--enable-upnp-default    UPnP support turned on by default at runtime
-
 
 Berkeley DB
 -----------
@@ -205,10 +233,9 @@ If you need to build Boost yourself:
 	./bootstrap.sh
 	./bjam install
 
-
 Security
 --------
-To help make your Particl Core installation more secure by making certain attacks impossible to
+To help make your Ghost Core installation more secure by making certain attacks impossible to
 exploit even if a vulnerability is found, binaries are hardened by default.
 This can be disabled with:
 
@@ -226,11 +253,11 @@ Hardening enables the following features:
     randomly located as well.
 
     On an AMD64 processor where a library was not compiled with -fPIC, this will cause an error
-    such as: "relocation R_X86_64_32 against `......' can not be used when making a shared object;"
+    such as: "relocation R_X86_64_32 against `......` can not be used when making a shared object;"
 
     To test that you have built PIE executable, install scanelf, part of paxutils, and use:
 
-    	scanelf -e ./particl
+    	scanelf -e ./ghost-qt
 
     The output should contain:
 
@@ -238,13 +265,13 @@ Hardening enables the following features:
     ET_DYN
 
 * _Non-executable Stack_: If the stack is executable then trivial stack-based buffer overflow exploits are possible if
-    vulnerable buffers are found. By default, Particl Core should be built with a non-executable stack,
+    vulnerable buffers are found. By default, Ghost Core should be built with a non-executable stack,
     but if one of the libraries it uses asks for an executable stack or someone makes a mistake
     and uses a compiler extension which requires an executable stack, it will silently build an
     executable without the non-executable stack protection.
 
     To verify that the stack is non-executable after compiling use:
-    `scanelf -e ./particl`
+    `scanelf -e ./ghost-qt`
 
     The output should contain:
 	STK/REL/PTL
@@ -254,37 +281,34 @@ Hardening enables the following features:
 
 Disable-wallet mode
 --------------------
-When the intention is to run only a P2P node without a wallet, Particl Core may be compiled in
+When the intention is to run only a P2P node without a wallet, Ghost Core may be compiled in
 disable-wallet mode with:
 
     ./configure --disable-wallet
 
 In this case there is no dependency on Berkeley DB 4.8 and SQLite.
 
-Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
+Staking is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
 
-Additional Configure Flags
---------------------------
-A list of additional configure flags can be displayed with:
-
-    ./configure --help
-
+Notes
+-------------
+The release is built with GCC and then "strip ghostd" to strip the debug
+symbols, which reduces the executable size by about 90%.
 
 Setup and Build Example: Arch Linux
 -----------------------------------
 This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
 
     pacman -S git base-devel boost libevent python
-    git clone https://github.com/particl/particl-core.git
-    cd particl-core/
+    git clone https://github.com/ghost-coin/ghost-core.git
+    cd ghost-core/
     ./autogen.sh
     ./configure --disable-wallet --without-gui --without-miniupnpc
     make check
 
-Note:
+**Note**:
 Enabling wallet support requires either compiling against a Berkeley DB newer than 4.8 (package `db`) using `--with-incompatible-bdb`,
 or building and depending on a local version of Berkeley DB 4.8.
-
 
 ARM Cross-compilation
 -------------------
@@ -299,12 +323,12 @@ Then, install the toolchain and curl:
 
 To build executables for ARM:
 
-    cd depends
+    ```cd depends
     make HOST=arm-linux-gnueabihf NO_QT=1
     cd ..
     ./autogen.sh
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
-    make
+    make```
 
 
 For further documentation on the depends system see [README.md](../depends/README.md) in the depends directory.
