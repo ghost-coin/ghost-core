@@ -144,13 +144,13 @@ protobuf (optional) can be installed with:
 
 ### Gentoo Linux
 
-### Dependency Build Instructions
+#### Dependency Build Instructions
 
 Build requirements:
 
 	sudo emerge --ask --verbose --onlydeps bitcoin-qt
 
-**Note**: This is the most certain way to pull and assemble all the necessary tools for building Ghost Core. 
+**Note**: This is the most certain way to fetch and assemble all the necessary tools for building Ghost Core. 
 However, this way dependencies are installed as orphaned packages. 
 
 (optional) To prevent tools from removing upon dependency cleaning, record the corresponding orphaned packages into the @world set:
@@ -310,7 +310,7 @@ The steps necessary to build fully featured statically linked Ghost Core executa
 
 ARM Cross-compilation
 -------------------
-These steps can be performed on, for example, an Ubuntu VM. The depends system
+These steps can be performed on a Ubuntu VM from a previous example. The depends system
 will also work on other Linux distributions, however the commands for
 installing the toolchain will be different.
 
