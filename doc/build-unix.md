@@ -153,7 +153,7 @@ Build requirements:
 
 **Note**: This is the most certain way to fetch and assemble all the necessary tools for building both 
 statically and dynamically linked Ghost Core. 
-However, this way dependencies are installed as orphaned packages. 
+However, with `--onlydeps` the dependencies are installed as orphaned packages. 
 
 (optional) To prevent tools from removing upon dependency cleaning, record the corresponding orphaned packages into the @world set:
 
