@@ -71,7 +71,8 @@ Requirements for dynamically linked binaries:
 Ubuntu and Debian do not have BerkeleyDB 4.8 in their repositories. Their `libdb-dev` and `libdb++-dev` are
 BerkeleyDB 5.1 or later. Installing these will break compatibility of wallet files with the officially distributed executables,
 that are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
-pass `--with-incompatible-bdb` to the configure script.
+pass flag 
+`--with-incompatible-bdb` to the configure script.
 
 SQLite is required for the wallet:
 
@@ -105,7 +106,7 @@ USB Device dependencies:
 
 To build with USB Device support you need the following:
 
-sudo apt-get install libprotobuf-dev protobuf-compiler libhidapi-dev
+	sudo apt-get install libprotobuf-dev protobuf-compiler libhidapi-dev
 
 Once these are installed, they will be found by configure and a ghost-qt executable will be
 built by default.
