@@ -7,6 +7,7 @@ This ensures that proper dependency versions are packed into distribution-agnost
 
 To Build dependencies + statically linked executables for `x86_64-pc-linux-gnu`
 ---------------------
+
 ```git clone https://github.com/ghost-coin/ghost-core.git
 cd ghost-core/depends
 make download-linux
