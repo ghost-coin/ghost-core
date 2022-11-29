@@ -163,6 +163,9 @@ class ParticlTestFramework(BitcoinTestFramework):
         self.connect_nodes(a, b)
         self.connect_nodes(b, a)
 
+    def add_options(self, parser):
+        self.add_wallet_options(parser)
+
     def get_genesis_coins_a_mnemonic(self):
         return 'abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb'
 
