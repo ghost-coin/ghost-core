@@ -61,7 +61,7 @@ See [*Configure Script*](/doc/build-unix.md#configure-script)
 
 Build requirements:
 
-    sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3
+    sudo apt-get install -y git make automake cmake curl g++-multilib libtool binutils-gold bsdmainutils pkg-config python3 patch build-essential libtool autotools-dev
 
 Additional requirements for dynamically linked binaries:
 
