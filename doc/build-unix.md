@@ -285,6 +285,7 @@ To Build dynamically linked executables
 ---------------------
 
 	git clone https://github.com/ghost-coin/ghost-core.git
+    cd ghost-core
 	./autogen.sh
 	./configure
 	make
@@ -323,7 +324,7 @@ Then, install the toolchain and curl:
 
 To build executables for ARM:
 
-    cd depends
+    cd ghost-core/depends
     make HOST=arm-linux-gnueabihf NO_QT=1
     cd ..
     ./autogen.sh
