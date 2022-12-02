@@ -97,6 +97,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         self.chain: str = 'regtest'
         self.setup_clean_chain: bool = False
         self.nodes: List[TestNode] = []
+        self.extra_args = None
         self.network_thread = None
         self.rpc_timeout = 60  # Wait for up to 60 seconds for the RPC server to respond
         self.supports_cli = True
@@ -408,10 +409,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
     def setup_nodes(self):
         """Override this method to customize test node setup"""
-        extra_args = [[]] * self.num_nodes
-        if hasattr(self, "extra_args"):
-            extra_args = self.extra_args
-        self.add_nodes(self.num_nodes, extra_args)
+        self.add_nodes(self.num_nodes, self.extra_args)
         self.start_nodes()
         if self._requires_wallet:
             self.import_deterministic_coinbase_privkeys()
@@ -448,11 +446,13 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
     # Public helper methods. These can be accessed by the subclass test scripts.
 
     def add_wallet_options(self, parser, *, descriptors=True, legacy=True):
-        group = parser.add_mutually_exclusive_group()
         kwargs = {}
         if descriptors + legacy == 1:
             # If only one type can be chosen, set it as default
             kwargs["default"] = descriptors
+        group = parser.add_mutually_exclusive_group(
+            # If only one type is allowed, require it to be set in test_runner.py
+            required=os.getenv("REQUIRE_WALLET_TYPE_SET") == "1" and "default" in kwargs)
         if descriptors:
             group.add_argument("--descriptors", action='store_const', const=True, **kwargs,
                                help="Run test using a descriptor wallet", dest='descriptors')
