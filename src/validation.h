@@ -1137,9 +1137,11 @@ bool DeploymentEnabled(const ChainstateManager& chainman, DEP dep)
  */
 const AssumeutxoData* ExpectedAssumeutxo(const int height, const CChainParams& params);
 
-bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
-bool FlushView(CCoinsViewCache *view, BlockValidationState& state, Chainstate &chainstate, bool fDisconnecting);
+/** Identifies blocks that overwrote an existing coinbase output in the UTXO set (see BIP30) */
+bool IsBIP30Repeat(const CBlockIndex& block_index);
 
+/** Identifies blocks which coinbase output was subsequently overwritten in the UTXO set (see BIP30) */
+bool IsBIP30Unspendable(const CBlockIndex& block_index);
 
 
 namespace particl {
@@ -1189,5 +1191,9 @@ int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, b
 uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 } // namespace particl
+
+/** Exposed for Particl tests */
+bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
+bool FlushView(CCoinsViewCache *view, BlockValidationState& state, Chainstate &chainstate, bool fDisconnecting);
 
 #endif // BITCOIN_VALIDATION_H

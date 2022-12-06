@@ -447,7 +447,9 @@ static RPCHelpMan getblockfrompeer()
         "getblockfrompeer",
         "Attempt to fetch block from a given peer.\n\n"
         "We must have the header for this block, e.g. using submitheader.\n"
-        "Subsequent calls for the same block and a new peer will cause the response from the previous peer to be ignored.\n\n"
+        "Subsequent calls for the same block and a new peer will cause the response from the previous peer to be ignored.\n"
+        "Peers generally ignore requests for a stale block that they never fully verified, or one that is more than a month old.\n"
+        "When a peer does not respond with a block, we will disconnect.\n\n"
         "Returns an empty JSON object if the request was successfully scheduled.",
         {
             {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash to try to fetch"},
@@ -668,6 +670,10 @@ static CBlockUndo GetUndoChecked(BlockManager& blockman, const CBlockIndex* pblo
 {
     AssertLockHeld(::cs_main);
     CBlockUndo blockUndo;
+
+    // The Genesis block does not have undo data
+    if (pblockindex->nHeight == 0) return blockUndo;
+
     if (blockman.IsBlockPruned(pblockindex)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Undo data not available (pruned data)");
     }
@@ -1870,8 +1876,10 @@ static RPCHelpMan getblockstats()
                 {RPCResult::Type::NUM, "total_weight", /*optional=*/true, "Total weight of all non-coinbase transactions"},
                 {RPCResult::Type::NUM, "totalfee", /*optional=*/true, "The fee total"},
                 {RPCResult::Type::NUM, "txs", /*optional=*/true, "The number of transactions (including coinbase)"},
-                {RPCResult::Type::NUM, "utxo_increase", /*optional=*/true, "The increase/decrease in the number of unspent outputs"},
+                {RPCResult::Type::NUM, "utxo_increase", /*optional=*/true, "The increase/decrease in the number of unspent outputs (not discounting op_return and similar)"},
                 {RPCResult::Type::NUM, "utxo_size_inc", /*optional=*/true, "The increase/decrease in size for the utxo index (not discounting op_return and similar)"},
+                {RPCResult::Type::NUM, "utxo_increase_actual", /*optional=*/true, "The increase/decrease in the number of unspent outputs, not counting unspendables"},
+                {RPCResult::Type::NUM, "utxo_size_inc_actual", /*optional=*/true, "The increase/decrease in size for the utxo index, not counting unspendables"},
             }},
                 RPCExamples{
                     HelpExampleCli("getblockstats", R"('"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09"' '["minfeerate","avgfeerate"]')") +
@@ -1902,7 +1910,7 @@ static RPCHelpMan getblockstats()
     const bool do_medianfee = do_all || stats.count("medianfee") != 0;
     const bool do_feerate_percentiles = do_all || stats.count("feerate_percentiles") != 0;
     const bool loop_inputs = do_all || do_medianfee || do_feerate_percentiles ||
-        SetHasKeys(stats, "utxo_size_inc", "totalfee", "avgfee", "avgfeerate", "minfee", "maxfee", "minfeerate", "maxfeerate");
+        SetHasKeys(stats, "utxo_increase", "utxo_increase_actual", "utxo_size_inc", "utxo_size_inc_actual", "totalfee", "avgfee", "avgfeerate", "minfee", "maxfee", "minfeerate", "maxfeerate");
     const bool loop_outputs = do_all || loop_inputs || stats.count("total_out");
     const bool do_calculate_size = do_mediantxsize ||
         SetHasKeys(stats, "total_size", "avgtxsize", "mintxsize", "maxtxsize", "swtotal_size");
@@ -1924,7 +1932,9 @@ static RPCHelpMan getblockstats()
     int64_t swtxs = 0;
     int64_t total_size = 0;
     int64_t total_weight = 0;
+    int64_t utxos = 0;
     int64_t utxo_size_inc = 0;
+    int64_t utxo_size_inc_actual = 0;
     std::vector<CAmount> fee_array;
     std::vector<std::pair<CAmount, int64_t>> feerate_array;
     std::vector<int64_t> txsize_array;
@@ -1937,13 +1947,32 @@ static RPCHelpMan getblockstats()
         if (loop_outputs) {
             for (const CTxOut& out : tx->vout) {
                 tx_total_out += out.nValue;
-                utxo_size_inc += GetSerializeSize(out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+
+                size_t out_size = GetSerializeSize(out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+                utxo_size_inc += out_size;
+
+                // The Genesis block and the repeated BIP30 block coinbases don't change the UTXO
+                // set counts, so they have to be excluded from the statistics
+                if (pindex.nHeight == 0 || (IsBIP30Repeat(pindex) && tx->IsCoinBase())) continue;
+                // Skip unspendable outputs since they are not included in the UTXO set
+                if (out.scriptPubKey.IsUnspendable()) continue;
+
+                ++utxos;
+                utxo_size_inc_actual += out_size;
             }
-            for (const auto& out : tx->vpout) {
+            for (const auto &out : tx->vpout) {
                 if (out->IsStandardOutput()) {
                     tx_total_out += out->GetValue();
                 }
-                utxo_size_inc += (int64_t) (GetSerializeSize(*out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD + 1);
+                size_t out_size = (int64_t) (GetSerializeSize(*out, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD + 1);
+                utxo_size_inc += out_size;
+
+                // Skip unspendable outputs since they are not included in the UTXO set
+                const CScript *pScriptPubKey = out->GetPScriptPubKey();
+                if (pScriptPubKey && pScriptPubKey->IsUnspendable()) continue;
+
+                ++utxos;
+                utxo_size_inc_actual += out_size;
             }
         }
 
@@ -1985,7 +2014,9 @@ static RPCHelpMan getblockstats()
                 const CTxOut& prevoutput = coin.out;
 
                 tx_total_in += prevoutput.nValue;
-                utxo_size_inc -= (int64_t) (GetSerializeSize(prevoutput, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD);
+                size_t prevout_size = GetSerializeSize(prevoutput, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+                utxo_size_inc -= prevout_size;
+                utxo_size_inc_actual -= prevout_size;
             }
 
             CAmount txfee;
@@ -2051,6 +2082,8 @@ static RPCHelpMan getblockstats()
     ret_all.pushKV("txs", (int64_t)block.vtx.size());
     ret_all.pushKV("utxo_increase", outputs - inputs);
     ret_all.pushKV("utxo_size_inc", utxo_size_inc);
+    ret_all.pushKV("utxo_increase_actual", utxos - inputs);
+    ret_all.pushKV("utxo_size_inc_actual", utxo_size_inc_actual);
 
     if (do_all) {
         return ret_all;

@@ -2393,7 +2393,7 @@ void CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
 
 DBErrors CWallet::LoadWallet()
 {
-    if (m_chain) {
+    if (m_chain && chain().getChainman() != nullptr) {
         // Set tip_height for LoadToWallet->unloadspent
         const std::optional<int> tip_height = chain().getHeight();
         if (tip_height) {
@@ -3011,6 +3011,10 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
             error = strprintf(_("Unrecognized descriptor found. Loading wallet %s\n\n"
                                 "The wallet might had been created on a newer version.\n"
                                 "Please try running the latest software version.\n"), walletFile);
+            return nullptr;
+        } else if (nLoadWalletRet == DBErrors::UNEXPECTED_LEGACY_ENTRY) {
+            error = strprintf(_("Unexpected legacy entry in descriptor wallet found. Loading wallet %s\n\n"
+                                "The wallet might have been tampered with or created with malicious intent.\n"), walletFile);
             return nullptr;
         } else {
             error = strprintf(_("Error loading %s"), walletFile);

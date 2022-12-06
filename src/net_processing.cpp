@@ -308,7 +308,7 @@ struct Peer {
         std::atomic<std::chrono::seconds> m_last_mempool_req{0s};
         /** The next time after which we will send an `inv` message containing
          *  transaction announcements to this peer. */
-        std::chrono::microseconds m_next_inv_send_time GUARDED_BY(NetEventsInterface::g_msgproc_mutex){0};
+        std::chrono::microseconds m_next_inv_send_time GUARDED_BY(m_tx_inventory_mutex){0};
 
         /** Minimum fee rate with which to filter transaction announcements to this node. See BIP133. */
         std::atomic<CAmount> m_fee_filter_received{0};
@@ -2093,6 +2093,8 @@ std::optional<std::string> PeerManagerImpl::FetchBlock(NodeId peer_id, const CBl
     LOCK(cs_main);
 
     // Mark block as in-flight unless it already is (for this peer).
+    // If the peer does not send us a block, vBlocksInFlight remains non-empty,
+    // causing us to timeout and disconnect.
     // If a block was already in-flight for a different peer, its BLOCKTXN
     // response will be dropped.
     if (!BlockRequested(peer_id, block_index)) return "Already requested from this peer";
@@ -2378,8 +2380,15 @@ void PeerManagerImpl::RelayTransaction(const uint256& txid, const uint256& wtxid
         auto tx_relay = peer.GetTxRelay();
         if (!tx_relay) continue;
 
-        const uint256& hash{peer.m_wtxid_relay ? wtxid : txid};
         LOCK(tx_relay->m_tx_inventory_mutex);
+        // Only queue transactions for announcement once the version handshake
+        // is completed. The time of arrival for these transactions is
+        // otherwise at risk of leaking to a spy, if the spy is able to
+        // distinguish transactions received during the handshake from the rest
+        // in the announcement.
+        if (tx_relay->m_next_inv_send_time == 0s) continue;
+
+        const uint256& hash{peer.m_wtxid_relay ? wtxid : txid};
         if (!tx_relay->m_tx_inventory_known_filter.contains(hash)) {
             tx_relay->m_tx_inventory_to_send.insert(hash);
         }
@@ -2655,9 +2664,9 @@ void PeerManagerImpl::ProcessGetData(CNode& pfrom, Peer& peer, const std::atomic
             std::vector<uint256> parent_ids_to_add;
             {
                 LOCK(m_mempool.cs);
-                auto txiter = m_mempool.GetIter(tx->GetHash());
-                if (txiter) {
-                    const CTxMemPoolEntry::Parents& parents = (*txiter)->GetMemPoolParentsConst();
+                auto tx_iter = m_mempool.GetIter(tx->GetHash());
+                if (tx_iter) {
+                    const CTxMemPoolEntry::Parents& parents = (*tx_iter)->GetMemPoolParentsConst();
                     parent_ids_to_add.reserve(parents.size());
                     for (const CTxMemPoolEntry& parent : parents) {
                         if (parent.GetTime() > now - UNCONDITIONAL_RELAY_DELAY) {
@@ -3802,6 +3811,20 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                 // by WTXIDRELAY (since WTXIDRELAY can't be announced later).
                 m_txreconciliation->ForgetPeer(pfrom.GetId());
             }
+        }
+
+        if (auto tx_relay = peer->GetTxRelay()) {
+            // `TxRelay::m_tx_inventory_to_send` must be empty before the
+            // version handshake is completed as
+            // `TxRelay::m_next_inv_send_time` is first initialised in
+            // `SendMessages` after the verack is received. Any transactions
+            // received during the version handshake would otherwise
+            // immediately be advertised without random delay, potentially
+            // leaking the time of arrival to a spy.
+            Assume(WITH_LOCK(
+                tx_relay->m_tx_inventory_mutex,
+                return tx_relay->m_tx_inventory_to_send.empty() &&
+                       tx_relay->m_next_inv_send_time == 0s));
         }
 
         pfrom.fSuccessfullyConnected = true;
