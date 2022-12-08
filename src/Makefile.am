@@ -193,6 +193,7 @@ BITCOIN_CORE_H = \
   kernel/checks.h \
   kernel/coinstats.h \
   kernel/context.h \
+  kernel/mempool_entry.h \
   kernel/mempool_limits.h \
   kernel/mempool_options.h \
   kernel/mempool_persist.h \
@@ -295,7 +296,6 @@ BITCOIN_CORE_H = \
   torcontrol.h \
   txdb.h \
   txmempool.h \
-  txmempool_entry.h \
   txorphanage.h \
   txrequest.h \
   undo.h \
@@ -731,6 +731,7 @@ libparticl_common_a_SOURCES = \
   chainparams.cpp \
   coins.cpp \
   common/bloom.cpp \
+  common/interfaces.cpp \
   common/run_command.cpp \
   compressor.cpp \
   core_read.cpp \
@@ -775,16 +776,13 @@ endif
 #
 
 # util #
-libparticl_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
+libparticl_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libparticl_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libparticl_util_a_SOURCES = \
   support/lockedpool.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
   fs.cpp \
-  interfaces/echo.cpp \
-  interfaces/handler.cpp \
-  interfaces/init.cpp \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
@@ -829,7 +827,7 @@ libparticl_smsg_a_SOURCES = \
   lz4/lz4.c \
   xxhash/xxhash.h \
   xxhash/xxhash.c \
-  interfaces/handler.cpp \
+  common/interfaces.cpp \
   smsg/crypter.cpp \
   smsg/keystore.h \
   smsg/keystore.cpp \

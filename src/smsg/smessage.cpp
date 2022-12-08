@@ -970,7 +970,7 @@ bool CSMSG::Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::s
     thread_smsg_pow = std::thread(&util::TraceThread, "smsg-pow", std::function<void()>(std::bind(&ThreadSecureMsgPow, this)));
 
 #ifdef ENABLE_WALLET
-    m_wallet_load_handler = interfaces::MakeHandler(wallet::NotifyWalletAdded.connect(std::bind(&ListenWalletAdded, this, std::placeholders::_1)));
+    m_wallet_load_handler = interfaces::MakeSignalHandler(wallet::NotifyWalletAdded.connect(std::bind(&ListenWalletAdded, this, std::placeholders::_1)));
 #endif
 
     return true;
@@ -1123,7 +1123,7 @@ bool CSMSG::LoadWallet(std::shared_ptr<wallet::CWallet> pwallet_in)
 #ifdef ENABLE_WALLET
     std::vector<std::shared_ptr<wallet::CWallet>>::iterator i = std::find(m_vpwallets.begin(), m_vpwallets.end(), pwallet_in);
     if (i != m_vpwallets.end()) return true;
-    m_wallet_unload_handlers[pwallet_in.get()] = interfaces::MakeHandler(pwallet_in->NotifyUnload.connect(std::bind(&NotifyUnload, this, pwallet_in.get())));
+    m_wallet_unload_handlers[pwallet_in.get()] = interfaces::MakeSignalHandler(pwallet_in->NotifyUnload.connect(std::bind(&NotifyUnload, this, pwallet_in.get())));
     m_vpwallets.push_back(pwallet_in);
 #endif
     return true;
