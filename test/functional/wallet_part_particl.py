@@ -169,14 +169,14 @@ class WalletParticlTest(ParticlTestFramework):
         except JSONRPCException as e:
             assert ('Unknown parameter' in e.error['message'])
 
-
-        ro = nodes[0].getwalletinfo()
-        assert (ro['encryptionstatus'] == 'Unencrypted')
+        wi_before = nodes[0].getwalletinfo()
+        assert (wi_before['encryptionstatus'] == 'Unencrypted')
 
         nodes[0].encryptwallet('qwerty123')
 
-        ro = nodes[0].getwalletinfo()
-        assert (ro['encryptionstatus'] == 'Locked')
+        wi_after = nodes[0].getwalletinfo()
+        assert (wi_after['encryptionstatus'] == 'Locked')
+        assert (wi_before['hdseedid'] == wi_after['hdseedid'])
 
         try:
             ro = nodes[0].extkey('list')
