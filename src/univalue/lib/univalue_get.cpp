@@ -67,7 +67,7 @@ std::vector<UniValue>& UniValue::getValues_nc()
 bool UniValue::get_bool() const
 {
     checkType(VBOOL);
-    return getBool();
+    return isTrue();
 }
 
 const std::string& UniValue::get_str() const
