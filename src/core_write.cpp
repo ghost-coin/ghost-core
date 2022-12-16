@@ -302,6 +302,30 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
             txin.GetAnonInfo(nSigInputs, nSigRingSize);
             in.pushKV("num_inputs", (int)nSigInputs);
             in.pushKV("ring_size", (int)nSigRingSize);
+
+            if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT &&
+                tx.HasWitness() &&
+                !txin.scriptWitness.IsNull() &&
+                txin.scriptWitness.stack.size() > 0) {
+                const std::vector<uint8_t> &vMI = txin.scriptWitness.stack[0];
+
+                UniValue ring_member_rows(UniValue::VOBJ);
+                size_t ofs = 0, nb = 0;
+                for (size_t k = 0; k < nSigInputs; ++k) {
+                    std::string row_out;
+                    for (size_t i = 0; i < nSigRingSize; ++i) {
+                        int64_t anon_index;
+                        if (0 != part::GetVarInt(vMI, ofs, (uint64_t&)anon_index, nb)) {
+                            // throw JSONRPCError(RPC_MISC_ERROR, "Decode anon index failed.");
+                            break;
+                        }
+                        ofs += nb;
+                        row_out += row_out.size() == 0 ? strprintf("%lu", anon_index) : strprintf(", %lu", anon_index); // linter fails ? "%lu" : ", %lu"
+                    }
+                    ring_member_rows.pushKV(strprintf("%d", k), row_out);
+                }
+                in.pushKV("ring_member_rows", ring_member_rows);
+            }
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             in.pushKV("vout", (int64_t)txin.prevout.n);
@@ -309,6 +333,14 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
             o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
             o.pushKV("hex", HexStr(txin.scriptSig));
             in.pushKV("scriptSig", o);
+        }
+        if (!txin.scriptData.IsNull()) {
+            UniValue scriptdata(UniValue::VARR);
+            for (unsigned int j = 0; j < txin.scriptData.stack.size(); j++) {
+                std::vector<unsigned char> item = txin.scriptData.stack[j];
+                scriptdata.push_back(HexStr(item));
+            }
+            in.pushKV("scriptdata", scriptdata);
         }
         if (!tx.vin[i].scriptWitness.IsNull()) {
             UniValue txinwitness(UniValue::VARR);
@@ -341,11 +373,11 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
     entry.pushKV("vin", vin);
 
     UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < tx.vpout.size(); i++)
-    {
+    for (unsigned int i = 0; i < tx.vpout.size(); i++) {
         UniValue out(UniValue::VOBJ);
         out.pushKV("n", (int64_t)i);
         OutputToJSON(txid, i, tx.vpout[i].get(), out);
+        auto txo_type = tx.vpout[i].get()->GetType();
         vout.push_back(out);
     }
 

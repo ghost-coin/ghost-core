@@ -54,25 +54,16 @@ class SpentIndexTest(ParticlTestFramework):
         addrs.append(nodes[1].getnewaddress())
         addrs.append(nodes[1].getnewaddress())
 
-
-        # Check that
-        print('Testing spent index...')
-
         unspent = nodes[0].listunspent()
 
-
-        #{\"txid\":\"id\",\"vout\":n}
         inputs = [{'txid':unspent[0]['txid'],'vout':unspent[0]['vout']},]
         outputs = {addrs[0]:1}
         tx = nodes[0].createrawtransaction(inputs,outputs)
 
         # Add change output
         txfunded = nodes[0].fundrawtransaction(tx)
-
         txsigned = nodes[0].signrawtransactionwithwallet(txfunded['hex'])
-
         sent_txid = nodes[0].sendrawtransaction(txsigned['hex'], 0)
-
 
         self.stakeBlocks(1)
 
@@ -87,13 +78,13 @@ class SpentIndexTest(ParticlTestFramework):
         print("Testing getrawtransaction method...")
 
         # Check that verbose raw transaction includes spent info
-        txVerbose = self.nodes[3].getrawtransaction(unspent[0]["txid"], 1)
+        txVerbose = self.nodes[3].getrawtransaction(unspent[0]["txid"], 2)
         assert_equal(txVerbose["vout"][unspent[0]["vout"]]["spentTxId"], sent_txid)
         assert_equal(txVerbose["vout"][unspent[0]["vout"]]["spentIndex"], 0)
         assert_equal(txVerbose["vout"][unspent[0]["vout"]]["spentHeight"], 1)
 
         # Check that verbose raw transaction includes address values and input values
-        txVerbose2 = self.nodes[3].getrawtransaction(sent_txid, 1)
+        txVerbose2 = self.nodes[3].getrawtransaction(sent_txid, 2)
         assert_equal(txVerbose2["vin"][0]["address"], 'pcwP4hTtaMb7n4urszBTsgxWLdNLU4yNGz')
         assert (float(txVerbose2["vin"][0]["value"]) > 0)
         assert (txVerbose2["vin"][0]["valueSat"] > 0)
@@ -102,7 +93,7 @@ class SpentIndexTest(ParticlTestFramework):
         # Check the mempool index
         txid2 = nodes[0].sendtoaddress(addrs[1], 5)
         self.sync_all()
-        txVerbose3 = self.nodes[1].getrawtransaction(txid2, 1)
+        txVerbose3 = self.nodes[1].getrawtransaction(txid2, 2)
         assert (len(txVerbose3["vin"][0]["address"]) > 0)
         assert (float(txVerbose3["vin"][0]["value"]) > 0)
         assert (txVerbose3["vin"][0]["valueSat"] > 0)
@@ -116,7 +107,7 @@ class SpentIndexTest(ParticlTestFramework):
         assert (txid2 in ro['tx'])
 
 
-        txVerbose4 = self.nodes[3].getrawtransaction(txid2, 1)
+        txVerbose4 = self.nodes[3].getrawtransaction(txid2, 2)
         assert (len(txVerbose4["vin"][0]["address"]) > 0)
         assert (float(txVerbose4["vin"][0]["value"]) > 0)
         assert (txVerbose4["vin"][0]["valueSat"] > 0)

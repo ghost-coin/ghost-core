@@ -32,6 +32,7 @@
 #include <script/signingprovider.h>
 #include <script/standard.h>
 #include <uint256.h>
+#include <undo.h>
 #include <util/bip32.h>
 #include <util/check.h>
 #include <util/strencodings.h>
@@ -52,34 +53,49 @@ using node::FindCoins;
 using node::GetTransaction;
 using node::NodeContext;
 using node::PSBTAnalysis;
+using node::ReadBlockFromDisk;
+using node::UndoReadFromDisk;
 
-void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const uint256 hashBlock,
-                      const CTxMemPool *pmempool, UniValue& entry, int nHeight = 0, int nConfirmations = 0, int nBlockTime = 0)
+
+static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, UniValue& entry, bool include_hex, int serialize_flags, const CTxUndo* txundo, TxVerbosity verbosity, ChainstateManager *pchainman, CTxMemPool *pmempool)
 {
     uint256 txid = tx.GetHash();
     entry.pushKV("txid", txid.GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
+    // Transaction version is actually unsigned in consensus checks, just signed in memory,
+    // so cast to unsigned before giving it to the user.
+    entry.pushKV("version", static_cast<int64_t>(static_cast<uint32_t>(tx.nVersion)));
     entry.pushKV("size", (int)::GetSerializeSize(tx, PROTOCOL_VERSION));
-    entry.pushKV("vsize", (int)::GetVirtualTransactionSize(tx));
+    entry.pushKV("vsize", (GetTransactionWeight(tx) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR);
     entry.pushKV("weight", GetTransactionWeight(tx));
-    entry.pushKV("version", tx.nVersion);
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
 
-    UniValue vin(UniValue::VARR);
-    for (const auto &txin : tx.vin) {
+    UniValue vin{UniValue::VARR};
+
+    // If available, use Undo data to calculate the fee. Note that txundo == nullptr
+    // for coinbase transactions and for transactions where undo data is unavailable.
+    const bool have_undo = txundo != nullptr;
+    CAmount amt_total_in = 0;
+    CAmount amt_total_out = 0;
+
+    for (unsigned int i = 0; i < tx.vin.size(); i++) {
+        const CTxIn& txin = tx.vin[i];
         UniValue in(UniValue::VOBJ);
         if (tx.IsCoinBase()) {
             in.pushKV("coinbase", HexStr(txin.scriptSig));
-        } else
+        }
         if (txin.IsAnonInput()) {
             in.pushKV("type", "anon");
-            in.pushKV("valueSat", -1);
+            if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT) {
+                in.pushKV("valueSat", -1);
+            }
             uint32_t nSigInputs, nSigRingSize;
             txin.GetAnonInfo(nSigInputs, nSigRingSize);
             in.pushKV("num_inputs", (int)nSigInputs);
             in.pushKV("ring_size", (int)nSigRingSize);
 
-            if (tx.HasWitness() &&
+            if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT &&
+                tx.HasWitness() &&
                 !txin.scriptWitness.IsNull() &&
                 txin.scriptWitness.stack.size() > 0) {
                 const std::vector<uint8_t> &vMI = txin.scriptWitness.stack[0];
@@ -107,10 +123,11 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
             o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
             o.pushKV("hex", HexStr(txin.scriptSig));
             in.pushKV("scriptSig", o);
+
             // Add address and value info if spentindex enabled
             CSpentIndexValue spentInfo;
             CSpentIndexKey spentKey(txin.prevout.hash, txin.prevout.n);
-            if (GetSpentIndex(chainman, spentKey, spentInfo, pmempool)) {
+            if (pchainman && GetSpentIndex(*pchainman, spentKey, spentInfo, pmempool)) {
                 in.pushKV("type", spentInfo.satoshis == -1 ? "blind" : "standard");
                 in.pushKV("value", ValueFromAmount(spentInfo.satoshis));
                 in.pushKV("valueSat", spentInfo.satoshis);
@@ -121,7 +138,6 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
                 }
             }
         }
-
         if (!txin.scriptData.IsNull()) {
             UniValue scriptdata(UniValue::VARR);
             for (unsigned int j = 0; j < txin.scriptData.stack.size(); j++) {
@@ -130,23 +146,37 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
             }
             in.pushKV("scriptdata", scriptdata);
         }
+        if (!tx.vin[i].scriptWitness.IsNull()) {
+            UniValue txinwitness(UniValue::VARR);
+            for (const auto& item : tx.vin[i].scriptWitness.stack) {
+                txinwitness.push_back(HexStr(item));
+            }
+            in.pushKV("txinwitness", txinwitness);
+        }
+        if (have_undo) {
+            const Coin& prev_coin = txundo->vprevout[i];
+            const CTxOut& prev_txout = prev_coin.out;
 
-        if (tx.HasWitness()) {
-            if (!txin.scriptWitness.IsNull()) {
-                UniValue txinwitness(UniValue::VARR);
-                for (unsigned int j = 0; j < txin.scriptWitness.stack.size(); j++) {
-                    std::vector<unsigned char> item = txin.scriptWitness.stack[j];
-                    txinwitness.push_back(HexStr(item));
-                }
-                in.pushKV("txinwitness", txinwitness);
+            amt_total_in += prev_txout.nValue;
+
+            if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT) {
+                UniValue o_script_pub_key(UniValue::VOBJ);
+                ScriptToUniv(prev_txout.scriptPubKey, /*out=*/o_script_pub_key, /*include_hex=*/true, /*include_address=*/true);
+
+                UniValue p(UniValue::VOBJ);
+                p.pushKV("generated", bool(prev_coin.fCoinBase));
+                p.pushKV("height", uint64_t(prev_coin.nHeight));
+                p.pushKV("value", ValueFromAmount(prev_txout.nValue));
+                p.pushKV("scriptPubKey", o_script_pub_key);
+                in.pushKV("prevout", p);
             }
         }
         in.pushKV("sequence", (int64_t)txin.nSequence);
         vin.push_back(in);
     }
     entry.pushKV("vin", vin);
-    UniValue vout(UniValue::VARR);
 
+    UniValue vout(UniValue::VARR);
     for (unsigned int i = 0; i < tx.vpout.size(); i++) {
         UniValue out(UniValue::VOBJ);
         out.pushKV("n", (int64_t)i);
@@ -155,7 +185,7 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
         if (txo_type == OUTPUT_STANDARD || txo_type == OUTPUT_CT) {
             CSpentIndexValue spentInfo;
             CSpentIndexKey spentKey(txid, i);
-            if (GetSpentIndex(chainman, spentKey, spentInfo, pmempool)) {
+            if (pchainman && GetSpentIndex(*pchainman, spentKey, spentInfo, pmempool)) {
                 out.pushKV("spentTxId", spentInfo.txid.GetHex());
                 out.pushKV("spentIndex", (int)spentInfo.inputIndex);
                 out.pushKV("spentHeight", spentInfo.blockHeight);
@@ -164,31 +194,55 @@ void TxToJSONExpanded(ChainstateManager& chainman, const CTransaction& tx, const
         vout.push_back(out);
     }
 
+    if (!tx.IsParticlVersion())
+    for (unsigned int i = 0; i < tx.vout.size(); i++) {
+        const CTxOut& txout = tx.vout[i];
+
+        UniValue out(UniValue::VOBJ);
+
+        out.pushKV("value", ValueFromAmount(txout.nValue));
+        out.pushKV("n", (int64_t)i);
+
+        UniValue o(UniValue::VOBJ);
+        ScriptToUniv(txout.scriptPubKey, /*out=*/o, /*include_hex=*/true, /*include_address=*/true);
+        out.pushKV("scriptPubKey", o);
+        vout.push_back(out);
+
+        if (have_undo) {
+            amt_total_out += txout.nValue;
+        }
+    }
+
     entry.pushKV("vout", vout);
 
-    if (!hashBlock.IsNull()) {
-        entry.pushKV("blockhash", hashBlock.GetHex());
+    if (have_undo) {
+        const CAmount fee = amt_total_in - amt_total_out;
+        CHECK_NONFATAL(MoneyRange(fee));
+        entry.pushKV("fee", ValueFromAmount(fee));
+    }
 
-        if (nConfirmations > 0) {
-            entry.pushKV("height", nHeight);
-            entry.pushKV("confirmations", nConfirmations);
-            PushTime(entry, "time", nBlockTime);
-            PushTime(entry, "blocktime", nBlockTime);
-        } else {
-            entry.pushKV("height", -1);
-            entry.pushKV("confirmations", 0);
-        }
+    if (!block_hash.IsNull()) {
+        entry.pushKV("blockhash", block_hash.GetHex());
+    }
+
+    if (include_hex) {
+        entry.pushKV("hex", EncodeHexTx(tx, serialize_flags)); // The hex-encoded transaction. Used the name "hex" to be consistent with the verbose output of "getrawtransaction".
     }
 }
 
-static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, Chainstate& active_chainstate)
+static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, Chainstate& active_chainstate, const CTxUndo* txundo = nullptr, TxVerbosity verbosity = TxVerbosity::SHOW_TXID, ChainstateManager *pchainman = nullptr, CTxMemPool *pmempool = nullptr)
 {
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
     // Blockchain contextual information (confirmations and blocktime) is not
     // available to code in bitcoin-common, so we query them here and push the
     // data into the returned UniValue.
-    TxToUniv(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags());
+
+    if (fParticlMode) {
+        TxToUnivExpanded(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags(), txundo, verbosity, pchainman, pmempool);
+    } else {
+        TxToUniv(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags(), txundo, verbosity);
+    }
 
     if (!hashBlock.IsNull()) {
         LOCK(cs_main);
@@ -199,8 +253,8 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
             if (active_chainstate.m_chain.Contains(pindex)) {
                 entry.pushKV("height", pindex->nHeight);
                 entry.pushKV("confirmations", 1 + active_chainstate.m_chain.Height() - pindex->nHeight);
-                entry.pushKV("time", pindex->GetBlockTime());
-                entry.pushKV("blocktime", pindex->GetBlockTime());
+                PushTime(entry, "time", pindex->GetBlockTime());
+                PushTime(entry, "blocktime", pindex->GetBlockTime());
             } else
             {
                 entry.pushKV("height", -1);
@@ -331,26 +385,27 @@ static RPCHelpMan getrawtransaction()
 {
     return RPCHelpMan{
                 "getrawtransaction",
-                "Return the raw transaction data.\n"
 
-                "\nBy default, this call only returns a transaction if it is in the mempool. If -txindex is enabled\n"
+                "By default, this call only returns a transaction if it is in the mempool. If -txindex is enabled\n"
                 "and no blockhash argument is passed, it will return the transaction if it is in the mempool or any block.\n"
                 "If a blockhash argument is passed, it will return the transaction if\n"
-                "the specified block is available and the transaction is in that block.\n"
-                "\nHint: Use gettransaction for wallet transactions.\n"
+                "the specified block is available and the transaction is in that block.\n\n"
+                "Hint: Use gettransaction for wallet transactions.\n\n"
 
-                "\nIf verbose is 'true', returns an Object with information about 'txid'.\n"
-                "If verbose is 'false' or omitted, returns a string that is serialized, hex-encoded data for 'txid'.",
+                "If verbosity is 0 or omitted, returns the serialized transaction as a hex-encoded string.\n"
+                "If verbosity is 1, returns a JSON Object with information about transaction.\n"
+                "If verbosity is 2, returns a JSON Object with information about transaction, including fee and prevout information.",
                 {
                     {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction id"},
-                    {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If false, return a string, otherwise return a json object"},
+                    {"verbosity|verbose", RPCArg::Type::NUM, RPCArg::Default{0}, "0 for hex-encoded data, 1 for a JSON object, and 2 for JSON object with fee and prevout"},
                     {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED_NAMED_ARG, "The block in which to look for the transaction"},
                 },
                 {
-                    RPCResult{"if verbose is not set or set to false",
-                         RPCResult::Type::STR, "data", "The serialized, hex-encoded data for 'txid'"
+                    RPCResult{"if verbosity is not set or set to 0",
+                         RPCResult::Type::STR, "data", "The serialized transaction as a hex-encoded string for 'txid'"
                      },
-                     RPCResult{"if verbose is set to true",
+                     RPCResult{"if verbosity is set to 1",
+                         // When updating this documentation, update `decoderawtransaction` in the same way.
                          RPCResult::Type::OBJ, "", "",
                          Cat<std::vector<RPCResult>>(
                          {
@@ -364,20 +419,47 @@ static RPCHelpMan getrawtransaction()
                          },
                          DecodeTxDoc(/*txid_field_doc=*/"The transaction id (same as provided)")),
                     },
+                    RPCResult{"for verbosity = 2",
+                        RPCResult::Type::OBJ, "", "",
+                        {
+                            {RPCResult::Type::ELISION, "", "Same output as verbosity = 1"},
+                            {RPCResult::Type::NUM, "fee", /* optional */ true, "transaction fee in " + CURRENCY_UNIT + ", omitted if block undo data is not available"},
+                            {RPCResult::Type::ARR, "vin", "",
+                            {
+                                {RPCResult::Type::OBJ, "", /* optional */ true, "utxo being spent, omitted if block undo data is not available",
+                                {
+                                    {RPCResult::Type::ELISION, "", "Same output as verbosity = 1"},
+                                    {RPCResult::Type::OBJ, "prevout", "Only if undo information is available)",
+                                    {
+                                        {RPCResult::Type::BOOL, "generated", "Coinbase or not"},
+                                        {RPCResult::Type::NUM, "height", "The height of the prevout"},
+                                        {RPCResult::Type::STR_AMOUNT, "value", "The value in " + CURRENCY_UNIT},
+                                        {RPCResult::Type::OBJ, "scriptPubKey", "",
+                                        {
+                                             {RPCResult::Type::STR, "asm", "Disassembly of the public key script"},
+                                             {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
+                                             {RPCResult::Type::STR_HEX, "hex", "The raw public key script bytes, hex-encoded"},
+                                             {RPCResult::Type::STR, "address", /*optional=*/true, "The Bitcoin address (only if a well-defined address exists)"},
+                                             {RPCResult::Type::STR, "type", "The type (one of: " + GetAllOutputTypes() + ")"},
+                                        }},
+                                    }},
+                                }},
+                            }},
+                        }},
                 },
                 RPCExamples{
                     HelpExampleCli("getrawtransaction", "\"mytxid\"")
-            + HelpExampleCli("getrawtransaction", "\"mytxid\" true")
-            + HelpExampleRpc("getrawtransaction", "\"mytxid\", true")
-            + HelpExampleCli("getrawtransaction", "\"mytxid\" false \"myblockhash\"")
-            + HelpExampleCli("getrawtransaction", "\"mytxid\" true \"myblockhash\"")
+            + HelpExampleCli("getrawtransaction", "\"mytxid\" 1")
+            + HelpExampleRpc("getrawtransaction", "\"mytxid\", 1")
+            + HelpExampleCli("getrawtransaction", "\"mytxid\" 0 \"myblockhash\"")
+            + HelpExampleCli("getrawtransaction", "\"mytxid\" 1 \"myblockhash\"")
+            + HelpExampleCli("getrawtransaction", "\"mytxid\" 2 \"myblockhash\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const NodeContext& node = EnsureAnyNodeContext(request.context);
     ChainstateManager& chainman = EnsureChainman(node);
 
-    bool in_active_chain = true;
     uint256 hash = ParseHashV(request.params[0], "parameter 1");
     const CBlockIndex* blockindex = nullptr;
 
@@ -387,10 +469,14 @@ static RPCHelpMan getrawtransaction()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
     }
 
-    // Accept either a bool (true) or a num (>=1) to indicate verbose output.
-    bool fVerbose = false;
+    // Accept either a bool (true) or a num (>=0) to indicate verbosity.
+    int verbosity{0};
     if (!request.params[1].isNull()) {
-        fVerbose = request.params[1].isNum() ? (request.params[1].getInt<int>() != 0) : request.params[1].get_bool();
+        if (request.params[1].isBool()) {
+            verbosity = request.params[1].get_bool();
+        } else {
+            verbosity = request.params[1].getInt<int>();
+        }
     }
 
     if (!request.params[2].isNull()) {
@@ -401,17 +487,12 @@ static RPCHelpMan getrawtransaction()
         if (!blockindex) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block hash not found");
         }
-        in_active_chain = chainman.ActiveChain().Contains(blockindex);
     }
 
     bool f_txindex_ready = false;
     if (g_txindex && !blockindex) {
         f_txindex_ready = g_txindex->BlockUntilSyncedToCurrentChain();
     }
-
-    int nHeight = 0;
-    int nConfirmations = 0;
-    int nBlockTime = 0;
 
     uint256 hash_block;
     const CTransactionRef tx = GetTransaction(blockindex, node.mempool.get(), hash, chainman.GetConsensus(), hash_block);
@@ -433,37 +514,43 @@ static RPCHelpMan getrawtransaction()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, errmsg + ". Use gettransaction for wallet transactions.");
     }
 
-    {
-        LOCK(cs_main);
-        node::BlockMap::iterator mi = chainman.BlockIndex().find(hash_block);
-        if (mi != chainman.BlockIndex().end()) {
-            CBlockIndex *pindex = &mi->second;
-            if (chainman.ActiveChain().Contains(pindex)) {
-                nHeight = pindex->nHeight;
-                nConfirmations = 1 + chainman.ActiveChain().Height() - pindex->nHeight;
-                nBlockTime = pindex->GetBlockTime();
-            } else {
-                nHeight = -1;
-                nConfirmations = 0;
-                nBlockTime = pindex->GetBlockTime();
-            }
-        }
-    }
-
-    std::string strHex = EncodeHexTx(*tx, RPCSerializationFlags());
-    if (!fVerbose) {
-        return strHex;
+    if (verbosity <= 0) {
+        return EncodeHexTx(*tx, RPCSerializationFlags());
     }
 
     UniValue result(UniValue::VOBJ);
-    if (blockindex) result.pushKV("in_active_chain", in_active_chain);
-    result.pushKV("hex", strHex);
-
-    if (fParticlMode) {
-        TxToJSONExpanded(chainman, *tx, hash_block, node.mempool.get(), result, nHeight, nConfirmations, nBlockTime);
-    } else {
-        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate());
+    if (blockindex) {
+        LOCK(cs_main);
+        result.pushKV("in_active_chain", chainman.ActiveChain().Contains(blockindex));
     }
+    // If request is verbosity >= 1 but no blockhash was given, then look up the blockindex
+    if (request.params[2].isNull()) {
+        LOCK(cs_main);
+        blockindex = chainman.m_blockman.LookupBlockIndex(hash_block);
+    }
+    if (verbosity == 1) {
+        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_TXID);
+        return result;
+    }
+
+    CBlockUndo blockUndo;
+    CBlock block;
+    const bool is_block_pruned{WITH_LOCK(cs_main, return chainman.m_blockman.IsBlockPruned(blockindex))};
+
+    if (tx->IsCoinBase() ||
+        !blockindex || is_block_pruned ||
+        !(UndoReadFromDisk(blockUndo, blockindex) && ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))) {
+        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_TXID, &chainman, node.mempool.get());
+        return result;
+    }
+
+    CTxUndo* undoTX {nullptr};
+    auto it = std::find_if(block.vtx.begin(), block.vtx.end(), [tx](CTransactionRef t){ return *t == *tx; });
+    if (it != block.vtx.end()) {
+        // -1 as blockundo does not have coinbase tx
+        undoTX = &blockUndo.vtxundo.at(it - block.vtx.begin() - 1);
+    }
+    TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), undoTX, TxVerbosity::SHOW_DETAILS_AND_PREVOUT, &chainman, node.mempool.get());
     return result;
 },
     };

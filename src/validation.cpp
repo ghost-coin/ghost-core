@@ -1672,7 +1672,7 @@ bool Chainstate::IsInitialBlockDownload() const
     if (m_chain.Tip()->nChainWork < m_chainman.MinimumChainWork())
         return true;
     if ((!fParticlMode || m_chain.Tip()->nHeight > COINBASE_MATURITY) &&
-        m_chain.Tip()->Time() < NodeClock::now() - m_chainman.m_options.max_tip_age)
+        m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age)
         return true;
     if (fParticlMode && check_peer_height &&
         (particl::GetNumPeers() < 1 ||
