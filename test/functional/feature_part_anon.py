@@ -268,7 +268,7 @@ class AnonTest(ParticlTestFramework):
                 raise ValueError('Output should be spent')
 
         assert (self.wait_for_mempool(nodes[1], txid))
-        raw_tx = w1_2.getrawtransaction(txid, True)
+        raw_tx = w1_2.getrawtransaction(txid, 2)
         possible_inputs = raw_tx['vin'][0]['ring_member_rows']['0'].split(', ')
         possible_inputs_txids = []
         for pi in possible_inputs:

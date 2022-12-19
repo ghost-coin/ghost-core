@@ -57,7 +57,7 @@ using node::ReadBlockFromDisk;
 using node::UndoReadFromDisk;
 
 
-static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, UniValue& entry, bool include_hex, int serialize_flags, const CTxUndo* txundo, TxVerbosity verbosity, ChainstateManager *pchainman, CTxMemPool *pmempool)
+static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, UniValue& entry, bool include_hex, int serialize_flags, const CTxUndo* txundo, TxVerbosity verbosity, ChainstateManager *pchainman, CTxMemPool *pmempool, int raw_verbosity)
 {
     uint256 txid = tx.GetHash();
     entry.pushKV("txid", txid.GetHex());
@@ -94,7 +94,7 @@ static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, 
             in.pushKV("num_inputs", (int)nSigInputs);
             in.pushKV("ring_size", (int)nSigRingSize);
 
-            if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT &&
+            if (raw_verbosity >= 2 &&
                 tx.HasWitness() &&
                 !txin.scriptWitness.IsNull() &&
                 txin.scriptWitness.stack.size() > 0) {
@@ -230,7 +230,7 @@ static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, 
     }
 }
 
-static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, Chainstate& active_chainstate, const CTxUndo* txundo = nullptr, TxVerbosity verbosity = TxVerbosity::SHOW_TXID, ChainstateManager *pchainman = nullptr, CTxMemPool *pmempool = nullptr)
+static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, Chainstate& active_chainstate, const CTxUndo* txundo = nullptr, TxVerbosity verbosity = TxVerbosity::SHOW_TXID, ChainstateManager *pchainman = nullptr, CTxMemPool *pmempool = nullptr, int raw_verbosity = 0)
 {
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
@@ -239,7 +239,7 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     // data into the returned UniValue.
 
     if (fParticlMode) {
-        TxToUnivExpanded(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags(), txundo, verbosity, pchainman, pmempool);
+        TxToUnivExpanded(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags(), txundo, verbosity, pchainman, pmempool, raw_verbosity);
     } else {
         TxToUniv(tx, /*block_hash=*/uint256(), entry, /*include_hex=*/true, RPCSerializationFlags(), txundo, verbosity);
     }
@@ -540,7 +540,7 @@ static RPCHelpMan getrawtransaction()
     if (tx->IsCoinBase() ||
         !blockindex || is_block_pruned ||
         !(UndoReadFromDisk(blockUndo, blockindex) && ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))) {
-        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_TXID, &chainman, node.mempool.get());
+        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_TXID, &chainman, node.mempool.get(), verbosity);
         return result;
     }
 
@@ -550,7 +550,7 @@ static RPCHelpMan getrawtransaction()
         // -1 as blockundo does not have coinbase tx
         undoTX = &blockUndo.vtxundo.at(it - block.vtx.begin() - 1);
     }
-    TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), undoTX, TxVerbosity::SHOW_DETAILS_AND_PREVOUT, &chainman, node.mempool.get());
+    TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), undoTX, TxVerbosity::SHOW_DETAILS_AND_PREVOUT, &chainman, node.mempool.get(), verbosity);
     return result;
 },
     };
