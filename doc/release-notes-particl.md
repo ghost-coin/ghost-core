@@ -1,3 +1,10 @@
+
+0.21.2.12
+==============
+
+- rpc: Fix listunspentblind filter by address
+
+
 0.21.2.11
 ==============
 
