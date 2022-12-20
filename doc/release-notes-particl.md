@@ -35,6 +35,11 @@ Next Major Version
   - Convert mnemonics to and from entropy and word form.
 
 
+23.0.4
+==============
+
+- rpc: Fix listunspentblind filter by address
+
 
 23.0.3
 ==============
