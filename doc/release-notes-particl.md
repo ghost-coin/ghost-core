@@ -74,6 +74,22 @@ Next Major Version
 - script: Remove timelocked script signing.
 
 
+0.21.2.12
+==============
+
+- Added new PID for Ledger Nano S Plus (5015).
+
+
+0.21.2.11
+==============
+
+- consensus: Fix rare fork possibility.
+  - A block index is added for an invalid block, to prevent nodes trying
+    to redownload the same block from peers.
+    The failed block index is added to m_failed_blocks, but wasn't being
+    removed when the block index is removed to prevent DoS issues.
+
+
 0.21.2.10
 ==============
 
