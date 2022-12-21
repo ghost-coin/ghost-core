@@ -3,6 +3,7 @@
 ==============
 
 - rpc: Fix listunspentblind filter by address
+- Added new PID for Ledger Nano S Plus (5015).
 
 
 0.21.2.11
