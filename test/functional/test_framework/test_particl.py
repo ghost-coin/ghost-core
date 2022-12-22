@@ -30,6 +30,7 @@ def getIndexAtProperty(arr, name, value):
 
 
 class ParticlTestFramework(BitcoinTestFramework):
+    particl_mode = True
     def start_node(self, i, *args, **kwargs):
         kwargs['btcmode'] = False
         return super().start_node(i, *args, **kwargs)
