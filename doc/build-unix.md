@@ -159,6 +159,8 @@ However, with `--onlydeps` the dependencies are installed as orphaned packages.
 
 	sudo emerge --noreplace <package-name>
 
+**Note**: To get Ghost Core running on musl-based Gentoo systems, make sure to set LC_ALL="C" environment variable.
+
 Configure Script
 --------------------------
 To generate the configure script:
