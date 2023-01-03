@@ -761,7 +761,6 @@ static const std::vector<RPCResult> TransactionDescriptionString()
            }},
            {RPCResult::Type::STR_HEX, "replaced_by_txid", /*optional=*/true, "The txid if this tx was replaced."},
            {RPCResult::Type::STR_HEX, "replaces_txid", /*optional=*/true, "The txid if the tx replaces one."},
-           {RPCResult::Type::STR, "comment", /*optional=*/true, ""},
            {RPCResult::Type::STR, "to", /*optional=*/true, "If a comment to is associated with the transaction."},
            {RPCResult::Type::STR, "time_local", /*optional=*/true, "Human readable time with local offset."},
            {RPCResult::Type::STR, "time_utc", /*optional=*/true, "Human readable time in UTC."},
