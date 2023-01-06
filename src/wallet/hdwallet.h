@@ -425,7 +425,7 @@ public:
      * populate vCoins with vector of available COutputs.
      */
     CoinsResult AvailableCoins(const CCoinControl *coinControl = nullptr, std::optional<CFeeRate> feerate = std::nullopt, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    std::optional<SelectionResult> SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
+    util::Result<SelectionResult> SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
         const CCoinControl& coin_control, const CoinSelectionParams& coin_selection_params) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     void AvailableBlindedCoins(std::vector<COutputR>& vCoins, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t& nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -477,6 +477,7 @@ public:
 
     /** Return a prevout if it exists in the wallet. */
     bool GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetLegacyPrevout(const COutPoint &prevout, CTxOut &txout) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     size_t CountColdstakeOutputs();
     void ClearMapTempRecords();

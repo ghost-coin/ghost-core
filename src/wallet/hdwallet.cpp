@@ -2461,8 +2461,8 @@ bool CHDWallet::IsTrusted(const uint256 &txhash, const CTransactionRecord &rtx, 
         if (rit != mapRecords.end()) {
             const COutputRecord *oR = rit->second.GetOutput(txin.prevout.n);
 
-            if (!oR
-                || !(oR->nFlags & ORF_OWNED)) {
+            if (!oR ||
+                !(oR->nFlags & ORF_OWNED)) {
                 return false;
             }
             continue;
@@ -3785,7 +3785,6 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         CoinsResult available_coins;
         available_coins = AvailableCoins(coinControl, coin_selection_params.m_effective_feerate, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
 
-
         nFeeRet = 0;
         size_t nSubFeeTries = 100;
         bool pick_new_inputs = true;
@@ -3806,14 +3805,17 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // Choose coins to us
             if (pick_new_inputs) {
                 nValueIn = 0;
-                std::optional<SelectionResult> result = SelectCoins(available_coins.All(), nValueToSelect, *coinControl, coin_selection_params);
+                auto select_coins_res = SelectCoins(available_coins.All(), nValueToSelect, *coinControl, coin_selection_params);
 
-                if (!result) {
-                    return wserrorN(1, sError, __func__, _("Insufficient funds.").translated);
+                if (!select_coins_res) {
+                    // 'SelectCoins' either returns a specific error message or, if empty, means a general "Insufficient funds".
+                    const bilingual_str& err = util::ErrorString(select_coins_res);
+                    return wserrorN(1, sError, __func__, err.empty() ?_("Insufficient funds").translated : err.translated);
                 }
-                nValueIn = result->GetSelectedValue();
+                const SelectionResult& result = *select_coins_res;
+                nValueIn = result.GetSelectedValue();
                 // Shuffle selected coins and fill in final vin
-                selected_coins = result->GetShuffledInputVector();
+                selected_coins = result.GetShuffledInputVector();
             }
 
             const CAmount nChange = nValueIn - nValueToSelect;
@@ -11227,8 +11229,8 @@ std::vector<uint256> CHDWallet::ResendRecordTransactionsBefore(int64_t nTime)
 
         MapWallet_t::iterator twi = mapTempWallet.find(txhash);
         if (twi == mapTempWallet.end()) {
-            if (0 != InsertTempTxn(txhash, &rtx)
-                || (twi = mapTempWallet.find(txhash)) == mapTempWallet.end()) {
+            if (0 != InsertTempTxn(txhash, &rtx) ||
+                (twi = mapTempWallet.find(txhash)) == mapTempWallet.end()) {
                 WalletLogPrintf("ERROR: %s - InsertTempTxn failed %s.\n", __func__, txhash.ToString());
             }
         }
@@ -11414,11 +11416,10 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             }
             int input_bytes = CalculateMaximumSignedInputSize(txout_old, COutPoint(), provider, coinControl);
             result.coins[OutputType::UNKNOWN].emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
+            result.total_amount += txout->nValue;
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
-                result.total_amount += txout->nValue;
-
                 if (result.total_amount >= nMinimumSumAmount) {
                     return result;
                 }
@@ -11505,10 +11506,9 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             int64_t time = rtx.GetTxTime();
             int input_bytes = CalculateMaximumSignedInputSize(txout, this, coinControl);
             result.coins[OutputType::UNKNOWN].emplace_back(COutPoint(txid, r.n), txout, nDepth, input_bytes, fSpendableIn, /*solvable*/true, safeTx, time, from_me, feerate, /*mature*/true, fNeedHardwareKey);
+            result.total_amount += r.nValue;
 
             if (nMinimumSumAmount != MAX_MONEY) {
-                result.total_amount += r.nValue;
-
                 if (result.total_amount >= nMinimumSumAmount) {
                     return result;
                 }
@@ -11523,8 +11523,8 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
     return result;
 };
 
-std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
-                                                      const CCoinControl& coin_control, const CoinSelectionParams& coin_selection_params) const
+util::Result<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue,
+                                                     const CCoinControl& coin_control, const CoinSelectionParams& coin_selection_params) const
 {
     std::vector<COutput> vCoins(vAvailableCoins);
 
@@ -11547,8 +11547,9 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
         }
         SelectionResult result(nTargetValue, SelectionAlgorithm::MANUAL);
         result.AddInput(preset_inputs);
-        if (result.GetSelectedValue() < nTargetValue) return std::nullopt;
-        //result.ComputeAndSetWaste(coin_selection_params.m_cost_of_change);
+        if (result.GetSelectedValue() < nTargetValue) {
+            return util::Error(); // Insufficient funds
+        }
         return result;
     }
 
@@ -11559,32 +11560,14 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
 
     for (const auto &outpoint : vPresetInputs) {
         int input_bytes = -1;
-        CTxOut txout_null, txout;
-        MapWallet_t::const_iterator it = mapTempWallet.find(outpoint.hash);
-        if (it != mapTempWallet.end()) {
-            const CWalletTx *pcoin = &it->second;
-            // Clearly invalid input, fail
-            if (pcoin->tx->vpout.size() <= outpoint.n ||
-                !pcoin->tx->vpout[outpoint.n]->setTxout(txout)) {
-                return std::nullopt;
-            }
+        CTxOut txout;
+        if (GetLegacyPrevout(outpoint, txout)) {
             input_bytes = CalculateMaximumSignedInputSize(txout, this, &coin_control);
         } else {
-            it = mapWallet.find(outpoint.hash);
-            if (it != mapWallet.end()) {
-                const CWalletTx *pcoin = &it->second;
-                // Clearly invalid input, fail
-                if (pcoin->tx->vpout.size() <= outpoint.n ||
-                    !pcoin->tx->vpout[outpoint.n]->setTxout(txout)) {
-                    return std::nullopt;
-                }
-                input_bytes = CalculateMaximumSignedInputSize(txout, this, &coin_control);
-            } else {
-                // The input is external. We either did not find the tx in mapWallet, or we did but couldn't compute the input size with wallet data
-                if (!coin_control.GetExternalOutput(outpoint, txout)) {
-                    // Not ours, and we don't have solving data.
-                    return std::nullopt;
-                }
+            // The input is external. We either did not find the tx in mapWallet, or we did but couldn't compute the input size with wallet data
+            if (!coin_control.GetExternalOutput(outpoint, txout)) {
+                // Not ours, and we don't have solving data.
+                return util::Error{strprintf(_("Not found pre-selected input %s"), outpoint.ToString())};
             }
         }
         COutput output(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false, coin_selection_params.m_effective_feerate);
@@ -11600,24 +11583,15 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
         preset_inputs.Insert(output, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
     }
 
-    // remove preset inputs from vCoins
-    for (std::vector<COutput>::iterator it = vCoins.begin(); it != vCoins.end() && coin_control.HasSelected();) {
-        if (preset_coins.count(it->outpoint)) {
-            it = vCoins.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    unsigned int limit_ancestor_count = 0;
-    unsigned int limit_descendant_count = 0;
-    chain().getPackageLimits(limit_ancestor_count, limit_descendant_count);
-    size_t max_ancestors = (size_t)std::max<int64_t>(1, limit_ancestor_count);
-    size_t max_descendants = (size_t)std::max<int64_t>(1, limit_descendant_count);
-    bool fRejectLongChains = gArgs.GetBoolArg("-walletrejectlongchains", DEFAULT_WALLET_REJECT_LONG_CHAINS);
-
+    // Skip preset inputs
     CoinsResult available_coins;
-    available_coins.coins[OutputType::UNKNOWN] = vCoins;
+    for (const auto &coin : vCoins) {
+        if (preset_coins.count(coin.outpoint)) {
+            continue;
+        }
+        available_coins.coins[OutputType::UNKNOWN].push_back(coin);
+        available_coins.total_amount += coin.txout.nValue;
+    }
 
     // form groups from remaining coins; note that preset coins will not
     // automatically have their associated (same address) coins included
@@ -11628,67 +11602,27 @@ std::optional<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>
         available_coins.Shuffle(coin_selection_params.rng_fast);
     }
 
-    // Coin Selection attempts to select inputs from a pool of eligible UTXOs to fund the
-    // transaction at a target feerate. If an attempt fails, more attempts may be made using a more
-    // permissive CoinEligibilityFilter.
-    std::optional<SelectionResult> res = [&] {
-        // Pre-selected inputs already cover the target amount.
-        if (value_to_select <= 0) return std::make_optional(SelectionResult(nTargetValue, SelectionAlgorithm::MANUAL));
+    // Return if we can cover the target only with the preset inputs
+    if (value_to_select <= 0) {
+        SelectionResult result(nTargetValue, SelectionAlgorithm::MANUAL);
+        result.AddInput(preset_inputs);
+        return result;
+    }
 
-        // If possible, fund the transaction with confirmed UTXOs only. Prefer at least six
-        // confirmations on outputs received from other wallets and only spend confirmed change.
-        if (auto r1{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 6, 0), available_coins, coin_selection_params, /*allow_mixed_output_types=*/false)}) return r1;
-        if (auto r2{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(1, 1, 0), available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) return r2;
+    // Return early if we cannot cover the target with the wallet's UTXO.
+    if (value_to_select > available_coins.GetTotalAmount()) {
+        return util::Error(); // Insufficient funds
+    }
 
-        // Fall back to using zero confirmation change (but with as few ancestors in the mempool as
-        // possible) if we cannot fund the transaction otherwise.
-        if (m_spend_zero_conf_change) {
-            if (auto r3{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, 2), available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) return r3;
-            if (auto r4{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, std::min((size_t)4, max_ancestors/3), std::min((size_t)4, max_descendants/3)),
-                                   available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
-                return r4;
-            }
-            if (auto r5{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors/2, max_descendants/2),
-                                   available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
-                return r5;
-            }
-            // If partial groups are allowed, relax the requirement of spending OutputGroups (groups
-            // of UTXOs sent to the same address, which are obviously controlled by a single wallet)
-            // in their entirety.
-            if (auto r6{::AttemptSelection(*this, value_to_select, CoinEligibilityFilter(0, 1, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
-                                   available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
-                return r6;
-            }
-            // Try with unsafe inputs if they are allowed. This may spend unconfirmed outputs
-            // received from other wallets.
-            if (coin_control.m_include_unsafe_inputs) {
-                if (auto r7{::AttemptSelection(*this, value_to_select,
-                    CoinEligibilityFilter(0 /* conf_mine */, 0 /* conf_theirs */, max_ancestors-1, max_descendants-1, true /* include_partial_groups */),
-                    available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
-                    return r7;
-                }
-            }
-            // Try with unlimited ancestors/descendants. The transaction will still need to meet
-            // mempool ancestor/descendant policy to be accepted to mempool and broadcasted, but
-            // OutputGroups use heuristics that may overestimate ancestor/descendant counts.
-            if (!fRejectLongChains) {
-                if (auto r8{::AttemptSelection(*this, value_to_select,
-                                      CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(), true /* include_partial_groups */),
-                                      available_coins, coin_selection_params, /*allow_mixed_output_types=*/true)}) {
-                    return r8;
-                }
-            }
-        }
-        // Coin Selection failed.
-        return std::optional<SelectionResult>();
-    }();
+    // Start wallet Coin Selection procedure
+    auto op_selection_result = AutomaticCoinSelection(*this, available_coins, value_to_select, coin_control, coin_selection_params);
+    if (!op_selection_result) return op_selection_result;
 
-    if (!res) return std::nullopt;
-
-    // Add preset inputs to result
-    res->AddInput(preset_inputs);
-
-    return res;
+    // If needed, add preset inputs to the automatic coin selection result
+    if (!preset_inputs.m_outputs.empty()) {
+        op_selection_result->AddInput(preset_inputs);
+    }
+    return op_selection_result;
 };
 
 void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount) const
@@ -11853,8 +11787,8 @@ bool CHDWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins,
 
     for (const auto &outpoint : vPresetInputs) {
         MapRecords_t::const_iterator it;
-        if ((it = mapTempRecords.find(outpoint.hash)) != mapTempRecords.end() // Must check mapTempRecords first, mapRecords may contain the same tx without the relevant output.
-            || (it = mapRecords.find(outpoint.hash)) != mapRecords.end()) { // Allows non-wallet inputs
+        if ((it = mapTempRecords.find(outpoint.hash)) != mapTempRecords.end() ||  // Must check mapTempRecords first, mapRecords may contain the same tx without the relevant output.
+            (it = mapRecords.find(outpoint.hash)) != mapRecords.end()) { // Allows non-wallet inputs
             const CTransactionRecord &rtx = it->second;
             const COutputRecord *oR = rtx.GetOutput(outpoint.n);
             if (!oR) {
@@ -12375,7 +12309,8 @@ bool CHDWallet::AttemptSelection(const CAmount& nTargetValue, const CoinEligibil
             setCoinsRet.push_back(coin.second);
             nValueRet += coin.first;
             return true;
-        } else
+        }
+
         if (nV < nTargetValue + CHANGE_UPPER) {
             vValue.push_back(coin);
             nTotalLower += nV;
@@ -12575,7 +12510,6 @@ std::set<uint256> CHDWallet::GetConflicts(const uint256 &txid) const
     AssertLockHeld(cs_wallet);
 
     MapRecords_t::const_iterator mri = mapRecords.find(txid);
-
     if (mri != mapRecords.end()) {
         const CTransactionRecord &rtx = mri->second;
         std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range;
@@ -12931,6 +12865,29 @@ bool CHDWallet::GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) const
 
         if (oR && oR->nType == OUTPUT_STANDARD) { // get outputs other than standard from the utxodb or chain instead
             txout = MAKE_OUTPUT<CTxOutStandard>(oR->nValue, oR->scriptPubKey);
+            return true;
+        }
+    }
+
+    return false;
+};
+
+bool CHDWallet::GetLegacyPrevout(const COutPoint &prevout, CTxOut &txout) const
+{
+    MapWallet_t::const_iterator mi = mapWallet.find(prevout.hash);
+    if (mi != mapWallet.end()) {
+        if (prevout.n >= mi->second.tx->vpout.size()) {
+            return false;
+        }
+        return mi->second.tx->vpout[prevout.n]->setTxout(txout);
+    }
+
+    MapRecords_t::const_iterator mir = mapRecords.find(prevout.hash);
+    if (mir != mapRecords.end()) {
+        const COutputRecord *oR = mir->second.GetOutput(prevout.n);
+
+        if (oR && oR->nType == OUTPUT_STANDARD) { // get outputs other than standard from the utxodb or chain instead
+            txout = CTxOut(oR->nValue, oR->scriptPubKey);
             return true;
         }
     }
