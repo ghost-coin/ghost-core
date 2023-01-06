@@ -2356,7 +2356,7 @@ CAmount CHDWallet::GetOutputValue(const COutPoint &op, bool fAllowTXIndex) const
             return rec->nValue;
         }
         CStoredTransaction stx;
-        if (!CHDWalletDB(*m_database).ReadStoredTx(op.hash, stx)) { // TODO: cache / use mapTempWallet
+        if (!CHDWalletDB(*m_database).ReadStoredTx(op.hash, stx)) { // TODO: cache
             WalletLogPrintf("%s: ReadStoredTx failed for %s.\n", __func__, op.hash.ToString());
             return 0;
         }
@@ -5814,7 +5814,7 @@ int CHDWallet::UnloadTransaction(const uint256 &hash)
     } else
     if ((itr = mapRecords.find(hash)) != mapRecords.end()) {
         CStoredTransaction stx;
-        if (!CHDWalletDB(*m_database).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
+        if (!CHDWalletDB(*m_database).ReadStoredTx(hash, stx)) { // TODO: cache
             WalletLogPrintf("%s: ReadStoredTx failed for %s.\n", __func__, hash.ToString());
         } else {
             RemoveFromTxSpends(hash, stx.tx);
@@ -10350,17 +10350,6 @@ bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const SyncT
     }
 
     return false;
-};
-
-CWalletTx *CHDWallet::GetTempWalletTx(const uint256& hash)
-{
-    LOCK(cs_wallet);
-    MapWallet_t::iterator itr = mapTempWallet.find(hash);
-    if (itr != mapTempWallet.end()) {
-        return &(itr->second);
-    }
-
-    return nullptr;
 };
 
 const CWalletTx *CHDWallet::GetWalletTx(const uint256 &hash) const

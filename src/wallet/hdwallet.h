@@ -398,8 +398,6 @@ public:
     void AddToSpends(const CWalletTx& wtx, WalletBatch* batch = nullptr) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const SyncTxState& state, bool fUpdate, bool rescanning_old_block) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    CWalletTx *GetTempWalletTx(const uint256& hash);
-
     const CWalletTx *GetWalletTx(const uint256& hash) const override;
     CWalletTx *GetWalletTx(const uint256& hash);
 

@@ -288,7 +288,7 @@ void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint2
     entry.pushKV("details", details);
 
     CStoredTransaction stx;
-    if (CHDWalletDB(phdw->GetDatabase()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
+    if (CHDWalletDB(phdw->GetDatabase()).ReadStoredTx(hash, stx)) { // TODO: cache
         std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
         entry.pushKV("hex", strHex);
 
