@@ -9,10 +9,10 @@
 
 #include <string.h>
 
-#include "group.h"
-#include "scalar.h"
-#include "testrand.h"
-#include "util.h"
+#include "src/group.h"
+#include "src/scalar.h"
+#include "src/testrand.h"
+#include "src/util.h"
 
 #include "include/secp256k1_commitment.h"
 #include "include/secp256k1_rangeproof.h"

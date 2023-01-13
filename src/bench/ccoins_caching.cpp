@@ -22,7 +22,6 @@
 static void CCoinsCaching(benchmark::Bench& bench)
 {
     fParticlMode = false;
-    const ECCVerifyHandle verify_handle;
     ECC_Start();
 
     FillableSigningProvider keystore;

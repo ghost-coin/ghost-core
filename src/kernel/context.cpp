@@ -27,12 +27,10 @@ Context::Context()
     ECC_Start();
     particl::ECC_Start_Stealth();
     particl::ECC_Start_Blinding();
-    ecc_verify_handle.reset(new ECCVerifyHandle());
 }
 
 Context::~Context()
 {
-    ecc_verify_handle.reset();
     particl::ECC_Stop_Blinding();
     particl::ECC_Stop_Stealth();
     ECC_Stop();

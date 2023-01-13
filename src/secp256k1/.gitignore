@@ -16,9 +16,9 @@ schnorr_example
 *.so
 *.a
 *.csv
-!.gitignore
 *.log
 *.trs
+*.sage.py
 
 Makefile
 configure
@@ -37,8 +37,6 @@ libtool
 *.lo
 *.o
 *~
-*.log
-*.trs
 
 coverage/
 coverage.html

@@ -7,10 +7,10 @@
 #ifndef SECP256K1_MODULE_BULLETPROOF_MAIN_IMPL
 #define SECP256K1_MODULE_BULLETPROOF_MAIN_IMPL
 
-#include "group.h"
-#include "scalar.h"
+#include "src/group.h"
+#include "src/scalar.h"
 
-#include "modules/commitment/main_impl.h"
+#include "src/modules/commitment/main_impl.h"
 
 struct secp256k1_bulletproof_generators {
     size_t n;
@@ -23,9 +23,9 @@ struct secp256k1_bulletproof_generators {
     secp256k1_ge *blinding_gen;
 };
 
-#include "modules/bulletproofs/inner_product_impl.h"
-#include "modules/bulletproofs/rangeproof_impl.h"
-#include "modules/bulletproofs/util.h"
+#include "src/modules/bulletproofs/inner_product_impl.h"
+#include "src/modules/bulletproofs/rangeproof_impl.h"
+#include "src/modules/bulletproofs/util.h"
 
 secp256k1_bulletproof_generators *secp256k1_bulletproof_generators_create(const secp256k1_context *ctx, const secp256k1_generator *blinding_gen, size_t n) {
     secp256k1_bulletproof_generators *ret;

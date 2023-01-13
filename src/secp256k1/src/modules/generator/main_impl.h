@@ -9,10 +9,10 @@
 
 #include <stdio.h>
 
-#include "field.h"
-#include "group.h"
-#include "hash.h"
-#include "scalar.h"
+#include "src/field.h"
+#include "src/group.h"
+#include "src/hash.h"
+#include "src/scalar.h"
 
 /** Standard secp256k1 generator */
 const secp256k1_generator secp256k1_generator_const_g = {{

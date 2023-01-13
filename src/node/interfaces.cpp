@@ -834,7 +834,10 @@ public:
         if (!m_node.mempool) return nullptr;
         CScript coinbaseScript;
         Chainstate& active = Assert(m_node.chainman)->ActiveChainstate();
-        return BlockAssembler{active, m_node.mempool.get()}.CreateNewBlock(coinbaseScript, false);
+        node::BlockAssembler::Options assembler_options;
+        assembler_options.test_block_validity = false;
+        assembler_options.particl_mode = true;
+        return BlockAssembler{active, m_node.mempool.get(), assembler_options}.CreateNewBlock(coinbaseScript);
     }
     CTxMemPool *getMempool() override
     {

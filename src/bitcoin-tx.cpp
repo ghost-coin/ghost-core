@@ -891,8 +891,6 @@ static void MutateTxAddOutDataType(CMutableTransaction& tx, const std::string& s
 
 class Secp256k1Init
 {
-    ECCVerifyHandle globalVerifyHandle;
-
 public:
     Secp256k1Init() {
         ECC_Start();

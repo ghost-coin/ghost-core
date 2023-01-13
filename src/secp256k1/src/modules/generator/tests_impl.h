@@ -10,9 +10,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "scalar.h"
-#include "testrand.h"
-#include "util.h"
+#include "src/scalar.h"
+#include "src/testrand.h"
+#include "src/util.h"
 
 #include "include/secp256k1_generator.h"
 
