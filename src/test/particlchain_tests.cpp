@@ -636,7 +636,7 @@ BOOST_AUTO_TEST_CASE(taproot)
     witness.stack.push_back(sig);
     witness.stack.push_back(std::vector<unsigned char>(scriptStake.begin(), scriptStake.end()));
     std::vector<std::vector<unsigned char> > vec_controlblocks;
-    for (const auto &s : tr_spenddata.scripts[{scriptStake, TAPROOT_LEAF_TAPSCRIPT}]) {
+    for (const auto &s : tr_spenddata.scripts[{std::vector<unsigned char>(scriptStake.begin(), scriptStake.end()), TAPROOT_LEAF_TAPSCRIPT}]) {
         vec_controlblocks.push_back(s);
     }
     BOOST_CHECK(vec_controlblocks.size() == 1);
@@ -741,7 +741,7 @@ BOOST_AUTO_TEST_CASE(taproot)
         witness.stack.push_back(sig1);
         witness.stack.push_back(std::vector<unsigned char>(scriptCheckSigAdd.begin(), scriptCheckSigAdd.end()));
         std::vector<std::vector<unsigned char> > vec_controlblocks;
-        for (const auto &s : tr_spenddata.scripts[{scriptCheckSigAdd, TAPROOT_LEAF_TAPSCRIPT}]) {
+        for (const auto &s : tr_spenddata.scripts[{std::vector<unsigned char>(scriptCheckSigAdd.begin(), scriptCheckSigAdd.end()), TAPROOT_LEAF_TAPSCRIPT}]) {
             vec_controlblocks.push_back(s);
         }
         BOOST_CHECK(vec_controlblocks.size() == 1);

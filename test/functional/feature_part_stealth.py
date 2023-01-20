@@ -59,7 +59,7 @@ class StealthTest(ParticlTestFramework):
 
         # Test imported sx address
         ro = nodes[1].importstealthaddress('7pJLDnLxoYmkwpMNDX69dWGT7tuZ45LHgMajQDD8JrXb9LHmzfBA',
-            '7uk8ELaUsop2r4vMg415wEGBfRd1MmY7JiXX7CRhwuwq5PaWXQ9N', 'importedAddr', '5', '0xaaaa')
+            '7uk8ELaUsop2r4vMg415wEGBfRd1MmY7JiXX7CRhwuwq5PaWXQ9N', 'importedAddr', 5, '0xaaaa')
         sxAddrTo2 = '32eEcCuGkGjP82BTF3kquiCDjZWmZiyhqe7C6isbv6MJZSKAeWNx5g436QuhGNc6DNYpboDm3yNiqYmTmkg76wYr5JCKgdEUPqLCWaMW'
         assert (ro['stealth_address'] == sxAddrTo2)
 
@@ -99,11 +99,11 @@ class StealthTest(ParticlTestFramework):
         ro = nodes[2].extkeyimportmaster(oRoot2['mnemonic'])
         assert ('Success.' in ro['result'])
 
-        sxAddrTo2_1 = nodes[2].getnewstealthaddress('lbl test 3 bits', '3')
+        sxAddrTo2_1 = nodes[2].getnewstealthaddress('lbl test 3 bits', 3)
 
 
         ro = nodes[2].importstealthaddress('7uk8ELaUsop2r4vMg415wEGBfRd1MmY7JiXX7CRhwuwq5PaWXQ9N', # secrets are backwards
-            '7pJLDnLxoYmkwpMNDX69dWGT7tuZ45LHgMajQDD8JrXb9LHmzfBA', 'importedAddr', '9', '0xabcd')
+            '7pJLDnLxoYmkwpMNDX69dWGT7tuZ45LHgMajQDD8JrXb9LHmzfBA', 'importedAddr', 9, '0xabcd')
         sxAddrTo2_2 = '9xFM875J9ApSymuT9Yuz6mqmy36JE1tNANGZmvS6hXFoQaV7ZLx8ZGjT2WULbuxwY4EsmNhHivLd4f8SRkxSjGjUED51SA4WqJRysUk9f'
         assert (ro['stealth_address'] == sxAddrTo2_2)
 
@@ -165,15 +165,15 @@ class StealthTest(ParticlTestFramework):
 
         assert_raises_rpc_error(-8, 'Spend secret must be different to scan secret.',
             nodes[0].importstealthaddress, '57F59BA2F9D9146635380FA453E4EED7E44290F0AAAE657C300AB0E51184151E',
-            '57F59BA2F9D9146635380FA453E4EED7E44290F0AAAE657C300AB0E51184151E', '', '9', '0xabcd', True)
+            '57F59BA2F9D9146635380FA453E4EED7E44290F0AAAE657C300AB0E51184151E', '', 9, '0xabcd', True)
 
         # Test bech32 encoding
         ro = nodes[0].importstealthaddress('57F59BA2F9D9146635380FA453E4EED7E44290F0AAAE657C300AB0E51184151E',
-            'F4708BD9B3D367F02EA6581AC446F12AA24350F1E0DEE309FACB561C2D81877A', 'importedAddr1b32', '9', '0xabcd', True)
+            'F4708BD9B3D367F02EA6581AC446F12AA24350F1E0DEE309FACB561C2D81877A', 'importedAddr1b32', 9, '0xabcd', True)
         sx1_b32 = 'tps1qqpt67v3g652e5mvqv3hl60zkj3424l0chhvsc0ervrltujd7dgl6uspqfd2hf5dglxt285yp9d9h3nym39cdzdpr5ndcm940lhmg6z3tjuvzqqfe5qs2gep0t'
         assert (ro['stealth_address'] == sx1_b32)
 
-        ro = nodes[0].getnewstealthaddress('importedAddr2b32', '', '', True)
+        ro = nodes[0].getnewstealthaddress('importedAddr2b32', 0, '', True)
         sx2_b32 = 'tps1qqpxdqs29p7sadu3fqpc808aw93a25k9zjy6f5hzgyf3vluy3n4f4ygpqwkkfhujgzgq83y55enleldy9lh7tkv6dmkaxjrjtyaswjcx3mjyyqqqhefkp7'
         assert (ro == sx2_b32)
         flat = json.dumps(nodes[0].filteraddresses())
@@ -209,7 +209,7 @@ class StealthTest(ParticlTestFramework):
         self.log.info('Test v2 stealth address')
         sxAddrV2 = []
         for i in range(6):
-            sxAddrV2.append(nodes[1].getnewstealthaddress('addr v2 {}'.format(i), '0', '0', True, True))
+            sxAddrV2.append(nodes[1].getnewstealthaddress('addr v2 {}'.format(i), 0, '0', True, True))
         # Import should recover both stealth addresses, despite only detecting txns for the second and sixth.
         nodes[0].sendtoaddress(sxAddrV2[1], 2.0)
         self.stakeBlocks(1)

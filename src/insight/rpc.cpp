@@ -127,7 +127,7 @@ static RPCHelpMan getaddressmempool()
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The base58check encoded address."},
                         },
-                    },
+                    RPCArgOptions{.skip_type_check = true}},
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", {
@@ -205,7 +205,7 @@ return RPCHelpMan{"getaddressutxos",
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The base58check encoded address."},
                         },
-                    },
+                    RPCArgOptions{.skip_type_check = true}},
                     {"chainInfo", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include chain info in results, only applies if start and end specified."},
                 },
                 {
@@ -308,7 +308,7 @@ static RPCHelpMan getaddressdeltas()
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The base58check encoded address."},
                         },
-                    },
+                    RPCArgOptions{.skip_type_check = true}},
                     {"start", RPCArg::Type::NUM, RPCArg::Default{0}, "The start block height."},
                     {"end", RPCArg::Type::NUM, RPCArg::Default{0}, "The end block height."},
                     {"chainInfo", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include chain info in results, only applies if start and end specified."},
@@ -457,7 +457,7 @@ static RPCHelpMan getaddressbalance()
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The base58check encoded address."},
                         },
-                    },
+                    RPCArgOptions{.skip_type_check = true}},
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -519,7 +519,7 @@ static RPCHelpMan getaddresstxids()
                         {
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The base58check encoded address."},
                         },
-                    },
+                    RPCArgOptions{.skip_type_check = true}},
                     {"start", RPCArg::Type::NUM, RPCArg::Default{0}, "The start block height."},
                     {"end", RPCArg::Type::NUM, RPCArg::Default{0}, "The end block height."},
                 },
@@ -1111,8 +1111,6 @@ static RPCHelpMan getblockreward()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VNUM});
-
     node::NodeContext &node = EnsureAnyNodeContext(request.context);
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
     if (!g_txindex) {
@@ -1242,7 +1240,6 @@ return RPCHelpMan{"getblockbalances",
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ}, true);
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     LOCK(cs_main);
@@ -1314,8 +1311,6 @@ static RPCHelpMan listcoldstakeunspent()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VNUM}, true);
-
     if (!g_txindex) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requires -txindex enabled");
     }

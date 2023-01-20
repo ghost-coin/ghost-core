@@ -1,4 +1,8 @@
-packages:=boost libevent
+packages:=
+
+boost_packages = boost
+
+libevent_packages = libevent
 
 protobuf_native_packages = native_protobuf
 protobuf_packages = protobuf

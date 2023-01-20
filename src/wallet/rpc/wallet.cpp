@@ -647,8 +647,6 @@ static RPCHelpMan upgradewallet()
     std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
-    RPCTypeCheck(request.params, {UniValue::VNUM}, true);
-
     EnsureWalletIsUnlocked(*pwallet);
 
     int version = 0;
@@ -715,8 +713,6 @@ RPCHelpMan simulaterawtransaction()
     const std::shared_ptr<const CWallet> rpc_wallet = GetWalletForJSONRPCRequest(request);
     if (!rpc_wallet) return UniValue::VNULL;
     const CWallet& wallet = *rpc_wallet;
-
-    RPCTypeCheck(request.params, {UniValue::VARR, UniValue::VOBJ}, true);
 
     LOCK(wallet.cs_wallet);
 

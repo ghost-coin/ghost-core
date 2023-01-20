@@ -52,8 +52,8 @@ protected:
 
 private:
     Ui::OverviewPage *ui;
-    ClientModel *clientModel;
-    WalletModel *walletModel;
+    ClientModel* clientModel{nullptr};
+    WalletModel* walletModel{nullptr};
     bool m_privacy{false};
     CAmount m_reservedBalance;
 

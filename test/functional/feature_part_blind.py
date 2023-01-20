@@ -119,7 +119,7 @@ class BlindTest(ParticlTestFramework):
         assert (len(ro) == 2)
 
 
-        sxAddrTo2_3 = nodes[2].getnewstealthaddress('n2 sx+prefix', '4', '0xaaaa')
+        sxAddrTo2_3 = nodes[2].getnewstealthaddress('n2 sx+prefix', 4, '0xaaaa')
         ro = nodes[2].validateaddress(sxAddrTo2_3)
         assert (ro['isvalid'] == True)
         assert (ro['isstealthaddress'] == True)

@@ -459,7 +459,7 @@ class WalletParticlTest(ParticlTestFramework):
         assert (ro['unlocked_until'] == 0)
 
 
-        ro = nodes[0].filteraddresses(0, 100, '0', '', '2')
+        ro = nodes[0].filteraddresses(0, 100, 0, '', 2)
         assert (len(ro) == 0)
 
 
@@ -481,7 +481,7 @@ class WalletParticlTest(ParticlTestFramework):
         assert (ro['result'] == 'success')
 
         #filteraddresses [offset] [count] [sort_code] [match_str] [match_owned] [show_path]
-        ro = nodes[0].filteraddresses(0, 100, '0', '', '2')
+        ro = nodes[0].filteraddresses(0, 100, 0, '', 2)
         assert (len(ro) == 1)
         assert (ro[0]['address'] == 'piNdRiuL2BqUA8hh2A6AtEbBkKqKxK13LT')
         assert (ro[0]['label'] == 'lblTest')
@@ -489,7 +489,7 @@ class WalletParticlTest(ParticlTestFramework):
 
         ro = nodes[0].manageaddressbook('edit', 'piNdRiuL2BqUA8hh2A6AtEbBkKqKxK13LT', 'lblEdited')
 
-        ro = nodes[0].filteraddresses(0, 100, '0', '', '2')
+        ro = nodes[0].filteraddresses(0, 100, 0, '', 2)
         assert (len(ro) == 1)
         assert (ro[0]['address'] == 'piNdRiuL2BqUA8hh2A6AtEbBkKqKxK13LT')
         assert (ro[0]['label'] == 'lblEdited')
@@ -616,7 +616,7 @@ class WalletParticlTest(ParticlTestFramework):
         addr_info = nodes[0].getaddressinfo(sxv2addr0_5[2])
         assert (addr_info['ismine'] is True)
 
-        sCheckAddr = nodes[0].deriverangekeys(0, 0, sExternalChainId, 'true')[0]
+        sCheckAddr = nodes[0].deriverangekeys(0, 0, sExternalChainId, True)[0]
         sHardenedAddr = nodes[0].getnewaddress('h1','false','true')
         assert (sHardenedAddr == sCheckAddr)
 

@@ -21,6 +21,7 @@
 #include <coins.h>
 #include <consensus/amount.h>
 #include <indirectmap.h>
+#include <kernel/cs_main.h>
 #include <kernel/mempool_entry.h>
 #include <policy/feerate.h>
 #include <policy/packages.h>
@@ -44,7 +45,6 @@
 class CBlockIndex;
 class CChain;
 class Chainstate;
-extern RecursiveMutex cs_main;
 
 enum eMemPoolFlags
 {

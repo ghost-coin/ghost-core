@@ -164,7 +164,7 @@ class ColdStakingTest(ParticlTestFramework):
         ro = nodes[0].deriverangekeys(1, 1, coldstakingaddr)
         assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
-        ro = nodes[0].deriverangekeys(0, 0, ekChange, 'false', 'false', 'false', 'true')
+        ro = nodes[0].deriverangekeys(0, 0, ekChange, False, False, False, True)
         assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashSpend)))
 
         ro = nodes[0].extkey('list', 'true')
@@ -213,7 +213,7 @@ class ColdStakingTest(ParticlTestFramework):
         ro = nodes[0].deriverangekeys(2, 2, coldstakingaddr)
         assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
-        ro = nodes[0].deriverangekeys(1, 1, ekChange, 'false', 'false', 'false', 'true')
+        ro = nodes[0].deriverangekeys(1, 1, ekChange, False, False, False, True)
         assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashSpend)))
 
         ro = nodes[0].extkey('list', 'true')

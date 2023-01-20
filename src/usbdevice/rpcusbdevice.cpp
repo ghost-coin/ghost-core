@@ -530,8 +530,6 @@ static RPCHelpMan devicesignrawtransaction()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VARR, UniValue::VSTR, UniValue::VSTR}, true);
-
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_str(), true)) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
@@ -792,9 +790,6 @@ static RPCHelpMan initaccountfromdevice()
     if (!wallet) return NullUniValue;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
 
-
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VBOOL, UniValue::VNUM}, true);
-
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
@@ -1026,7 +1021,7 @@ static RPCHelpMan devicegetnewstealthaddress()
             "           prefix_num can be specified in base2, 10 or 16, for base 2 prefix_num must begin with 0b, 0x for base16.\n"
             "           A 32bit integer will be created from prefix_num and the least significant num_prefix_bits will become the prefix.\n"
             "           A stealth address created without a prefix will scan all incoming stealth transactions, irrespective of transaction prefixes.\n"
-            "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix."},
+            "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix.", RPCArgOptions{.skip_type_check = true}},
                     {"bech32", RPCArg::Type::BOOL, RPCArg::Default{true}, "Use Bech32 encoding."},
                 },
                 RPCResult{
@@ -1238,7 +1233,6 @@ static RPCHelpMan devicesignrawtransactionwithwallet()
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
 
     LOCK(pwallet ? &pwallet->cs_wallet : nullptr);
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VARR, UniValue::VSTR, UniValue::VSTR}, true);
 
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_str(), true)) {

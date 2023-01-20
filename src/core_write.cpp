@@ -377,7 +377,6 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         UniValue out(UniValue::VOBJ);
         out.pushKV("n", (int64_t)i);
         OutputToJSON(txid, i, tx.vpout[i].get(), out);
-        auto txo_type = tx.vpout[i].get()->GetType();
         vout.push_back(out);
     }
 

@@ -994,10 +994,10 @@ static RPCHelpMan extkey()
     HELP_REQUIRING_PASSPHRASE,
     {
         {"mode", RPCArg::Type::STR, RPCArg::Default{"list"}, "One of: info, list, account, import, importAccount, setMaster, setDefaultAccount, deriveAccount, options"},
-        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
     },
     RPCResult{RPCResult::Type::ANY, "", ""},
     RPCExamples{""},
@@ -1879,7 +1879,7 @@ static RPCHelpMan extkeyimportmaster()
         "       if mnemonic is blank, defaults to '-stdin'."},
                     {"passphrase", RPCArg::Type::STR, RPCArg::Default{""}, "Passphrase when importing mnemonic.\n"
         "       Use '-stdin' to be prompted to enter a passphrase."},
-                    {"save_bip44_root", RPCArg::Type::BOOL, RPCArg::Default{false}, "Save bip44 root key to wallet."},
+                    {"save_bip44_root", RPCArg::Type::BOOL, RPCArg::Default{false}, "Save bip44 root key to wallet.", RPCArgOptions{.skip_type_check = true}},
                     {"master_label", RPCArg::Type::STR, RPCArg::Default{"Master Key"}, "Label for master key."},
                     {"account_label", RPCArg::Type::STR, RPCArg::Default{"Default Account"}, "Label for account."},
                     {"scan_chain_from", RPCArg::Type::NUM, RPCArg::Default{0}, "Scan for transactions in blocks after timestamp, negative number to skip."},
@@ -2078,7 +2078,7 @@ static RPCHelpMan getnewstealthaddress()
             "           prefix_num can be specified in base2, 10 or 16, for base 2 prefix_num must begin with 0b, 0x for base16.\n"
             "           A 32bit integer will be created from prefix_num and the least significant num_prefix_bits will become the prefix.\n"
             "           A stealth address created without a prefix will scan all incoming stealth transactions, irrespective of transaction prefixes.\n"
-            "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix."},
+            "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix.", RPCArgOptions{.skip_type_check = true}},
                     {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
                     {"makeV2", RPCArg::Type::BOOL, RPCArg::Default{false}, "Generate an address from the same scheme used for hardware wallets."},
                 },
@@ -2102,7 +2102,7 @@ static RPCHelpMan getnewstealthaddress()
         sLabel = request.params[0].get_str();
     }
 
-    uint32_t num_prefix_bits = request.params.size() > 1 ? GetUInt32(request.params[1]) : 0;
+    uint32_t num_prefix_bits = request.params.size() > 1 ? (uint32_t)request.params[1].getInt<int>() : 0;
     if (num_prefix_bits > 32) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits must be <= 32.");
     }
@@ -2153,7 +2153,7 @@ static RPCHelpMan importstealthaddress()
             "           prefix_num can be specified in base2, 10 or 16, for base 2 prefix_num must begin with 0b, 0x for base16.\n"
             "           A 32bit integer will be created from prefix_num and the least significant num_prefix_bits will become the prefix.\n"
             "           A stealth address created without a prefix will scan all incoming stealth transactions, irrespective of transaction prefixes.\n"
-            "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix."},
+            "           Stealth addresses with prefixes will scan only incoming stealth transactions with a matching prefix.", RPCArgOptions{.skip_type_check = true}},
                     {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
                 },
                 RPCResult{
@@ -2188,7 +2188,7 @@ static RPCHelpMan importstealthaddress()
         sLabel = request.params[2].get_str();
     }
 
-    uint32_t num_prefix_bits = request.params.size() > 3 ? GetUInt32(request.params[3]) : 0;
+    uint32_t num_prefix_bits = request.params.size() > 3 ? (uint32_t)request.params[3].getInt<int>() : 0;
     if (num_prefix_bits > 32) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits must be <= 32.");
     }
@@ -2402,7 +2402,7 @@ static RPCHelpMan liststealthaddresses()
                 "\nList stealth addresses in this wallet.\n",
                 {
                     {"show_secrets", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display secret keys to stealth addresses.\n"
-                "                  Wallet must be unlocked if true."},
+                "                  Wallet must be unlocked if true.", RPCArgOptions{.skip_type_check = true}},
                     {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "JSON with options",
                         {
                             {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display addresses in bech32 format"},
@@ -4103,11 +4103,11 @@ static RPCHelpMan filteraddresses()
     // TODO: Make better
     int nSortCode = SRT_LABEL_ASC;
     if (request.params.size() > 2) {
-        std::string sCode = request.params[2].get_str();
-        if (sCode == "0") {
+        int nCode = request.params[2].getInt<int>();
+        if (nCode == 0) {
             nSortCode = SRT_LABEL_ASC;
         } else
-        if (sCode == "1") {
+        if (nCode == 1) {
             nSortCode = SRT_LABEL_DESC;
         } else {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_code.");
@@ -4128,10 +4128,7 @@ static RPCHelpMan filteraddresses()
     }
 
     if (request.params.size() > 4) {
-        std::string s = request.params[4].get_str();
-        if (s != "" && !ParseInt32(s, &nMatchOwned)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown nMatchOwned.");
-        }
+        nMatchOwned = request.params[4].getInt<int>();
     }
 
     int nShowPath = request.params.size() > 5 ? (GetBool(request.params[5]) ? 1 : 0) : 1;
@@ -5826,8 +5823,6 @@ static RPCHelpMan sendtypeto()
 
 static UniValue createsignatureinner(const JSONRPCRequest &request, ChainstateManager *pchainman, const CHDWallet *pwallet)
 {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VSTR, UniValue::VSTR}, true);
-
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_str(), true)) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
@@ -7627,8 +7622,6 @@ static RPCHelpMan getkeyimage()
 
     EnsureWalletIsUnlocked(pwallet);
 
-    RPCTypeCheck(request.params, {UniValue::VSTR}, true);
-
     std::string s = request.params[0].get_str();
     if (!IsHex(s) || !(s.size() == 66)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Public key must be 33 bytes and hex encoded.");
@@ -8149,7 +8142,6 @@ static RPCHelpMan createrawparttransaction()
 
     EnsureWalletIsUnlocked(pwallet);
 
-    RPCTypeCheck(request.params, {UniValue::VARR, UniValue::VARR, UniValue::VNUM, UniValue::VBOOL, UniValue::VSTR}, true);
     if (request.params[0].isNull() || request.params[1].isNull()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, arguments 1 and 2 must be non-null");
     }
@@ -8539,8 +8531,6 @@ static RPCHelpMan fundrawtransactionfrom()
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return UniValue::VNULL;
     CHDWallet *const pwallet = GetParticlWallet(wallet.get());
-
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VOBJ, UniValue::VOBJ, UniValue::VOBJ}, true);
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -8956,8 +8946,6 @@ static RPCHelpMan verifycommitment()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR});
-
     std::vector<uint8_t> vchCommitment;
     uint256 blind;
 
@@ -9015,8 +9003,6 @@ static RPCHelpMan rewindrangeproof()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VSTR, UniValue::VSTR});
-
     std::vector<uint8_t> vchRangeproof, vchCommitment;
     CKey nonce_key;
     CPubKey pkEphem;
@@ -9104,8 +9090,6 @@ static RPCHelpMan generatematchingblindfactor()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VARR, UniValue::VARR});
-
     std::vector<uint8_t> vBlinds;
     std::vector<uint8_t*> vpBlinds;
 
@@ -9252,8 +9236,6 @@ static RPCHelpMan verifyrawtransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VOBJ}, true);
-
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     bool return_decoded = false;

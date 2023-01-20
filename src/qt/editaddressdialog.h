@@ -50,9 +50,9 @@ private:
     QString getDuplicateAddressWarning() const;
 
     Ui::EditAddressDialog *ui;
-    QDataWidgetMapper *mapper;
+    QDataWidgetMapper* mapper{nullptr};
     Mode mode;
-    AddressTableModel *model;
+    AddressTableModel* model{nullptr};
 
     QString address;
 };

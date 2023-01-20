@@ -42,10 +42,10 @@ static RPCHelpMan mnemonicrpc()
         "    Print list of supported languages.\n",
     {
         {"mode", RPCArg::Type::STR, RPCArg::Optional::NO, "One of: new, decode, addchecksum, dumpwords, listlanguages"},
-        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
     },
     RPCResult{RPCResult::Type::ANY, "", ""},
     RPCExamples{

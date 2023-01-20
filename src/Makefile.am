@@ -193,6 +193,7 @@ BITCOIN_CORE_H = \
   kernel/checks.h \
   kernel/coinstats.h \
   kernel/context.h \
+  kernel/cs_main.h \
   kernel/mempool_entry.h \
   kernel/mempool_limits.h \
   kernel/mempool_options.h \
@@ -420,6 +421,7 @@ libparticl_node_a_SOURCES = \
   kernel/checks.cpp \
   kernel/coinstats.cpp \
   kernel/context.cpp \
+  kernel/cs_main.cpp \
   kernel/mempool_persist.cpp \
   mapport.cpp \
   net.cpp \
@@ -757,8 +759,9 @@ libparticl_common_a_SOURCES = \
   policy/policy.cpp \
   protocol.cpp \
   psbt.cpp \
-  rpc/rawtransaction_util.cpp \
   rpc/external_signer.cpp \
+  rpc/rawtransaction_util.cpp \
+  rpc/request.cpp \
   rpc/util.cpp \
   scheduler.cpp \
   script/descriptor.cpp \
@@ -786,7 +789,6 @@ libparticl_util_a_SOURCES = \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
-  rpc/request.cpp \
   support/cleanse.cpp \
   sync.cpp \
   util/asmap.cpp \
@@ -1083,6 +1085,7 @@ libparticlkernel_la_SOURCES = \
   kernel/checks.cpp \
   kernel/coinstats.cpp \
   kernel/context.cpp \
+  kernel/cs_main.cpp \
   kernel/mempool_persist.cpp \
   key.cpp \
   anon.cpp \

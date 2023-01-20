@@ -214,8 +214,8 @@ static RPCHelpMan smsgoptions()
                 "\nList and manage options.\n",
                 {
                     {"mode", RPCArg::Type::STR, RPCArg::Default{"list"}, "Mode: list or set, 2nd arg is with_description in list mode."},
-                    {"optname", RPCArg::Type::STR, RPCArg::Default{""}, "Option name."},
-                    {"value", RPCArg::Type::STR, RPCArg::Default{""}, "New option value."},
+                    {"optname", RPCArg::Type::STR, RPCArg::Default{""}, "Option name.", RPCArgOptions{.skip_type_check = true}},
+                    {"value", RPCArg::Type::STR, RPCArg::Default{""}, "New option value.", RPCArgOptions{.skip_type_check = true}},
                 },
                 RPCResult{
                     RPCResult::Type::ANY, "", ""
@@ -889,10 +889,6 @@ static RPCHelpMan smsgsend()
 {
     EnsureSMSGIsEnabled();
 
-    RPCTypeCheck(request.params,
-        {UniValue::VSTR, UniValue::VSTR, UniValue::VSTR,
-         UniValue::VBOOL, UniValue::VNUM, UniValue::VBOOL, UniValue::VOBJ}, true);
-
     std::string addrFrom  = request.params[0].get_str();
     std::string addrTo    = request.params[1].get_str();
     std::string msg       = request.params[2].get_str();
@@ -1365,8 +1361,6 @@ static RPCHelpMan smsginbox()
 {
     EnsureSMSGIsEnabled();
 
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VOBJ}, true);
-
     std::string mode = request.params[0].isStr() ? request.params[0].get_str() : "unread";
     std::string filter = request.params[1].isStr() ? request.params[1].get_str() : "";
 
@@ -1592,8 +1586,6 @@ static RPCHelpMan smsgoutbox()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     EnsureSMSGIsEnabled();
-
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR}, true);
 
     std::string mode = request.params[0].isStr() ? request.params[0].get_str() : "all";
     std::string filter = request.params[1].isStr() ? request.params[1].get_str() : "";
@@ -2680,8 +2672,6 @@ static RPCHelpMan smsgzmqpush()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     EnsureSMSGIsEnabled();
-
-    RPCTypeCheck(request.params, {UniValue::VOBJ}, true);
 
     bool unreadonly = true;
     int64_t timefrom = 0;

@@ -163,7 +163,7 @@ class USBDeviceTest(ParticlTestFramework):
         hwsxaddr = nodes[1].devicegetnewstealthaddress()
         assert (hwsxaddr == 'tps1qqpdwu7gqjqz9s9wfek843akvkzvw0xq3tkzs93sj4ceq60cp54mvzgpqf4tp6d7h0nza2xe362am697dax24hcr33yxqwvq58l5cf6j6q5hkqqqgykgrc')
 
-        hwsxaddr2 = nodes[1].devicegetnewstealthaddress('lbl2 4bits', '4', '0xaaaa', True)
+        hwsxaddr2 = nodes[1].devicegetnewstealthaddress('lbl2 4bits', 4, '0xaaaa', True)
         assert (hwsxaddr2 == 'tps1qqpewyspjp93axk82zahx5xfjyprpvypfgnp95n9aynxxw3w0qs63acpq0s5z2rwk0raczg8jszl9qy5stncud76ahr5etn9hqmp30e3e86w2qqypgh9sgv0')
 
         ro = nodes[1].getaddressinfo(hwsxaddr2)
@@ -217,10 +217,10 @@ class USBDeviceTest(ParticlTestFramework):
         assert (addrtest == ro['address'])
 
 
-        addrtest = nodes[2].getnewstealthaddress('', '0', '', True, True)
+        addrtest = nodes[2].getnewstealthaddress('', 0, '', True, True)
         assert (addrtest == hwsxaddr)
 
-        addrtest2 = nodes[2].getnewstealthaddress('lbl2 4bits', '4', '0xaaaa', True, True)
+        addrtest2 = nodes[2].getnewstealthaddress('lbl2 4bits', 4, '0xaaaa', True, True)
         assert (addrtest2 == hwsxaddr2)
 
         extaddr2_0 = nodes[2].getnewextaddress()

@@ -118,8 +118,6 @@ static RPCHelpMan checkkeyimage()
 
     UniValue result(UniValue::VOBJ);
 
-    RPCTypeCheck(request.params, {UniValue::VSTR}, true);
-
     std::string s = request.params[0].get_str();
     if (!IsHex(s) || !(s.size() == 66)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Keyimage must be 33 bytes and hex encoded.");

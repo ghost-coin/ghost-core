@@ -89,6 +89,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "scanblocks", 1, "scanobjects" },
     { "scanblocks", 2, "start_height" },
     { "scanblocks", 3, "stop_height" },
+    { "scanblocks", 5, "options" },
     { "scantxoutset", 1, "scanobjects" },
     { "addmultisigaddress", 0, "nrequired" },
     { "addmultisigaddress", 1, "keys" },
@@ -197,22 +198,23 @@ static const CRPCConvertParam vRPCConvertParams[] =
     // Particl
     { "importstealthaddress", 3, "num_prefix_bits" },
     { "liststealthaddresses", 0, "show_secrets" },
+    { "clearwallettransactions", 0, "remove_all" },
+    { "deriverangekeys", 0, "start" },
+    { "deriverangekeys", 1, "end" },
+    { "deriverangekeys", 3, "hardened" },
     { "deriverangekeys", 4, "save" },
     { "deriverangekeys", 5, "add_to_addressbook" },
     { "deriverangekeys", 6, "256bithash" },
-    { "clearwallettransactions", 0, "remove_all" },
-    { "deriverangekeys", 3, "hardened" },
     { "rehashblock", 2, "addtxns" },
     { "verifycommitment", 2, "amount" },
     { "getposdifficulty", 0, "height" },
-    { "filteraddresses", 2, "sort_code" },
-    { "filteraddresses", 5, "show_path" },
     { "reservebalance", 0, "enabled" },
-    { "deriverangekeys", 0, "start" },
-    { "deriverangekeys", 1, "end" },
     { "filtertransactions", 0, "options" },
     { "filteraddresses", 0, "offset" },
     { "filteraddresses", 1, "count" },
+    { "filteraddresses", 2, "sort_code" },
+    { "filteraddresses", 4, "match_owned" },
+    { "filteraddresses", 5, "show_path" },
     { "setvote", 0, "proposal" },
     { "setvote", 1, "option" },
     { "setvote", 2, "height_start" },
@@ -276,7 +278,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "extkeyimportmaster", 6, "options" },
     { "extkeygenesisimport", 2, "save_bip44_root" },
     { "extkeygenesisimport", 6, "options" },
-    { "filteraddresses", 4, "match_owned" },
     { "debugwallet", 0, "options" },
     { "reservebalance", 1, "amount" },
     { "votehistory", 0, "current_only" },
@@ -382,11 +383,16 @@ private:
 public:
     CRPCConvertTable();
 
-    bool convert(const std::string& method, int idx) {
-        return (members.count(std::make_pair(method, idx)) > 0);
+    /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
+    UniValue ArgToUniValue(const std::string& arg_value, const std::string& method, int param_idx)
+    {
+        return members.count(std::make_pair(method, param_idx)) > 0 ? ParseNonRFCJSONValue(arg_value) : arg_value;
     }
-    bool convert(const std::string& method, const std::string& name) {
-        return (membersByName.count(std::make_pair(method, name)) > 0);
+
+    /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
+    UniValue ArgToUniValue(const std::string& arg_value, const std::string& method, const std::string& param_name)
+    {
+        return membersByName.count(std::make_pair(method, param_name)) > 0 ? ParseNonRFCJSONValue(arg_value) : arg_value;
     }
 };
 
@@ -418,14 +424,7 @@ UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::s
 
     for (unsigned int idx = 0; idx < strParams.size(); idx++) {
         const std::string& strVal = strParams[idx];
-
-        if (!rpcCvtTable.convert(strMethod, idx)) {
-            // insert string value directly
-            params.push_back(strVal);
-        } else {
-            // parse string as JSON, insert bool/number/object/etc. value
-            params.push_back(ParseNonRFCJSONValue(strVal));
-        }
+        params.push_back(rpcCvtTable.ArgToUniValue(strVal, strMethod, idx));
     }
 
     return params;
@@ -439,7 +438,7 @@ UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<s
     for (const std::string &s: strParams) {
         size_t pos = s.find('=');
         if (pos == std::string::npos) {
-            positional_args.push_back(rpcCvtTable.convert(strMethod, positional_args.size()) ? ParseNonRFCJSONValue(s) : s);
+            positional_args.push_back(rpcCvtTable.ArgToUniValue(s, strMethod, positional_args.size()));
             continue;
         }
 
@@ -449,13 +448,7 @@ UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<s
         // Intentionally overwrite earlier named values with later ones as a
         // convenience for scripts and command line users that want to merge
         // options.
-        if (!rpcCvtTable.convert(strMethod, name)) {
-            // insert string value directly
-            params.pushKV(name, value);
-        } else {
-            // parse string as JSON, insert bool/number/object/etc. value
-            params.pushKV(name, ParseNonRFCJSONValue(value));
-        }
+        params.pushKV(name, rpcCvtTable.ArgToUniValue(value, strMethod, name));
     }
 
     if (!positional_args.empty()) {

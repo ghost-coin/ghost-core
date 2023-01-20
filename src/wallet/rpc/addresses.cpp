@@ -23,9 +23,9 @@ RPCHelpMan getnewaddress()
                 "so payments received with the address will be associated with 'label'.\n",
                 {
                     {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
-                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
-                    {"hardened", RPCArg::Type::BOOL, RPCArg::Default{false}, "Derive a hardened key."},
-                    {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type."},
+                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding.", RPCArgOptions{.skip_type_check = true}},
+                    {"hardened", RPCArg::Type::BOOL, RPCArg::Default{false}, "Derive a hardened key.", RPCArgOptions{.skip_type_check = true}},
+                    {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type.", RPCArgOptions{.skip_type_check = true}},
                     {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\", and \"bech32m\"."},
                 },
                 RPCResult{
@@ -295,8 +295,8 @@ RPCHelpMan addmultisigaddress()
                         },
                         },
                     {"label", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "A label to assign the addresses to."},
-                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding."},
-                    {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type."},
+                    {"bech32", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use Bech32 encoding.", RPCArgOptions{.skip_type_check = true}},
+                    {"256bit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use 256bit hash type.", RPCArgOptions{.skip_type_check = true}},
                     {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\"."},
                 },
                 RPCResult{
