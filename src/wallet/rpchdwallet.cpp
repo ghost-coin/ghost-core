@@ -994,10 +994,10 @@ static RPCHelpMan extkey()
     HELP_REQUIRING_PASSPHRASE,
     {
         {"mode", RPCArg::Type::STR, RPCArg::Default{"list"}, "One of: info, list, account, import, importAccount, setMaster, setDefaultAccount, deriveAccount, options"},
-        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
-        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
-        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
-        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg0", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg1", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg2", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "", RPCArgOptions{.skip_type_check = true}},
+        {"arg3", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "", RPCArgOptions{.skip_type_check = true}},
     },
     RPCResult{RPCResult::Type::ANY, "", ""},
     RPCExamples{""},
@@ -6044,7 +6044,7 @@ static RPCHelpMan createsignaturewithwallet()
             "       \"ALL|ANYONECANPAY\"\n"
             "       \"NONE|ANYONECANPAY\"\n"
             "       \"SINGLE|ANYONECANPAY\""},
-                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "JSON with options",
+                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "JSON with options",
                         {
                             {"force_segwit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Force creating a segwit compatible signature"},
                         },
@@ -6105,7 +6105,7 @@ static RPCHelpMan createsignaturewithkey()
             "       \"ALL|ANYONECANPAY\"\n"
             "       \"NONE|ANYONECANPAY\"\n"
             "       \"SINGLE|ANYONECANPAY\""},
-                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED_NAMED_ARG, "JSON with options",
+                    {"options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "JSON with options",
                         {
                             {"force_segwit", RPCArg::Type::BOOL, RPCArg::Default{false}, "Force creating a segwit compatible signature"},
                         },

@@ -165,31 +165,44 @@ public:
     std::unique_ptr<DatabaseBatch> MakeBatch(bool flush_on_close = true) override;
 };
 
+/** RAII class that automatically cleanses its data on destruction */
+class SafeDbt final
+{
+    Dbt m_dbt;
+
+public:
+    // construct Dbt with internally-managed data
+    SafeDbt();
+    // construct Dbt with provided data
+    SafeDbt(void* data, size_t size);
+    ~SafeDbt();
+
+    // delegate to Dbt
+    const void* get_data() const;
+    uint32_t get_size() const;
+
+    // conversion operator to access the underlying Dbt
+    operator Dbt*();
+
+    void set_data(void* data, size_t size);
+};
+
+class BerkeleyCursor : public DatabaseCursor
+{
+private:
+    Dbc* m_cursor;
+
+public:
+    explicit BerkeleyCursor(BerkeleyDatabase& database);
+    ~BerkeleyCursor() override;
+
+    Status Next(CDataStream& key, CDataStream& value) override;
+};
+
 /** RAII class that provides access to a Berkeley database */
 class BerkeleyBatch : public DatabaseBatch
 {
 public:
-    /** RAII class that automatically cleanses its data on destruction */
-    class SafeDbt final
-    {
-        Dbt m_dbt;
-
-    public:
-        // construct Dbt with internally-managed data
-        SafeDbt();
-        // construct Dbt with provided data
-        SafeDbt(void* data, size_t size);
-        ~SafeDbt();
-
-        // delegate to Dbt
-        const void* get_data() const;
-        uint32_t get_size() const;
-
-        // conversion operator to access the underlying Dbt
-        operator Dbt*();
-
-        void set_data(void* data, size_t size);
-    };
 
 //private:
     bool ReadKey(CDataStream&& key, CDataStream& value, int nFlags=0) override;
@@ -201,7 +214,6 @@ public:
     Db* pdb;
     std::string strFile;
     DbTxn* activeTxn;
-    Dbc* m_cursor;
     bool fReadOnly;
     bool fFlushOnClose;
     BerkeleyEnvironment *env;
@@ -217,9 +229,7 @@ public:
     void Flush() override;
     void Close() override;
 
-    bool StartCursor() override;
-    bool ReadAtCursor(CDataStream& ssKey, CDataStream& ssValue, bool& complete) override;
-    void CloseCursor() override;
+    std::unique_ptr<DatabaseCursor> GetNewCursor() override;
     bool TxnBegin() override;
     bool TxnCommit() override;
     bool TxnAbort() override;

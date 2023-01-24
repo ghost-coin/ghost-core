@@ -282,7 +282,7 @@ public:
     int ReadAtCursor(Dbc *pcursor, CDataStream &ssKey, CDataStream &ssValue, unsigned int fFlags=DB_NEXT)
     {
         // Read at cursor
-        BerkeleyBatch::SafeDbt datKey, datValue;
+        SafeDbt datKey, datValue;
         if (fFlags == DB_SET || fFlags == DB_SET_RANGE || fFlags == DB_GET_BOTH || fFlags == DB_GET_BOTH_RANGE) {
             datKey.set_data(ssKey.data(), ssKey.size());
         }
@@ -317,7 +317,7 @@ public:
     int ReadKeyAtCursor(Dbc *pcursor, CDataStream &ssKey, unsigned int fFlags=DB_NEXT)
     {
         // Read key at cursor
-        BerkeleyBatch::SafeDbt datKey;
+        SafeDbt datKey;
         if (fFlags == DB_SET || fFlags == DB_SET_RANGE) {
             datKey.set_data(&ssKey[0], ssKey.size());
         }
