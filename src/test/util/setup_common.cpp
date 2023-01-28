@@ -230,13 +230,14 @@ ChainTestingSetup::~ChainTestingSetup()
 
 void TestingSetup::LoadVerifyActivateChainstate()
 {
+    auto& chainman{*Assert(m_node.chainman)};
     node::ChainstateLoadOptions options;
     options.mempool = Assert(m_node.mempool.get());
     options.block_tree_db_in_memory = m_block_tree_db_in_memory;
     options.coins_db_in_memory = m_coins_db_in_memory;
     options.reindex = node::fReindex;
     options.reindex_chainstate = m_args.GetBoolArg("-reindex-chainstate", false);
-    options.prune = node::fPruneMode;
+    options.prune = chainman.m_blockman.IsPruneMode();
     options.check_blocks = m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS);
     options.check_level = m_args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL);
     node::ChainstateLoadArgs csl_args;
@@ -246,15 +247,15 @@ void TestingSetup::LoadVerifyActivateChainstate()
     csl_args.timestamp_index = m_node.args->GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
     csl_args.balances_index = m_node.args->GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
     options.args = csl_args;
-    auto [status, error] = LoadChainstate(*Assert(m_node.chainman), m_cache_sizes, options);
+    auto [status, error] = LoadChainstate(chainman, m_cache_sizes, options);
     assert(status == node::ChainstateLoadStatus::SUCCESS);
 
-    std::tie(status, error) = VerifyLoadedChainstate(*Assert(m_node.chainman), options);
+    std::tie(status, error) = VerifyLoadedChainstate(chainman, options);
     assert(status == node::ChainstateLoadStatus::SUCCESS);
 
     BlockValidationState state;
     state.m_chainman = m_node.chainman.get();
-    if (!m_node.chainman->ActiveChainstate().ActivateBestChain(state)) {
+    if (!chainman.ActiveChainstate().ActivateBestChain(state)) {
         throw std::runtime_error(strprintf("ActivateBestChain failed. (%s)", state.ToString()));
     }
 }

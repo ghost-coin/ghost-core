@@ -279,7 +279,7 @@ public:
         return (ret == 0);
     }
 
-    int ReadAtCursor(Dbc *pcursor, CDataStream &ssKey, CDataStream &ssValue, unsigned int fFlags=DB_NEXT)
+    int ReadAtCursor(Dbc *pcursor, DataStream &ssKey, DataStream &ssValue, unsigned int fFlags=DB_NEXT)
     {
         // Read at cursor
         SafeDbt datKey, datValue;
@@ -304,17 +304,15 @@ public:
         }
 
         // Convert to streams
-        ssKey.SetType(SER_DISK);
         ssKey.clear();
         ssKey.write(AsBytes(Span{(char*)datKey.get_data(), datKey.get_size()}));
 
-        ssValue.SetType(SER_DISK);
         ssValue.clear();
         ssValue.write(AsBytes(Span{(char*)datValue.get_data(), datValue.get_size()}));
         return 0;
     }
 
-    int ReadKeyAtCursor(Dbc *pcursor, CDataStream &ssKey, unsigned int fFlags=DB_NEXT)
+    int ReadKeyAtCursor(Dbc *pcursor, DataStream &ssKey, unsigned int fFlags=DB_NEXT)
     {
         // Read key at cursor
         SafeDbt datKey;
@@ -333,7 +331,6 @@ public:
         }
 
         // Convert to streams
-        ssKey.SetType(SER_DISK);
         ssKey.clear();
         ssKey.write(AsBytes(Span{(char*)datKey.get_data(), datKey.get_size()}));
         return 0;

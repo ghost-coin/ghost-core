@@ -196,7 +196,7 @@ public:
     explicit BerkeleyCursor(BerkeleyDatabase& database);
     ~BerkeleyCursor() override;
 
-    Status Next(CDataStream& key, CDataStream& value) override;
+    Status Next(DataStream& key, DataStream& value) override;
 };
 
 /** RAII class that provides access to a Berkeley database */
@@ -205,10 +205,10 @@ class BerkeleyBatch : public DatabaseBatch
 public:
 
 //private:
-    bool ReadKey(CDataStream&& key, CDataStream& value, int nFlags=0) override;
-    bool WriteKey(CDataStream&& key, CDataStream&& value, bool overwrite = true) override;
-    bool EraseKey(CDataStream&& key) override;
-    bool HasKey(CDataStream&& key) override;
+    bool ReadKey(DataStream&& key, DataStream& value, int nFlags=0) override;
+    bool WriteKey(DataStream&& key, DataStream&& value, bool overwrite = true) override;
+    bool EraseKey(DataStream&& key) override;
+    bool HasKey(DataStream&& key) override;
 
 //protected:
     Db* pdb;
@@ -234,7 +234,7 @@ public:
     bool TxnCommit() override;
     bool TxnAbort() override;
 
-    int ReadAtCursor2(Dbc* pcursor, CDataStream& ssKey, CDataStream& ssValue, bool setRange = false);
+    int ReadAtCursor2(Dbc* pcursor, DataStream& ssKey, DataStream& ssValue, bool setRange = false);
 };
 
 std::string BerkeleyDatabaseVersion();

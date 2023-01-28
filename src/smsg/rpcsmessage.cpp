@@ -1111,7 +1111,6 @@ static RPCHelpMan smsgfund()
 {
     EnsureSMSGIsEnabled();
 
-    RPCTypeCheckArgument(request.params[0], UniValue::VARR);
     UniValue uv_msgids = request.params[0].get_array();
     std::vector<smsg::SecureMessage> v_smsgs(uv_msgids.size());
     std::vector<smsg::SecureMessage*> v_psmsgs(uv_msgids.size());

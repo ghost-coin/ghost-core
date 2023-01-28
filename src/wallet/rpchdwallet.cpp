@@ -4743,19 +4743,16 @@ static RPCHelpMan listunspentanon()
 
     int nMinDepth = 1;
     if (request.params.size() > 0 && !request.params[0].isNull()) {
-        RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
         nMinDepth = request.params[0].getInt<int>();
     }
 
     int nMaxDepth = 0x7FFFFFFF;
     if (request.params.size() > 1 && !request.params[1].isNull()) {
-        RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
         nMaxDepth = request.params[1].getInt<int>();
     }
 
     std::set<CBitcoinAddress> setAddress;
     if (request.params.size() > 2 && !request.params[2].isNull()) {
-        RPCTypeCheckArgument(request.params[2], UniValue::VARR);
         UniValue inputs = request.params[2].get_array();
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
@@ -4772,7 +4769,6 @@ static RPCHelpMan listunspentanon()
 
     bool include_unsafe = true;
     if (request.params.size() > 3 && !request.params[3].isNull()) {
-        RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
         include_unsafe = request.params[3].get_bool();
     }
 
@@ -4994,13 +4990,11 @@ static RPCHelpMan listunspentblind()
 
     int nMinDepth = 1;
     if (request.params.size() > 0 && !request.params[0].isNull()) {
-        RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
         nMinDepth = request.params[0].getInt<int>();
     }
 
     int nMaxDepth = 0x7FFFFFFF;
     if (request.params.size() > 1 && !request.params[1].isNull()) {
-        RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
         nMaxDepth = request.params[1].getInt<int>();
     }
 
@@ -5048,7 +5042,6 @@ static RPCHelpMan listunspentblind()
 
     std::set<CTxDestination> setAddress;
     if (request.params.size() > 2 && !request.params[2].isNull()) {
-        RPCTypeCheckArgument(request.params[2], UniValue::VARR);
         UniValue inputs = request.params[2].get_array();
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
@@ -5065,7 +5058,6 @@ static RPCHelpMan listunspentblind()
 
     bool include_unsafe{true};
     if (request.params.size() > 3 && !request.params[3].isNull()) {
-        RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
         include_unsafe = request.params[3].get_bool();
     }
 
@@ -5347,7 +5339,6 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     size_t nTestFeeOfs = 99;
     size_t nCoinControlOfs = 99;
 
-    RPCTypeCheckArgument(request.params[0], UniValue::VARR);
     const UniValue &outputs = request.params[0].get_array();
 
     for (size_t k = 0; k < outputs.size(); ++k) {
@@ -9703,7 +9694,6 @@ static RPCHelpMan rehashblock()
     }
 
     if (request.params.size() > 2) {
-        RPCTypeCheckArgument(request.params[2], UniValue::VARR);
         const UniValue &addtxns = request.params[2];
         for (unsigned int idx = 0; idx < addtxns.size(); idx++) {
             const UniValue& o = addtxns[idx].get_obj();

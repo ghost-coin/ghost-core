@@ -674,8 +674,8 @@ bool CHDWallet::LoadAddressBook(CHDWalletDB *pwdb)
         throw std::runtime_error(strprintf("%s: cannot create DB cursor", __func__).c_str());
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     std::string strType, strAddress, sPrefix = "abe";
     size_t nCount = 0;
@@ -775,8 +775,8 @@ bool CHDWallet::LoadTxRecords(CHDWalletDB *pwdb)
         throw std::runtime_error(strprintf("%s: cannot create DB cursor", __func__).c_str());
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     std::string strType, sPrefix = "rtx";
     uint256 txhash;
@@ -6701,8 +6701,8 @@ int CHDWallet::ExtKeyEncryptAll(CHDWalletDB *pwdb, const CKeyingMaterial &vMKey)
         return werrorN(1, "%s : cannot create DB cursor.", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CKeyID ckeyId;
     CBitcoinAddress addr;
@@ -6947,8 +6947,8 @@ int CHDWallet::ExtKeyLoadAccounts()
         return werrorN(1, "%s: cannot create DB cursor", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CKeyID idAccount;
     std::string strType;
@@ -7027,8 +7027,8 @@ int CHDWallet::ExtKeyLoadLoose()
         throw std::runtime_error(strprintf("%s : cannot create DB cursor", __func__).c_str());
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CKeyID ckeyId;
     CStoredExtKey sek;
@@ -7342,8 +7342,8 @@ int CHDWallet::ExtKeyLoadAccountPacks()
         return werrorN(1, "%s: cannot create DB cursor", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CKeyID idAccount;
     uint32_t nPack;
@@ -9001,8 +9001,8 @@ int CHDWallet::LoadStealthAddresses()
         return werrorN(1, "%s: cannot create DB cursor", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CBitcoinAddress addr;
     CStealthAddress sx;
@@ -9045,8 +9045,7 @@ int CHDWallet::LoadMasterKeys()
         return werrorN(1, "%s: cannot create DB cursor", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION), ssValue(SER_DISK, CLIENT_VERSION);
-
+    DataStream ssKey{}, ssValue{};
     unsigned int fFlags = DB_SET_RANGE;
     std::string strType;
     ssKey << std::string("mkey");
@@ -9251,8 +9250,8 @@ bool CHDWallet::ProcessLockedStealthOutputs()
         return werror("%s: Cannot create DB cursor.", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CPubKey pk;
 
@@ -9392,7 +9391,7 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
         return werror("%s: Cannot create DB cursor.", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
 
     COutPoint op;
     std::string strType;
@@ -9526,7 +9525,7 @@ bool CHDWallet::CountRecords(std::string sPrefix, int64_t rv)
         return werror("%s: Cannot create DB cursor.", __func__);
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
     ssKey << sPrefix;
     std::string strType;
     unsigned int fFlags = DB_SET_RANGE;
@@ -13730,8 +13729,8 @@ int LoopExtKeysInDB(CHDWallet *pwallet, bool fInactive, bool fInAccount, LoopExt
         throw std::runtime_error(strprintf("%s : cannot create DB cursor", __func__).c_str());
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
 
     CKeyID ckeyId;
     CStoredExtKey sek;
@@ -13773,8 +13772,8 @@ int LoopExtAccountsInDB(CHDWallet *pwallet, bool fInactive, LoopExtKeyCallback &
         throw std::runtime_error(strprintf("%s : cannot create DB cursor", __func__).c_str());
     }
 
-    CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-    CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+    DataStream ssKey{};
+    DataStream ssValue{};
     CKeyID idAccount;
     CExtKeyAccount sea;
     std::string strType, sError;
