@@ -330,7 +330,6 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
                      std::vector<valtype>& ret, TxoutType& whichTypeRet, SigVersion sigversion, SignatureData& sigdata)
 {
     CScript scriptRet;
-    uint160 h160;
     ret.clear();
     std::vector<unsigned char> sig;
 
@@ -378,7 +377,8 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::SCRIPTHASH256: {
         CScriptID idScript;
         if (vSolutions[0].size() == 20) {
-            idScript = CScriptID(uint160(vSolutions[0]));
+            uint160 h160{vSolutions[0]};
+            idScript = CScriptID{h160};
         } else
         if (vSolutions[0].size() == 32) {
             idScript.Set(uint256(vSolutions[0]));
@@ -390,10 +390,11 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
             return true;
         }
         // Could not find redeemScript, add to missing
-        sigdata.missing_redeem_script = h160;
+        if (vSolutions[0].size() == 20) {
+            sigdata.missing_redeem_script = uint160{vSolutions[0]};
         }
         return false;
-
+    }
     case TxoutType::MULTISIG: {
         size_t required = vSolutions.front()[0];
         ret.push_back(valtype()); // workaround CHECKMULTISIG bug
@@ -419,8 +420,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return true;
 
     case TxoutType::WITNESS_V0_SCRIPTHASH:
-        CRIPEMD160().Write(vSolutions[0].data(), vSolutions[0].size()).Finalize(h160.begin());
-        if (GetCScript(provider, sigdata, CScriptID{h160}, scriptRet)) {
+        if (GetCScript(provider, sigdata, CScriptID{RIPEMD160(vSolutions[0])}, scriptRet)) {
             ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
             return true;
         }
