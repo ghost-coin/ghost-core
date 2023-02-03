@@ -56,7 +56,6 @@ using node::PSBTAnalysis;
 using node::ReadBlockFromDisk;
 using node::UndoReadFromDisk;
 
-
 static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, UniValue& entry, bool include_hex, int serialize_flags, const CTxUndo* txundo, TxVerbosity verbosity, ChainstateManager *pchainman, CTxMemPool *pmempool, int raw_verbosity)
 {
     uint256 txid = tx.GetHash();
@@ -230,8 +229,12 @@ static void TxToUnivExpanded(const CTransaction& tx, const uint256& block_hash, 
     }
 }
 
-static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, Chainstate& active_chainstate, const CTxUndo* txundo = nullptr, TxVerbosity verbosity = TxVerbosity::SHOW_TXID, ChainstateManager *pchainman = nullptr, CTxMemPool *pmempool = nullptr, int raw_verbosity = 0)
+static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry,
+                     Chainstate& active_chainstate, const CTxUndo* txundo = nullptr,
+                     TxVerbosity verbosity = TxVerbosity::SHOW_DETAILS,
+                     ChainstateManager *pchainman = nullptr, CTxMemPool *pmempool = nullptr, int raw_verbosity = 0)
 {
+    CHECK_NONFATAL(verbosity >= TxVerbosity::SHOW_DETAILS);
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
     // Blockchain contextual information (confirmations and blocktime) is not
@@ -526,7 +529,7 @@ static RPCHelpMan getrawtransaction()
         blockindex = chainman.m_blockman.LookupBlockIndex(hash_block);
     }
     if (verbosity == 1) {
-        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_TXID);
+        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate());
         return result;
     }
 
@@ -537,7 +540,7 @@ static RPCHelpMan getrawtransaction()
     if (tx->IsCoinBase() ||
         !blockindex || is_block_pruned ||
         !(UndoReadFromDisk(blockUndo, blockindex) && ReadBlockFromDisk(block, blockindex, Params().GetConsensus()))) {
-        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_TXID, &chainman, node.mempool.get(), verbosity);
+        TxToJSON(*tx, hash_block, result, chainman.ActiveChainstate(), nullptr, TxVerbosity::SHOW_DETAILS, &chainman, node.mempool.get(), verbosity);
         return result;
     }
 

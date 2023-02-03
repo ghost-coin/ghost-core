@@ -94,7 +94,7 @@ void CZMQNotificationInterface::ThreadZAP()
     zmq_close(sock);
 }
 
-CZMQNotificationInterface::CZMQNotificationInterface() : pcontext(nullptr)
+CZMQNotificationInterface::CZMQNotificationInterface()
 {
 }
 

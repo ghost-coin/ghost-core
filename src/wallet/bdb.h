@@ -211,9 +211,9 @@ public:
     bool HasKey(DataStream&& key) override;
 
 //protected:
-    Db* pdb;
+    Db* pdb{nullptr};
     std::string strFile;
-    DbTxn* activeTxn;
+    DbTxn* activeTxn{nullptr};
     bool fReadOnly;
     bool fFlushOnClose;
     BerkeleyEnvironment *env;
