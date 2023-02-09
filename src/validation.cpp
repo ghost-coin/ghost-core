@@ -4677,7 +4677,7 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
         }
 
         if (nHeight > 0 &&  // skip genesis
-            params.GetLastImportHeight() >= (uint32_t)nHeight) {
+            params.GetLastImportHeight() >= uint32_t(nHeight)) {
             // 2nd txn must be coinbase
             if (block.vtx.size() < 2 || !block.vtx[1]->IsCoinBase()) {
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb", "Second txn of import block must be coinbase");
@@ -5019,7 +5019,7 @@ bool Chainstate::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, BlockV
         } else {
             pindex->bnStakeModifier = ComputeStakeModifierV2(pindex->pprev, pindex->prevoutStake.hash);
         }
-        pindex->nFlags = pindex->nFlags & (uint32_t)~BLOCK_DELAYED;
+        pindex->nFlags = pindex->nFlags & uint32_t(~BLOCK_DELAYED);
         m_blockman.m_dirty_blockindex.insert(pindex);
     }
 
@@ -6847,11 +6847,11 @@ unsigned int GetNextTargetRequired(const CBlockIndex *pindexLast, const Consensu
     unsigned int nProofOfWorkLimit;
     int nHeight = pindexLast ? pindexLast->nHeight+1 : 0;
 
-    if (nHeight < (int)Params().GetLastImportHeight()) {
+    if (nHeight < int(Params().GetLastImportHeight())) {
         if (nHeight == 0) {
             return arith_uint256("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").GetCompact();
         }
-        int nLastImportHeight = (int) Params().GetLastImportHeight();
+        int nLastImportHeight = int(Params().GetLastImportHeight());
         arith_uint256 nMaxProofOfWorkLimit = arith_uint256("000000000008ffffffffffffffffffffffffffffffffffffffffffffffffffff");
         arith_uint256 nMinProofOfWorkLimit = UintToArith256(consensus.powLimit);
         arith_uint256 nStep = (nMaxProofOfWorkLimit - nMinProofOfWorkLimit) / nLastImportHeight;
@@ -6986,7 +6986,7 @@ bool ProcessDuplicateStakeHeader(BlockManager &blockman, CBlockIndex *pindex, No
         StakeConflict &sc = ret.first->second;
         sc.Add(nodeId);
 
-        if ((int)sc.peerCount.size() > std::min(GetNumPeers() / 2, 4)) {
+        if (int(sc.peerCount.size()) > std::min(GetNumPeers() / 2, 4)) {
             LogPrintf("%s: More than half the connected peers are building on block %s," /* Continued */
                 "  marked as duplicate stake, assuming this node has the duplicate.\n", __func__, hash.ToString());
 

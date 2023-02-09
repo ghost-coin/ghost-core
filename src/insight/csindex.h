@@ -33,7 +33,7 @@ public:
     template<typename Stream>
     void Unserialize(Stream& s) {
         m_txnid.Unserialize(s);
-        m_n = (int)ser_readdata32be(s);
+        m_n = int(ser_readdata32be(s));
     }
 
     friend bool operator<(const ColdStakeIndexOutputKey& a, const ColdStakeIndexOutputKey& b) {

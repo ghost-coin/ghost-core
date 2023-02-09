@@ -181,12 +181,12 @@ static RPCHelpMan getaddressmempool()
         UniValue delta(UniValue::VOBJ);
         delta.pushKV("address", address);
         delta.pushKV("txid", it->first.txhash.GetHex());
-        delta.pushKV("index", (int)it->first.index);
+        delta.pushKV("index", int(it->first.index));
         delta.pushKV("satoshis", it->second.amount);
         delta.pushKV("timestamp", it->second.time);
         if (it->second.amount < 0) {
             delta.pushKV("prevtxid", it->second.prevhash.GetHex());
-            delta.pushKV("prevout", (int)it->second.prevout);
+            delta.pushKV("prevout", int(it->second.prevout));
         }
         result.push_back(delta);
     }
@@ -277,7 +277,7 @@ return RPCHelpMan{"getaddressutxos",
 
         output.pushKV("address", address);
         output.pushKV("txid", it->first.txhash.GetHex());
-        output.pushKV("outputIndex", (int)it->first.index);
+        output.pushKV("outputIndex", int(it->first.index));
         output.pushKV("script", HexStr(it->second.script));
         output.pushKV("satoshis", it->second.satoshis);
         output.pushKV("height", it->second.blockHeight);
@@ -290,7 +290,7 @@ return RPCHelpMan{"getaddressutxos",
 
         LOCK(cs_main);
         result.pushKV("hash", chainman.ActiveChain().Tip()->GetBlockHash().GetHex());
-        result.pushKV("height", (int)chainman.ActiveChain().Height());
+        result.pushKV("height", int(chainman.ActiveChain().Height()));
         return result;
     } else {
         return utxos;
@@ -408,8 +408,8 @@ static RPCHelpMan getaddressdeltas()
         UniValue delta(UniValue::VOBJ);
         delta.pushKV("satoshis", it->second);
         delta.pushKV("txid", it->first.txhash.GetHex());
-        delta.pushKV("index", (int)it->first.index);
-        delta.pushKV("blockindex", (int)it->first.txindex);
+        delta.pushKV("index", int(it->first.index));
+        delta.pushKV("blockindex", int(it->first.txindex));
         delta.pushKV("height", it->first.blockHeight);
         delta.pushKV("address", address);
         deltas.push_back(delta);
@@ -647,7 +647,7 @@ static RPCHelpMan getspentinfo()
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("txid", value.txid.GetHex());
-    obj.pushKV("index", (int)value.inputIndex);
+    obj.pushKV("index", int(value.inputIndex));
     obj.pushKV("height", value.blockHeight);
 
     return obj;
@@ -688,7 +688,7 @@ static UniValue blockToDeltasJSON(ChainstateManager& chainman, const CBlock& blo
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block is an orphan");
     }
     result.pushKV("confirmations", confirmations);
-    result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
+    result.pushKV("size", int(::GetSerializeSize(block, PROTOCOL_VERSION)));
     result.pushKV("height", blockindex->nHeight);
     result.pushKV("version", block.nVersion);
     result.pushKV("merkleroot", block.hashMerkleRoot.GetHex());
@@ -702,7 +702,7 @@ static UniValue blockToDeltasJSON(ChainstateManager& chainman, const CBlock& blo
 
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("txid", txhash.GetHex());
-        entry.pushKV("index", (int)i);
+        entry.pushKV("index", int(i));
 
         UniValue inputs(UniValue::VARR);
 
@@ -723,9 +723,9 @@ static UniValue blockToDeltasJSON(ChainstateManager& chainman, const CBlock& blo
                     }
                     delta.pushKV("address", address);
                     delta.pushKV("satoshis", -1 * spentInfo.satoshis);
-                    delta.pushKV("index", (int)j);
+                    delta.pushKV("index", int(j));
                     delta.pushKV("prevtxid", input.prevout.hash.GetHex());
-                    delta.pushKV("prevout", (int)input.prevout.n);
+                    delta.pushKV("prevout", int(input.prevout.n));
 
                     inputs.push_back(delta);
                 } else {
@@ -743,7 +743,7 @@ static UniValue blockToDeltasJSON(ChainstateManager& chainman, const CBlock& blo
 
             UniValue delta(UniValue::VOBJ);
 
-            delta.pushKV("index", (int)k);
+            delta.pushKV("index", int(k));
 
             switch (out->GetType())
             {
@@ -914,7 +914,7 @@ static RPCHelpMan getblockhashes()
         if (fLogicalTS) {
             UniValue item(UniValue::VOBJ);
             item.pushKV("blockhash", it->first.GetHex());
-            item.pushKV("logicalts", (int)it->second);
+            item.pushKV("logicalts", int(it->second));
             result.push_back(item);
         } else {
             result.push_back(it->first.GetHex());
@@ -1377,7 +1377,7 @@ static RPCHelpMan listcoldstakeunspent()
 
         if (key.first != DB_TXINDEX_CSLINK ||
             lk.m_stake_id != seek_key.m_stake_id ||
-            (int)lk.m_height > height)
+            int(lk.m_height) > height)
             break;
 
         std::vector <ColdStakeIndexOutputKey> oks;
@@ -1392,14 +1392,14 @@ static RPCHelpMan listcoldstakeunspent()
                     if (mature_only &&
                         (!all_staked || !(ov.m_flags & CSI_FROM_STAKE))) {
                         int depth = height - lk.m_height;
-                        int depth_required = std::min(min_kernel_depth-1, (int)(height / 2));
+                        int depth_required = std::min(min_kernel_depth-1, int(height / 2));
                         if (depth < depth_required) {
                             continue;
                         }
                     }
 
                     UniValue output(UniValue::VOBJ);
-                    output.pushKV("height", (int)lk.m_height);
+                    output.pushKV("height", int(lk.m_height));
                     output.pushKV("value", ov.m_value);
 
                     if (show_outpoints) {

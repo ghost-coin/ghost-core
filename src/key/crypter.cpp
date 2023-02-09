@@ -44,7 +44,7 @@ bool NarrationCrypter::Encrypt(const uint8_t *chPlaintext, uint32_t nPlain, std:
     AES256CBCEncrypt aes_en(vchKey.data(), vchIV.data(), true);
     int nCLen = aes_en.Encrypt(chPlaintext, nPlain, &vchCiphertext[0]);
 
-    if (nCLen < (int) nPlain) {
+    if (nCLen < int(nPlain)) {
         return false;
     }
     vchCiphertext.resize(nCLen);

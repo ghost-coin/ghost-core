@@ -83,10 +83,10 @@ static RPCHelpMan anonoutput()
         throw JSONRPCError(RPC_MISC_ERROR, "Unknown index.");
     }
 
-    result.pushKV("index", (int)nIndex);
+    result.pushKV("index", int(nIndex));
     result.pushKV("publickey", HexStr(Span<const unsigned char>(ao.pubkey.begin(), 33)));
     result.pushKV("txnhash", ao.outpoint.hash.ToString());
-    result.pushKV("n", (int)ao.outpoint.n);
+    result.pushKV("n", int(ao.outpoint.n));
     result.pushKV("blockheight", ao.nBlockHeight);
 
     return result;

@@ -385,7 +385,7 @@ int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWo
             o |= (b2 << (r-5));
             o |= (b3 >> (8-(r-5)));
         } else {
-            o |= ((int)b2) >> ((8 - (11 - 8))-r);
+            o |= (int(b2)) >> ((8 - (11 - 8))-r);
         }
 
         o = o & 0x7FF;
@@ -476,10 +476,10 @@ int Decode(int &nLanguage, const std::string &sWordListIn, std::vector<uint8_t> 
 
         vEntropy[s] |= (o >> (r+3)) & 0x7FF;
 
-        if (s < (int)el-1) {
+        if (s < int(el)-1) {
             if (r > 5) {
                 vEntropy[s+1] |= (uint8_t) ((o >> (r-5))) & 0x7FF;
-                if (s < (int)el-2) {
+                if (s < int(el)-2) {
                     vEntropy[s+2] |= (uint8_t) (o << (8-(r-5))) & 0x7FF;
                 }
             } else {
@@ -828,19 +828,19 @@ int splitmnemonic(const std::string mnemonic_in, int language_ind, size_t num_sh
     for (int i = word_offsets.size() - 1; i >= 0; i--) {
         std::vector<int> coeffs(threshold + 1);
         coeffs[0] = word_offsets[i];
-        for (int k = 1; k < (int)threshold; ++k) {
+        for (int k = 1; k < int(threshold); ++k) {
             if (0 != random_issuer.GetBits(11, coeffs[k])) {
                 return errorN(5, sError, __func__, "Get random bits failed");
             }
         }
 
-        for (int k = 1; k < (int)num_shares + 1; k++) {
+        for (int k = 1; k < int(num_shares) + 1; k++) {
             int y = horner(k, coeffs);
             shares[k - 1].push_back(y);
         }
     }
 
-    for (int i = 0; i < (int)num_shares; i++) {
+    for (int i = 0; i < int(num_shares); i++) {
         std::string sWord, sWordList = "shamir39-p1";
 
         // Pack parameters in prefix words, 5 bytes each in each word + run-on indicator bit
@@ -976,7 +976,7 @@ int combinemnemonic(const std::vector<std::string> &mnemonics_in, int language_i
         shamir_shares[mnemonic_index] = word_offsets;
     }
 
-    if (shamir_shares.size() < 2 || (int)shamir_shares.size() < group_threshold) {
+    if (shamir_shares.size() < 2 || int(shamir_shares.size()) < group_threshold) {
         return errorN(2, sError, __func__, "Too few shares for threshold");
     }
 
@@ -989,7 +989,7 @@ int combinemnemonic(const std::vector<std::string> &mnemonics_in, int language_i
         if (num_share_words == 0) {
             num_share_words = word_offsets.size();
         }
-        if (num_share_words != (int)word_offsets.size()) {
+        if (num_share_words != int(word_offsets.size())) {
             return errorN(2, sError, __func__, "Mismatched share length");
         }
         share_indices.push_back(share_index);

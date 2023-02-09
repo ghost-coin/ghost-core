@@ -125,7 +125,7 @@ struct CAddressIndexKey {
     void Unserialize(Stream& s) {
         type = ser_readdata8(s);
         hashBytes.Unserialize(s);
-        blockHeight = (int)ser_readdata32be(s);
+        blockHeight = int(ser_readdata32be(s));
         txindex = ser_readdata32be(s);
         txhash.Unserialize(s);
         index = ser_readdata32(s);

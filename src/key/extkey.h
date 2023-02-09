@@ -388,9 +388,9 @@ public:
         }
         if ((nFlags & EAF_HARDWARE_DEVICE)) {
 #if !ENABLE_USBDEVICE
-            return (wallet::isminetype)((int)wallet::ISMINE_WATCH_ONLY_ | (int)wallet::ISMINE_HARDWARE_DEVICE);
+            return (wallet::isminetype)(int(wallet::ISMINE_WATCH_ONLY_) | int(wallet::ISMINE_HARDWARE_DEVICE));
 #endif
-            return (wallet::isminetype)((int)wallet::ISMINE_SPENDABLE | (int)wallet::ISMINE_HARDWARE_DEVICE);
+            return (wallet::isminetype)(int(wallet::ISMINE_SPENDABLE) | int(wallet::ISMINE_HARDWARE_DEVICE));
         }
         return wallet::ISMINE_WATCH_ONLY_;
     };

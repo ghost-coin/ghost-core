@@ -22,12 +22,12 @@ endef
 define $(package)_preprocess_cmds
   patch -p1 < $($(package)_patch_dir)/remove_libstd_link.patch && \
   patch -p1 < $($(package)_patch_dir)/netbsd_kevent_void.patch && \
-  cp -f $(BASEDIR)/config.guess $(BASEDIR)/config.sub config && \
   sed -i 's/getrandom(buf/breakgetrandom(buf/g' acinclude.m4
 endef
 
 define $(package)_config_cmds
   ./autogen.sh && \
+  cp -f $(BASEDIR)/config.guess $(BASEDIR)/config.sub config && \
   $($(package)_autoconf)
 endef
 
