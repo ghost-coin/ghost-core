@@ -274,9 +274,11 @@ public:
 /** CCoinsView that adds a memory cache for transactions to another CCoinsView */
 class CCoinsViewCache : public CCoinsViewBacked
 {
+private:
+    const bool m_deterministic;
+
 public:
 //protected:
-
     /**
      * Make mutable so that we can "fill the cache" even from Get-methods
      * declared as "const".
@@ -321,7 +323,7 @@ public:
     };
 
 public:
-    CCoinsViewCache(CCoinsView *baseIn);
+    CCoinsViewCache(CCoinsView *baseIn, bool deterministic = false);
 
     /**
      * By deleting the copy constructor, we prevent accidentally using it when one intends to create a cache on top of a base cache.
@@ -417,6 +419,9 @@ public:
     //!
     //! See: https://stackoverflow.com/questions/42114044/how-to-release-unordered-map-memory
     void ReallocateCache();
+
+    //! Run an internal sanity check on the cache data structure. */
+    void SanityCheck() const;
 
 private:
     /**

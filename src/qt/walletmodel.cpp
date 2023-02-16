@@ -556,13 +556,6 @@ WalletModel::UnlockContext::~UnlockContext()
     }
 }
 
-void WalletModel::UnlockContext::CopyFrom(UnlockContext&& rhs)
-{
-    // Transfer context; old object no longer relocks wallet
-    *this = rhs;
-    rhs.relock = false;
-}
-
 bool WalletModel::isHardwareLinkedWallet() const {
     return m_wallet->isHardwareLinkedWallet();
 }
@@ -598,7 +591,7 @@ bool WalletModel::tryCallRpc(const QString &sCommand, UniValue &rv, bool returnE
     }
 
     return true;
-};
+}
 
 void WalletModel::warningBox(QString heading, QString msg) const
 {
