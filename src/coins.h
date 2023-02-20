@@ -23,8 +23,7 @@
 #include <insight/spentindex.h>
 #include <rctindex.h>
 #include <smsg/types.h>
-
-extern bool fParticlMode;
+#include <util/system.h>
 
 /**
  * A UTXO entry.

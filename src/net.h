@@ -42,7 +42,9 @@
 #include <unordered_set>
 #include <vector>
 
+// Particl
 #include <smsg/net.h>
+#include <kernel/cs_main.h>
 
 
 class AddrMan;
@@ -94,9 +96,6 @@ static const size_t DEFAULT_MAXRECEIVEBUFFER = 5 * 1000;
 static const size_t DEFAULT_MAXSENDBUFFER    = 1 * 1000;
 
 typedef int64_t NodeId;
-
-
-extern RecursiveMutex cs_main;
 
 struct AddedNodeInfo
 {

@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,7 +17,7 @@
 #include <util/ui_change_type.h>
 #include <smsg/db.h>
 #include <smsg/types.h>
-
+#include <kernel/cs_main.h>
 
 #include <atomic>
 #include <boost/signals2/signal.hpp>
@@ -32,8 +32,6 @@ class CNode;
 class PeerManager;
 class ArgsManager;
 typedef int64_t NodeId;
-
-extern RecursiveMutex cs_main;
 
 namespace smsg {
 

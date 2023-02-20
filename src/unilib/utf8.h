@@ -151,7 +151,7 @@ class utf8::string_decoder::iterator {
   using difference_type = char32_t;
   using pointer = char32_t*;
   using reference = char32_t&;
-  iterator(const char* str) : codepoint(0), next(str) { operator++(); }
+  iterator(const char* str) : next(str) { operator++(); }
   iterator(const iterator& it) : codepoint(it.codepoint), next(it.next) {}
   iterator& operator++() { if (next) { codepoint = decode(next); if (!codepoint) next = nullptr; } return *this; }
   iterator operator++(int) { iterator tmp(*this); operator++(); return tmp; }
@@ -159,7 +159,7 @@ class utf8::string_decoder::iterator {
   bool operator!=(const iterator& other) const { return next != other.next; }
   const char32_t& operator*() { return codepoint; }
  private:
-  char32_t codepoint;
+  char32_t codepoint{0};
   const char* next;
 };
 
@@ -188,7 +188,7 @@ class utf8::buffer_decoder::iterator {
   using difference_type = char32_t;
   using pointer = char32_t*;
   using reference = char32_t&;
-  iterator(const char* str, size_t len) : codepoint(0), next(str), len(len) { operator++(); }
+  iterator(const char* str, size_t len) : next(str), len(len) { operator++(); }
   iterator(const iterator& it) : codepoint(it.codepoint), next(it.next), len(it.len) {}
   iterator& operator++() { if (!len) next = nullptr; if (next) codepoint = decode(next, len); return *this; }
   iterator operator++(int) { iterator tmp(*this); operator++(); return tmp; }
@@ -196,7 +196,7 @@ class utf8::buffer_decoder::iterator {
   bool operator!=(const iterator& other) const { return next != other.next; }
   const char32_t& operator*() { return codepoint; }
  private:
-  char32_t codepoint;
+  char32_t codepoint{0};
   const char* next;
   size_t len;
 };

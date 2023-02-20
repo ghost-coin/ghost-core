@@ -60,6 +60,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "index/base -> node/context -> smsg/manager -> smsg/smessage -> wallet/hdwallet -> pos/kernel -> node/transaction -> index/txindex -> index/base",
     "index/txindex -> validation -> index/txindex",
     "anon -> txmempool -> policy/fees -> anon",
+    "kernel/chainstatemanager_opts -> txdb -> validation -> kernel/chainstatemanager_opts",
 )
 
 CODE_DIR = "src"

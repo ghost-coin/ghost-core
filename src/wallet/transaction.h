@@ -19,8 +19,6 @@
 #include <variant>
 #include <vector>
 
-extern const uint256 ABANDON_HASH;
-
 namespace wallet {
 //! State of transaction confirmed in a block.
 struct TxStateConfirmed {

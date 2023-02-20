@@ -217,8 +217,8 @@ private:
     std::string m_label;
 public:
     std::string purpose;
-    bool fBech32;
-    CAddressBookData() : purpose("unknown"), fBech32(false) {}
+    bool fBech32{false};
+    CAddressBookData() : purpose("unknown") {}
 
     std::vector<uint32_t> vPath; // Index to m is stored in first entry
 

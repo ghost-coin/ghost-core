@@ -498,7 +498,7 @@ class CTxOutPart:
         elif self.nVersion == OUTPUT_TYPE_DATA:
             r += ser_string(self.data)
         elif self.nVersion == OUTPUT_TYPE_CT:
-            assert(len(self.commitment) == 33)
+            assert (len(self.commitment) == 33)
             r += self.commitment
             r += ser_string(self.data)
             r += ser_string(self.scriptPubKey)

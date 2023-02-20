@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Particl Core developers
+// Copyright (c) 2022-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +7,7 @@
 
 #include <sync.h>
 #include <smsg/types.h>
+#include <kernel/cs_main.h>
 
 #include <utility>
 
@@ -14,8 +15,6 @@ class CTransaction;
 class CBlockIndex;
 class CBlock;
 class uint256;
-
-extern RecursiveMutex cs_main;
 
 class SmsgManager
 {

@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2015 The Bitcoin Core developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,8 +15,7 @@
 #include <vector>
 #include <string>
 #include <utility>
-
-extern RecursiveMutex cs_main;
+#include <kernel/cs_main.h>
 
 extern bool fAddressIndex;
 extern bool fSpentIndex;

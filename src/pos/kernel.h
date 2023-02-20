@@ -9,8 +9,7 @@
 
 #include <consensus/amount.h>
 #include <sync.h>
-
-extern RecursiveMutex cs_main;
+#include <kernel/cs_main.h>
 
 class CScript;
 class uint256;
