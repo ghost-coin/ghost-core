@@ -31,6 +31,34 @@ class Env;
 static const size_t DBWRAPPER_PREALLOC_KEY_SIZE = 64;
 static const size_t DBWRAPPER_PREALLOC_VALUE_SIZE = 1024;
 
+//! User-controlled performance and debug options.
+struct DBOptions {
+    //! Compact database on startup.
+    bool force_compact = false;
+};
+
+//! Application-specific storage settings.
+struct DBParams {
+    //! Location in the filesystem where leveldb data will be stored.
+    fs::path path;
+    //! Configures various leveldb cache settings.
+    size_t cache_bytes;
+    //! If true, use leveldb's memory environment.
+    bool memory_only = false;
+    //! If true, remove all existing data.
+    bool wipe_data = false;
+    //! If true, store data obfuscated via simple XOR. If false, XOR with a
+    //! zero'd byte array.
+    bool obfuscate = false;
+    //! Passed-through options.
+    DBOptions options{};
+
+    //! Particl: Set to true for BlockTreeDB when using insight
+    bool compression = false;
+    //! Particl: Adjustable for BlockTreeDB when using insight
+    int max_open_files = 1000;
+};
+
 class dbwrapper_error : public std::runtime_error
 {
 public:
@@ -244,18 +272,7 @@ private:
     bool m_is_memory;
 
 public:
-    /**
-     * @param[in] path          Location in the filesystem where leveldb data will be stored.
-     * @param[in] nCacheSize    Configures various leveldb cache settings.
-     * @param[in] fMemory       If true, use leveldb's memory environment.
-     * @param[in] fWipe         If true, remove all existing data.
-     * @param[in] obfuscate     If true, store data obfuscated via simple XOR. If false, XOR
-     *                          with a zero'd byte array.
-     * @param[in] compression   Enable snappy compression for the database
-     * @param[in] maxOpenFiles  The maximum number of open files for the database
-     */
-
-    CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool obfuscate = false, bool compression = false, int maxOpenFiles = 64);
+    CDBWrapper(const DBParams& params);
     ~CDBWrapper();
 
     CDBWrapper(const CDBWrapper&) = delete;

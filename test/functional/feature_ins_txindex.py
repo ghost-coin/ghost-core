@@ -20,8 +20,8 @@ class TxIndexTest(ParticlTestFramework):
             ['-debug',],
             ['-debug','-txindex'],
             # Nodes 2/3 are used for testing
-            ['-debug','-txindex'],
-            ['-debug','-txindex'],]
+            ['-debug','-txindex', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug','-txindex', '-dbcompression', '-dbmaxopenfiles=1000',],]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

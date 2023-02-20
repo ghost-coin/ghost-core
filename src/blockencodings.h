@@ -143,7 +143,7 @@ public:
     CBlockHeader header;
     std::vector<uint8_t> vchBlockSig; // Particl
 
-    // Can be overriden for testing
+    // Can be overridden for testing
     using CheckBlockFn = std::function<bool(const CBlock&, BlockValidationState&, const Consensus::Params&, bool, bool)>;
     CheckBlockFn m_check_block_mock{nullptr};
 

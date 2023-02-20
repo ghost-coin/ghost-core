@@ -580,8 +580,8 @@ void SetupServerArgs(ArgsManager& argsman)
     argsman.AddArg("-csindex", strprintf("Maintain an index of outputs by coldstaking address (default: %u)", particl::DEFAULT_CSINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-cswhitelist", strprintf("Only index coldstaked outputs with matching stake address. Can be specified multiple times."), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
-    argsman.AddArg("-dbmaxopenfiles", strprintf("Maximum number of open files parameter passed to level-db (default: %u)", particl::DEFAULT_DB_MAX_OPEN_FILES), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
-    argsman.AddArg("-dbcompression", strprintf("Database compression parameter passed to level-db (default: %s)", particl::DEFAULT_DB_COMPRESSION ? "true" : "false"), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-dbmaxopenfiles", strprintf("Maximum number of open files parameter passed to level-db for the blocktree db (default: %u)", particl::DEFAULT_BLOCKTREE_DB_MAX_OPEN_FILES), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-dbcompression", strprintf("Database compression parameter passed to level-db for the blocktree db (default: %s)", particl::DEFAULT_BLOCKTREE_DB_COMPRESSION ? "true" : "false"), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
     argsman.AddArg("-findpeers", "Node will search for peers (default: 1)", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
 
@@ -1232,6 +1232,7 @@ bool AppInitParameterInteraction(const ArgsManager& args, bool use_syscall_sandb
     {
         ChainstateManager::Options chainman_opts_dummy{
             .chainparams = chainparams,
+            .datadir = args.GetDataDirNet(),
         };
         if (const auto error{ApplyArgsManOptions(args, chainman_opts_dummy)}) {
             return InitError(*error);
@@ -1643,6 +1644,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
     ChainstateManager::Options chainman_opts{
         .chainparams = chainparams,
+        .datadir = args.GetDataDirNet(),
         .adjusted_time_callback = GetAdjustedTime,
     };
     Assert(!ApplyArgsManOptions(args, chainman_opts)); // no error can happen, already checked in AppInitParameterInteraction
@@ -1650,14 +1652,6 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     fs::path blocksDir = gArgs.GetDataDirNet() / "blocks";
     if (!fs::exists(blocksDir))
         fs::create_directories(blocksDir);
-
-    // block tree db settings
-    int dbMaxOpenFiles = gArgs.GetIntArg("-dbmaxopenfiles", particl::DEFAULT_DB_MAX_OPEN_FILES);
-    bool dbCompression = gArgs.GetBoolArg("-dbcompression", particl::DEFAULT_DB_COMPRESSION);
-
-    LogPrintf("Block index database configuration:\n");
-    LogPrintf("* Using %d max open files\n", dbMaxOpenFiles);
-    LogPrintf("* Compression is %s\n", dbCompression ? "enabled" : "disabled");
 
     // cache size calculations
     CacheSizes cache_sizes = CalculateCacheSizes(args, g_enabled_filter_types.size());
@@ -1672,6 +1666,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                   cache_sizes.filter_index * (1.0 / 1024 / 1024), BlockFilterTypeName(filter_type));
     }
     LogPrintf("* Using %.1f MiB for chain state database\n", cache_sizes.coins_db * (1.0 / 1024 / 1024));
+
+    // block tree db settings
+    cache_sizes.max_open_files = gArgs.GetIntArg("-dbmaxopenfiles", particl::DEFAULT_BLOCKTREE_DB_MAX_OPEN_FILES);
+    cache_sizes.compression = gArgs.GetBoolArg("-dbcompression", particl::DEFAULT_BLOCKTREE_DB_COMPRESSION);
+
+    LogPrintf("Block index database configuration:\n");
+    LogPrintf("* Using %d max open files\n", cache_sizes.max_open_files);
+    LogPrintf("* Compression is %s\n", cache_sizes.compression ? "enabled" : "disabled");
 
     assert(!node.mempool);
     assert(!node.chainman);
@@ -2046,7 +2048,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         if (connOptions.onion_binds.size() > 1) {
             InitWarning(strprintf(_("More than one onion bind address is provided. Using %s "
                                     "for the automatically created Tor onion service."),
-                                  onion_service_target.ToStringIPPort()));
+                                  onion_service_target.ToStringAddrPort()));
         }
         StartTorControl(onion_service_target);
     }
@@ -2072,6 +2074,13 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         const auto connect = args.GetArgs("-connect");
         if (connect.size() != 1 || connect[0] != "0") {
             connOptions.m_specified_outgoing = connect;
+        }
+        if (!connOptions.m_specified_outgoing.empty() && !connOptions.vSeedNodes.empty()) {
+            LogPrintf("-seednode is ignored when -connect is used\n");
+        }
+
+        if (args.IsArgSet("-dnsseed") && args.GetBoolArg("-dnsseed", DEFAULT_DNSSEED) && args.IsArgSet("-proxy")) {
+            LogPrintf("-dnsseed is ignored when -connect is used and -proxy is specified\n");
         }
     }
 

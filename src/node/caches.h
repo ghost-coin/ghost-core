@@ -17,6 +17,10 @@ struct CacheSizes {
     int64_t coins;
     int64_t tx_index;
     int64_t filter_index;
+
+    // Particl
+    bool compression;
+    int max_open_files;
 };
 CacheSizes CalculateCacheSizes(const ArgsManager& args, size_t n_indexes = 0);
 } // namespace node

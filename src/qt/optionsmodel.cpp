@@ -19,6 +19,7 @@
 #include <netbase.h>
 #include <txdb.h>       // for -dbcache defaults
 #include <util/string.h>
+#include <util/system.h>
 #include <validation.h> // For DEFAULT_SCRIPTCHECK_THREADS
 #include <wallet/wallet.h> // For DEFAULT_SPEND_ZEROCONF_CHANGE
 
@@ -706,6 +707,11 @@ bool OptionsModel::isRestartRequired() const
 {
     QSettings settings;
     return settings.value("fRestartRequired", false).toBool();
+}
+
+bool OptionsModel::hasSigner()
+{
+    return gArgs.GetArg("-signer", "") != "";
 }
 
 void OptionsModel::checkAndMigrate()

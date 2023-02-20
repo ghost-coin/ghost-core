@@ -1,6 +1,9 @@
-// Copyright (c) 2017-2018 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <test/util/setup_common.h>
+#include <test/util/random.h>
 
 #include <key/stealth.h>
 
@@ -8,7 +11,6 @@
 #include <pubkey.h>
 #include <key_io.h>
 #include <script/signingprovider.h>
-#include <test/util/setup_common.h>
 #include <util/strencodings.h>
 
 #include <serialize.h>

@@ -109,8 +109,8 @@ namespace particl {
 static constexpr size_t MAX_STAKE_SEEN_SIZE = 1000;
 inline int64_t FutureDrift(int64_t nTime) { return nTime + 15; } // FutureDriftV2
 
-static constexpr unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
-static constexpr bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
+static constexpr unsigned int DEFAULT_BLOCKTREE_DB_MAX_OPEN_FILES = 1000;
+static constexpr bool DEFAULT_BLOCKTREE_DB_COMPRESSION = false; // set to true for insight
 static constexpr bool DEFAULT_AUTOMATIC_BANS = true;
 static constexpr bool DEFAULT_ACCEPT_ANON_TX = false;
 static constexpr bool DEFAULT_ACCEPT_BLIND_TX = false;
@@ -468,7 +468,7 @@ public:
     //! state to disk, which should not be done until the health of the database is verified.
     //!
     //! All arguments forwarded onto CCoinsViewDB.
-    CoinsViews(fs::path ldb_name, size_t cache_size_bytes, bool in_memory, bool should_wipe);
+    CoinsViews(DBParams db_params, CoinsViewOptions options);
 
     //! Initialize the CCoinsViewCache member.
     void InitCache() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);

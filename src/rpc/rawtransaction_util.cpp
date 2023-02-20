@@ -21,31 +21,14 @@
 #include <util/strencodings.h>
 #include <util/translation.h>
 
-CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf)
+void AddInputs(CMutableTransaction& rawTx, const UniValue& inputs_in, std::optional<bool> rbf)
 {
-    if (outputs_in.isNull()) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, output argument must be non-null");
-    }
-
+    rawTx.nVersion = fParticlMode ? PARTICL_TXN_VERSION : BTC_TXN_VERSION;
     UniValue inputs;
     if (inputs_in.isNull()) {
         inputs = UniValue::VARR;
     } else {
         inputs = inputs_in.get_array();
-    }
-
-    const bool outputs_is_obj = outputs_in.isObject();
-    UniValue outputs = outputs_is_obj ? outputs_in.get_obj() : outputs_in.get_array();
-
-    CMutableTransaction rawTx;
-    rawTx.nVersion = fParticlMode ? PARTICL_TXN_VERSION : BTC_TXN_VERSION;
-
-
-    if (!locktime.isNull()) {
-        int64_t nLockTime = locktime.getInt<int64_t>();
-        if (nLockTime < 0 || nLockTime > LOCKTIME_MAX)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, locktime out of range");
-        rawTx.nLockTime = nLockTime;
     }
 
     for (unsigned int idx = 0; idx < inputs.size(); idx++) {
@@ -86,6 +69,16 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
 
         rawTx.vin.push_back(in);
     }
+}
+
+void AddOutputs(CMutableTransaction& rawTx, const UniValue& outputs_in)
+{
+    if (outputs_in.isNull()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, output argument must be non-null");
+    }
+
+    const bool outputs_is_obj = outputs_in.isObject();
+    UniValue outputs = outputs_is_obj ? outputs_in.get_obj() : outputs_in.get_array();
 
     if (!outputs_is_obj) {
         // Translate array of key-value pairs into dict
@@ -162,6 +155,21 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             }
         }
     }
+}
+
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, std::optional<bool> rbf)
+{
+    CMutableTransaction rawTx;
+
+    if (!locktime.isNull()) {
+        int64_t nLockTime = locktime.getInt<int64_t>();
+        if (nLockTime < 0 || nLockTime > LOCKTIME_MAX)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, locktime out of range");
+        rawTx.nLockTime = nLockTime;
+    }
+
+    AddInputs(rawTx, inputs_in, rbf);
+    AddOutputs(rawTx, outputs_in);
 
     if (rbf.has_value() && rbf.value() && rawTx.vin.size() > 0 && !SignalsOptInRBF(CTransaction(rawTx))) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter combination: Sequence number(s) contradict replaceable option");

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,7 @@
 #define PARTICL_WALLET_TEST_HDWALLET_TEST_FIXTURE_H
 
 #include <test/util/setup_common.h>
+#include <test/util/random.h>
 
 #include <interfaces/chain.h>
 #include <interfaces/wallet.h>

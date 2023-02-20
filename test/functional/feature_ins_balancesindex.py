@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2021 tecnovert
+# Copyright (c) 2021-2023 tecnovert
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,8 +12,8 @@ class BalancesIndexTest(ParticlTestFramework):
         self.num_nodes = 3
         self.extra_args = [
             ['-debug', ],
-            ['-debug', '-balancesindex'],
-            ['-debug', '-balancesindex'], ]
+            ['-debug', '-balancesindex', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug', '-balancesindex', '-dbcompression', '-dbmaxopenfiles=1000',], ]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

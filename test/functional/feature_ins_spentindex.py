@@ -17,11 +17,11 @@ class SpentIndexTest(ParticlTestFramework):
         self.num_nodes = 4
         self.extra_args = [
             # Nodes 0/1 are "wallet" nodes
-            ['-debug',],
-            ['-debug','-spentindex'],
+            ['-debug', ],
+            ['-debug', '-spentindex'],
             # Nodes 2/3 are used for testing
-            ['-debug','-spentindex'],
-            ['-debug','-spentindex', '-txindex'],]
+            ['-debug', '-spentindex', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug', '-spentindex', '-txindex', '-dbcompression', '-dbmaxopenfiles=1000',],]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

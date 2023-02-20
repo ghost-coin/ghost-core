@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,7 +23,7 @@ HDWalletTestingSetup::HDWalletTestingSetup(const std::string &chainName):
     TestingSetup(chainName, { "-balancesindex" }, true, true, true /* fParticlMode */),
     m_wallet_loader{interfaces::MakeWalletLoader(*m_node.chain, *Assert(m_node.args))}
 {
-    pwalletMain = std::make_shared<CHDWallet>(m_node.chain.get(), "", m_args, CreateMockWalletDatabaseBDB());
+    pwalletMain = std::make_shared<CHDWallet>(m_node.chain.get(), "", CreateMockWalletDatabaseBDB());
     WalletContext& wallet_context = *m_wallet_loader->context();
     AddWallet(wallet_context, pwalletMain);
     pwalletMain->LoadWallet();

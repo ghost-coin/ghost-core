@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -384,9 +384,9 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
     // one key that would satisfy an (a|b) or 2-of-3 keys needed
     // to spend an escrow transaction.
     //
-    CHDWallet keystore(m_node.chain.get(), "", m_args, CreateDummyWalletDatabase());
-    CHDWallet emptykeystore(m_node.chain.get(), "", m_args, CreateDummyWalletDatabase());
-    CHDWallet partialkeystore(m_node.chain.get(), "", m_args, CreateDummyWalletDatabase());
+    CHDWallet keystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet emptykeystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet partialkeystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
     CKey key[3];
     std::vector<CTxDestination> keyaddr(3); // Wmaybe-uninitialized
     for (int i = 0; i < 3; i++) {
@@ -486,8 +486,8 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
 BOOST_AUTO_TEST_CASE(opiscoinstake_test)
 {
     SeedInsecureRand();
-    CHDWallet keystoreA(m_node.chain.get(), "", m_args, CreateDummyWalletDatabase());
-    CHDWallet keystoreB(m_node.chain.get(), "", m_args, CreateDummyWalletDatabase());
+    CHDWallet keystoreA(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet keystoreB(m_node.chain.get(), "", CreateDummyWalletDatabase());
 
     CKey kA, kB;
     InsecureNewKey(kA, true);
