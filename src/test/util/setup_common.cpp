@@ -244,6 +244,8 @@ void TestingSetup::LoadVerifyActivateChainstate()
     options.prune = chainman.m_blockman.IsPruneMode();
     options.check_blocks = m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS);
     options.check_level = m_args.GetIntArg("-checklevel", DEFAULT_CHECKLEVEL);
+    options.require_full_verification = m_args.IsArgSet("-checkblocks") || m_args.IsArgSet("-checklevel");
+
     node::ChainstateLoadArgs csl_args;
     // Particl, NOTE: m_args != m_node.args
     csl_args.address_index = m_node.args->GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX);
@@ -251,6 +253,7 @@ void TestingSetup::LoadVerifyActivateChainstate()
     csl_args.timestamp_index = m_node.args->GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
     csl_args.balances_index = m_node.args->GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
     options.args = csl_args;
+
     auto [status, error] = LoadChainstate(chainman, m_cache_sizes, options);
     assert(status == node::ChainstateLoadStatus::SUCCESS);
 

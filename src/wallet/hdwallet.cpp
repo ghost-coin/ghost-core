@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -900,7 +900,7 @@ bool CHDWallet::EncryptWallet(const SecureString &strWalletPassphrase)
         return false;
 
     {
-        LOCK(cs_wallet);
+        LOCK2(m_relock_mutex, cs_wallet);
         mapMasterKeys[++nMasterKeyMaxID] = kMasterKey;
         WalletBatch* encrypted_batch = new CHDWalletDB(*m_database);
         if (!encrypted_batch->TxnBegin()) {

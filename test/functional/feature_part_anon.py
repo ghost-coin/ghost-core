@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2022 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -216,9 +216,12 @@ class AnonTest(ParticlTestFramework):
         w1_3.walletsettings('other', {'onlyinstance': False})
         w1_3.walletlock()
         assert (w1_3.getwalletinfo()['encryptionstatus'] == 'Locked')
-        w1_3.rescanblockchain(0)
+
+        # rescanblockchain here causes
+        #   Error: Please enter the wallet passphrase with walletpassphrase first
 
         w1_3.walletpassphrase('test', 30)
+        w1_3.rescanblockchain(0)
 
         wi_1_3 = w1_3.getwalletinfo()
         assert (wi_1_3['anon_balance'] == wi_1['anon_balance'])
