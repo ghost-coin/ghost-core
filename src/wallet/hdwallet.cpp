@@ -1440,8 +1440,6 @@ bool CHDWallet::GetStealthAddressSpendKey(const CStealthAddress &sxAddr, CKey &k
     return false;
 };
 
-
-
 bool CHDWallet::ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend)
 {
     if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
@@ -2148,7 +2146,7 @@ isminetype CHDWallet::IsMine(const CScript &scriptPubKey, CKeyID &keyID,
         }
     }
     return ISMINE_NO;
-};
+}
 
 isminetype CHDWallet::IsMine(const CTxOutBase *txout) const
 {
@@ -2166,7 +2164,7 @@ isminetype CHDWallet::IsMine(const CTxOutBase *txout) const
     }
 
     return ISMINE_NO;
-};
+}
 
 bool CHDWallet::IsMine(const CTransaction &tx) const
 {
@@ -10004,7 +10002,6 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
                 continue;
             }
 
-
             // Uncover stealth
             uint32_t prefix = 0;
             bool fHavePrefix = ExtractStealthPrefix(ctout->vData, prefix);
@@ -10038,8 +10035,8 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
             }
         } else
         if (txout->IsType(OUTPUT_STANDARD)) {
-            if (nOutputId < (int)tx.vpout.size()-1
-                && tx.vpout[nOutputId+1]->IsType(OUTPUT_DATA)) {
+            if (nOutputId < (int)tx.vpout.size()-1 &&
+                tx.vpout[nOutputId+1]->IsType(OUTPUT_DATA)) {
                 CTxOutData *txd = (CTxOutData*) tx.vpout[nOutputId+1].get();
 
                 std::string sNarr;
@@ -10055,7 +10052,6 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
             if (txout->GetValue() < m_min_owned_value) {
                 continue;
             }
-
             if (IsMine(txout.get())) {
                 fIsMine = true;
             }

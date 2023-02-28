@@ -276,8 +276,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
     { "pruneorphanedblocks", 0, "testonly" },
     { "extkeyimportmaster", 2, "save_bip44_root" },
+    { "extkeyimportmaster", 5, "scan_chain_from" },
     { "extkeyimportmaster", 6, "options" },
     { "extkeygenesisimport", 2, "save_bip44_root" },
+    { "extkeygenesisimport", 5, "scan_chain_from" },
     { "extkeygenesisimport", 6, "options" },
     { "debugwallet", 0, "options" },
     { "reservebalance", 1, "amount" },

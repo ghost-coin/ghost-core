@@ -434,4 +434,3 @@ class AnonTest(ParticlTestFramework):
 
 if __name__ == '__main__':
     AnonTest().main()
-
