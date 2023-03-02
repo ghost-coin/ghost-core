@@ -1723,8 +1723,8 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
     CExtKey58 eKey58;
     CExtKeyPair ekp;
     if (eKey58.Set58(sMnemonic.c_str()) == 0) {
-        if (!eKey58.IsValid(CChainParams::EXT_SECRET_KEY)
-            && !eKey58.IsValid(CChainParams::EXT_SECRET_KEY_BTC)) {
+        if (!eKey58.IsValid(CChainParams::EXT_SECRET_KEY) &&
+            !eKey58.IsValid(CChainParams::EXT_SECRET_KEY_BTC)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Please specify a private extkey or mnemonic phrase.");
         }
 
@@ -1770,7 +1770,6 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             wdb.TxnAbort();
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
         }
-
         if (0 != (rv = pwallet->ExtKeySetMaster(&wdb, idDerived))) {
             wdb.TxnAbort();
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("ExtKeySetMaster failed, %s.", ExtKeyGetString(rv)));

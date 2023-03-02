@@ -69,8 +69,6 @@ class HelpRpcTest(BitcoinTestFramework):
 
         # Particl: Some arguments are converted internally and can be multiple types.
         mapping_client += [
-            ('extkeygenesisimport', 5, 'scan_chain_from'),
-            ('extkeyimportmaster', 5, 'scan_chain_from'),
             ('getnewaddress', 1, 'bech32'),
             ('getnewaddress', 2, 'hardened'),
             ('getnewaddress', 3, '256bit'),

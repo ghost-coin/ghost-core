@@ -11398,7 +11398,7 @@ CoinsResult CHDWallet::AvailableCoins(const CCoinControl *coinControl, std::opti
             if (!txout->setTxout(txout_old)) {
                 continue;
             }
-            int input_bytes = CalculateMaximumSignedInputSize(txout_old, COutPoint(), provider, coinControl);
+            int input_bytes = CalculateMaximumSignedInputSize(txout_old, COutPoint(), provider, CanGrindR(), coinControl);
             result.coins[OutputType::UNKNOWN].emplace_back(COutPoint(wtx.GetHash(), i), txout_old, nDepth, input_bytes, fSpendableIn, fSolvableIn, safeTx, wtx.GetTxTime(), tx_from_me, feerate, fMature, fNeedHardwareKey);
             result.total_amount += txout->nValue;
 
@@ -12397,7 +12397,7 @@ bool CHDWallet::IsSpent(const COutPoint& outpoint) const
         }
     }
     return false;
-};
+}
 
 bool CHDWallet::GetSpendingTxid(const uint256& hash, unsigned int n, uint256 &spent_by_txid) const
 {
@@ -12631,7 +12631,7 @@ bool CHDWallet::AbandonTransaction(const uint256 &hashTx)
     }
 
     return true;
-};
+}
 
 void CHDWallet::MarkConflicted(const uint256 &hashBlock, int conflicting_height, const uint256 &hashTx)
 {
@@ -12720,7 +12720,7 @@ void CHDWallet::MarkConflicted(const uint256 &hashBlock, int conflicting_height,
     }
 
     return;
-};
+}
 
 void CHDWallet::SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator> range)
 {
@@ -12793,7 +12793,7 @@ bool CHDWallet::GetSetting(const std::string &setting, UniValue &json) const
         return false;
     }
     return true;
-};
+}
 
 bool CHDWallet::SetSetting(const std::string &setting, const UniValue &json)
 {
@@ -12807,7 +12807,7 @@ bool CHDWallet::SetSetting(const std::string &setting, const UniValue &json)
         return false;
     }
     return true;
-};
+}
 
 bool CHDWallet::EraseSetting(const std::string &setting)
 {
@@ -12819,7 +12819,7 @@ bool CHDWallet::EraseSetting(const std::string &setting)
         return false;
     }
     return true;
-};
+}
 
 int64_t CHDWallet::GetTimeFirstKey()
 {
@@ -12829,7 +12829,7 @@ int64_t CHDWallet::GetTimeFirstKey()
         if (!time_first_key || time < time_first_key) time_first_key = time;
     }
     return time_first_key;
-};
+}
 
 bool CHDWallet::GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) const
 {
@@ -12854,7 +12854,7 @@ bool CHDWallet::GetPrevout(const COutPoint &prevout, CTxOutBaseRef &txout) const
     }
 
     return false;
-};
+}
 
 bool CHDWallet::GetLegacyPrevout(const COutPoint &prevout, CTxOut &txout) const
 {
@@ -12877,7 +12877,7 @@ bool CHDWallet::GetLegacyPrevout(const COutPoint &prevout, CTxOut &txout) const
     }
 
     return false;
-};
+}
 
 size_t CHDWallet::CountColdstakeOutputs()
 {
@@ -12899,12 +12899,12 @@ size_t CHDWallet::CountColdstakeOutputs()
     }
 
     return nColdstakeOutputs;
-};
+}
 
 void CHDWallet::ClearMapTempRecords()
 {
     mapTempRecords.clear();
-};
+}
 
 bool CHDWallet::GetScriptForDest(CScript &script, const CTxDestination &dest, bool fUpdate, std::vector<uint8_t> *vData, uint32_t *last_key)
 {
@@ -12957,7 +12957,7 @@ bool CHDWallet::GetScriptForDest(CScript &script, const CTxDestination &dest, bo
     }
 
     return true;
-};
+}
 
 bool CHDWallet::SetReserveBalance(CAmount nNewReserveBalance)
 {
@@ -12967,13 +12967,13 @@ bool CHDWallet::SetReserveBalance(CAmount nNewReserveBalance)
     nReserveBalance = nNewReserveBalance;
     NotifyReservedBalanceChanged(nReserveBalance);
     return true;
-};
+}
 
 void CHDWallet::SetStakeLimitHeight(int stake_limit)
 {
     LOCK(cs_wallet);
     nStakeLimitHeight = stake_limit;
-};
+}
 
 uint64_t CHDWallet::GetStakeWeight() const
 {
@@ -13007,7 +13007,7 @@ uint64_t CHDWallet::GetStakeWeight() const
     }
 
     return nWeight;
-};
+}
 
 void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t nTime, int nHeight) const
 {
@@ -13155,7 +13155,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
 
     Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
     return;
-};
+}
 
 bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int nHeight, std::set<COutput> &setCoinsRet, int64_t &nValueRet) const
 {
@@ -13193,7 +13193,7 @@ bool CHDWallet::SelectCoinsForStaking(int64_t nTargetValue, int64_t nTime, int n
     }
 
     return true;
-};
+}
 
 bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight, int64_t nFees, CMutableTransaction &txNew, CKey &key)
 {
@@ -13583,7 +13583,6 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         assert(test_compact == next_compact);
     }
 
-
     if (!IsValidDestination(m_reward_address)) {
         nCredit += nRewardOut;
     }
@@ -13619,7 +13618,6 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         }
     }
 
-
     // Sign
     int nIn = 0;
     for (const auto &pcoin : vwtxPrev) {
@@ -13644,7 +13642,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
     // Successfully generated coinstake
     return true;
-};
+}
 
 bool CHDWallet::SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime)
 {
@@ -13704,7 +13702,7 @@ bool CHDWallet::SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int
         nLastCoinStakeSearchTime = nSearchTime;
     }
     return false;
-};
+}
 
 std::unique_ptr<node::CBlockTemplate> CHDWallet::CreateNewBlock()
 {
@@ -13712,7 +13710,7 @@ std::unique_ptr<node::CBlockTemplate> CHDWallet::CreateNewBlock()
         return nullptr;
     }
     return chain().createNewBlock();
-};
+}
 
 int LoopExtKeysInDB(CHDWallet *pwallet, bool fInactive, bool fInAccount, LoopExtKeyCallback &callback)
 {
@@ -13754,7 +13752,7 @@ int LoopExtKeysInDB(CHDWallet *pwallet, bool fInactive, bool fInAccount, LoopExt
     pcursor->close();
 
     return 0;
-};
+}
 
 
 int LoopExtAccountsInDB(CHDWallet *pwallet, bool fInactive, LoopExtKeyCallback &callback)
@@ -13809,7 +13807,7 @@ int LoopExtAccountsInDB(CHDWallet *pwallet, bool fInactive, LoopExtKeyCallback &
     pcursor->close();
 
     return 0;
-};
+}
 
 void SetCTOutVData(std::vector<uint8_t> &vData, CPubKey &pkEphem, const CTempRecipient &r)
 {
@@ -13821,7 +13819,7 @@ void SetCTOutVData(std::vector<uint8_t> &vData, CPubKey &pkEphem, const CTempRec
         uint32_t tmp = htole32(r.nStealthPrefix);
         memcpy(&vData[34], &tmp, 4);
     }
-};
+}
 
 int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string &sError)
 {
@@ -13874,7 +13872,7 @@ int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string 
     }
 
     return 0;
-};
+}
 
 void ExtractNarration(const uint256 &nonce, const std::vector<uint8_t> &vData, std::string &sNarr)
 {
@@ -13912,8 +13910,7 @@ void ExtractNarration(const uint256 &nonce, const std::vector<uint8_t> &vData, s
         return;
     }
     sNarr = std::string(vchNarr.begin(), vchNarr.end());
-};
-
+}
 
 int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wallet)
 {
@@ -13966,12 +13963,12 @@ void RestartStakingThreads(wallet::WalletContext &wallet_context, ChainstateMana
 {
     StopThreadStakeMiner();
     StartThreadStakeMiner(wallet_context, chainman);
-};
+}
 
 bool IsParticlWallet(const WalletStorage *win)
 {
     return win && dynamic_cast<const CHDWallet*>(win);
-};
+}
 
 CHDWallet *GetParticlWallet(WalletStorage *win)
 {
@@ -13983,7 +13980,7 @@ CHDWallet *GetParticlWallet(WalletStorage *win)
         throw std::runtime_error("Wallet pointer is not an instance of class CHDWallet.");
     }
     return rv;
-};
+}
 
 const CHDWallet *GetParticlWallet(const WalletStorage *win)
 {
@@ -13995,4 +13992,4 @@ const CHDWallet *GetParticlWallet(const WalletStorage *win)
         throw std::runtime_error("Wallet pointer is not an instance of class CHDWallet.");
     }
     return rv;
-};
+}
