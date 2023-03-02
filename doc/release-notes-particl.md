@@ -39,6 +39,7 @@ Next Major Version
 ==============
 
 - rpc: Fix listunspentblind filter by address
+- wallet: Fix disabling recscan for importaccount command
 
 
 23.0.3

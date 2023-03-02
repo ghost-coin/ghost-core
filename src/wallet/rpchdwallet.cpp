@@ -1086,14 +1086,14 @@ static RPCHelpMan extkey()
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown ext key length '%d'", keyLen));
         }
 
-        if (memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_SECRET_KEY)[0], 4) == 0
-            || memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_SECRET_KEY_BTC)[0], 4) == 0) {
+        if (memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_SECRET_KEY)[0], 4) == 0 ||
+            memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_SECRET_KEY_BTC)[0], 4) == 0) {
             if (ExtKeyPathV(sMode, vchOut, keyInfo, sError) != 0) {
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("ExtKeyPathV failed %s.", sError.c_str()));
             }
         } else
-        if (memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_PUBLIC_KEY)[0], 4) == 0
-            || memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_PUBLIC_KEY_BTC)[0], 4) == 0) {
+        if (memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_PUBLIC_KEY)[0], 4) == 0 ||
+            memcmp(&vchOut[0], &Params().Base58Prefix(CChainParams::EXT_PUBLIC_KEY_BTC)[0], 4) == 0) {
             if (ExtKeyPathP(sMode, vchOut, keyInfo, sError) != 0) {
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("ExtKeyPathP failed %s.", sError.c_str()));
             }
@@ -1210,8 +1210,8 @@ static RPCHelpMan extkey()
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Import failed - Invalid key.");
         }
 
-        if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)
-            && (eKey58.IsValid(CChainParams::EXT_SECRET_KEY_BTC) || eKey58.IsValid(CChainParams::EXT_SECRET_KEY))) {
+        if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS) &&
+            (eKey58.IsValid(CChainParams::EXT_SECRET_KEY_BTC) || eKey58.IsValid(CChainParams::EXT_SECRET_KEY))) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
         }
 
@@ -1220,9 +1220,9 @@ static RPCHelpMan extkey()
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Import failed - BIP44 key must begin with a bitcoin secret key prefix.");
             }
         } else {
-            if (!eKey58.IsValid(CChainParams::EXT_SECRET_KEY)
-                && !eKey58.IsValid(CChainParams::EXT_PUBLIC_KEY_BTC)
-                && !eKey58.IsValid(CChainParams::EXT_PUBLIC_KEY)) {
+            if (!eKey58.IsValid(CChainParams::EXT_SECRET_KEY) &&
+                !eKey58.IsValid(CChainParams::EXT_PUBLIC_KEY_BTC) &&
+                !eKey58.IsValid(CChainParams::EXT_PUBLIC_KEY)) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Import failed - Key must begin with a particl prefix.");
             }
         }
@@ -1263,13 +1263,13 @@ static RPCHelpMan extkey()
             }
         }
 
-        int64_t nTimeStartScan = 1; // Scan from start, 0 means no scan
+        int64_t nTimeStartScan = -1; // Scan from start, -1 means no scan
         if (request.params.size() > nParamOffset) {
             std::string sVar = request.params[nParamOffset].get_str();
             nParamOffset++;
 
             if (sVar == "N") {
-                nTimeStartScan = 0;
+                nTimeStartScan = -1;
             } else
             if (part::IsStrOnlyDigits(sVar)) {
                 // Setting timestamp directly
@@ -1294,9 +1294,9 @@ static RPCHelpMan extkey()
             }
         }
 
-        int64_t nCreatedAt = nTimeStartScan ? nTimeStartScan : GetTime();
+        int64_t nCreatedAt = nTimeStartScan >= 0 ? nTimeStartScan : GetTime();
 
-        std::string sLabel;
+        std::string sLabel = "imported account";
         if (request.params.size() > nParamOffset) {
             sLabel = request.params[nParamOffset].get_str();
             nParamOffset++;
@@ -1310,8 +1310,8 @@ static RPCHelpMan extkey()
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Import Account failed - Invalid key.");
         }
 
-        if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)
-            && (eKey58.IsValid(CChainParams::EXT_SECRET_KEY_BTC) || eKey58.IsValid(CChainParams::EXT_SECRET_KEY))) {
+        if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS) &&
+            (eKey58.IsValid(CChainParams::EXT_SECRET_KEY_BTC) || eKey58.IsValid(CChainParams::EXT_SECRET_KEY))) {
             throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
         }
 
@@ -1348,15 +1348,17 @@ static RPCHelpMan extkey()
                 result.pushKV("account_id", HDAccIDToString(sek.GetID()));
                 result.pushKV("has_secret", sek.kp.IsValidV() ? "true" : "false");
                 result.pushKV("account_label", sLabel);
-                result.pushKV("account_label", sLabel);
-                result.pushKV("scanned_from", nTimeStartScan);
+                if (nTimeStartScan >= 0) {
+                    result.pushKV("scanned_from", nTimeStartScan);
+                }
                 result.pushKV("note", "Please backup your wallet."); // TODO: check for child of existing key?
             }
 
-            pwallet->RescanFromTime(nTimeStartScan, reserver, true /* update */);
-            pwallet->MarkDirty();
-            pwallet->ResubmitWalletTransactions(/*relay=*/false, /*force=*/true);
-
+            if (nTimeStartScan >= 0) {
+                pwallet->RescanFromTime(nTimeStartScan, reserver, true /* update */);
+                pwallet->MarkDirty();
+                pwallet->ResubmitWalletTransactions(/*relay=*/false, /*force=*/true);
+            }
         } // cs_wallet
     } else
     if (mode == "setmaster") {
