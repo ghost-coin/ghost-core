@@ -40,6 +40,9 @@ Next Major Version
 
 - rpc: Fix listunspentblind filter by address
 - wallet: Fix disabling recscan for importaccount command
+- wallet: Locked blinded outputs are processed in order when unlocked.
+  - Should make the onlyinstance option obsolete.
+- rpc: debugwallet added some output for a locked wallet if no parameters provided.
 
 
 23.0.3

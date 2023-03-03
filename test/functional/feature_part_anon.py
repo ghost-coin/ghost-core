@@ -245,7 +245,11 @@ class AnonTest(ParticlTestFramework):
                 break
         assert (found_tx)
 
+        debug_info = w1_3.debugwallet()
+        assert (debug_info['locked_blinded_outputs'] > 0)
         w1_3.walletpassphrase('test', 30)
+        debug_info = w1_3.debugwallet()
+        assert (debug_info['locked_blinded_outputs'] == 0)
 
         ft = w1_3.filtertransactions()
         found_tx = False

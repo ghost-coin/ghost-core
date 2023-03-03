@@ -1263,7 +1263,7 @@ static RPCHelpMan extkey()
             }
         }
 
-        int64_t nTimeStartScan = -1; // Scan from start, -1 means no scan
+        int64_t nTimeStartScan = 0; // Scan from start, -1 means no scan
         if (request.params.size() > nParamOffset) {
             std::string sVar = request.params[nParamOffset].get_str();
             nParamOffset++;
@@ -6665,6 +6665,25 @@ static RPCHelpMan debugwallet()
         return "Wallet downgraded - Shutting down.";
     }
 
+    if (request.params.size() == 0 && pwallet->IsLocked()) {
+        result.pushKV("mapWallet_size", (int)pwallet->mapWallet.size());
+        result.pushKV("mapRecords_size", (int)pwallet->mapRecords.size());
+        result.pushKV("mapTxSpends_size", (int)pwallet->CountTxSpends());
+        int64_t rv = 0;
+        if (pwallet->CountRecords("sxkm", rv)) {
+            result.pushKV("locked_stealth_outputs", (int)rv);
+        } else {
+            result.pushKV("locked_stealth_outputs", "error");
+        }
+        if (pwallet->CountRecords("lao", rv)) {
+            result.pushKV("locked_blinded_outputs", (int)rv);
+        } else {
+            result.pushKV("locked_blinded_outputs", "error");
+        }
+        result.pushKV("wallet_locked", true);
+        return result;
+    }
+
     EnsureWalletIsUnlocked(pwallet);
 
     if (list_frozen_outputs || spend_frozen_output) {
@@ -6903,8 +6922,8 @@ static RPCHelpMan debugwallet()
             CExtKeyAccount *sea = itam->second;
             LogPrintf("Checking account %s\n", sea->GetIDString58());
             for (CStoredExtKey *sek : sea->vExtKeys) {
-                if (!(sek->nFlags & EAF_ACTIVE)
-                    || !(sek->nFlags & EAF_RECEIVE_ON)) {
+                if (!(sek->nFlags & EAF_ACTIVE) ||
+                    !(sek->nFlags & EAF_RECEIVE_ON)) {
                     continue;
                 }
 
@@ -7075,8 +7094,8 @@ static RPCHelpMan debugwallet()
         }
         if (pwallet->CountColdstakeOutputs() > 0) {
             UniValue jsonSettings;
-            if (!pwallet->GetSetting("changeaddress", jsonSettings)
-                || !jsonSettings["coldstakingaddress"].isStr()) {
+            if (!pwallet->GetSetting("changeaddress", jsonSettings) ||
+                !jsonSettings["coldstakingaddress"].isStr()) {
                 UniValue tmp(UniValue::VOBJ);
                 tmp.pushKV("type", "Wallet has coldstaking outputs with coldstakingaddress unset.");
                 warnings.push_back(tmp);

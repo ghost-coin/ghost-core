@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -379,7 +379,7 @@ public:
     bool GetStealthSecret(const CStealthAddress &sx, CKey &key_out) const;
     bool ProcessLockedStealthOutputs() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool ProcessLockedBlindedOutputs() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    bool CountRecords(std::string sPrefix, int64_t rv);
+    bool CountRecords(const std::string sPrefix, int64_t &rv);
 
     void ProcessStealthLookahead(CExtKeyAccount *ea, const CEKAStealthKey &aks, bool v2) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool ProcessStealthOutput(const CTxDestination &address,

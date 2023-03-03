@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -142,7 +142,11 @@ class StealthTest(ParticlTestFramework):
         assert (isclose(ro[-1]['amount'], 0.6))
         assert ('test 6' in str(ro[-1]))
 
+        debug_info = nodes[2].debugwallet()
+        assert (debug_info['locked_stealth_outputs'] > 0)
         nodes[2].walletpassphrase('qwerty234', 400)
+        debug_info = nodes[2].debugwallet()
+        assert (debug_info['locked_stealth_outputs'] == 0)
 
         self.stakeBlocks(1)
 

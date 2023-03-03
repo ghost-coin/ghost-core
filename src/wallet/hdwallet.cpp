@@ -6528,8 +6528,8 @@ int CHDWallet::ExtKeyDeriveNewAccount(CHDWalletDB *pwdb, CExtKeyAccount *sea, co
         sekAccount->mapValue[EKVT_PATH] = vAccountPath;
     }
 
-    if (!sekAccount->kp.IsValidV()
-        || !sekAccount->kp.IsValidP()) {
+    if (!sekAccount->kp.IsValidV() ||
+        !sekAccount->kp.IsValidP()) {
         delete sekAccount;
         pEKMaster->SetCounter(nOldHGen, true);
         return werrorN(1, "%s: Invalid key.", __func__);
@@ -6804,8 +6804,8 @@ int CHDWallet::ExtKeyUnlock(CStoredExtKey *sek, const CKeyingMaterial &vMKey)
 
     CKeyingMaterial vchSecret;
     uint256 iv = Hash(sek->kp.pubkey);
-    if (!DecryptSecret(vMKey, sek->vchCryptedSecret, iv, vchSecret)
-        || vchSecret.size() != 32) {
+    if (!DecryptSecret(vMKey, sek->vchCryptedSecret, iv, vchSecret) ||
+        vchSecret.size() != 32) {
         return werrorN(1, "%s Failed decrypting ext key %s", __func__, sek->GetIDString58().c_str());
     }
 
@@ -6829,8 +6829,8 @@ int CHDWallet::ExtKeyUnlock(const CKeyingMaterial &vMKey)
 {
     LogPrint(BCLog::HDWALLET, "ExtKeyUnlock.\n");
 
-    if (pEKMaster
-        && pEKMaster->nFlags & EAF_IS_CRYPTED) {
+    if (pEKMaster &&
+        pEKMaster->nFlags & EAF_IS_CRYPTED) {
         if (ExtKeyUnlock(pEKMaster, vMKey) != 0) {
             return 1;
         }
@@ -9099,9 +9099,9 @@ bool CHDWallet::IndexStealthKey(CHDWalletDB *pwdb, uint160 &hash, const CStealth
         WalletLogPrintf("%s: New index %u.\n", __func__, id);
     }
 
-    if (!pwdb->WriteStealthAddressIndex(id, sxi)
-        || !pwdb->WriteStealthAddressIndexReverse(hash, id)
-        || !pwdb->WriteFlag("sxLastI", (int32_t&)id)) {
+    if (!pwdb->WriteStealthAddressIndex(id, sxi) ||
+        !pwdb->WriteStealthAddressIndexReverse(hash, id) ||
+        !pwdb->WriteFlag("sxLastI", (int32_t&)id)) {
         return werror("%s: Write failed.", __func__);
     }
 
@@ -9394,6 +9394,7 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
 
     COutPoint op;
     std::string strType;
+    std::multimap<int64_t, const COutPoint> sorted_outpoints;
 
     CStoredTransaction stx;
     unsigned int fFlags = DB_SET_RANGE;
@@ -9408,16 +9409,32 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
         nProcessed++;
         ssKey >> op;
 
-        int rv = pcursor->del(0);
-        if (rv != 0) {
-            WalletLogPrintf("%s: Error: pcursor->del failed for %s, %d.\n", __func__, op.ToString(), rv);
+        MapRecords_t::iterator mir;
+        mir = mapRecords.find(op.hash);
+        if (mir == mapRecords.end()) {
+            WalletLogPrintf("%s: Error: mapRecord not found for %s.\n", __func__, op.ToString());
+            int rv = pcursor->del(0);
+            if (rv != 0) {
+                WalletLogPrintf("%s: Error: pcursor->del failed for %s, %d.\n", __func__, op.ToString(), rv);
+            }
+            continue;
         }
+        CTransactionRecord &rtx = mir->second;
+        sorted_outpoints.insert({rtx.GetTxTime(), op});
+    }
 
+    pcursor->close();
+
+    for (const auto &entry: sorted_outpoints) {
+        const COutPoint &op = entry.second;
         MapRecords_t::iterator mir;
         mir = mapRecords.find(op.hash);
         if (mir == mapRecords.end() ||
             !wdb.ReadStoredTx(op.hash, stx)) {
             WalletLogPrintf("%s: Error: mapRecord not found for %s.\n", __func__, op.ToString());
+            if (!wdb.EraseLockedAnonOut(op)) {
+                WalletLogPrintf("%s: Error: EraseLockedAnonOut failed for %s.\n", __func__, op.ToString());
+            }
             continue;
         }
         CTransactionRecord &rtx = mir->second;
@@ -9479,11 +9496,12 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
             setChanged.insert(op.hash);
         }
 
+        if (!wdb.EraseLockedAnonOut(op)) {
+            WalletLogPrintf("%s: Error: EraseLockedAnonOut failed for %s.\n", __func__, op.ToString());
+        }
+
         nExpanded++;
     }
-
-    pcursor->close();
-
     wdb.TxnCommit();
     }
 
@@ -9507,9 +9525,9 @@ bool CHDWallet::ProcessLockedBlindedOutputs()
     LogPrint(BCLog::HDWALLET, "%s %s: Expanded %u/%u output%s.\n", GetDisplayName(), __func__, nExpanded, nProcessed, nProcessed == 1 ? "" : "s");
 
     return true;
-};
+}
 
-bool CHDWallet::CountRecords(std::string sPrefix, int64_t rv)
+bool CHDWallet::CountRecords(const std::string sPrefix, int64_t &rv)
 {
     rv = 0;
     LOCK(cs_wallet);
@@ -9741,8 +9759,9 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
 
         if (!GetKey(it->spend_secret_id, sSpend)) {
             // silently fail?
-            if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug))
+            if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                 WalletLogPrintf("GetKey() stealth spend failed.\n");
+            }
             continue;
         }
 

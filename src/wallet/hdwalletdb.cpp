@@ -280,7 +280,6 @@ bool CHDWalletDB::EraseLockedAnonOut(const COutPoint &op)
     return EraseIC(std::make_pair(std::string("lao"), op));
 };
 
-
 bool CHDWalletDB::ReadWalletSetting(const std::string &setting, std::string &json, uint32_t nFlags)
 {
     return m_batch->Read(std::make_pair(DBKeys::PART_WALLETSETTING, setting), json, nFlags);

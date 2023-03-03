@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2022 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -239,6 +239,30 @@ class BlindTest(ParticlTestFramework):
         assert (ro['height'] == 4)
         assert (ro['paytopubkeyhash']['num_blinded'] > 5)
 
+        self.log.info('Test receiving from locked wallet')
+        nodes[1].createwallet('test_enc', False, True, 'qwerty234')
+        w1_enc = nodes[1].get_wallet_rpc('test_enc')
+        w1_enc.walletpassphrase('qwerty234', 30)
+        w1_enc.extkeyimportmaster(w1_enc.mnemonic('new')['master'])
+        sx_enc = w1_enc.getnewstealthaddress()
+        ext_enc = w1_enc.getnewextaddress()
+        w1_enc.walletlock()
+        txids = []
+        txids.append(nodes[0].sendtypeto('part', 'blind', [{'address': sx_enc, 'amount': 1}]))
+        txids.append(nodes[0].sendtypeto('part', 'blind', [{'address': ext_enc, 'amount': 2}]))
+        txids.append(nodes[0].sendtypeto('part', 'blind', [{'address': sx_enc, 'amount': 3}, {'address': ext_enc, 'amount': 4}]))
+
+        for txid in txids:
+            nodes[1].sendrawtransaction(nodes[0].gettransaction(txid)['hex'])  # Quicker than syncing mempool
+        w1_enc.syncwithvalidationinterfacequeue()
+
+        debug_info = w1_enc.debugwallet()
+        assert (debug_info['locked_blinded_outputs'] == 6)
+        w1_enc.walletpassphrase('qwerty234', 30)
+        debug_info = w1_enc.debugwallet()
+        assert (debug_info['locked_blinded_outputs'] == 0)
+        balances = w1_enc.getbalances()
+        assert (balances['mine']['blind_untrusted_pending'] == 10.0)
 
 if __name__ == '__main__':
     BlindTest().main()
