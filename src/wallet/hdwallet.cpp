@@ -3779,7 +3779,8 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
         coin_selection_params.m_subtract_fee_outputs = nSubtractFeeFromAmount != 0; // If we are doing subtract fee from recipient, don't use effective values
 
-        std::vector<COutput> vAvailableCoins, selected_coins;
+        std::vector<COutput> vAvailableCoins;
+        std::vector<std::shared_ptr<COutput>> selected_coins;
         CoinsResult available_coins;
         available_coins = AvailableCoins(coinControl, coin_selection_params.m_effective_feerate, coinControl->m_minimum_output_amount, coinControl->m_maximum_output_amount);
 
@@ -3870,8 +3871,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // behavior."
             const uint32_t nSequence = coinControl->m_signal_bip125_rbf.value_or(m_signal_rbf) ? MAX_BIP125_RBF_SEQUENCE : (CTxIn::SEQUENCE_FINAL - 1);
             for (const auto& coin : selected_coins) {
-                txNew.vin.push_back(CTxIn(coin.outpoint,CScript(),
-                                          nSequence));
+                txNew.vin.push_back(CTxIn(coin->outpoint, CScript(), nSequence));
             }
 
             CAmount nValueOutPlain = 0;
@@ -3961,10 +3961,10 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // Fill in dummy signatures for fee calculation.
             int nIn = 0;
             for (const auto &coin : selected_coins) {
-                const CScript& scriptPubKey = coin.txout.scriptPubKey;
+                const CScript& scriptPubKey = coin->txout.scriptPubKey;
                 SignatureData sigdata;
 
-                std::map<COutPoint, CInputData>::const_iterator it = coinControl->m_inputData.find(coin.outpoint);
+                std::map<COutPoint, CInputData>::const_iterator it = coinControl->m_inputData.find(coin->outpoint);
                 if (it != coinControl->m_inputData.end()) {
                     sigdata.scriptWitness = it->second.scriptWitness;
                 } else {
@@ -3979,7 +3979,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 UpdateInput(txNew.vin[nIn], sigdata);
                 nIn++;
 
-                if (IsMine(coin.txout.scriptPubKey) & ISMINE_HARDWARE_DEVICE) {
+                if (IsMine(coin->txout.scriptPubKey) & ISMINE_HARDWARE_DEVICE) {
                     coinControl->fNeedHardwareKey = true;
                 }
             }
@@ -4051,8 +4051,8 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             }
 
             // Try to reduce change to include necessary fee
-            if (nChangePosInOut != -1
-                && nSubtractFeeFromAmount == 0) {
+            if (nChangePosInOut != -1 &&
+                nSubtractFeeFromAmount == 0) {
                 auto &r = vecSend[nChangePosInOut];
                 CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
 
@@ -4089,7 +4089,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         if (sign) {
             int nIn = 0;
             for (const auto &coin : selected_coins) {
-                const CScript& scriptPubKey = coin.txout.scriptPubKey;
+                const CScript& scriptPubKey = coin->txout.scriptPubKey;
 
                 // TODO: ismine field on COutput
                 if (coinControl->fNeedHardwareKey && (IsMine(scriptPubKey) & ISMINE_HARDWARE_DEVICE)) {
@@ -4098,7 +4098,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
 
                 std::vector<uint8_t> vchAmount(8);
-                part::SetAmount(vchAmount, coin.txout.nValue);
+                part::SetAmount(vchAmount, coin->txout.nValue);
 
                 SignatureData sigdata;
                 auto provider = GetLegacyScriptPubKeyMan();
@@ -4119,10 +4119,10 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 CCoinsViewCache view(&viewDummy);
                 for (const auto &coin : selected_coins) {
                     Coin newcoin;
-                    newcoin.out.scriptPubKey = coin.txout.scriptPubKey;
-                    newcoin.out.nValue = coin.txout.nValue;
+                    newcoin.out.scriptPubKey = coin->txout.scriptPubKey;
+                    newcoin.out.nValue = coin->txout.nValue;
                     newcoin.nHeight = 1;
-                    view.AddCoin(coin.outpoint, std::move(newcoin), true);
+                    view.AddCoin(coin->outpoint, std::move(newcoin), true);
                 }
                 std::vector<std::unique_ptr<usb_device::CUSBDevice> > vDevices;
                 usb_device::CUSBDevice *pDevice = usb_device::SelectDevice(vDevices, sError);
@@ -4150,7 +4150,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 if (pDevice->RequirePrevTxns()) {
                     for (const auto &coin : selected_coins) {
-                        const auto &prevout = coin.outpoint;
+                        const auto &prevout = coin->outpoint;
                         if (pDevice->HavePrevTxn(prevout.hash)) {
                             continue;
                         }
@@ -4172,7 +4172,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 int nIn = 0;
                 for (const auto &coin : selected_coins) {
-                    const CScript& scriptPubKey = coin.txout.scriptPubKey;
+                    const CScript& scriptPubKey = coin->txout.scriptPubKey;
 
                     if (!(IsMine(scriptPubKey) & ISMINE_HARDWARE_DEVICE)) {
                         nIn++;
@@ -4180,7 +4180,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                     }
 
                     std::vector<uint8_t> vchAmount(8);
-                    part::SetAmount(vchAmount, coin.txout.nValue);
+                    part::SetAmount(vchAmount, coin->txout.nValue);
 
                     pDevice->m_error.clear();
                     SignatureData sigdata;
@@ -11553,7 +11553,7 @@ util::Result<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>&
             /* Set depth, from_me, ancestors, and descendants to 0 or false as these don't matter for preset inputs as no actual selection is being done.
              * positive_only is set to false because we want to include all preset inputs, even if they are dust.
              */
-            preset_inputs.Insert(out, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
+            preset_inputs.Insert(std::make_shared<COutput>(out), /*ancestors=*/ 0, /*descendants=*/ 0);
         }
         SelectionResult result(nTargetValue, SelectionAlgorithm::MANUAL);
         result.AddInput(preset_inputs);
@@ -11590,7 +11590,7 @@ util::Result<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>&
         /* Set depth, from_me, ancestors, and descendants to 0 or false as don't matter for preset inputs as no actual selection is being done.
          * positive_only is set to false because we want to include all preset inputs, even if they are dust.
          */
-        preset_inputs.Insert(output, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
+        preset_inputs.Insert(std::make_shared<COutput>(output), /*ancestors=*/ 0, /*descendants=*/ 0);
     }
 
     // Skip preset inputs

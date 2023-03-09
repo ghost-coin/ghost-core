@@ -1678,8 +1678,8 @@ bool DummySignInput(const SigningProvider& provider, CTxIn &tx_in, const CTxOut 
     const CScript& scriptPubKey = txout.scriptPubKey;
     SignatureData sigdata;
 
-    // Use max sig if watch only inputs were used or if this particular input is an external input
-    // to ensure a sufficient fee is attained for the requested feerate.
+    // Use max sig if watch only inputs were used, if this particular input is an external input,
+    // or if this wallet uses an external signer, to ensure a sufficient fee is attained for the requested feerate.
     const bool use_max_sig = coin_control && (coin_control->fAllowWatchOnly || coin_control->IsExternalSelected(tx_in.prevout) || !can_grind_r);
 
     if (fParticlMode) {
