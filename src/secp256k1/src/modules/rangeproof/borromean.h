@@ -8,11 +8,11 @@
 #ifndef _SECP256K1_BORROMEAN_H_
 #define _SECP256K1_BORROMEAN_H_
 
-#include "src/scalar.h"
-#include "src/field.h"
-#include "src/group.h"
-#include "src/ecmult.h"
-#include "src/ecmult_gen.h"
+#include "../../scalar.h"
+#include "../../field.h"
+#include "../../group.h"
+#include "../../ecmult.h"
+#include "../../ecmult_gen.h"
 
 int secp256k1_borromean_verify(secp256k1_scalar *evalues, const unsigned char *e0, const secp256k1_scalar *s,
  const secp256k1_gej *pubs, const size_t *rsizes, size_t nrings, const unsigned char *m, size_t mlen);

@@ -7,11 +7,11 @@
 #ifndef SECP256K1_MODULE_BULLETPROOF_INNER_PRODUCT_IMPL
 #define SECP256K1_MODULE_BULLETPROOF_INNER_PRODUCT_IMPL
 
-#include "src/group.h"
-#include "src/scalar.h"
+#include "../../group.h"
+#include "../../scalar.h"
 
-#include "src/modules/bulletproofs/main_impl.h"
-#include "src/modules/bulletproofs/util.h"
+#include "../../modules/bulletproofs/main_impl.h"
+#include "../../modules/bulletproofs/util.h"
 
 /* Number of scalars that should remain at the end of a recursive proof. The paper
  * uses 2, by reducing the scalars as far as possible. We stop one recursive step

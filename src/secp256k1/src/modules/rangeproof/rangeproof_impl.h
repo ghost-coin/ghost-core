@@ -7,15 +7,15 @@
 #ifndef _SECP256K1_RANGEPROOF_IMPL_H_
 #define _SECP256K1_RANGEPROOF_IMPL_H_
 
-#include "src/eckey.h"
-#include "src/scalar.h"
-#include "src/group.h"
-#include "src/hash_impl.h"
-#include "src/util.h"
+#include "../../eckey.h"
+#include "../../scalar.h"
+#include "../../group.h"
+#include "../../hash_impl.h"
+#include "../../util.h"
 #include "rangeproof.h"
 
-#include "src/modules/commitment/pedersen_impl.h"
-#include "src/modules/rangeproof/borromean.h"
+#include "../../modules/commitment/pedersen_impl.h"
+#include "../../modules/rangeproof/borromean.h"
 
 SECP256K1_INLINE static void secp256k1_rangeproof_pub_expand(secp256k1_gej *pubs,
  int exp, size_t *rsizes, size_t rings, const secp256k1_ge* genp) {

@@ -9,19 +9,19 @@
 
 #include <string.h>
 
-#include "src/group.h"
-#include "src/scalar.h"
-#include "src/testrand.h"
-#include "src/util.h"
+#include "../../group.h"
+#include "../../scalar.h"
+#include "../../testrand.h"
+#include "../../util.h"
 
-#include "include/secp256k1_bulletproofs.h"
+#include "../../../include/secp256k1_bulletproofs.h"
 
 static void test_bulletproof_api(void) {
     secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     secp256k1_context *sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     secp256k1_context *vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
     secp256k1_context *both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    secp256k1_scratch *scratch = secp256k1_scratch_space_create(ctx, 1024 * 1024);
+    secp256k1_scratch *scratch = secp256k1_scratch_space_create(CTX, 1024 * 1024);
     secp256k1_generator value_gen;
     secp256k1_bulletproof_generators *gens;
     secp256k1_pedersen_commitment pcommit[4];
@@ -256,7 +256,7 @@ static void test_bulletproof_api(void) {
 
     secp256k1_bulletproof_generators_destroy(none, gens);
     secp256k1_bulletproof_generators_destroy(none, NULL);
-    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
     secp256k1_context_destroy(none);
     secp256k1_context_destroy(sign);
     secp256k1_context_destroy(vrfy);
@@ -339,8 +339,8 @@ void test_bulletproof_inner_product(size_t n, const secp256k1_bulletproof_genera
     const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0,0,0,0,0,0,0,0);
     secp256k1_gej pj;
     secp256k1_gej tmpj, tmpj2;
-    secp256k1_scalar *a_arr = (secp256k1_scalar *)checked_malloc(&ctx->error_callback, n * sizeof(*a_arr));
-    secp256k1_scalar *b_arr = (secp256k1_scalar *)checked_malloc(&ctx->error_callback, n * sizeof(*b_arr));
+    secp256k1_scalar *a_arr = (secp256k1_scalar *)checked_malloc(&CTX->error_callback, n * sizeof(*a_arr));
+    secp256k1_scalar *b_arr = (secp256k1_scalar *)checked_malloc(&CTX->error_callback, n * sizeof(*b_arr));
     unsigned char commit[32] = "hash of P, c, etc. all that jazz";
     secp256k1_scalar one;
     size_t j;
@@ -350,7 +350,7 @@ void test_bulletproof_inner_product(size_t n, const secp256k1_bulletproof_genera
     unsigned char proof[2000];
     size_t plen = sizeof(proof);
 
-    secp256k1_scratch *scratch = secp256k1_scratch_space_create(ctx, 100000 + 256 * (2 * n + 2));
+    secp256k1_scratch *scratch = secp256k1_scratch_space_create(CTX, 100000 + 256 * (2 * n + 2));
 
     for (j = 0; j < n; j++) {
         random_scalar_order(&a_arr[j]);
@@ -384,7 +384,7 @@ void test_bulletproof_inner_product(size_t n, const secp256k1_bulletproof_genera
         ecmult_data.b = b_arr;
         ecmult_data.g = gens->gens;
         ecmult_data.h = gens->gens + gens->n/2;
-        CHECK(secp256k1_ecmult_multi_var(&ctx->error_callback, scratch, &pj, &zero, test_bulletproof_ecmult_callback, (void*) &ecmult_data, 2 * n));
+        CHECK(secp256k1_ecmult_multi_var(&CTX->error_callback, scratch, &pj, &zero, test_bulletproof_ecmult_callback, (void*) &ecmult_data, 2 * n));
         secp256k1_ge_set_gej(&offs_ctx.p, &pj);
     }
 
@@ -464,7 +464,7 @@ void test_bulletproof_inner_product(size_t n, const secp256k1_bulletproof_genera
 
     free(a_arr);
     free(b_arr);
-    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 }
 
 void test_bulletproof_rangeproof(size_t nbits, size_t expected_size, const secp256k1_bulletproof_generators *gens) {
@@ -485,7 +485,7 @@ void test_bulletproof_rangeproof(size_t nbits, size_t expected_size, const secp2
     secp256k1_ge value_gen[3];
     unsigned char nonce[32] = "my kingdom for some randomness!!";
 
-    secp256k1_scratch *scratch = secp256k1_scratch_space_create(ctx, 10000000);
+    secp256k1_scratch *scratch = secp256k1_scratch_space_create(CTX, 10000000);
 
     if (v >> nbits > 0) {
         v = 0;
@@ -532,23 +532,23 @@ void test_bulletproof_rangeproof(size_t nbits, size_t expected_size, const secp2
     nonce[0] ^= 111;
     CHECK(secp256k1_bulletproof_rangeproof_rewind_impl(&v_recovered, &blind_recovered, proof, plen, 0, &pcommit, &secp256k1_generator_const_g, gens->blinding_gen, nonce, NULL, 0) == 0);
 
-    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 }
 
 void test_bulletproof_rangeproof_aggregate(size_t nbits, size_t n_commits, size_t expected_size, const secp256k1_bulletproof_generators *gens) {
     unsigned char proof[1024];
     const unsigned char *proof_ptr = proof;
     size_t plen = sizeof(proof);
-    secp256k1_scalar *blind = (secp256k1_scalar *)checked_malloc(&ctx->error_callback, n_commits * sizeof(*blind));
-    uint64_t *v = (uint64_t *)checked_malloc(&ctx->error_callback, n_commits * sizeof(*v));
-    secp256k1_ge *commitp = (secp256k1_ge *)checked_malloc(&ctx->error_callback, n_commits * sizeof(*commitp));
+    secp256k1_scalar *blind = (secp256k1_scalar *)checked_malloc(&CTX->error_callback, n_commits * sizeof(*blind));
+    uint64_t *v = (uint64_t *)checked_malloc(&CTX->error_callback, n_commits * sizeof(*v));
+    secp256k1_ge *commitp = (secp256k1_ge *)checked_malloc(&CTX->error_callback, n_commits * sizeof(*commitp));
     const secp256k1_ge *constptr = commitp;
     secp256k1_ge value_gen;
     unsigned char commit[32] = {0};
     unsigned char nonce[32] = "mary, mary quite contrary how do";
     size_t i;
 
-    secp256k1_scratch *scratch = secp256k1_scratch_space_create(ctx, 10000000);
+    secp256k1_scratch *scratch = secp256k1_scratch_space_create(CTX, 10000000);
 
     secp256k1_generator_load(&value_gen, &secp256k1_generator_const_g);
     for (i = 0; i < n_commits; i++) {
@@ -571,7 +571,7 @@ void test_bulletproof_rangeproof_aggregate(size_t nbits, size_t n_commits, size_
     CHECK(plen == expected_size);
     CHECK(secp256k1_bulletproof_rangeproof_verify_impl(scratch, &proof_ptr, 1, plen, nbits, NULL, &constptr, n_commits, &value_gen, gens, NULL, 0) == 1);
 
-    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
     free(commitp);
     free(v);
     free(blind);
@@ -581,7 +581,7 @@ void run_bulletproofs_tests(void) {
     size_t i;
 
     /* Make a ton of generators */
-    secp256k1_bulletproof_generators *gens = secp256k1_bulletproof_generators_create(ctx, &secp256k1_generator_const_h, 32768);
+    secp256k1_bulletproof_generators *gens = secp256k1_bulletproof_generators_create(CTX, &secp256k1_generator_const_h, 32768);
     test_bulletproof_api();
 
     /* sanity checks */
@@ -596,7 +596,7 @@ void run_bulletproofs_tests(void) {
     test_bulletproof_inner_product(2, gens);
     test_bulletproof_inner_product(4, gens);
     test_bulletproof_inner_product(8, gens);
-    for (i = 0; i < (size_t) count; i++) {
+    for (i = 0; i < (size_t) COUNT; i++) {
         test_bulletproof_inner_product(32, gens);
         test_bulletproof_inner_product(64, gens);
     }
@@ -612,7 +612,7 @@ void run_bulletproofs_tests(void) {
     test_bulletproof_rangeproof_aggregate(8, 2, 546, gens);
     test_bulletproof_rangeproof_aggregate(8, 4, 610, gens);
 
-    secp256k1_bulletproof_generators_destroy(ctx, gens);
+    secp256k1_bulletproof_generators_destroy(CTX, gens);
 }
 #undef MAX_WIDTH
 
