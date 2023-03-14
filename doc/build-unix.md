@@ -267,8 +267,6 @@ disable-wallet mode with:
 
 In this case there is no dependency on Berkeley DB 4.8 and SQLite.
 
-Staking is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
-
 To Build statically linked executables for `x86_64-pc-linux-gnu`
 ---------------------
 
