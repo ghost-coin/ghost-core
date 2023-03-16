@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -129,8 +129,8 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
             cLine[len-1] = '\0', len--;
         }
 
-        if (!(pAddress = strtok_r(cLine, ",", &token))
-            || !(pAmount = strtok_r(nullptr, ",", &token))) {
+        if (!(pAddress = strtok_r(cLine, ",", &token)) ||
+            !(pAmount = strtok_r(nullptr, ",", &token))) {
             continue;
         }
 
@@ -149,8 +149,8 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
         CBitcoinAddress addr(addrStr);
 
         CKeyID id;
-        if (!addr.IsValid()
-            || !addr.GetKeyID(id)) {
+        if (!addr.IsValid() ||
+            !addr.GetKeyID(id)) {
             LogPrintf("Warning: %s - Skipping invalid address: %s\n", __func__, pAddress);
             continue;
         }
@@ -283,7 +283,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
     LogPrint(BCLog::POS, "Stake thread conditional delay set to %d.\n", stake_thread_cond_delay_ms);
 
     while (!fStopMinerProc) {
-        if (node::fReindex || node::fImporting || particl::fBusyImporting) {
+        if (node::fReindex || chainman->m_blockman.m_importing || particl::fBusyImporting) {
             fIsStaking = false;
             LogPrint(BCLog::POS, "%s: Block import/reindex.\n", __func__);
             condWaitFor(nThreadID, 30000);

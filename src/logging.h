@@ -263,4 +263,26 @@ static inline void LogPrintf_(const std::string& logging_function, const std::st
         }                                                 \
     } while (0)
 
+template <typename... Args>
+bool error(const char* fmt, const Args&... args)
+{
+    LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
+    return false;
+}
+
+template<typename... Args>
+int errorN(int n, const char *fmt, const Args&... args)
+{
+    LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
+    return n;
+}
+
+template<typename... Args>
+int errorN(int n, std::string &s, const char *func, const char *fmt, const Args&... args)
+{
+    s = tfm::format(fmt, args...);
+    LogPrintf("ERROR: %s\n", std::string(func) + ": " + s);
+    return n;
+}
+
 #endif // BITCOIN_LOGGING_H

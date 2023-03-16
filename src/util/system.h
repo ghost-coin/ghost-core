@@ -19,12 +19,10 @@
 #include <fs.h>
 #include <logging.h>
 #include <sync.h>
-#include <tinyformat.h>
 #include <util/settings.h>
 #include <util/time.h>
 
 #include <any>
-#include <exception>
 #include <map>
 #include <optional>
 #include <set>
@@ -46,31 +44,6 @@ extern const char * const BITCOIN_SETTINGS_FILENAME;
 
 void SetupEnvironment();
 bool SetupNetworking();
-
-template<typename... Args>
-bool error(const char* fmt, const Args&... args)
-{
-    LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
-    return false;
-}
-
-template<typename... Args>
-int errorN(int n, const char *fmt, const Args&... args)
-{
-    LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
-    return n;
-}
-
-template<typename... Args>
-int errorN(int n, std::string &s, const char *func, const char *fmt, const Args&... args)
-{
-    s = tfm::format(fmt, args...);
-    LogPrintf("ERROR: %s\n", std::string(func) + ": " + s);
-    return n;
-}
-
-
-void PrintExceptionContinue(const std::exception *pex, std::string_view thread_name);
 
 /**
  * Ensure file contents are fully committed to disk, using a platform-specific

@@ -11625,7 +11625,7 @@ util::Result<SelectionResult> CHDWallet::SelectCoins(const std::vector<COutput>&
     }
 
     // Start wallet Coin Selection procedure
-    auto op_selection_result = AutomaticCoinSelection(*this, available_coins, value_to_select, coin_control, coin_selection_params);
+    auto op_selection_result = AutomaticCoinSelection(*this, available_coins, value_to_select, coin_selection_params);
     if (!op_selection_result) return op_selection_result;
 
     // If needed, add preset inputs to the automatic coin selection result

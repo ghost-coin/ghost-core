@@ -1023,7 +1023,7 @@ public:
 public:
     using Options = kernel::ChainstateManagerOpts;
 
-    explicit ChainstateManager(Options options);
+    explicit ChainstateManager(Options options, node::BlockManager::Options blockman_options);
 
     const CChainParams& GetParams() const { return m_options.chainparams; }
     const Consensus::Params& GetConsensus() const { return m_options.chainparams.GetConsensus(); }
