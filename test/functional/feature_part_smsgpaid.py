@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -170,7 +170,7 @@ class SmsgPaidTest(ParticlTestFramework):
         try:
             ro = nodes[0].smsg(msgid)
             assert (False), 'Read deleted msg.'
-        except:
+        except Exception:
             pass
 
         ro = nodes[0].smsggetpubkey(address0_1)
@@ -197,7 +197,7 @@ class SmsgPaidTest(ParticlTestFramework):
                 ro = nodes[1].smsg(msgid, {'encoding':'hex'})
                 assert (ro['location'] == 'outbox')
                 break
-            except:
+            except Exception:
                 time.sleep(1)
         assert (msg == bytes.fromhex(ro['hex'][:-2]))  # Extra null byte gets tacked on
 
@@ -206,7 +206,7 @@ class SmsgPaidTest(ParticlTestFramework):
                 ro = nodes[1].smsg(msgid2, {'encoding':'hex'})
                 assert (ro['location'] == 'outbox')
                 break
-            except:
+            except Exception:
                 time.sleep(1)
         assert (msg == bytes.fromhex(ro['hex'][:-2]))
         assert (ro['daysretention'] == 4)

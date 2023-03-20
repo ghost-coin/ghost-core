@@ -10,7 +10,6 @@
 
 #include <arith_uint256.h>
 #include <chain.h>
-#include <chainparams.h>
 #include <checkqueue.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
@@ -22,6 +21,7 @@
 #include <flatfile.h>
 #include <fs.h>
 #include <hash.h>
+#include <kernel/chainparams.h>
 #include <kernel/mempool_entry.h>
 #include <logging.h>
 #include <logging/timer.h>
@@ -2901,8 +2901,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if (block.IsProofOfStake()) { // Only the genesis block isn't proof of stake
             CTransactionRef txCoinstake = block.vtx[0];
             CTransactionRef txPrevCoinstake = nullptr;
-            const TreasuryFundSettings *pTreasuryFundSettings = params.GetTreasuryFundSettings(block.nTime);
-            const CAmount nCalculatedStakeReward = params.GetProofOfStakeReward(pindex->pprev, nFees);
+            const particl::TreasuryFundSettings *pTreasuryFundSettings = params.GetTreasuryFundSettings(block.nTime);
+            const CAmount nCalculatedStakeReward = GetProofOfStakeReward(params, pindex->pprev, nFees);
 
             if (block.nTime >= consensus.smsg_fee_time) {
                 CAmount smsg_fee_new, smsg_fee_prev = consensus.smsg_fee_msg_per_day_per_k;
@@ -6667,7 +6667,7 @@ SnapshotCompletionResult ChainstateManager::MaybeCompleteSnapshotValidation(
     CCoinsViewDB& ibd_coins_db = m_ibd_chainstate->CoinsDB();
     m_ibd_chainstate->ForceFlushStateToDisk();
 
-    auto maybe_au_data = ExpectedAssumeutxo(curr_height, ::Params());
+    auto maybe_au_data = ExpectedAssumeutxo(curr_height, m_options.chainparams);
     if (!maybe_au_data) {
         LogPrintf("[snapshot] assumeutxo data not found for height " /* Continued */
             "(%d) - refusing to validate snapshot\n", curr_height);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,7 +24,7 @@ def getIndexAtProperty(arr, name, value):
         try:
             if o[name] == value:
                 return i
-        except:
+        except Exception:
             continue
     return -1
 
@@ -70,7 +70,7 @@ class ParticlTestFramework(BitcoinTestFramework):
                 node.start(ea, *args, **kwargs)
             for node in self.nodes:
                 node.wait_for_rpc_connection()
-        except:
+        except Exception:
             # If one node failed to start, stop the others
             self.stop_nodes()
             raise
@@ -95,7 +95,7 @@ class ParticlTestFramework(BitcoinTestFramework):
 
                 if ro['vsize'] >= 100 and ro['height'] >= 0:
                     return True
-            except:
+            except Exception:
                 continue
         return False
 
@@ -105,7 +105,7 @@ class ParticlTestFramework(BitcoinTestFramework):
             try:
                 node.gettransaction(txid)
                 return True
-            except:
+            except Exception:
                 continue
         return False
 

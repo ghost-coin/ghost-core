@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2021 The Particl Core developers
+# Copyright (c) 2018-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -118,7 +118,7 @@ def getOutputByAddr(tx, addr):
         try:
             if addr == vout['scriptPubKey']['address']:
                 return i
-        except:
+        except Exception:
             continue
     return -1
 

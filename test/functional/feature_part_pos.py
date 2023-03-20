@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -114,7 +114,7 @@ class PosTest(ParticlTestFramework):
         for vout in ro['vout']:
             try:
                 addr0 = vout['scriptPubKey']['address']
-            except:
+            except Exception:
                 continue
             if addr0 == addrReward:
                 fFound = True
@@ -147,7 +147,7 @@ class PosTest(ParticlTestFramework):
                     assert (addr0 == 'pgaKYsNmHTuQB83FguN44WW4ADKmwJwV7e')
                     fFound = True
                     assert (vout['valueSat'] == 39637)
-            except:
+            except Exception:
                 continue
         assert (fFound)
 
@@ -168,7 +168,7 @@ class PosTest(ParticlTestFramework):
                 if ro['from_stealth_address'] == addrRewardSx:
                     fFound = True
                     assert (vout['valueSat'] == 39637)
-            except:
+            except Exception:
                 continue
         assert (fFound)
 

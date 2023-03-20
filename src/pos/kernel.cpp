@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -400,3 +400,8 @@ bool CheckKernel(Chainstate &chain_state, const CBlockIndex *pindexPrev, unsigne
         amount, prevout, nTime, hashProofOfStake, targetProofOfStake);
 }
 
+int64_t GetProofOfStakeReward(const CChainParams &chainparams, const CBlockIndex *pindexPrev, int64_t nFees)
+{
+    int64_t nSubsidy = (pindexPrev->nMoneySupply / COIN) * chainparams.GetCoinYearReward(pindexPrev->nTime) / (365 * 24 * (60 * 60 / chainparams.GetTargetSpacing()));
+    return nSubsidy + nFees;
+};

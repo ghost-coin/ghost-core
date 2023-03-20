@@ -929,7 +929,7 @@ static RPCHelpMan initaccountfromdevice()
             sekAccount->SetCounter(1, true);
 
             CExtPubKey epStealthSpend;
-            uint32_t nStealthSpend = WithHardenedBit(CHAIN_NO_STEALTH_SPEND);
+            uint32_t nStealthSpend = WithHardenedBit(particl::CHAIN_NO_STEALTH_SPEND);
             vPath.push_back(nStealthSpend);
             if (0 != pDevice->GetXPub(vPath, epStealthSpend, sError)) {
                 sea->FreeChains();

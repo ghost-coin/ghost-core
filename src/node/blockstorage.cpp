@@ -5,13 +5,13 @@
 #include <node/blockstorage.h>
 
 #include <chain.h>
-#include <chainparams.h>
 #include <clientversion.h>
 #include <consensus/validation.h>
 #include <flatfile.h>
 #include <fs.h>
 #include <hash.h>
 #include <logging.h>
+#include <kernel/chainparams.h>
 #include <pow.h>
 #include <reverse_iterator.h>
 #include <shutdown.h>
@@ -780,7 +780,7 @@ bool ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos, const Consensus::P
     if (fParticlMode) {
         // Only run CheckProofOfWork for genesis blocks
         if (block.hashPrevBlock.IsNull() &&
-            !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, 0, Params().GetLastImportHeight())) {
+            !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, 0, consensusParams.nLastImportHeight)) {
             return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
         }
     } else {

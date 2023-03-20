@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,6 +17,7 @@
 #include <util/translation.h>
 #include <node/blockstorage.h>
 #include <consensus/validation.h>
+#include <pos/kernel.h>
 
 #include <chrono>
 #include <thread>
@@ -147,7 +148,7 @@ BOOST_AUTO_TEST_CASE(stake_test)
         BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
     }
     BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == base_supply);
-    CAmount stake_reward = Params().GetProofOfStakeReward(chain_active.Tip(), 0);
+    CAmount stake_reward = GetProofOfStakeReward(Params(), chain_active.Tip(), 0);
 
     StakeNBlocks(pwallet, 2);
     BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == 12500000079274);

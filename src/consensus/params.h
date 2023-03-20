@@ -142,6 +142,8 @@ struct Params {
     int64_t smsg_fee_max_delta_percent; /* Divided by 1000000 */
     uint32_t smsg_min_difficulty;
     uint32_t smsg_difficulty_max_delta;
+    /** Highest block with imported outputs, set from vImportedCoinbaseTxns */
+    uint32_t nLastImportHeight{0};
 
     /**
      * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,

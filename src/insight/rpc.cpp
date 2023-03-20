@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 The Particl Core developers
+// Copyright (c) 2018-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,6 +19,7 @@
 #include <node/context.h>
 #include <script/standard.h>
 #include <shutdown.h>
+#include <pos/kernel.h>
 
 #include <univalue.h>
 
@@ -1128,7 +1129,7 @@ static RPCHelpMan getblockreward()
 
     CAmount stake_reward = 0;
     if (pblockindex->pprev) {
-        stake_reward = Params().GetProofOfStakeReward(pblockindex->pprev, 0);
+        stake_reward = GetProofOfStakeReward(Params(), pblockindex->pprev, 0);
     }
 
     CBlock block;
@@ -1136,7 +1137,7 @@ static RPCHelpMan getblockreward()
         throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
     }
 
-    const TreasuryFundSettings *fundconf = Params().GetTreasuryFundSettings(pblockindex->GetBlockTime());
+    const particl::TreasuryFundSettings *fundconf = Params().GetTreasuryFundSettings(pblockindex->GetBlockTime());
     CScript fundScriptPubKey;
     if (fundconf) {
         CTxDestination dest = DecodeDestination(fundconf->sTreasuryFundAddresses);

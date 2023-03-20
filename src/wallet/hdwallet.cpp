@@ -8119,7 +8119,7 @@ int CHDWallet::InitAccountStealthV2Chains(CHDWalletDB *pwdb, CExtKeyAccount *sea
 
     CExtKey evStealthSpend;
     uint32_t nStealthSpend;
-    if (0 != sekAccount->DeriveKey(evStealthSpend, CHAIN_NO_STEALTH_SPEND, nStealthSpend, true)) {
+    if (0 != sekAccount->DeriveKey(evStealthSpend, particl::CHAIN_NO_STEALTH_SPEND, nStealthSpend, true)) {
         return werrorN(1, "%s: Could not derive account chain keys.", __func__);
     }
 
@@ -13461,7 +13461,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
     const Consensus::Params &consensusParams = Params().GetConsensus();
     // Get block reward
-    CAmount nReward = Params().GetProofOfStakeReward(pindexPrev, nFees);
+    CAmount nReward = GetProofOfStakeReward(Params(), pindexPrev, nFees);
     if (nReward < 0) {
         return false;
     }
@@ -13469,7 +13469,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     // Process development fund
     CTransactionRef txPrevCoinstake = nullptr;
     CAmount nRewardOut;
-    const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
+    const particl::TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
     if (!pTreasuryFundSettings || pTreasuryFundSettings->nMinTreasuryStakePercent <= 0) {
         nRewardOut = nReward;
     } else {

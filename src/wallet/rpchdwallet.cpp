@@ -1798,7 +1798,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             CStoredExtKey *sekGenesisChain = new CStoredExtKey();
 
             if (0 != (rv = pwallet->NewExtKeyFromAccount(&wdb, idNewDefaultAccount,
-                genesisChainLabel, sekGenesisChain, nullptr, &CHAIN_NO_GENESIS))) {
+                genesisChainLabel, sekGenesisChain, nullptr, &particl::CHAIN_NO_GENESIS))) {
                 delete sekGenesisChain;
                 pwallet->ExtKeyRemoveAccountFromMapsAndFree(sea);
                 wdb.TxnAbort();
@@ -4506,7 +4506,7 @@ static RPCHelpMan getstakinginfo()
         obj.pushKV("wallettreasurydonationpercent", pwallet->nWalletTreasuryFundCedePercent);
     }
 
-    const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTipTime);
+    const particl::TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTipTime);
     if (pTreasuryFundSettings && pTreasuryFundSettings->nMinTreasuryStakePercent > 0) {
         obj.pushKV("treasurydonationpercent", pTreasuryFundSettings->nMinTreasuryStakePercent);
     }

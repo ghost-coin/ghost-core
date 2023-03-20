@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2023 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -503,7 +503,7 @@ class WalletParticlTest(ParticlTestFramework):
                 if r['path'] == 'm/0/0':
                     sTestAddress = r['address']
                     break
-            except:
+            except Exception:
                 pass
 
         assert (len(sTestAddress) > 0), 'Could not find 1st owned address.'

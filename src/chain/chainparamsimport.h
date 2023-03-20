@@ -1,10 +1,11 @@
-// Copyright (c) 2017 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef PARTICL_CHAIN_CHAINPARAMSIMPORT_H
 #define PARTICL_CHAIN_CHAINPARAMSIMPORT_H
 
+namespace particl {
 void AddImportHashesMain(std::vector<CImportedCoinbaseTxn> &vImportedCoinbaseTxns)
 {
     vImportedCoinbaseTxns.push_back(CImportedCoinbaseTxn(1,  uint256S("d496208ea84193e0c5ed05ac708aec84dfd2474b529a7608b836e282958dc72b")));
@@ -148,5 +149,6 @@ void AddImportHashesTest(std::vector<CImportedCoinbaseTxn> &vImportedCoinbaseTxn
     vImportedCoinbaseTxns.push_back(CImportedCoinbaseTxn(67, uint256S("ea5d474ab77bbef2328723bc5d3ed39177248f5c042462b1df9da313b7fcd1f3")));
     vImportedCoinbaseTxns.push_back(CImportedCoinbaseTxn(68, uint256S("c59f05a818bc9bef2a7ba12594a960cf7dd303f541cfffdc4c4d524b4e4091f1")));
 };
+} // namespace particl
 
 #endif // PARTICL_CHAIN_CHAINPARAMSIMPORT_H

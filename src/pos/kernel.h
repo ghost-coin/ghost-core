@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,6 +16,7 @@ class uint256;
 class COutPoint;
 class CBlockIndex;
 class Chainstate;
+class CChainParams;
 class CTransaction;
 class BlockValidationState;
 
@@ -61,5 +62,7 @@ bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock);
  * Convenient for searching a kernel
  */
 bool CheckKernel(Chainstate &chain_state, const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t* pBlockTime = nullptr);
+
+int64_t GetProofOfStakeReward(const CChainParams &chainparams, const CBlockIndex *pindexPrev, int64_t nFees);
 
 #endif // PARTICL_POS_KERNEL_H

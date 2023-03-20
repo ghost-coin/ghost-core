@@ -132,7 +132,7 @@ static RPCHelpMan pushtreasuryfundsetting()
 
     LOCK(cs_main);
 
-    TreasuryFundSettings settings(setting["fundaddress"].get_str(), setting["minstakepercent"].getInt<int>(), setting["outputperiod"].getInt<int>());
+    particl::TreasuryFundSettings settings(setting["fundaddress"].get_str(), setting["minstakepercent"].getInt<int>(), setting["outputperiod"].getInt<int>());
     RegtestParams().PushTreasuryFundSettings(setting["timefrom"].getInt<int>(), settings);
 
     LogPrintf("Added treasury fund setting from %d: (%s, %d, %d)\n",

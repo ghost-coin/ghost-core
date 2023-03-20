@@ -1,4 +1,4 @@
-// Copyright (c) 2021 tecnovert
+// Copyright (c) 2021-2023 tecnovert
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,6 +23,7 @@
 #include <util/string.h>
 #include <util/translation.h>
 #include <util/moneystr.h>
+#include <pos/kernel.h>
 
 #include <consensus/validation.h>
 #include <consensus/tx_verify.h>
@@ -267,7 +268,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_REQUIRE(utxo_sum_before_fork > moneysupply_before_fork + 48000 * COIN);
 
     // Test that moneysupply is updated
-    CAmount stake_reward = Params().GetProofOfStakeReward(chain_active.Tip(), 0);
+    CAmount stake_reward = GetProofOfStakeReward(Params(), chain_active.Tip(), 0);
     StakeNBlocks(pwallet, 1);
 
     CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
@@ -595,7 +596,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 2);
 
     // Check moneysupply didn't climb more than stakes
-    stake_reward = Params().GetProofOfStakeReward(chain_active.Tip(), 0);
+    stake_reward = GetProofOfStakeReward(Params(), chain_active.Tip(), 0);
     CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
     BOOST_REQUIRE(moneysupply_after_post_fork_to_blinded + stake_reward * 2 ==  moneysupply_after_post_fork_blind_spends);
 

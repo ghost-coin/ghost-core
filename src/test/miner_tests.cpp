@@ -21,6 +21,7 @@
 #include <util/time.h>
 #include <validation.h>
 #include <versionbits.h>
+#include <chainparams.h>
 
 #include <test/util/setup_common.h>
 
