@@ -28,11 +28,8 @@
              (gnu packages shells)
              (gnu packages tls)
              (gnu packages version-control)
-<<<<<<< HEAD
              (gnu packages gperf)
-=======
              (guix build-system cmake)
->>>>>>> bitcoin
              (guix build-system gnu)
              (guix build-system python)
              (guix build-system trivial)
