@@ -168,7 +168,6 @@ BITCOIN_CORE_H = \
   deploymentstatus.h \
   external_signer.h \
   flatfile.h \
-  fs.h \
   headerssync.h \
   httprpc.h \
   httpserver.h \
@@ -317,6 +316,8 @@ BITCOIN_CORE_H = \
   util/exception.h \
   util/fastrange.h \
   util/fees.h \
+  util/fs.h \
+  util/fs_helpers.h \
   util/getuniquepath.h \
   util/golombrice.h \
   util/hash_type.h \
@@ -798,7 +799,6 @@ libparticl_util_a_SOURCES = \
   support/lockedpool.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
-  fs.cpp \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
@@ -811,6 +811,8 @@ libparticl_util_a_SOURCES = \
   util/error.cpp \
   util/exception.cpp \
   util/fees.cpp \
+  util/fs.cpp \
+  util/fs_helpers.cpp \
   util/getuniquepath.cpp \
   util/hasher.cpp \
   util/sock.cpp \
@@ -1084,7 +1086,6 @@ libparticlkernel_la_SOURCES = \
   deploymentinfo.cpp \
   deploymentstatus.cpp \
   flatfile.cpp \
-  fs.cpp \
   hash.cpp \
   kernel/chain.cpp \
   kernel/checks.cpp \
@@ -1141,6 +1142,8 @@ libparticlkernel_la_SOURCES = \
   uint256.cpp \
   util/check.cpp \
   util/exception.cpp \
+  util/fs.cpp \
+  util/fs_helpers.cpp \
   util/getuniquepath.cpp \
   util/hasher.cpp \
   util/moneystr.cpp \

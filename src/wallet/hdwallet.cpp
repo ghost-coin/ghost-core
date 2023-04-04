@@ -1335,7 +1335,7 @@ bool CHDWallet::GetPubKey(const CKeyID &address, CPubKey& pkOut) const
     return false;
 };
 
-bool CHDWallet::GetKeyFromPool(CPubKey &key, bool internal)
+bool CHDWallet::GetKeyFromPool(CPubKey &key)
 {
     // Always return a key from the internal chain
     return 0 == NewKeyFromAccount(key, true, false, false, false, nullptr);

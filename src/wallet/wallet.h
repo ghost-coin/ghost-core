@@ -7,7 +7,6 @@
 #define BITCOIN_WALLET_WALLET_H
 
 #include <consensus/amount.h>
-#include <fs.h>
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
 #include <logging.h>
@@ -15,6 +14,7 @@
 #include <policy/feerate.h>
 #include <psbt.h>
 #include <tinyformat.h>
+#include <util/fs.h>
 #include <util/hasher.h>
 #include <util/message.h>
 #include <util/result.h>
@@ -1020,7 +1020,7 @@ public:
     bool HaveKey(const CKeyID &address) const override { return false; };
     bool GetKey(const CKeyID &address, CKey &keyOut) const override { return false; };
     bool GetPubKey(const CKeyID &address, CPubKey &pkOut) const override { return false; };
-    bool GetKeyFromPool(CPubKey &key, bool internal = false) override { return false; };
+    bool GetKeyFromPool(CPubKey &key) override { return false; };
     virtual CAmount GetCredit(const CTxOutBase *txout, const isminefilter &filter) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) { return 0; };
     virtual bool IsChange(const CTxOutBase *txout) const { assert(false); return false; };
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime);

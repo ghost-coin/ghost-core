@@ -13,6 +13,7 @@
 #include <wallet/ismine.h>
 #include <util/strencodings.h>
 #include <util/system.h>
+#include <util/fs_helpers.h>
 #include <node/blockstorage.h>
 #include <consensus/consensus.h>
 #include <core_io.h>
@@ -23,7 +24,6 @@
 #include <validation.h>
 #include <timedata.h>
 #include <anon.h>
-#include <fs.h>
 #include <validationinterface.h>
 #include <node/context.h>
 #include <interfaces/wallet.h>

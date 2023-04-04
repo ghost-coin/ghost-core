@@ -2,5 +2,3 @@
 leak:libQt5Widgets
 leak:leveldb/util/env_posix.cc
 
-# false-positive due to use of secure_allocator<>
-leak:GetRNGState

@@ -51,7 +51,7 @@ public:
     virtual isminetype IsMine(const CKeyID &address) const = 0;
     virtual bool GetKey(const CKeyID &address, CKey &keyOut) const = 0;
     virtual bool GetPubKey(const CKeyID &address, CPubKey &pkOut) const = 0;
-    virtual bool GetKeyFromPool(CPubKey &key, bool internal = false) = 0;
+    virtual bool GetKeyFromPool(CPubKey &key) = 0;
 };
 
 //! Default for -keypool
@@ -344,7 +344,7 @@ public:
     std::map<int64_t, CKeyID> m_index_to_reserved_key;
 
     //! Fetches a key from the keypool
-    bool GetKeyFromPool(CPubKey &key, const OutputType type, bool internal = false);
+    bool GetKeyFromPool(CPubKey &key, const OutputType type);
 
     /**
      * Reserves a key from the keypool and sets nIndex to its index

@@ -115,7 +115,7 @@ public:
     int GetKey(const CKeyID &address, CKey &keyOut, CExtKeyAccount *&pa, CEKAKey &ak, CKeyID &idStealth) const;
     bool GetKey(const CKeyID &address, CKey &keyOut) const override;
     bool GetPubKey(const CKeyID &address, CPubKey &pkOut) const override;
-    bool GetKeyFromPool(CPubKey &key, bool internal = false) override;
+    bool GetKeyFromPool(CPubKey &key) override;
 
     isminetype HaveStealthAddress(const CStealthAddress &sxAddr) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     isminetype IsMine(const CStealthAddress &sxAddr, const CExtKeyAccount *&pa, const CEKAStealthKey *&pask) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

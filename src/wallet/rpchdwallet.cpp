@@ -32,6 +32,7 @@
 #include <util/translation.h>
 #include <util/fees.h>
 #include <util/rbf.h>
+#include <util/fs_helpers.h>
 #include <wallet/hdwallet.h>
 #include <wallet/hdwalletdb.h>
 #include <wallet/coincontrol.h>
