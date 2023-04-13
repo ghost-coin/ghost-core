@@ -42,6 +42,7 @@ struct bilingual_str;
 namespace wallet {
 class CCoinControl;
 class CWallet;
+enum class AddressPurpose;
 enum isminetype : unsigned int;
 struct CRecipient;
 struct WalletContext;
@@ -113,7 +114,7 @@ public:
     virtual bool haveWatchOnly() = 0;
 
     //! Add or update address.
-    virtual bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose) = 0;
+    virtual bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::optional<wallet::AddressPurpose>& purpose) = 0;
 
     // Remove address.
     virtual bool delAddressBook(const CTxDestination& dest) = 0;
@@ -122,7 +123,7 @@ public:
     virtual bool getAddress(const CTxDestination& dest,
         std::string* name,
         wallet::isminetype* is_mine,
-        std::string* purpose) = 0;
+        wallet::AddressPurpose* purpose) = 0;
 
     //! Get wallet address list.
     virtual std::vector<WalletAddress> getAddresses() const = 0;
@@ -303,7 +304,7 @@ public:
     using AddressBookChangedFn = std::function<void(const CTxDestination& address,
         const std::string& label,
         bool is_mine,
-        const std::string& purpose,
+        wallet::AddressPurpose purpose,
         const std::string& path,
         ChangeType status)>;
     virtual std::unique_ptr<Handler> handleAddressBookChanged(AddressBookChangedFn fn) = 0;
@@ -384,13 +385,13 @@ struct WalletAddress
 {
     CTxDestination dest;
     wallet::isminetype is_mine;
+    wallet::AddressPurpose purpose;
     std::string name;
-    std::string purpose;
     bool fBech32;
     std::string path;
 
-    WalletAddress(CTxDestination dest, wallet::isminetype is_mine, std::string name, std::string purpose, bool fBech32, std::string path)
-        : dest(std::move(dest)), is_mine(is_mine), name(std::move(name)), purpose(std::move(purpose)), fBech32(fBech32), path(path)
+    WalletAddress(CTxDestination dest, wallet::isminetype is_mine, wallet::AddressPurpose purpose, std::string name, bool fBech32, std::string path)
+        : dest(std::move(dest)), is_mine(is_mine), purpose(std::move(purpose)), name(std::move(name)), fBech32(fBech32), path(path)
     {
     }
 };

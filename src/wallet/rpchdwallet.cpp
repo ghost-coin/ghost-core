@@ -2296,8 +2296,8 @@ static RPCHelpMan importstealthaddress()
     // Find if address already exists, can update
     for (auto it = pwallet->stealthAddresses.begin(); it != pwallet->stealthAddresses.end(); ++it) {
         CStealthAddress &sxAddrIt = const_cast<CStealthAddress&>(*it);
-        if (sxAddrIt.scan_pubkey == sxAddr.scan_pubkey
-            && sxAddrIt.spend_pubkey == sxAddr.spend_pubkey) {
+        if (sxAddrIt.scan_pubkey == sxAddr.scan_pubkey &&
+            sxAddrIt.spend_pubkey == sxAddr.spend_pubkey) {
             CKeyID sid = sxAddrIt.GetSpendKeyID();
 
             if (!pwallet->HaveKey(sid) && skSpend.IsValid()) {
@@ -2327,7 +2327,7 @@ static RPCHelpMan importstealthaddress()
         }
     }
 
-    pwallet->SetAddressBook(sxAddr, sLabel, "", fBech32);
+    pwallet->SetAddressBook(sxAddr, sLabel, AddressPurpose::RECEIVE, fBech32);
 
     if (fFound) {
         result.pushKV("result", "Success, updated " + sxAddr.Encoded(fBech32));
@@ -2378,8 +2378,8 @@ int ListLooseStealthAddresses(UniValue &arr, const CHDWallet *pwallet, bool fSho
                 if (mi->second.GetLabel() != it->label) {
                     obj.pushKV("addr_book_label", mi->second.GetLabel());
                 }
-                if (!mi->second.purpose.empty()) {
-                    obj.pushKV("purpose", mi->second.purpose);
+                if (mi->second.purpose) {
+                    obj.pushKV("purpose", PurposeToString(*mi->second.purpose));
                 }
 
                 UniValue objDestData(UniValue::VOBJ);
@@ -2909,9 +2909,9 @@ static RPCHelpMan deriverangekeys()
 
                     std::string strAccount;
                     if (f256bit) {
-                        pwallet->SetAddressBook(&wdb, idk256, strAccount, "receive", vPath, false);
+                        pwallet->SetAddressBook(&wdb, idk256, strAccount, AddressPurpose::RECEIVE, vPath, false);
                     } else {
-                        pwallet->SetAddressBook(&wdb, PKHash(idk), strAccount, "receive", vPath, false);
+                        pwallet->SetAddressBook(&wdb, PKHash(idk), strAccount, AddressPurpose::RECEIVE, vPath, false);
                     }
                 }
             }
@@ -4287,7 +4287,15 @@ static RPCHelpMan manageaddressbook()
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Address '%s' is recorded in the address book.", sAddress));
         }
 
-        if (!pwallet->SetAddressBook(nullptr, dest, sLabel, sPurpose, vPath, true)) {
+        std::optional<AddressPurpose> purpose;
+        if (!sPurpose.empty()) {
+            purpose = PurposeFromString(sPurpose);
+            if (!purpose) {
+                pwallet->WalletLogPrintf("Warning: nonstandard purpose string '%s' for address '%s'\n", sPurpose, sAddress);
+            }
+        }
+
+        if (!pwallet->SetAddressBook(nullptr, dest, sLabel, purpose, vPath, true)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
         }
     } else
@@ -4299,13 +4307,23 @@ static RPCHelpMan manageaddressbook()
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Address '%s' is not in the address book.", sAddress));
         }
 
+        std::optional<AddressPurpose> purpose;
+        if (!sPurpose.empty()) {
+            purpose = PurposeFromString(sPurpose);
+            if (!purpose) {
+                pwallet->WalletLogPrintf("Warning: nonstandard purpose string '%s' for address '%s'\n", sPurpose, sAddress);
+            }
+        }
+
         if (!pwallet->SetAddressBook(nullptr, dest, sLabel,
-            fHavePurpose ? sPurpose : mabi->second.purpose, mabi->second.vPath, true)) {
+            fHavePurpose ? purpose : mabi->second.purpose, mabi->second.vPath, true)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
         }
 
         sLabel = mabi->second.GetLabel();
-        sPurpose = mabi->second.purpose;
+        if (mabi->second.purpose) {
+            sPurpose = PurposeToString(*mabi->second.purpose);
+        }
 
         for (const auto &pair : mabi->second.destdata) {
             objDestData.pushKV(pair.first, pair.second);
@@ -4316,7 +4334,9 @@ static RPCHelpMan manageaddressbook()
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Address '%s' is not in the address book.", sAddress));
         }
         sLabel = mabi->second.GetLabel();
-        sPurpose = mabi->second.purpose;
+        if (mabi->second.purpose) {
+            sPurpose = PurposeToString(*mabi->second.purpose);
+        }
 
         if (!pwallet->DelAddressBook(dest)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "DelAddressBook failed.");
@@ -4333,7 +4353,7 @@ static RPCHelpMan manageaddressbook()
         result.pushKV("address", sAddress);
 
         result.pushKV("label", mabi->second.GetLabel());
-        result.pushKV("purpose", mabi->second.purpose);
+        result.pushKV("purpose", mabi->second.purpose ? PurposeToString(*mabi->second.purpose) : "unknown");
 
         if (mabi->second.nOwned == 0) {
             mabi->second.nOwned = pwallet->HaveAddress(mabi->first) ? 1 : 2;
@@ -4360,18 +4380,25 @@ static RPCHelpMan manageaddressbook()
         return result;
     } else
     if (sAction == "newsend") {
+        std::optional<AddressPurpose> purpose;
         // Only update the purpose field if address does not yet exist
         if (mabi != pwallet->m_address_book.end()) {
-            sPurpose = ""; // "" means don't change purpose
             if (!label_was_set) {
                 sLabel = mabi->second.GetLabel();
             }
+        } else {
+            if (!sPurpose.empty()) {
+                purpose = PurposeFromString(sPurpose);
+                if (!purpose) {
+                    pwallet->WalletLogPrintf("Warning: nonstandard purpose string '%s' for address '%s'\n", sPurpose, sAddress);
+                }
+            }
         }
-        if (!pwallet->SetAddressBook(dest, sLabel, sPurpose)) {
+        if (!pwallet->SetAddressBook(dest, sLabel, purpose)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
         }
         if (mabi != pwallet->m_address_book.end()) {
-            sPurpose = mabi->second.purpose;
+            sPurpose = mabi->second.purpose ? PurposeToString(*mabi->second.purpose) : "unknown";
         }
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown action, must be one of 'add/edit/del'.");

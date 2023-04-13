@@ -129,8 +129,8 @@ public:
 
     bool AddressBookChangedNotify(const CTxDestination &address, ChangeType nMode);
     bool SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address, const std::string &strName,
-        const std::string &purpose, const std::vector<uint32_t> &vPath, bool fNotifyChanged=true, bool fBech32=false);
-    bool SetAddressBook(const CTxDestination &address, const std::string &strName, const std::string &strPurpose, bool fBech32=false) override;
+                        const std::optional<AddressPurpose>& purpose, const std::vector<uint32_t> &vPath, bool fNotifyChanged=true, bool fBech32=false);
+    bool SetAddressBook(const CTxDestination &address, const std::string &strName, const std::optional<AddressPurpose>& purpose, bool fBech32=false) override;
     bool DelAddressBook(const CTxDestination &address) override;
 
 

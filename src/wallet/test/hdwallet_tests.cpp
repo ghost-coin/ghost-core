@@ -14,7 +14,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <wallet/coincontrol.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>

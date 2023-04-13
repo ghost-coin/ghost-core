@@ -18,10 +18,11 @@
 #include <util/system.h>
 #include <util/translation.h>
 #include <util/ui_change_type.h>
+#include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/feebumper.h>
 #include <wallet/fees.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <wallet/load.h>
 #include <wallet/receive.h>
 #include <wallet/rpc/wallet.h>
@@ -283,7 +284,7 @@ public:
         }
         return false;
     };
-    bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose) override
+    bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::optional<AddressPurpose>& purpose) override
     {
         return m_wallet->SetAddressBook(dest, name, purpose);
     }
@@ -294,7 +295,7 @@ public:
     bool getAddress(const CTxDestination& dest,
         std::string* name,
         isminetype* is_mine,
-        std::string* purpose) override
+        AddressPurpose* purpose) override
     {
         LOCK(m_wallet->cs_wallet);
         const auto& entry = m_wallet->FindAddressBookEntry(dest, /*allow_change=*/false);
@@ -302,11 +303,16 @@ public:
         if (name) {
             *name = entry->GetLabel();
         }
+        std::optional<isminetype> dest_is_mine;
+        if (is_mine || purpose) {
+            dest_is_mine = m_wallet->IsMine(dest);
+        }
         if (is_mine) {
-            *is_mine = m_wallet->IsMine(dest);
+            *is_mine = *dest_is_mine;
         }
         if (purpose) {
-            *purpose = entry->purpose;
+            // In very old wallets, address purpose may not be recorded so we derive it from IsMine
+            *purpose = entry->purpose.value_or(*dest_is_mine ? AddressPurpose::RECEIVE : AddressPurpose::SEND);
         }
         return true;
     }
@@ -322,14 +328,16 @@ public:
                     PathToString(item.second.vPath, str_path, '\'', 1)) {
                     str_path = "";
                 }
-                result.emplace_back(item.first, m_wallet->IsMine(item.first), item.second.GetLabel(), item.second.purpose, item.second.fBech32, str_path);
+                isminetype is_mine = m_wallet->IsMine(item.first);
+                result.emplace_back(item.first, is_mine, item.second.purpose.value_or(is_mine ? AddressPurpose::RECEIVE : AddressPurpose::SEND), item.second.GetLabel(), item.second.fBech32, str_path);
             }
             return result;
         }
-        m_wallet->ForEachAddrBookEntry([&](const CTxDestination& dest, const std::string& label, const std::string& purpose, bool is_change) EXCLUSIVE_LOCKS_REQUIRED(m_wallet->cs_wallet) {
+        m_wallet->ForEachAddrBookEntry([&](const CTxDestination& dest, const std::string& label, bool is_change, const std::optional<AddressPurpose>& purpose) EXCLUSIVE_LOCKS_REQUIRED(m_wallet->cs_wallet) {
             if (is_change) return;
-            std::string str_path;
-            result.emplace_back(dest, m_wallet->IsMine(dest), label, purpose, false, str_path);
+            isminetype is_mine = m_wallet->IsMine(dest);
+            // In very old wallets, address purpose may not be recorded so we derive it from IsMine
+            result.emplace_back(dest, is_mine, purpose.value_or(is_mine ? AddressPurpose::RECEIVE : AddressPurpose::SEND), label, false, "");
         });
         return result;
     }
@@ -586,7 +594,24 @@ public:
     CAmount getBalance() override { return GetBalance(*m_wallet).m_mine_trusted; }
     CAmount getAvailableBalance(const CCoinControl& coin_control) override
     {
-        return GetAvailableBalance(*m_wallet, &coin_control);
+        LOCK(m_wallet->cs_wallet);
+        CAmount total_amount = 0;
+        // Fetch selected coins total amount
+        if (coin_control.HasSelected()) {
+            FastRandomContext rng{};
+            CoinSelectionParams params(rng);
+            // Note: for now, swallow any error.
+            if (auto res = FetchSelectedInputs(*m_wallet, coin_control, params)) {
+                total_amount += res->total_amount;
+            }
+        }
+
+        // And fetch the wallet available coins
+        if (coin_control.m_allow_other_inputs) {
+            total_amount += AvailableCoins(*m_wallet, &coin_control).GetTotalAmount();
+        }
+
+        return total_amount;
     }
     wallet::isminetype txinIsMine(const CTxIn& txin) override
     {
@@ -718,7 +743,7 @@ public:
     {
         return MakeSignalHandler(m_wallet->NotifyAddressBookChanged.connect(
             [fn](const CTxDestination& address, const std::string& label, bool is_mine,
-                 const std::string& purpose, const std::string& path, ChangeType status) { fn(address, label, is_mine, purpose, path, status); }));
+                 AddressPurpose purpose, const std::string& path, ChangeType status) { fn(address, label, is_mine, purpose, path, status); }));
     }
     std::unique_ptr<Handler> handleTransactionChanged(TransactionChangedFn fn) override
     {

@@ -101,8 +101,8 @@ static void AppendKey(const CHDWallet *pw, CKey &key, uint32_t nChild, UniValue 
     if (mi != pw->m_address_book.end()) {
         // TODO: confirm vPath?
         keyobj.pushKV("label", mi->second.GetLabel());
-        if (!mi->second.purpose.empty()) {
-            keyobj.pushKV("purpose", mi->second.purpose);
+        if (mi->second.purpose) {
+            keyobj.pushKV("purpose", PurposeToString(*mi->second.purpose));
         }
         UniValue objDestData(UniValue::VOBJ);
         for (const auto &pair : mi->second.destdata) {
@@ -583,8 +583,8 @@ bool CHDWallet::DumpJson(UniValue &rv, std::string &sError)
                     if (mi->second.GetLabel() != sxPacked.aks.sLabel) {
                         sxAddr.pushKV("addr_book_label", mi->second.GetLabel());
                     }
-                    if (!mi->second.purpose.empty()) {
-                        sxAddr.pushKV("purpose", mi->second.purpose);
+                    if (mi->second.purpose) {
+                        sxAddr.pushKV("purpose", PurposeToString(*mi->second.purpose));
                     }
 
                     UniValue objDestData(UniValue::VOBJ);
@@ -1505,10 +1505,10 @@ bool CHDWallet::AddressBookChangedNotify(const CTxDestination &address, ChangeTy
     if (entry.vPath.size() > 1) {
         PathToString(entry.vPath, str_path, '\'', 1);
     }
-    NotifyAddressBookChanged(address, entry.GetLabel(), tIsMine != ISMINE_NO, entry.purpose, str_path, nMode);
+    NotifyAddressBookChanged(address, entry.GetLabel(), tIsMine != ISMINE_NO, entry.purpose.value_or(tIsMine != ISMINE_NO ? AddressPurpose::RECEIVE : AddressPurpose::SEND), str_path, nMode);
 
-    if (tIsMine == ISMINE_SPENDABLE
-        && address.index() == DI::_PKHash) {
+    if (tIsMine == ISMINE_SPENDABLE &&
+        address.index() == DI::_PKHash) {
         CKeyID id = ToKeyID(std::get<PKHash>(address));
         smsgModule.WalletKeyChanged(id, entry.GetLabel(), nMode);
     }
@@ -1647,10 +1647,11 @@ void CHDWallet::Downgrade()
 }
 
 bool CHDWallet::SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address, const std::string &strName,
-    const std::string &strPurpose, const std::vector<uint32_t> &vPath, bool fNotifyChanged, bool fBech32)
+    const std::optional<AddressPurpose>& new_purpose, const std::vector<uint32_t> &vPath, bool fNotifyChanged, bool fBech32)
 {
     ChangeType nMode;
     isminetype tIsMine;
+    std::optional<AddressPurpose> purpose;
 
     {
         LOCK(cs_wallet); // m_address_book
@@ -1661,8 +1662,9 @@ bool CHDWallet::SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address,
         nMode = (ret.second) ? CT_NEW : CT_UPDATED;
 
         CAddressBookData *entry = &ret.first->second;
-        entry->SetLabel(strName, strPurpose, vPath, fBech32);
+        entry->SetLabel(strName, new_purpose, vPath, fBech32);
         tIsMine = IsMine(address);
+        purpose = entry->purpose;
 
         if (pwdb) {
             if (!pwdb->WriteAddressBookEntry(EncodeDestination(address), *entry)) {
@@ -1681,10 +1683,10 @@ bool CHDWallet::SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address,
         if (vPath.size() > 1) {
             PathToString(vPath, str_path, '\'', 1);
         }
-        NotifyAddressBookChanged(address, strName, tIsMine != ISMINE_NO, strPurpose, str_path, nMode);
+        NotifyAddressBookChanged(address, strName, tIsMine != ISMINE_NO, purpose.value_or(tIsMine != ISMINE_NO ? AddressPurpose::RECEIVE : AddressPurpose::SEND), str_path, nMode);
 
-        if (tIsMine == ISMINE_SPENDABLE
-            && address.index() == DI::_PKHash) {
+        if (tIsMine == ISMINE_SPENDABLE &&
+            address.index() == DI::_PKHash) {
             CKeyID id = ToKeyID(std::get<PKHash>(address));
             smsgModule.WalletKeyChanged(id, strName, nMode);
         }
@@ -1693,10 +1695,11 @@ bool CHDWallet::SetAddressBook(CHDWalletDB *pwdb, const CTxDestination &address,
     return true;
 };
 
-bool CHDWallet::SetAddressBook(const CTxDestination &address, const std::string &strName, const std::string &strPurpose, bool fBech32)
+bool CHDWallet::SetAddressBook(const CTxDestination &address, const std::string &strName, const std::optional<AddressPurpose>& new_purpose, bool fBech32)
 {
     isminetype tIsMine;
     ChangeType nMode;
+    std::optional<AddressPurpose> purpose;
 
     {
         LOCK(cs_wallet); // m_address_book
@@ -1708,8 +1711,9 @@ bool CHDWallet::SetAddressBook(const CTxDestination &address, const std::string 
         nMode = (ret.second) ? CT_NEW : CT_UPDATED;
 
         CAddressBookData *entry = &ret.first->second;
-        entry->SetLabel(strName, strPurpose, vPath, fBech32);
+        entry->SetLabel(strName, new_purpose, vPath, fBech32);
         tIsMine = IsMine(address);
+        purpose = entry->purpose;
 
         if (!CHDWalletDB(*m_database).WriteAddressBookEntry(EncodeDestination(address), *entry)) {
             return false;
@@ -1724,11 +1728,10 @@ bool CHDWallet::SetAddressBook(const CTxDestination &address, const std::string 
 
     std::string str_path;
     NotifyAddressBookChanged(address, strName, tIsMine != ISMINE_NO,
-                             strPurpose, str_path, nMode);
+                             purpose.value_or(tIsMine != ISMINE_NO ? AddressPurpose::RECEIVE : AddressPurpose::SEND), str_path, nMode);
 
     return true;
 };
-
 
 bool CHDWallet::DelAddressBook(const CTxDestination &address)
 {
@@ -1747,8 +1750,8 @@ bool CHDWallet::DelAddressBook(const CTxDestination &address)
             } else {
                 //fOwned = si->scan_secret.size() < 32 ? false : true;
 
-                if (stealthAddresses.erase(sxAddr) < 1
-                    || !CHDWalletDB(*m_database).EraseStealthAddress(sxAddr)) {
+                if (stealthAddresses.erase(sxAddr) < 1 ||
+                    !CHDWalletDB(*m_database).EraseStealthAddress(sxAddr)) {
                     WalletLogPrintf("%s: Error: Remove stealthAddresses failed.\n", __func__);
                     return false;
                 }
@@ -7924,13 +7927,13 @@ int CHDWallet::NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPu
         }
 
         if (output_type == OutputType::BECH32) {
-            SetAddressBook(pwdb, WitnessV0KeyHash(pkOut), plabel, "receive", vPath, false);
+            SetAddressBook(pwdb, WitnessV0KeyHash(pkOut), plabel, AddressPurpose::RECEIVE, vPath, false);
         } else
         if (f256bit) {
             CKeyID256 idKey256 = pkOut.GetID256();
-            SetAddressBook(pwdb, idKey256, plabel, "receive", vPath, false, fBech32);
+            SetAddressBook(pwdb, idKey256, plabel, AddressPurpose::RECEIVE, vPath, false, fBech32);
         } else {
-            SetAddressBook(pwdb, PKHash(idKey), plabel, "receive", vPath, false, fBech32);
+            SetAddressBook(pwdb, PKHash(idKey), plabel, AddressPurpose::RECEIVE, vPath, false, fBech32);
         }
     }
 
@@ -8250,7 +8253,7 @@ int CHDWallet::SaveStealthAddress(CHDWalletDB *pwdb, CExtKeyAccount *sea, const 
         return werrorN(1, "SetSxAddr failed.");
     }
 
-    SetAddressBook(pwdb, sxAddr, akStealth.sLabel, "receive", vPath, false, fBech32);
+    SetAddressBook(pwdb, sxAddr, akStealth.sLabel, AddressPurpose::RECEIVE, vPath, false, fBech32);
 
     return 0;
 };
@@ -8486,7 +8489,7 @@ int CHDWallet::NewExtKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount,
         }
 
         vPath.push_back(nNewChildNo);
-        SetAddressBook(pwdb, MakeExtPubKey(sekOut->kp), plabel, "receive", vPath, false, fBech32);
+        SetAddressBook(pwdb, MakeExtPubKey(sekOut->kp), plabel, AddressPurpose::RECEIVE, vPath, false, fBech32);
     }
 
     if (!pwdb->WriteExtAccount(idAccount, *sea) ||
@@ -8611,9 +8614,10 @@ int CHDWallet::ExtKeyUpdateLooseKey(const CExtKeyPair &ek, uint32_t nKey, bool f
     }
 
     auto epk = MakeExtPubKey(ek);
-    if (fAddToAddressBook
-        && !m_address_book.count(CTxDestination(epk))) {
-        SetAddressBook(epk, "", "");
+    if (fAddToAddressBook &&
+        !m_address_book.count(CTxDestination(epk))) {
+        std::optional<AddressPurpose> purpose;
+        SetAddressBook(epk, "", purpose);
     }
     return 0;
 };

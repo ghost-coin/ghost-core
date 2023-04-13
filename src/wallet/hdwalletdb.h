@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace wallet {
-class CAddressBookData;
+struct CAddressBookData;
 } // namespace wallet
 
 using namespace wallet;

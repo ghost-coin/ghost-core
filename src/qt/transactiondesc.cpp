@@ -22,7 +22,7 @@
 #include <util/string.h>
 #include <util/system.h>
 #include <validation.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 
 #include <wallet/hdwallet.h>
 #include <univalue.h>

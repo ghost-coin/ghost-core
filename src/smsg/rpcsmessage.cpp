@@ -10,7 +10,7 @@
 
 #include <smsg/smessage.h>
 #include <smsg/db.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <util/strencodings.h>
 #include <util/system.h>
 #include <util/fs_helpers.h>

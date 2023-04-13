@@ -209,9 +209,9 @@ RPCHelpMan setlabel()
     const std::string label{LabelFromValue(request.params[1])};
 
     if (pwallet->IsMine(dest)) {
-        pwallet->SetAddressBook(dest, label, "receive");
+        pwallet->SetAddressBook(dest, label, AddressPurpose::RECEIVE);
     } else {
-        pwallet->SetAddressBook(dest, label, "send");
+        pwallet->SetAddressBook(dest, label, AddressPurpose::SEND);
     }
 
     return UniValue::VNULL;
@@ -367,10 +367,10 @@ RPCHelpMan addmultisigaddress()
     if (f256Hash) {
         CScriptID256 innerID;
         innerID.Set(inner);
-        pwallet->SetAddressBook(innerID, label, "send", fbech32);
+        pwallet->SetAddressBook(innerID, label, AddressPurpose::SEND, fbech32);
         result.pushKV("address", CBitcoinAddress(innerID, fbech32).ToString());
     } else {
-        pwallet->SetAddressBook(dest, label, "send", fbech32);
+        pwallet->SetAddressBook(dest, label, AddressPurpose::SEND, fbech32);
         result.pushKV("address", EncodeDestination(dest, fbech32));
     }
 
@@ -382,7 +382,7 @@ RPCHelpMan addmultisigaddress()
         // Only warns if the user has explicitly chosen an address type we cannot generate
         warnings.push_back("Unable to make chosen address type, please ensure no uncompressed public keys are present.");
     }
-    if (!warnings.empty()) result.pushKV("warnings", warnings);
+    PushWarnings(warnings, result);
 
     return result;
 },
@@ -885,7 +885,7 @@ RPCHelpMan getaddressesbylabel()
     // Find all addresses that have the given label
     UniValue ret(UniValue::VOBJ);
     std::set<std::string> addresses;
-    pwallet->ForEachAddrBookEntry([&](const CTxDestination& _dest, const std::string& _label, const std::string& _purpose, bool _is_change) {
+    pwallet->ForEachAddrBookEntry([&](const CTxDestination& _dest, const std::string& _label, bool _is_change, const std::optional<AddressPurpose>& _purpose) {
         if (_is_change) return;
         if (_label == label) {
             std::string address = EncodeDestination(_dest);
@@ -899,7 +899,7 @@ RPCHelpMan getaddressesbylabel()
             // std::set in O(log(N))), UniValue::__pushKV is used instead,
             // which currently is O(1).
             UniValue value(UniValue::VOBJ);
-            value.pushKV("purpose", _purpose);
+            value.pushKV("purpose", _purpose ? PurposeToString(*_purpose) : "unknown");
             ret.__pushKV(address, value);
         }
     });
@@ -943,9 +943,15 @@ RPCHelpMan listlabels()
 
     LOCK(pwallet->cs_wallet);
 
-    std::string purpose;
+    std::optional<AddressPurpose> purpose;
     if (!request.params[0].isNull()) {
-        purpose = request.params[0].get_str();
+        std::string purpose_str = request.params[0].get_str();
+        if (!purpose_str.empty()) {
+            purpose = PurposeFromString(purpose_str);
+            if (!purpose) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid 'purpose' argument, must be a known purpose string, typically 'send', or 'receive'.");
+            }
+        }
     }
 
     // Add to a set to sort by label name, then insert into Univalue array

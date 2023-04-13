@@ -28,7 +28,7 @@ Notes:
 #include <secp256k1_ecdh.h>
 #include <crypto/hmac_sha256.h>
 #include <crypto/sha512.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <support/allocators/secure.h>
 #include <util/thread.h>
 #include <util/strencodings.h>
@@ -687,8 +687,8 @@ int CSMSG::AddWalletAddresses()
             // TODO: skip addresses for stealth transactions
             CKeyID keyID;
             CBitcoinAddress coinAddress(entry.first);
-            if (!coinAddress.IsValid()
-                || !coinAddress.GetKeyID(keyID)) {
+            if (!coinAddress.IsValid() ||
+                !coinAddress.GetKeyID(keyID)) {
                 continue;
             }
 
@@ -705,8 +705,8 @@ int CSMSG::AddWalletAddresses()
                 continue;
             }
 
-            bool recvEnabled    = true;
-            bool recvAnon       = false;
+            bool recvEnabled = true;
+            bool recvAnon = false;
 
             addresses.push_back(SecMsgAddress(keyID, recvEnabled, recvAnon));
             nAdded++;

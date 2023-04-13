@@ -14,7 +14,7 @@
 #include <insight/csindex.h>
 #include <script/script.h>
 #include <script/interpreter.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <key_io.h>
 
 using node::OpenBlockFile;
