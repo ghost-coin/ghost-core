@@ -2135,7 +2135,10 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             std::size_t outputsSize = 0;
             for(const auto& tx: block.vtx) {
                 for (const auto& txout: tx->vpout) {
-                    if (txout->IsStandardOutput()) {
+                    CScript outScript;
+                    txout->GetScriptPubKey(outScript);
+
+                    if (outScript[0] != OP_RETURN && txout->IsStandardOutput()) {
                         outputsSize++;
                     }
                 }
@@ -3415,8 +3418,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
                         rewardUndo.outputs[pindex->nHeight].emplace_back(make_pair(addr, txout->GetValue()));
                     } else {
-                        auto isDataOutput = outScript[0] == OUTPUT_DATA;
-                        if (isDataOutput) continue;
+                        if (outScript[0] == OP_RETURN) continue;
                         LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
                         return error("ConnectBlock(): Can't extract destination address for outputs\n");
                     }
