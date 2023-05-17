@@ -3415,6 +3415,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
                         rewardUndo.outputs[pindex->nHeight].emplace_back(make_pair(addr, txout->GetValue()));
                     } else {
+                        auto isDataOutput = outScript[0] == OUTPUT_DATA;
+                        if (isDataOutput) continue;
                         LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
                         return error("ConnectBlock(): Can't extract destination address for outputs\n");
                     }
