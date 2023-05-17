@@ -11,6 +11,11 @@ from test_framework.util import (
     assert_equal
 )
 
+from test_framework.script import (
+    CScript,
+    OP_RETURN,
+)
+
 class GhostVeteranReward3Test(GhostTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -99,6 +104,11 @@ class GhostVeteranReward3Test(GhostTestFramework):
 
         node1_receiving_addr = nodes[1].getnewstealthaddress()
         nodes[0].sendghosttoanon(node1_receiving_addr, 1000, '', '', False, 'node0 -> node1 p->a')
+        self.stakeBlocks(1)
+
+        # Spending to DATA_OUTPUT 
+        burn_script = CScript([OP_RETURN, ])
+        nodes[0].sendtypeto('ghost', 'ghost', [{'address': 'script', 'amount': 10, 'script': burn_script.hex()},])
         self.stakeBlocks(1)
 
         res = nodes[0].verifychain(3)
