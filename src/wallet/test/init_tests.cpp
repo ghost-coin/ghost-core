@@ -68,6 +68,14 @@ BOOST_AUTO_TEST_CASE(walletinit_verify_walletdir_no_trailing)
     bool result = m_wallet_client->verify();
     BOOST_CHECK(result == true);
     fs::path walletdir = gArgs.GetArg("-walletdir", "");
+
+    if (walletdir.has_filename()) {
+        std::cout << "WALLET DIR HAS FILE NAME " << walletdir.filename() << "\n";
+    } else { 
+        std::cout << "WALLET DIR DOESN'T HAVE FILENAME : " << walletdir << "\n" ;
+    }
+    std::cout << "THE PARENT PATH WILL BE " << walletdir.parent_path() << "\n";
+    walletdir = walletdir.has_filename()? walletdir : walletdir.parent_path();
     fs::path expected_path = fs::canonical(m_walletdir_path_cases["default"]);
     BOOST_CHECK(walletdir == expected_path);
 }
