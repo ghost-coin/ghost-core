@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         os: [x86_64-linux-gnu]
@@ -58,7 +58,7 @@ jobs:
         run: make check
 
   build-macos:
-    runs-on: macOS-latest
+    runs-on: macOS-11
     env:
       CCACHE_TEMPDIR: /tmp/.ccache-temp
     steps:
@@ -68,14 +68,25 @@ jobs:
           path: /Users/runner/Library/Caches/ccache
           key: ccache-${{ runner.os }}-build-${{ github.sha }}
           restore-keys: ccache-${{ runner.os }}-build-
+      - name: Xcode Select
+        # You may pin to the exact commit or the version.
+        # uses: devbotsxyz/xcode-select@05f94658217eb8575f0aabd3b95e702a47995d21
+        uses: devbotsxyz/xcode-select@v1.1.0
+        with:
+          # Version to use (like '11.7', '12' or simply 'latest')
+          version: 12.4
+     
+      - name: Set Openssl to 1.1
+        run: echo 'export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"' >> /Users/runner/.bash_profile && openssl version
+      
       - name: install dependencies
-        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc pkg-config python qt libevent qrencode protobuf hidapi librsvg sqlite berkeley-db4
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc pkg-config python qt libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
   
       - name: Refresh automake configs
         run: ./autogen.sh
 
       - name: Configure automake
-        run: ./configure --prefix=`pwd`/depends/${{ runner.os }} --with-gui=auto
+        run: ./configure --prefix=`pwd`/depends/${{ runner.os }} --with-gui=auto LDFLAGS="-L/usr/local/opt/openssl@1.1/lib" CPPFLAGS="-I/usr/local/opt/openssl@1.1/include"
 
       - name: Build codebase
         run: make -j4
