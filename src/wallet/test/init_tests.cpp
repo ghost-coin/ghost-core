@@ -74,9 +74,14 @@ BOOST_AUTO_TEST_CASE(walletinit_verify_walletdir_no_trailing)
     } else { 
         std::cout << "WALLET DIR DOESN'T HAVE FILENAME : " << walletdir << "\n" ;
     }
+    
     std::cout << "THE PARENT PATH WILL BE " << walletdir.parent_path() << "\n";
-    walletdir = walletdir.has_filename()? walletdir : walletdir.parent_path();
+    walletdir = walletdir.filename() == "." ? walletdir.parent_path() : walletdir;
     fs::path expected_path = fs::canonical(m_walletdir_path_cases["default"]);
+
+    std::cout << "VALUE OF WALLET DIR IS " << walletdir << "\n";
+    std::cout << "VALUE OF EXPECTED PATH IS " << expected_path << "\n";
+    
     BOOST_CHECK(walletdir == expected_path);
 }
 
@@ -86,8 +91,12 @@ BOOST_AUTO_TEST_CASE(walletinit_verify_walletdir_no_trailing2)
     bool result = m_wallet_client->verify();
     BOOST_CHECK(result == true);
     fs::path walletdir = gArgs.GetArg("-walletdir", "");
-    walletdir = walletdir.has_filename()? walletdir : walletdir.parent_path();
+    walletdir = walletdir.filename() == "." ? walletdir.parent_path() : walletdir;
     fs::path expected_path = fs::canonical(m_walletdir_path_cases["default"]);
+
+    std::cout << "VALUE OF WALLET DIR IS " << walletdir << "\n";
+    std::cout << "VALUE OF EXPECTED PATH IS " << expected_path << "\n";
+
     BOOST_CHECK(walletdir == expected_path);
 }
 
