@@ -9794,6 +9794,7 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
                 {
                     {"height", RPCArg::Type::NUM, /* default */ "0", "The height at which to return the eligble addresses"},
                     {"eligibleonly", RPCArg::Type::BOOL, /* default */ "1", "Whether to return eligible addresses only. When set to true height is the current height"},
+                    {"flushcache", RPCArg::Type::BOOL, "0", "Whether or not to save the current state to disk before operations. For debugging only"}
                 },
              RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -9811,18 +9812,27 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
     
     UniValue result(UniValue::VARR);
 
-    int height{0};
+    int height{::ChainActive().Tip()->nHeight};
     bool eligibleonly{true};
+    bool flushState{false};
 
-    if (request.params[0].isNum()) {
+    if (request.params.size() > 0) {
         height = request.params[0].get_int64();
-        eligibleonly = request.params[1].isNull()? true : request.params[1].get_bool();
-    } else if (request.params[0].isStr()) {
-        height = request.params.size() > 0 ? std::stol(request.params[0].get_str()) : ::ChainActive().Tip()->nHeight;
-        eligibleonly = request.params.size() > 1 ? std::stoi(request.params[1].get_str()) : true;
     }
 
-    auto& rewardTracker = initColdReward();
+    if (request.params.size() > 1) {
+        eligibleonly = request.params[1].get_bool();
+    }
+
+    if (request.params.size() > 2) {
+        flushState = request.params[2].get_bool();
+    }
+
+    auto& tracker = initColdReward();
+
+    if (flushState) {
+        tracker.endPersistedTransaction();
+    }
 
     std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> addresses;
 
@@ -9830,8 +9840,8 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
         height = ::ChainActive().Tip()->nHeight;
         addresses = rewardTracker.getBalances();
     } else {
-        const auto addrMul = rewardTracker.getEligibleAddresses(height);
-        const auto balances = rewardTracker.getBalances();
+        const auto addrMul = tracker.getEligibleAddresses(height);
+        const auto balances = tracker.getBalances();
 
         for (const auto& b: balances) {
             auto res = std::find_if(addrMul.begin(), addrMul.end(), [&b](const std::pair<ColdRewardTracker::AddressType, CAmount>& s){
@@ -10033,7 +10043,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "pruneorphanedblocks",              &pruneorphanedblocks,           {"testonly"} },
     { "blockchain",         "rehashblock",                      &rehashblock,                   {"blockhex","signwith","addtxns"} },
 
-    { "blockchain",         "geteligibleaddresses",             &geteligibleaddresses,          {"height", "eligibleonly"} },
+    { "blockchain",         "geteligibleaddresses",             &geteligibleaddresses,          {"height", "eligibleonly", "flushcache"} },
 };
 // clang-format on
     return MakeSpan(commands);
