@@ -311,6 +311,8 @@ PARTICL_SCRIPTS = [
     'feature_part_coldstaking.py',
     'rpc_part_filtertransactions.py',
     'feature_part_vote.py',
+    'feature_part_vote_2.py',
+    'feature_part_vote_extra.py',
     'feature_part_zmq_test.py',
     'rpc_part_wallet.py',
     'feature_part_usbdevice.py',
