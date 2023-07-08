@@ -2353,42 +2353,42 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     }
 
     // Rollback the tracked balances
-    auto undoOutputHeightExists = std::find_if(rewardUndo.outputs.begin(), rewardUndo.outputs.end(), 
-        [&](const std::pair<int, std::vector<std::pair<AddressType, CAmount>>>& elem){
-            return elem.first == pindex->nHeight;
-        });
-
-    auto undoInputHeightExists = std::find_if(rewardUndo.inputs.begin(), rewardUndo.inputs.end(), 
-        [&](const std::pair<int, std::vector<std::pair<AddressType, CAmount>>>& elem){
-            return elem.first == pindex->nHeight;
-        });
-
-
-    if (!rewardUndo.outputs.empty() && undoOutputHeightExists != rewardUndo.outputs.end()) {
-        for(const auto& output: rewardUndo.outputs.at(pindex->nHeight)) {
-            const auto addr = std::string(output.first.begin(), output.first.end());
-            LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, addr);
-            rewardTracker.removeAddressTransaction(pindex->nHeight, output.first, output.second);
-        }
-    }
-
-    if (!rewardUndo.inputs.empty() && undoInputHeightExists != rewardUndo.inputs.end()) {
-        for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
-            const auto addr = std::string(input.first.begin(), input.first.end());
-            LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
-            rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
-        }
-    }
 
     if (!fVerifyingDB) {
-        if (pindex->nHeight >= consensus.automatedGvrActivationHeight && 
+        auto undoOutputHeightExists = std::find_if(rewardUndo.outputs.begin(), rewardUndo.outputs.end(),
+            [&](const std::pair<int, std::vector<std::pair<AddressType, CAmount>>>& elem){
+                return elem.first == pindex->nHeight;
+            });
+
+        auto undoInputHeightExists = std::find_if(rewardUndo.inputs.begin(), rewardUndo.inputs.end(),
+            [&](const std::pair<int, std::vector<std::pair<AddressType, CAmount>>>& elem){
+                return elem.first == pindex->nHeight;
+            });
+
+
+        if (!rewardUndo.outputs.empty() && undoOutputHeightExists != rewardUndo.outputs.end()) {
+            for(const auto& output: rewardUndo.outputs.at(pindex->nHeight)) {
+                const auto addr = std::string(output.first.begin(), output.first.end());
+                LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, addr);
+                rewardTracker.removeAddressTransaction(pindex->nHeight, output.first, output.second);
+            }
+        }
+
+        if (!rewardUndo.inputs.empty() && undoInputHeightExists != rewardUndo.inputs.end()) {
+            for(const auto& input: rewardUndo.inputs.at(pindex->nHeight)) {
+                const auto addr = std::string(input.first.begin(), input.first.end());
+                LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
+                rewardTracker.removeAddressTransaction(pindex->nHeight, input.first, - input.second);
+            }
+        }
+
+        if (pindex->nHeight >= consensus.automatedGvrActivationHeight &&
             !pblocktree->WriteLastTrackedHeight(pindex->pprev->nHeight)) {
             return DISCONNECT_FAILED;
         } else {
             LogPrintf("%s Writting last tracked height %d\n", __func__, pindex->pprev->nHeight);
         }
-    } else {
-        LogPrintf("%s Still verifying DB not writing last tracked index\n", __func__);
+
     }
 
     // move best block pointer to prevout block
@@ -3206,7 +3206,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         }
                         CAmount nTreasuryCfwd = nTreasuryBfwd + nCalculatedStakeReward - nStakeReward;
                         if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
-                            || nTreasuryCfwdCheck != nTreasuryCfwd) {
+                        || nTreasuryCfwdCheck != nTreasuryCfwd) {
                             LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
@@ -3306,7 +3306,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 // Check if the staker of the block was eligible and that the gvr went to him
 
                 auto wasEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(),
-                                            [&stakerAddrDest](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
+                                                [&stakerAddrDest](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {
                                         const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
                                         return trackedAddrDest == stakerAddrDest;
                                     });
@@ -3398,75 +3398,70 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     }
 
     // Track the inputs/outputs for any balance changes
+    // Track out/in only after verifydb is done
 
-    if (readHeight < pindex->nHeight && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+    if (!fVerifyingDB) {
+        if (readHeight < pindex->nHeight && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
 
-        LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
+            LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
 
-        rewardTracker.startPersistedTransaction();
+            rewardTracker.startPersistedTransaction();
 
-        for (const auto& txs: block.vtx) { 
-            for (const auto& txout: txs->vpout) {
-                if (txout->IsStandardOutput()) {
-                    CTxDestination dest;
-                    CScript outScript;
-                    txout->GetScriptPubKey(outScript);
+            for (const auto& txs: block.vtx) {
+                for (const auto& txout: txs->vpout) {
+                    if (txout->IsStandardOutput()) {
+                        CTxDestination dest;
+                        CScript outScript;
+                        txout->GetScriptPubKey(outScript);
 
-                    if (ExtractDestination(outScript, dest)) {
-                        const std::string& str = EncodeDestination(dest);
-                        const auto& addr = AddressType(str.cbegin(), str.cend());
-                        rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
-                        rewardUndo.outputs[pindex->nHeight].emplace_back(make_pair(addr, txout->GetValue()));
-                    } else {
-                        if (outScript[0] == OP_RETURN) continue;
-                        LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
-                        return error("ConnectBlock(): Can't extract destination address for outputs\n");
+                        if (ExtractDestination(outScript, dest)) {
+                            const std::string& str = EncodeDestination(dest);
+                            const auto& addr = AddressType(str.cbegin(), str.cend());
+                            rewardTracker.addAddressTransaction(pindex->nHeight, addr, txout->GetValue(), ::Params().GetGvrCheckpoints());
+                            rewardUndo.outputs[pindex->nHeight].emplace_back(make_pair(addr, txout->GetValue()));
+                        } else {
+                            if (outScript[0] == OP_RETURN) continue;
+                            LogPrintf("%s Can't extract destination address for tracking outputs \n", __func__);
+                            return error("ConnectBlock(): Can't extract destination address for outputs\n");
+                        }
                     }
                 }
             }
-        }
 
-        for (const auto& trackedInput: inputsTrackingData) {
-            CTxDestination dest;
-            CScript trackedScript;
-            CAmount amountDeducted;
+            for (const auto& trackedInput: inputsTrackingData) {
+                CTxDestination dest;
+                CScript trackedScript;
+                CAmount amountDeducted;
 
-            if (trackedInput.second.out.IsNull()) {
-                continue;
+                if (trackedInput.second.out.IsNull()) {
+                    continue;
+                }
+
+                if (trackedInput.first) {
+                    trackedScript = trackedInput.second.out.scriptPubKey;
+                    amountDeducted = trackedInput.second.out.nValue;
+                    LogPrintf("%s Tracking kernel inputs value %d KernelValue=%d\n", __func__, trackedInput.second.out.nValue, kernelvalue);
+
+                } else {
+                    trackedScript = trackedInput.second.out.scriptPubKey;
+                    amountDeducted = trackedInput.second.out.nValue;
+                }
+
+                if (ExtractDestination(trackedScript, dest)) {
+                    std::string str = EncodeDestination(dest);
+                    const auto& addr = AddressType(str.cbegin(), str.cend());
+                    rewardTracker.addAddressTransaction(pindex->nHeight, addr, - amountDeducted, ::Params().GetGvrCheckpoints());
+                    rewardUndo.inputs[pindex->nHeight].emplace_back(std::make_pair(addr, amountDeducted));
+                } else {
+                    LogPrintf("%s Can't extract destination address for tracking inputs\n", __func__);
+                    return error("ConnectBlock(): Can't extract destination address for inputs\n");
+                }
             }
-
-            if (trackedInput.first) {
-                trackedScript = trackedInput.second.out.scriptPubKey;
-                amountDeducted = trackedInput.second.out.nValue;
-                LogPrintf("%s Tracking kernel inputs value %d KernelValue=%d\n", __func__, trackedInput.second.out.nValue, kernelvalue);
-
-            } else {
-                trackedScript = trackedInput.second.out.scriptPubKey;
-                amountDeducted = trackedInput.second.out.nValue;
-            }
-
-            if (ExtractDestination(trackedScript, dest)) {
-                std::string str = EncodeDestination(dest);
-                const auto& addr = AddressType(str.cbegin(), str.cend());
-                rewardTracker.addAddressTransaction(pindex->nHeight, addr, - amountDeducted, ::Params().GetGvrCheckpoints());
-                rewardUndo.inputs[pindex->nHeight].emplace_back(std::make_pair(addr, amountDeducted));
-            } else {
-                LogPrintf("%s Can't extract destination address for tracking inputs\n", __func__);
-                return error("ConnectBlock(): Can't extract destination address for inputs\n");
-            }
-        }
-
-        if (!fVerifyingDB) {
             if (!pblocktree->WriteLastTrackedHeight(pindex->nHeight)) {
                 LogPrintf("%s Impossible to write last tracked height attempted height %d\n", __func__, pindex->nHeight);
                 return false;
-            } else {
-                LogPrintf("%s Wrote last tracked index %d\n", __func__, pindex->nHeight);
             }
-        } else {
-            LogPrintf("%s Still verifying DB fVerifyingDB=%d\n", __func__, fVerifyingDB);
         }
-
     }
     
 
@@ -3500,7 +3495,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         pindex->RaiseValidity(BLOCK_VALID_SCRIPTS);
         setDirtyBlockIndex.insert(pindex);
     }
-
 
     if (fTimestampIndex) {
         unsigned int logicalTS = pindex->nTime;
