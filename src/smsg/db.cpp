@@ -39,9 +39,9 @@ bool SecMsgDB::Open(const char *pszMode)
 
     fs::path fullpath = GetDataDir() / "smsgdb";
 
-    if (!fCreate
-        && (!fs::exists(fullpath)
-            || !fs::is_directory(fullpath))) {
+    if (!fCreate &&
+        (!fs::exists(fullpath) ||
+         !fs::is_directory(fullpath))) {
         LogPrintf("%s: DB does not exist.\n", __func__);
         return false;
     }
@@ -852,6 +852,11 @@ bool SecMsgDB::EraseBestBlock()
     }
     return error("SecMsgDB erase failed: %s\n", s.ToString());
 };
+
+void SecMsgDB::Compact() const
+{
+    pdb->CompactRange(nullptr, nullptr);
+}
 
 bool PutBestBlock(leveldb::WriteBatch *batch, const uint256 &block_hash, int height)
 {

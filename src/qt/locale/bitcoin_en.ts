@@ -1307,12 +1307,12 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-108"/>
+        <location line="-111"/>
         <source>New receiving address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+113"/>
+        <location line="+116"/>
         <source>New key generation failed.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1512,12 +1512,12 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
     </message>
     <message>
         <location line="+7"/>
-        <source>Import Chain</source>
+        <source>Create Import Chain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+7"/>
-        <source>Only needed if you&apos;re importing </source>
+        <source>Only needed if you&apos;re importing from the previous chain</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3295,7 +3295,7 @@ Signing is only possible with addresses of the type &apos;legacy&apos;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+148"/>
+        <location line="+149"/>
         <source>Could not unlock wallet.</source>
         <translation type="unfinished"></translation>
     </message>

@@ -181,7 +181,8 @@ JSON_TEST_FILES = \
   test/data/tx_valid.json \
   test/data/bip39_vectors_english.json \
   test/data/bip39_vectors_japanese.json \
-  test/data/ringct.json
+  test/data/ringct.json \
+  test/data/particl_taproot.json
 
 RAW_TEST_FILES = \
   test/data/asmap.raw

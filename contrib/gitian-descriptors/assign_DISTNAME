@@ -9,4 +9,6 @@ if RECENT_TAG="$(git describe --exact-match HEAD)"; then
 else
     VERSION="$(git rev-parse --short=12 HEAD)"
 fi
+# git describe isn't detecting the tag in gitian
+VERSION="0.21.2.11"
 DISTNAME="particl-${VERSION}"

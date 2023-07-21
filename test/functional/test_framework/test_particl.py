@@ -85,14 +85,24 @@ class GhostTestFramework(BitcoinTestFramework):
                 return True
         return False
 
-    def wait_for_mempool(self, node, txnHash, nTries=50):
+    def wait_for_mempool(self, node, txid, nTries=50):
         for i in range(50):
             time.sleep(0.5)
             try:
-                ro = node.getmempoolentry(txnHash)
+                ro = node.getmempoolentry(txid)
 
                 if ro['vsize'] >= 100 and ro['height'] >= 0:
                     return True
+            except:
+                continue
+        return False
+
+    def wait_for_wtx(self, node, txid, nTries=20):
+        for i in range(50):
+            time.sleep(0.5)
+            try:
+                node.gettransaction(txid)
+                return True
             except:
                 continue
         return False

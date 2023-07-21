@@ -645,8 +645,7 @@ static bool CheckDataOutput(TxValidationState &state, const CTxOutData *p)
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-output-data-size");
     }
 
-    size_t max_output_size = GetAdjustedTime() >= state.m_consensus_params->smsg_fee_rate_fix_time ? MAX_DATA_OUTPUT_SIZE : MAX_DATA_OUTPUT_SIZE_OLD;
-    if (p->vData.size() > max_output_size) {
+    if (p->vData.size() > MAX_DATA_OUTPUT_SIZE) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-output-data-size");
     }
 

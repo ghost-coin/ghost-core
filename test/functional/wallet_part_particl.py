@@ -124,8 +124,7 @@ class WalletParticlTest(GhostTestFramework):
         ro = nodes[0].extkey('setDefaultAccount', account0_id)
         assert(ro['result'] == 'Success.')
 
-        address0 = nodes[0].getnewaddress()
-
+        nodes[0].getnewaddress()
         ro = nodes[0].extkey('account', account0_id)
 
         fFound = False
@@ -818,6 +817,13 @@ class WalletParticlTest(GhostTestFramework):
         signature = nodes[2].signmessage(sign_address, message)
         assert nodes[1].verifymessage(sign_address, signature, message)
         assert not self.nodes[1].verifymessage(sign_address, signature, message, 'Invalid MM')
+
+        self.log.info('Test walletpassphrasechange after encryptwallet')
+        nodes[2].encryptwallet('qwerty123')
+        nodes[2].walletpassphrase('qwerty123', 3000)
+        nodes[2].walletpassphrasechange('qwerty123', 'changedPass')
+        ro = nodes[2].extkey('deriveAccount', 'smsg keys', '78900')
+        assert (ro['account'] == 'aghuG9YFBWHK7JK4pTJ5eSEayw1Xq4aQpn')
 
 
 if __name__ == '__main__':

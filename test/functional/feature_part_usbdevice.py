@@ -106,7 +106,7 @@ class USBDeviceTest(GhostTestFramework):
         try:
             nodes[1].getnewstealthaddress()
             raise AssertionError('Should have failed.')
-        except JSONRPCException as e:
+        except JSONRPCException:
             pass
 
         extaddr1_0 = nodes[1].getnewextaddress()
