@@ -560,7 +560,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-findpeers", "Node will search for peers (default: 1)", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
 
     argsman.AddArg("-lookuptorcontrolhost=<protocol>", strprintf("Allow a hostname to be specified for the -torcontrol option. Must be \"any\", \"ipv4\", or \"ipv6\" (default: %s)", ""), ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
-    argsman.AddArg("-automaticbans", strprintf("Whether to automatically ban misbehaving nodes. (default: %u)", ghost::DEFAULT_AUTOMATIC_BANS), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-automaticbans", strprintf("Whether to automatically ban misbehaving nodes. (default: %u)", particl::DEFAULT_AUTOMATIC_BANS), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     // end Ghost specific
 
     argsman.AddArg("-addnode=<ip>", "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.", ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::CONNECTION);

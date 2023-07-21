@@ -104,6 +104,8 @@ struct Params {
     int m_frozen_blinded_height = 0;
     /** Maximum value of tainted blinded output that can be spent without being whitelisted */
     int64_t m_max_tainted_value_out = 200LL * 100000000LL /* COIN */;
+    /** Fix GetMaxSmsgFeeRateDelta */
+    uint32_t smsg_fee_rate_fix_time = 0xffffffff; /* TODO: Remove after fork */
     /** Time taproot activates on Particl chain */
     uint32_t m_taproot_time = 0xffffffff;
 

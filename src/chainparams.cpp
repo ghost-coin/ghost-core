@@ -103,7 +103,6 @@ int64_t CChainParams::GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev, int64_t time
 CAmount CChainParams::GetBaseBlockReward() const
 {
     return nBlockReward;
-    return std::max((int64_t)1, max_delta);
 };
 
 CAmount CChainParams::GetProofOfStakeRewardAtYear(const int year) const
