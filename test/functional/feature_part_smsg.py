@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Particl Core developers
+# Copyright (c) 2017-2022 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -71,8 +71,6 @@ class SmsgTest(GhostTestFramework):
         ro = nodes[1].smsginbox()
         assert(ro['messages'][0]['to'] == address1)
         assert(ro['messages'][0]['text'] == 'Reply 0->1.')
-
-
         assert(len(nodes[1].smsgview()['messages']) == 2)
         assert(len(nodes[1].smsgoutbox()['messages']) == 1)
 
@@ -91,10 +89,36 @@ class SmsgTest(GhostTestFramework):
 
         self.waitForSmsgExchange(3, 1, 0)
 
+        ro = nodes[0].smsginbox('count')
+        assert(ro['num_messages'] == 2)
+        ro = nodes[0].smsginbox('count', '', {'unread_only': True})
+        assert(ro['num_messages'] == 1)
+
         ro = nodes[0].smsginbox()
         assert(len(ro['messages']) == 1)
         assert(ro['messages'][0]['from'] == address1)
         assert(ro['messages'][0]['text'] == 'Test 1->0. 2')
+
+        self.log.info('Testing smsgin/outbox pagination')
+        ro = nodes[0].smsginbox('all')
+        assert(len(ro['messages']) == 2)
+        msgids = [ro['messages'][0]['msgid'], ro['messages'][1]['msgid']]
+        ro = nodes[0].smsginbox('all', '', {'max_results': 1})
+        assert(len(ro['messages']) == 1)
+        assert(ro['messages'][0]['msgid'] == msgids[0])
+        ro = nodes[0].smsginbox('all', '', {'max_results': 1, 'offset': 1})
+        assert(len(ro['messages']) == 1)
+        assert(ro['messages'][0]['msgid'] == msgids[1])
+
+        ro = nodes[1].smsgoutbox('all')
+        assert(len(ro['messages']) == 2)
+        msgids = [ro['messages'][0]['msgid'], ro['messages'][1]['msgid']]
+        ro = nodes[1].smsgoutbox('all', '', {'max_results': 1})
+        assert(len(ro['messages']) == 1)
+        assert(ro['messages'][0]['msgid'] == msgids[0])
+        ro = nodes[1].smsgoutbox('all', '', {'max_results': 1, 'offset': 1})
+        assert(len(ro['messages']) == 1)
+        assert(ro['messages'][0]['msgid'] == msgids[1])
 
         msg = 'Test anon 1->0. 2'
         ro = nodes[1].smsgsendanon(address0, msg)

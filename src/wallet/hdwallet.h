@@ -303,8 +303,8 @@ public:
     int ExtKeyGetIndex(CHDWalletDB *pwdb, CExtKeyAccount *sea, uint32_t &index, bool &fUpdate) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyGetIndex(CExtKeyAccount *sea, uint32_t &index);
 
-    int NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPubKey &pkOut, bool fInternal, bool fHardened, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    int NewKeyFromAccount(CPubKey &pkOut, bool fInternal=false, bool fHardened=false, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr); // wrapper - use default account
+    int NewKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, CPubKey &pkOut, bool fInternal, bool fHardened, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr, OutputType output_type=OutputType::LEGACY) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int NewKeyFromAccount(CPubKey &pkOut, bool fInternal=false, bool fHardened=false, bool f256bit=false, bool fBech32=false, const char *plabel=nullptr, OutputType output_type=OutputType::LEGACY); // wrapper - use default account
 
     int NewStealthKeyFromAccount(CHDWalletDB *pwdb, const CKeyID &idAccount, const std::string &sLabel, CEKAStealthKey &akStealthOut, uint32_t nPrefixBits, const char *pPrefix, bool fBech32=false, uint32_t *pscankey_num=nullptr, bool add_to_lookahead=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int NewStealthKeyFromAccount(const std::string &sLabel, CEKAStealthKey &akStealthOut, uint32_t nPrefixBits, const char *pPrefix, bool fBech32=false); // wrapper - use default account
@@ -365,9 +365,11 @@ public:
     int LoadStealthAddresses();
     int LoadMasterKeys();
     bool IndexStealthKey(CHDWalletDB *pwdb, uint160 &hash, const CStealthAddressIndexed &sxi, uint32_t &id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetStealthKeyIndex(CHDWalletDB *pwdb, const CStealthAddressIndexed &sxi, uint32_t &id) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool GetStealthKeyIndex(const CStealthAddressIndexed &sxi, uint32_t &id);
     bool UpdateStealthAddressIndex(const CKeyID &idK, const CStealthAddressIndexed &sxi, uint32_t &id); // Get stealth index or create new index if none found
     bool GetStealthByIndex(uint32_t sxId, CStealthAddress &sx) const;
+    bool GetStealthLinked(CHDWalletDB *pwdb, const CKeyID &idK, CStealthAddress &sx) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool GetStealthLinked(const CKeyID &idK, CStealthAddress &sx) const;
     bool GetStealthSecret(const CStealthAddress &sx, CKey &key_out) const;
     bool ProcessLockedStealthOutputs() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -400,11 +402,12 @@ public:
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
     const CWalletTx *GetWalletOrTempTx(const uint256& hash, const CTransactionRecord *rtx) const;
 
-    int OwnStandardOut(const CTxOutStandard *pout, const CTxOutData *pdata, COutputRecord &rout, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int OwnStandardOut(const CTxOutStandard *pout, const CTxOutData *pdata,
+        COutputRecord &rout, bool &fUpdated, bool tx_is_from_me) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int OwnBlindOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOutCT *pout, const CStoredExtKey *pc, uint32_t &nLastChild,
-        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated, bool tx_is_from_me) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int OwnAnonOut(CHDWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, const CStoredExtKey *pc, uint32_t &nLastChild,
-        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+        COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated, bool tx_is_from_me) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool ProcessPlaceholder(const CTransaction &tx, CTransactionRecord &rtx);
     bool AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, CWalletTx::Confirmation confirm, bool fFlushOnClose=true) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -425,16 +428,19 @@ public:
 
     void AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe=true, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t& nMaximumCount = 0) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
+    const CTxOutBase* FindNonChangeParentOutput(const CTransaction& tx, int output) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetAddressFromOutputRecord(const uint256 &txhash, const COutputRecord *pout, CTxDestination &address) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetFirstNonChangeAddress(const uint256 &hash, const CTransactionRecord &txr, const COutputRecord *pout, CTxDestination &address) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     /**
      * Return list of available coins and locked coins grouped by non-change output address.
      */
-    const CTxOutBase* FindNonChangeParentOutput(const CTransaction& tx, int output) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, std::vector<COutput>> ListCoins() const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, std::vector<COutputR>> ListCoins(OutputTypes nType) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
 
     bool IsSpent(const uint256& hash, unsigned int n) const override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool GetSpendingTxid(const uint256& hash, unsigned int n, uint256 &spent_by_txid) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     // Whether this or any UTXO with the same CTxDestination has been spent.
     bool IsSpentKey(const CScript *pscript) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

@@ -60,7 +60,6 @@ class MultiSigTest(GhostTestFramework):
 
         ro = nodes[0].getaddressinfo(msAddr)
         assert(ro['isscript'] == True)
-        scriptPubKey = ro['scriptPubKey']
         redeemScript = ro['hex']
 
 
@@ -123,7 +122,6 @@ class MultiSigTest(GhostTestFramework):
         assert(ro['isscript'] == True)
         assert(ro['sigsrequired'] == 2)
 
-        scriptPubKey = ro['scriptPubKey']
         redeemScript = ro['hex']
 
         mstxid2 = nodes[0].sendtoaddress(msAddr256, 9)
@@ -247,7 +245,6 @@ class MultiSigTest(GhostTestFramework):
 
         ro = nodes[0].getaddressinfo(msAddr)
         assert(ro['isscript'] == True)
-        scriptPubKey = ro['scriptPubKey']
         redeemScript = ro['hex']
 
         inputs = [{

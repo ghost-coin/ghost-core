@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,9 +16,18 @@
 
 #include <script/sign.h>
 #include <policy/policy.h>
+#include <test/data/particl_taproot.json.h>
+#include <core_io.h>
+#include <univalue.h>
 
 #include <boost/test/unit_test.hpp>
 
+extern UniValue read_json(const std::string& jsondata);
+
+bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
+                       const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
+                       bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
+                       std::vector<CScriptCheck> *pvChecks, bool fAnonChecks = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 BOOST_FIXTURE_TEST_SUITE(particlchain_tests, ParticlBasicTestingSetup)
 
@@ -558,6 +567,170 @@ BOOST_AUTO_TEST_CASE(blockreward_at_year_test)
     BOOST_CHECK_EQUAL(Params().GetProofOfStakeRewardAtYear(48), 60000000);
     BOOST_CHECK_EQUAL(Params().GetProofOfStakeRewardAtYear(49), 60000000);
     BOOST_CHECK_EQUAL(Params().GetProofOfStakeRewardAtYear(50), 60000000);
+}
+
+BOOST_AUTO_TEST_CASE(taproot)
+{
+    // Import txns from version 22.x
+    UniValue test_txns = read_json(
+        std::string(json_tests::particl_taproot,
+        json_tests::particl_taproot + sizeof(json_tests::particl_taproot)));
+
+    BOOST_CHECK(!IsOpSuccess(OP_ISCOINSTAKE));
+
+    CScript s;
+    std::vector<std::vector<unsigned char> > solutions;
+    s << OP_1 << ToByteVector(uint256::ZERO);
+    BOOST_CHECK_EQUAL(Solver(s, solutions), TxoutType::WITNESS_V1_TAPROOT);
+    BOOST_CHECK_EQUAL(solutions.size(), 2U);
+    BOOST_CHECK(solutions[1] == ToByteVector(uint256::ZERO));
+
+    CKey k1, k2, k3;
+    InsecureNewKey(k1, true);
+    InsecureNewKey(k2, true);
+    InsecureNewKey(k3, true);
+
+    unsigned int flags = SCRIPT_VERIFY_P2SH;
+    flags |= SCRIPT_VERIFY_DERSIG;
+    flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
+    flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
+    flags |= SCRIPT_VERIFY_WITNESS;
+    flags |= SCRIPT_VERIFY_NULLDUMMY;
+
+    unsigned int flags_with_taproot = flags | SCRIPT_VERIFY_TAPROOT;
+
+    CAmount txfee_out;
+    int nSpendHeight = 1;
+
+    // Test signing with the internal pubkey
+    {
+    CCoinsView viewDummy;
+    CCoinsViewCache inputs(&viewDummy);
+
+    CMutableTransaction mtx1;
+    BOOST_CHECK(DecodeHexTx(mtx1, test_txns[0].get_str()));
+    CTransaction tx1(mtx1);
+
+    AddCoins(inputs, tx1, 1);
+
+    CMutableTransaction mtx2;
+    BOOST_CHECK(DecodeHexTx(mtx2, test_txns[1].get_str()));
+    CTransaction tx2(mtx2);
+
+    TxValidationState state;
+    bool rv = Consensus::CheckTxInputs(tx2, state, inputs, nSpendHeight, txfee_out);
+    BOOST_CHECK(rv);
+
+    {
+    // Without SCRIPT_VERIFY_TAPROOT prevout defaults to spendable
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx2, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret);
+    }
+
+    {
+    // With SCRIPT_VERIFY_TAPROOT prevout must pass verification
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx2, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(!ret);
+    }
+
+    {
+    TxValidationState state;
+    CMutableTransaction mtx3;
+    BOOST_CHECK(DecodeHexTx(mtx3, test_txns[2].get_str()));
+    CTransaction tx3(mtx3);
+
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx3, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret);
+    }
+    }
+
+    // Test signing a script path
+    {
+    CCoinsView viewDummy;
+    CCoinsViewCache inputs(&viewDummy);
+
+    CMutableTransaction mtx4;
+    BOOST_CHECK(DecodeHexTx(mtx4, test_txns[3].get_str()));
+    CTransaction tx4(mtx4);
+
+    AddCoins(inputs, tx4, 1);
+
+    {
+    // Should fail as !IsCoinStake()
+    TxValidationState state;
+    CMutableTransaction mtx5;
+    BOOST_CHECK(DecodeHexTx(mtx5, test_txns[4].get_str()));
+    CTransaction tx5(mtx5);
+
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx5, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(!ret);
+    BOOST_CHECK(state.GetRejectReason() == "non-mandatory-script-verify-flag (Script failed an OP_VERIFY operation)");
+
+    // Should pass without SCRIPT_VERIFY_TAPROOT
+    bool ret_without_taproot = CheckInputScripts(tx5, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret_without_taproot);
+    }
+
+    {
+    // Should pass
+    TxValidationState state;
+    CMutableTransaction mtx6;
+    BOOST_CHECK(DecodeHexTx(mtx6, test_txns[5].get_str()));
+    CTransaction tx6(mtx6);
+
+    LOCK(cs_main);
+    PrecomputedTransactionData txdata;
+    bool ret = CheckInputScripts(tx6, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+    BOOST_CHECK(ret);
+    }
+    }
+
+    // OP_CHECKSIGADD
+    {
+        CCoinsView viewDummy;
+        CCoinsViewCache inputs(&viewDummy);
+
+        CMutableTransaction mtx7;
+        BOOST_CHECK(DecodeHexTx(mtx7, test_txns[6].get_str()));
+        CTransaction tx7(mtx7);
+        AddCoins(inputs, tx7, 1);
+
+        {
+        // Should fail as sig2 is invalid
+        TxValidationState state;
+        CMutableTransaction mtx8;
+        BOOST_CHECK(DecodeHexTx(mtx8, test_txns[7].get_str()));
+        CTransaction tx8(mtx8);
+        LOCK(cs_main);
+        PrecomputedTransactionData txdata;
+        bool ret = CheckInputScripts(tx8, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(!ret);
+        BOOST_CHECK(state.GetRejectReason() == "non-mandatory-script-verify-flag (Invalid Schnorr signature)");
+
+        // Should pass without SCRIPT_VERIFY_TAPROOT
+        bool ret_without_taproot = CheckInputScripts(tx8, state, inputs, flags, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(ret_without_taproot);
+        }
+
+        {
+        TxValidationState state;
+        CMutableTransaction mtx9;
+        BOOST_CHECK(DecodeHexTx(mtx9, test_txns[8].get_str()));
+        CTransaction tx9(mtx9);
+        LOCK(cs_main);
+        PrecomputedTransactionData txdata;
+        bool ret = CheckInputScripts(tx9, state, inputs, flags_with_taproot, /* cacheSigStore */ false, /* cacheFullScriptStore */ false, txdata, nullptr);
+        BOOST_CHECK(ret);
+        }
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

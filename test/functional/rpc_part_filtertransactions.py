@@ -39,7 +39,7 @@ class FilterTransactionsTest(GhostTestFramework):
         selfStealth    = nodes[0].getnewstealthaddress('stealth')
         selfSpending   = nodes[0].getnewaddress('spending', 'false', 'false', 'true')
         targetAddress  = nodes[1].getnewaddress('target')
-        targetStealth  = nodes[1].getnewstealthaddress('taret stealth')
+        targetStealth  = nodes[1].getnewstealthaddress('target stealth')
         stakingAddress = nodes[2].getnewaddress('staking')
 
         # Simple PART transaction

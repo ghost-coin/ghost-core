@@ -69,7 +69,7 @@ enabled=(
     F822 # undefined name name in __all__
     F823 # local variable name … referenced before assignment
     F831 # duplicate argument name in function definition
-#    F841 # local variable 'foo' is assigned to but never used
+    F841 # local variable 'foo' is assigned to but never used
     W191 # indentation contains tabs
     W291 # trailing whitespace
     W292 # no newline at end of file

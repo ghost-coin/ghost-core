@@ -206,6 +206,11 @@ bool RebuildRollingIndices(CTxMemPool* mempool);
 void UnloadBlockIndex(CTxMemPool* mempool, ChainstateManager& chainman);
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck(int worker_num);
+
+namespace particl {
+static constexpr bool DEFAULT_AUTOMATIC_BANS = true;
+}
+
 /** Return the median number of blocks that other nodes claim to have */
 int GetNumBlocksOfPeers();
 /** Set the median number of blocks that other nodes claim to have - debug only */

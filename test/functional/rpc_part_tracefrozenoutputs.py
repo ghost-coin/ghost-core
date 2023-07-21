@@ -51,7 +51,7 @@ class TraceFrozenOutputsTest(GhostTestFramework):
             nodes[0].sendrawtransaction(nodes[1].getrawtransaction(txid_b2a))
         self.stakeBlocks(2)
 
-        txid_a2a = w1_2.sendtypeto('anon', 'anon', [{'address': w1_0_addr, 'amount': 20}])
+        txid_a2a = w1_2.sendtypeto('anon', 'anon', [{'address': w1_0_addr, 'amount': 20}], '', '', 5)
         nodes[0].sendrawtransaction(nodes[1].getrawtransaction(txid_a2a))
         self.stakeBlocks(2)
 

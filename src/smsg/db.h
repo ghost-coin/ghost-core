@@ -36,20 +36,21 @@ extern const std::string DBK_FUNDING_TX_LINK;
 class SecMsgDB
 {
 public:
-    SecMsgDB()
-    {
-        activeBatch = nullptr;
-    }
-
     ~SecMsgDB()
     {
+        Finalise();
+    }
+
+    void Finalise() {
         // Deletes only data scoped to this SecMsgDB object.
         if (activeBatch) {
             delete activeBatch;
         }
+        pdb = nullptr;
     }
 
     bool Open(const char *pszMode="r+");
+    bool IsOpen() const { return pdb; };
 
     bool ScanBatch(const CDataStream &key, std::string *value, bool *deleted) const;
 
@@ -88,8 +89,13 @@ public:
     bool ReadBestBlock(uint256 &hash, int &height);
     bool EraseBestBlock();
 
-    leveldb::DB *pdb; // points to the global instance
-    leveldb::WriteBatch *activeBatch;
+    /**
+     * Compact a certain range of keys in the database.
+     */
+    void Compact() const;
+
+    leveldb::DB *pdb{nullptr};  // Points to the global instance
+    leveldb::WriteBatch *activeBatch{nullptr};
 };
 
 bool PutBestBlock(leveldb::WriteBatch *batch, const uint256 &block_hash, int height);

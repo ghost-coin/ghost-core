@@ -232,8 +232,9 @@ BITCOIN_CORE_H = \
   signet.h \
   streams.h \
   smsg/db.h \
-  smsg/crypter.h \
   smsg/net.h \
+  smsg/types.h \
+  smsg/crypter.h \
   smsg/smessage.h \
   smsg/rpcsmessage.h \
   support/allocators/secure.h \
@@ -797,7 +798,9 @@ ghost_tx_LDADD = \
   $(LIBGHOST_UTIL) \
   $(LIBGHOST_CONSENSUS) \
   $(LIBGHOST_CRYPTO) \
-  $(LIBSECP256K1)
+  $(LIBSECP256K1) \
+  $(LIBLEVELDB) \
+  $(LIBLEVELDB_SSE42)
 
 ghost_tx_LDADD += $(BOOST_LIBS)
 #

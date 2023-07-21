@@ -109,6 +109,8 @@ private:
     bool MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationState& state,
                                  bool via_compact_block, const std::string& message = "");
 
+    bool MaybePunishNodeForDuplicates(NodeId nodeid, const BlockValidationState& state);
+
     /**
      * Potentially disconnect and discourage a node based on the contents of a TxValidationState object
      *
@@ -167,6 +169,7 @@ void DecMisbehaving(NodeId nodeid, int howmuch);
 NodeId GetBlockSource(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 void IncPersistentMisbehaviour(NodeId node_id, int howmuch) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool IncPersistentDiscouraged(NodeId node_id) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 int GetNumDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 void ClearDOSStates() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 

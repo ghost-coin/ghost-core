@@ -53,12 +53,12 @@ SHA256_SUMS = {
 "aa7a9563b48aa79252c8e7b6a41c07a5441bd9f14c5e4562cc72720ea6cb0ee5": "bitcoin-0.19.1-riscv64-linux-gnu.tar.gz",
 "5fcac9416e486d4960e1a946145566350ca670f9aaba99de6542080851122e4c": "bitcoin-0.19.1-x86_64-linux-gnu.tar.gz",
 
-"14d967239267b256aec57df819669333c4c580e274b8f8c8d80ba485a15391bd": "particl--aarch64-linux-gnu.tar.gz",
-"070b9a588d586b64bd2f2b54ef3b46c7bd6e92fd5bda193b9ddf3f8e779db51c": "particl-0.19.0.1-arm-linux-gnueabihf.tar.gz",
-"019b70af552388c7ffd4f1bb8ecc9403a7e23c3281e4005bf818eeb99f8e229a": "particl-0.19.0.1-i686-pc-linux-gnu.tar.gz",
-"ef2157fb8323185600822921839eeb09c1f9e4eb20e6a51301447cef88ea4970": "particl-0.19.0.1-riscv64-linux-gnu.tar.gz",
-"255e3fe805382089ec02e9ce36e74f18516dc16b99a15e9f9ebb1d3fd34b0230": "particl-0.19.0.1-x86_64-linux-gnu.tar.gz",
-"524dc863a834150f9ecb77175898c63b82bfc743f7a0e14841b7063931070aee": "particl-0.19.0.1-osx64.tar.gz",
+"94b0d872dc13e985428d12acf3969fb0ca9e5d0a99454929daf60cb9ef573f31": "particl-0.19.2.20-aarch64-linux-gnu.tar.gz",
+"78f79e629c96ba909797cfd1d16ec9ac67e05fe29cacce5b03c07b34cb562bf4": "particl-0.19.2.20-arm-linux-gnueabihf.tar.gz",
+"d4c3f7c2c0e8a767986082edb9df085a235468e354b0add546180aa8df6d4994": "particl-0.19.2.20-i686-pc-linux-gnu.tar.gz",
+"a8d6c1b4090f24de6b0255a3c34cff54ec339bb132b05a71f1a3424560ee2664": "particl-0.19.2.20-riscv64-linux-gnu.tar.gz",
+"6ac6fee114cdb1e8914e6d43ae3c5f227542a30772000fe202796eb8710c48cf": "particl-0.19.2.20-x86_64-linux-gnu.tar.gz",
+"960a69830a22bad28f7251cd014ff2a4f1a6dc049aa93852aa6bdd920fcf6dd3": "particl-0.19.2.20-osx64.tar.gz",
 
 "fc649cb46d9f4ea4919bb87be8b685474f95f89ae82996dd1e36f2089b69f90d": "particl-0.18.1.7-aarch64-linux-gnu.tar.gz",
 "779e57c7e4d680736f972de07276a1037de6c2aa8a2c95c8087c43c56927dc60": "particl-0.18.1.7-arm-linux-gnueabihf.tar.gz",
@@ -85,11 +85,11 @@ def download_binary(tag, args) -> int:
             return 0
         shutil.rmtree(tag)
     Path(tag).mkdir()
-    bin_path = 'bin/particl-core-{}'.format(tag[1:])
-    match = re.compile('v(.*)(rc[0-9]+)$').search(tag)
-    if match:
-        bin_path = 'bin/particl-core-{}/test.{}'.format(
-            match.group(1), match.group(2))
+    #bin_path = 'bin/particl-core-{}'.format(tag[1:])
+    #match = re.compile('v(.*)(rc[0-9]+)$').search(tag)
+    #if match:
+    #    bin_path = 'bin/particl-core-{}/test.{}'.format(
+    #        match.group(1), match.group(2))
     tarball = 'particl-{tag}-{platform}.tar.gz'.format(
         tag=tag[1:], platform=args.platform)
     #tarballUrl = 'https://bitcoincore.org/{bin_path}/{tarball}'.format(

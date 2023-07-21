@@ -199,7 +199,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             if (pblocktree->ReadRCTKeyImage(ki, ki_data)) {
                 if (LogAcceptCategory(BCLog::RINGCT)) {
                     LogPrintf("%s: Duplicate keyimage detected %s, used in %s.\n", __func__,
-                        HexStr(ki), ki_data.txid.ToString());
+                              HexStr(ki), ki_data.txid.ToString());
                 }
                 if (ki_data.txid == txhash) {
                     if (state.m_check_equal_rct_txid &&
