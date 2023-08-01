@@ -1,6 +1,68 @@
 
+0.21.2.12
+==============
+
+- rpc: Fix listunspentblind filter by address
+- Added new PID for Ledger Nano S Plus (5015).
+
+
+0.21.2.11
+==============
+
+- consensus: Fix rare fork possibility.
+  - A block index is added for an invalid block, to prevent nodes trying
+    to redownload the same block from peers.
+    The failed block index is added to m_failed_blocks, but wasn't being
+    removed when the block index is removed to prevent DoS issues.
+
+
+0.21.2.10
+==============
+
+- rpc: Added pending_depth to getcoldstakinginfo
+  - getbalances staked shows immature coins unspendable before maturing after 100 blocks (COINBASE_MATURITY)
+  - getcoldstakinginfo pending_depth shows coins unstakable until after 225 blocks (nStakeMinConfirmations)
+- rpc: Added minstakeabledepth to getstakinginfo
+- wallet: Only mark anon/blind tx outputs as change if wallet owns inputs.
+- New checkpoints
+
+
+
+0.21.2.9
+==============
+
+- smsg: The smsgdb is periodically compacted.
+- smsg: Added pagination to smsginbox and smsgoutbox.
+- smsg: Shutdown smsgdb even if smsg is not initialised.
+- net: Ban nodes that have been discouraged 5 times.
+- net: All misbehaviour increments the persistent counter.
+
+
+0.21.2.8
+==============
+
+- wallet: Fix regression summing balances after fully importing watchonly stealthaddress.
+- rpc: Fix bug in filtertransactions hiding txns with watchonly inputs and spendable outputs.
+- qt: Fix missing anon outputs in coincontrol.
+- New checkpoints.
+- net: Restore automatic banning.  Ban peer if misbehaviour score is 2x limit.
+
+
+0.21.2.7
+==============
+
+- wallet: Fix receiving anon txns on locked wallet and new address.
+- wallet: Fix passing anon_ring_size parameter to fundrawtransactionfrom.
+- Raised min protocol version to 90014
+- Disable p2sh-p2wpkh addresses.
+- qt: 'Import Chain' defaults to disabled.
+- wallet, qt: Default ring size set to 12 to match Particl Desktop.
+- wallet: Fix BTC segwit address path and label in getaddressinfo.
+
+
 0.21.2.6
 ==============
+
 - wallet:
   - Add minimum and maximumAmount to fundrawtransactionfrom and sendtypeto
   - Add includeWatching option to sendtypeto
@@ -73,10 +135,24 @@
     - Nonce is calculated as ECDH(ephem_secret + tweak, scan_public_key) and recovered with ECDH(scan_secret_key, ephem_public_key + G * tweak)
 
 
+0.19.2.20
+==============
+
+- Raised min protocol version to 90014
+- Disable p2sh-p2wpkh addresses.
+- qt: 'Import Chain' defaults to disabled.
+- wallet, qt: Default ring size set to 12 to match Particl Desktop.
+- wallet: Fix BTC segwit address path and label in getaddressinfo.
+- rpc: Fix bug in filtertransactions hiding txns with watchonly inputs and spendable outputs.
+- qt: Fix missing anon outputs in coincontrol.
+
+
 0.19.2.19
 ==============
 
 - qt: Fix abandon transaction button greyed out for record txns.
+- Backported taproot validation.
+- New checkpoints.
 
 
 0.19.2.18

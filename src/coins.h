@@ -22,6 +22,7 @@
 #include <insight/addressindex.h>
 #include <insight/spentindex.h>
 #include <rctindex.h>
+#include <smsg/types.h>
 
 extern bool fParticlMode;
 
@@ -321,6 +322,7 @@ public:
     mutable std::map<CCmpPubKey, int64_t> anonOutputLinks;
     mutable std::map<CCmpPubKey, uint256> keyImages;
     mutable std::vector<std::pair<COutPoint, SpentCoin> > spent_cache;
+    mutable smsg::ChainSyncCache smsg_cache;
 
     bool ReadRCTOutputLink(CCmpPubKey &pk, int64_t &index)
     {
@@ -339,6 +341,7 @@ public:
         anonOutputLinks.clear();
         keyImages.clear();
         spent_cache.clear();
+        smsg_cache.Clear();
     };
 
 public:

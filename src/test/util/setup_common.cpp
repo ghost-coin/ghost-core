@@ -37,6 +37,7 @@
 
 // Ghost
 #include <insight/insight.h>
+#include <smsg/smessage.h>
 
 #include <functional>
 
@@ -200,6 +201,7 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
 
 TestingSetup::~TestingSetup()
 {
+    smsgModule.Finalise();  // DB could have been initialised
     if (m_node.scheduler) m_node.scheduler->stop();
     threadGroup.interrupt_all();
     threadGroup.join_all();

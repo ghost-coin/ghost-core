@@ -54,7 +54,7 @@ class TreasuryFundTest(GhostTestFramework):
         tx_funded = nodes[1].fundrawtransaction(tx_hex, {'feeRate': 5.0})
         tx_fee = int(tx_funded['fee'] * COIN)
         tx_signed = nodes[1].signrawtransactionwithwallet(tx_funded['hex'])
-        sent_txid = nodes[0].sendrawtransaction(tx_signed['hex'], 0)
+        nodes[0].sendrawtransaction(tx_signed['hex'], 0)
 
         nodes[0].walletsettings('stakelimit', {'height': 6})
         self.wait_for_height(nodes[0], 6)

@@ -2765,8 +2765,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     int64_t nTime2 = GetTimeMicros(); nTimeForks += nTime2 - nTime1;
     LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
 
-    smsgModule.StartConnectingBlock();
-
     CBlockUndo blockundo;
     ColdRewardUndo rewardUndo;
 
@@ -2900,7 +2898,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 }
 
                 if (tx_state.m_funds_smsg) {
-                    smsgModule.StoreFundingTx(tx, pindex);
+                    smsgModule.StoreFundingTx(view.smsg_cache, tx, pindex);
                 }
             }
         } else {
@@ -3524,7 +3522,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     assert(pindex->phashBlock);
 
-    smsgModule.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
+    smsgModule.SetBestBlock(view.smsg_cache, pindex->GetBlockHash(), pindex->nHeight, pindex->nTime);
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash(), pindex->nHeight);
@@ -3941,6 +3939,9 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconn
         if (!pblocktree->WriteBatch(batch)) {
             return error("%s: Write index data failed.", __func__);
         }
+        if (0 != smsgModule.WriteCache(view->smsg_cache)) {
+            return error("%s: smsgModule WriteCache failed.", __func__);
+        }
     }
 
     view->nLastRCTOutput = 0;
@@ -3948,6 +3949,7 @@ bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconn
     view->anonOutputLinks.clear();
     view->keyImages.clear();
     view->spent_cache.clear();
+    view->smsg_cache.Clear();
 
     return true;
 };
@@ -5644,6 +5646,7 @@ bool RemoveUnreceivedHeader(const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_mai
     for (auto &entry : remove_headers) {
         LogPrint(BCLog::NET, "Removing loose header %s.\n", entry->second->GetBlockHash().ToString());
         setDirtyBlockIndex.erase(entry->second);
+        g_chainman.m_blockman.m_failed_blocks.erase(entry->second);
 
         if (pindexBestHeader == entry->second) {
             pindexBestHeader = ::ChainActive().Tip();
@@ -5735,7 +5738,7 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
             // Block header is already known.
             if (fParticlMode && !fRequested && !::ChainstateActive().IsInitialBlockDownload() && state.nodeId >= 0
                 && !IncDuplicateHeaders(state.nodeId)) {
-                Misbehaving(state.nodeId, 5, "Too many duplicates");
+                state.m_punish_for_duplicates = true;
             }
 
             pindex = miSelf->second;
@@ -5794,7 +5797,9 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
             // we don't need to iterate over the failed blocks list.
             for (const CBlockIndex* failedit : m_failed_blocks) {
                 if (pindexPrev->GetAncestor(failedit->nHeight) == failedit) {
-                    //assert(failedit->nStatus & BLOCK_FAILED_VALID);
+                    if (!(failedit->nStatus & BLOCK_FAILED_VALID)) {
+                        LogPrintf("ERROR: Valid block in m_failed_blocks!\n");
+                    }
                     CBlockIndex* invalid_walk = pindexPrev;
                     if (failedit->nStatus & BLOCK_FAILED_VALID)
                     while (invalid_walk != failedit) {
@@ -5962,7 +5967,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, Block
 
     if (state.nFlags & BLOCK_STAKE_KERNEL_SPENT && !(state.nFlags & BLOCK_FAILED_DUPLICATE_STAKE)) {
         if (state.nodeId > -1) {
-            IncPersistentMisbehaviour(state.nodeId, 20);
             Misbehaving(state.nodeId, 20, "Spent kernel");
         }
     }

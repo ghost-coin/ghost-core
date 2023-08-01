@@ -300,6 +300,7 @@ public:
     virtual std::vector<uint8_t> *GetPData() { return nullptr; };
     virtual const std::vector<uint8_t> *GetPRangeproof() const { return nullptr; };
     virtual const std::vector<uint8_t> *GetPData() const { return nullptr; };
+    virtual bool GetPubKey(CCmpPubKey &pk) const { return false; };
 
     virtual bool GetCTFee(CAmount &nFee) const { return false; };
     virtual bool SetCTFee(CAmount &nFee) { return false; };
@@ -506,6 +507,11 @@ public:
     const std::vector<uint8_t> *GetPData() const override
     {
         return &vData;
+    }
+    bool GetPubKey(CCmpPubKey &pk_) const override
+    {
+        pk_ = pk;
+        return true;
     }
 };
 

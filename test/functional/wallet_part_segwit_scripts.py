@@ -35,25 +35,38 @@ class SegwitScriptsTest(GhostTestFramework):
         nodes[1].sendtoaddress(addr_part_native, 1)
 
         self.log.info('Test Bitcoin native segwit, p2wpkh')
-        addr_sw_bech32 = nodes[2].getnewaddress('segwit script', False, False, False, 'bech32')
+        addr_sw_bech32 = nodes[2].getnewaddress('btc native segwit', False, False, False, 'bech32')
         nodes[2].manageaddressbook('newsend', addr_sw_bech32)
         nodes[1].sendtoaddress(addr_sw_bech32, 2)
 
         self.log.info('Test Bitcoin embedded segwit')
-        addr_sw_p2sh = nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
-        nodes[2].manageaddressbook('newsend', addr_sw_p2sh)
-        nodes[1].sendtoaddress(addr_sw_p2sh, 3)
+        try:
+            nodes[2].getnewaddress('segwit script', False, False, False, 'p2sh-segwit')
+            assert(False)
+        except Exception as e:
+            assert('p2sh-segwit is disabled' in str(e))
+
+        addr_sw_pk2 = nodes[2].getnewaddress('pk2', False, False, False, 'bech32')
+        nodes[2].manageaddressbook('newsend', addr_sw_pk2)
+        nodes[1].sendtoaddress(addr_sw_pk2, 3)
 
         ro = nodes[2].getaddressinfo(addr_part_native)
+        assert(ro['path'] == 'm/0/0')
         assert(ro['iswitness'] == False)
+        assert(ro['ischange'] == False)
+        assert('addr_part_native' in ro['labels'])
         pk0 = ro['pubkey']
 
         ro = nodes[2].getaddressinfo(addr_sw_bech32)
+        assert(ro['path'] == 'm/0/1')
+        assert(ro['iswitness'] == True)
+        assert(ro['ischange'] == False)
         assert(ro['witness_version'] == 0)
+        assert('btc native segwit' in ro['labels'])
         pk1 = ro['pubkey']
 
-        ro = nodes[2].getaddressinfo(addr_sw_p2sh)
-        assert(ro['script'] == 'witness_v0_keyhash')
+        ro = nodes[2].getaddressinfo(addr_sw_pk2)
+        assert(ro['witness_version'] == 0)
         pk2 = ro['pubkey']
 
         self.log.info('Test P2SH')

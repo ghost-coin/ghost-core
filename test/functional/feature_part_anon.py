@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Particl Core developers
+# Copyright (c) 2017-2022 The Particl Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,8 +8,7 @@ from test_framework.test_particl import GhostTestFramework
 from test_framework.util import assert_raises_rpc_error
 from test_framework.address import base58_to_byte
 from test_framework.key import SECP256K1, ECPubKey
-from test_framework.messages import COIN
-from test_framework.messages import sha256
+from test_framework.messages import COIN, sha256
 
 
 class AnonTest(GhostTestFramework):
@@ -70,8 +69,17 @@ class AnonTest(GhostTestFramework):
         for txnHash in txnHashes:
             assert(txnHash in ro['tx'])
 
-        txnHash = nodes[1].sendanontoanon(sxAddrTo0_1, 1, '', '', False, 'node1 -> node0 a->a')
+        txnHash = nodes[1].sendanontoanon(sxAddrTo0_1, 1, '', '', False, 'node1 -> node0 a->a', 5, 1)
         txnHashes = [txnHash,]
+
+        # Get a change address
+        change_addr2 = nodes[2].deriverangekeys(0, 0, 'internal', False, True)[0]
+        addr_info = nodes[2].getaddressinfo(change_addr2)
+        assert(addr_info['ischange'] is True)
+
+        # Recieving wallet should not mark an output as change if tx spends no inputs
+        txnHash2 = nodes[1].sendtypeto('anon', 'part', [{'address': change_addr2, 'amount': 1, 'narr': 'node1 -> node2 a->p'}, ], '', '', 5)
+        txnHashes.append(txnHash2)
 
         assert(self.wait_for_mempool(nodes[0], txnHash))
         self.stakeBlocks(1)
@@ -80,7 +88,29 @@ class AnonTest(GhostTestFramework):
         for txnHash in txnHashes:
             assert(txnHash in ro['tx'])
 
-        assert(nodes[1].anonoutput()['lastindex'] == 28)
+        assert(nodes[1].anonoutput()['lastindex'] == 29)
+
+        self.log.info('Test listsinceblock')
+        block2_hash = nodes[0].getblockhash(2)
+        rv = nodes[0].listsinceblock(block2_hash)
+        assert(len(rv['transactions']) == 2)
+        found_txn = False
+        for txn in rv['transactions']:
+            if txn['txid'] == txnHashes[0]:
+                found_txn = True
+            else:
+                assert(txn['category'] == 'stake')
+        assert(found_txn is True)
+
+        rv = nodes[1].listsinceblock(block2_hash)
+        assert(len(rv['transactions']) == 2)
+        for txn in rv['transactions']:
+            assert(float(txn['amount']) == -1.0)
+            assert(txn['category'] == 'send')
+
+        rv = nodes[2].listsinceblock(block2_hash)
+        assert(len(rv['transactions']) == 1)
+        assert(rv['transactions'][0]['txid'] == txnHash2)
 
         txnHashes.clear()
         txnHashes.append(nodes[1].sendanontoanon(sxAddrTo0_1, 101, '', '', False, 'node1 -> node0 a->a', 5, 1))
@@ -92,8 +122,8 @@ class AnonTest(GhostTestFramework):
         ro = nodes[1].sendtypeto('anon', 'part', outputs, 'comment_to', 'comment_from', 4, 32, True)
         assert(ro['bytes'] > 0)
 
-        txnHashes.append(nodes[1].sendtypeto('anon', 'part', outputs))
-        txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo1_1, 'amount': 1},]))
+        txnHashes.append(nodes[1].sendtypeto('anon', 'part', outputs, '', '', 5))
+        txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo1_1, 'amount': 1},], '', '', 5))
 
         for txhash in txnHashes:
             assert(self.wait_for_mempool(nodes[0], txhash))
@@ -195,9 +225,41 @@ class AnonTest(GhostTestFramework):
         wi_1_3 = w1_3.getwalletinfo()
         assert(wi_1_3['anon_balance'] == wi_1['anon_balance'])
 
+
         # Coverage
         w1_3.sendanontoblind(sxAddrTo0_1, 1.0)
         w1_3.sendanontoghost(sxAddrTo0_1, 1.0)
+
+        self.log.info('Test receiving from locked wallet')
+        sxaddr_to = w1_3.getnewstealthaddress('locked receive')
+        w1_3.walletlock()
+        nodes[1].createwallet('test_genesis_coins_2')
+        w1_4 = nodes[1].get_wallet_rpc('test_genesis_coins_2')
+        self.import_genesis_coins_b(w1_4)
+        assert(w1_3.getwalletinfo()['encryptionstatus'] == 'Locked')
+        txid = w1_4.sendtypeto('part', 'anon', [{'address': sxaddr_to, 'amount': 5}, ])
+        assert(self.wait_for_wtx(w1_3, txid))
+
+        ft = w1_3.filtertransactions()
+        found_tx = False
+        for tx in ft:
+            if tx['txid'] == txid:
+                assert(tx['requires_unlock'] == 'true')
+                found_tx = True
+                break
+        assert(found_tx)
+
+        w1_3.walletpassphrase('test', 30)
+
+        ft = w1_3.filtertransactions()
+        found_tx = False
+        for tx in ft:
+            if tx['txid'] == txid:
+                assert('requires_unlock' not in tx)
+                found_tx = True
+                break
+        assert(found_tx)
+
 
         self.log.info('Test sendtypeto coincontrol')
         w1_inputs = w1_2.listunspentanon()
@@ -245,7 +307,7 @@ class AnonTest(GhostTestFramework):
         },]
         tx = nodes[0].createrawparttransaction([], outputs)
 
-        options = {'sign_tx': True}
+        options = {'sign_tx': True, 'anon_ring_size': 5}
         tx_signed = nodes[0].fundrawtransactionfrom('anon', tx['hex'], {}, tx['amounts'], options)
         txid = nodes[0].sendrawtransaction(tx_signed['hex'])
         self.stakeBlocks(1)
@@ -324,9 +386,9 @@ class AnonTest(GhostTestFramework):
             }],
             'feeRate': 0.001,
             'sign_tx': True,
+            'anon_ring_size': 5,
         }
-        input_amounts = {
-        }
+        input_amounts = {}
         used_input = (txid, found_output)
 
         tx_signed = nodes[0].fundrawtransactionfrom('anon', tx['hex'], input_amounts, tx['amounts'], options)

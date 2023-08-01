@@ -379,7 +379,7 @@ static RPCHelpMan getnewaddress()
         bool f256bit = request.params.size() > 3 ? GetBool(request.params[3]) : false;
 
         if (output_type == OutputType::P2SH_SEGWIT) {
-            //throw JSONRPCError(RPC_INVALID_PARAMETER, "Valid address_types are \"legacy\" and \"bech32\"");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "p2sh-segwit is disabled");
         }
         if (f256bit && output_type != OutputType::LEGACY) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "256bit must be used with address_type \"legacy\"");
@@ -399,7 +399,7 @@ static RPCHelpMan getnewaddress()
                 throw JSONRPCError(RPC_WALLET_ERROR, "No default account set.");
             }
         }
-        if (0 != phdw->NewKeyFromAccount(newKey, false, fHardened, f256bit, fBech32, label.c_str())) {
+        if (0 != phdw->NewKeyFromAccount(newKey, false, fHardened, f256bit, fBech32, label.c_str(), output_type)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "NewKeyFromAccount failed.");
         }
 
@@ -1913,34 +1913,35 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
 
         entry.pushKV("vout", r.n);
 
-        int confirms = phdw->GetDepthInMainChain(rtx);
-        entry.pushKV("confirmations", confirms);
-        if (confirms > 0) {
-            entry.pushKV("blockhash", rtx.blockHash.GetHex());
-            entry.pushKV("blockindex", rtx.nIndex);
-            PushTime(entry, "blocktime", rtx.nBlockTime);
-        } else {
-            entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
-        }
-
-        entry.pushKV("txid", hash.ToString());
-
-        UniValue conflicts(UniValue::VARR);
-        std::set<uint256> setconflicts = phdw->GetConflicts(hash);
-        setconflicts.erase(hash);
-        for (const auto &conflict : setconflicts) {
-            conflicts.push_back(conflict.GetHex());
-        }
-        entry.pushKV("walletconflicts", conflicts);
-
-        PushTime(entry, "time", rtx.GetTxTime());
-
         if (!r.sNarration.empty()) {
             entry.pushKV("narration", r.sNarration);
         }
 
-        if (r.nFlags & ORF_FROM) {
-            entry.pushKV("abandoned", rtx.IsAbandoned());
+        if (fLong) {
+            int confirms = phdw->GetDepthInMainChain(rtx);
+            entry.pushKV("confirmations", confirms);
+            if (confirms > 0) {
+                entry.pushKV("blockhash", rtx.blockHash.GetHex());
+                entry.pushKV("blockindex", rtx.nIndex);
+                PushTime(entry, "blocktime", rtx.nBlockTime);
+            } else {
+                entry.pushKV("trusted", phdw->IsTrusted(hash, rtx));
+            }
+
+            entry.pushKV("txid", hash.ToString());
+
+            UniValue conflicts(UniValue::VARR);
+            std::set<uint256> setconflicts = phdw->GetConflicts(hash);
+            setconflicts.erase(hash);
+            for (const auto &conflict : setconflicts) {
+                conflicts.push_back(conflict.GetHex());
+            }
+            entry.pushKV("walletconflicts", conflicts);
+
+            PushTime(entry, "time", rtx.GetTxTime());
+            if (r.nFlags & ORF_FROM) {
+                entry.pushKV("abandoned", rtx.IsAbandoned());
+            }
         }
 
         ret.push_back(entry);
@@ -1987,7 +1988,11 @@ static RPCHelpMan listtransactions()
                         {RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
                         {
                             {RPCResult::Type::BOOL, "involvesWatchonly", "Only returns true if imported addresses were involved in transaction."},
-                            {RPCResult::Type::STR, "address", "The ghost address of the transaction."},
+                            {RPCResult::Type::STR, "address", "The particl address of the transaction."},
+                            {RPCResult::Type::STR, "account", /*optional=*/true, "Alias of label."},
+                            {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
+                            {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
+                            {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
                             {RPCResult::Type::STR, "category", "The transaction category.\n"
                                 "\"send\"                  Transactions sent.\n"
                                 "\"receive\"               Non-coinbase transactions received.\n"
@@ -2000,6 +2005,7 @@ static RPCHelpMan listtransactions()
                             {RPCResult::Type::NUM, "vout", "the vout value"},
                             {RPCResult::Type::STR_AMOUNT, "fee", "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                  "'send' category of transactions."},
+                            {RPCResult::Type::STR_AMOUNT, "reward", /*optional=*/true, "The reward if the transaction is a coinstake."},
                         },
                         TransactionDescriptionString()),
                         {
@@ -2141,6 +2147,10 @@ static RPCHelpMan listsinceblock()
                             {
                                 {RPCResult::Type::BOOL, "involvesWatchonly", "Only returns true if imported addresses were involved in transaction."},
                                 {RPCResult::Type::STR, "address", "The ghost address of the transaction."},
+                                {RPCResult::Type::STR, "account", /*optional=*/true, "Alias of label."},
+                                {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
+                                {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
+                                {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"
                                     "\"send\"                  Transactions sent.\n"
                                     "\"receive\"               Non-coinbase transactions received.\n"
@@ -2152,6 +2162,7 @@ static RPCHelpMan listsinceblock()
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
                                 {RPCResult::Type::STR_AMOUNT, "fee", "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
+                                {RPCResult::Type::STR_AMOUNT, "reward", /*optional=*/true, "The reward if the transaction is a coinstake."},
                             },
                             TransactionDescriptionString()),
                             {
@@ -4904,8 +4915,9 @@ RPCHelpMan getaddressinfo()
                 }
             }
         } else
-        if (dest.type() == typeid(PKHash)
-            || dest.type() == typeid(CKeyID256)) {
+        if (dest.type() == typeid(PKHash) ||
+            dest.type() == typeid(CKeyID256) ||
+            dest.type() == typeid(WitnessV0KeyHash)) {
             CKeyID idk;
             const CEKAKey *pak = nullptr;
             const CEKASCKey *pasc = nullptr;

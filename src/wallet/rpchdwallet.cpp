@@ -3062,10 +3062,12 @@ static bool ParseOutput(
     const CWalletTx           &wtx,
     const isminefilter        &watchonly,
     std::vector<std::string>  &addresses,
-    std::vector<std::string>  &amounts
+    std::vector<std::string>  &amounts,
+    bool                      &watch_only_out
 ) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     CBitcoinAddress addr;
+    watch_only_out = false;
 
     std::string sKey = strprintf("n%d", o.vout);
     mapValue_t::const_iterator mvi = wtx.mapValue.find(sKey);
@@ -3079,6 +3081,7 @@ static bool ParseOutput(
     if (o.ismine & ISMINE_WATCH_ONLY) {
         if (watchonly & ISMINE_WATCH_ONLY) {
             output.pushKV("involvesWatchonly", true);
+            watch_only_out = true;
         } else {
             return false;
         }
@@ -3126,9 +3129,6 @@ static void ParseOutputs(
         ISMINE_ALL,
         true);
 
-    if (wtx.IsFromMe(ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
-        return;
-    }
     if (hide_zero_coinstakes && !listStaked.empty() && nFee == 0) {
         return;
     }
@@ -3143,6 +3143,7 @@ static void ParseOutputs(
     }
 
     // Staked
+    size_t num_watchonly = 0;
     if (!listStaked.empty()) {
         if (wtx.GetDepthInMainChain() < 1) {
             entry.pushKV("category", "orphaned_stake");
@@ -3151,6 +3152,7 @@ static void ParseOutputs(
         }
         for (const auto &s : listStaked) {
             UniValue output(UniValue::VOBJ);
+            bool is_watchonly = false;
             if (!ParseOutput(
                 output,
                 s,
@@ -3158,11 +3160,13 @@ static void ParseOutputs(
                 wtx,
                 watchonly,
                 addresses,
-                amounts)) {
+                amounts,
+                is_watchonly)) {
                 return ;
             }
             output.pushKV("amount", ValueFromAmount(s.amount));
             outputs.push_back(output);
+            num_watchonly += is_watchonly ? 1 : 0;
         }
         amount += -nFee;
     } else {
@@ -3170,18 +3174,21 @@ static void ParseOutputs(
         if (!listSent.empty()) {
             for (const auto &s : listSent) {
                 UniValue output(UniValue::VOBJ);
+                bool is_watchonly = false;
                 if (!ParseOutput(output,
                     s,
                     pwallet,
                     wtx,
                     watchonly,
                     addresses,
-                    amounts)) {
+                    amounts,
+                    is_watchonly)) {
                     return ;
                 }
                 output.pushKV("amount", ValueFromAmount(-s.amount));
                 amount -= s.amount;
                 outputs.push_back(output);
+                num_watchonly += is_watchonly ? 1 : 0;
             }
         }
 
@@ -3189,6 +3196,7 @@ static void ParseOutputs(
         if (!listReceived.empty()) {
             for (const auto &r : listReceived) {
                 UniValue output(UniValue::VOBJ);
+                bool is_watchonly = false;
                 if (!ParseOutput(
                     output,
                     r,
@@ -3196,8 +3204,8 @@ static void ParseOutputs(
                     wtx,
                     watchonly,
                     addresses,
-                    amounts
-                )) {
+                    amounts,
+                    is_watchonly)) {
                     return ;
                 }
                 if (r.destination.type() == typeid(PKHash)) {
@@ -3220,8 +3228,21 @@ static void ParseOutputs(
                 }
                 if (!fExists) {
                     outputs.push_back(output);
+                    num_watchonly += is_watchonly ? 1 : 0;
                 }
             }
+        }
+
+        CAmount debit_watchonly = wtx.GetDebit(ISMINE_WATCH_ONLY);
+        CAmount debit_spendable = wtx.GetDebit(ISMINE_SPENDABLE);
+        if (num_watchonly >= outputs.size()) { // Only has watchonly outputs or none
+            bool from_watchonly_only = debit_watchonly && !debit_spendable;
+            if (from_watchonly_only && !(watchonly & ISMINE_WATCH_ONLY)) {
+                return;
+            }
+        }
+        if (debit_watchonly) {
+            entry.__pushKV("involvesWatchonlyInput", "true");
         }
 
         if (wtx.IsCoinBase()) {
@@ -3945,8 +3966,7 @@ static UniValue filtertransactions(const JSONRPCRequest &request)
                 ? a[sort].get_real() > b[sort].get_real()
             : sort == "amount"
                 ? a_amount > b_amount
-            : false
-            );
+            : false);
     });
 
     // Filter, skip, count and sum
@@ -4227,9 +4247,11 @@ static UniValue manageaddressbook(const JSONRPCRequest &request)
         EnsureWalletIsUnlocked(pwallet);
     }
 
+    bool label_was_set = false;
     bool fHavePurpose = false;
     if (request.params.size() > 2) {
         sLabel = request.params[2].get_str();
+        label_was_set = true;
     }
     if (request.params.size() > 3) {
         sPurpose = request.params[3].get_str();
@@ -4339,12 +4361,13 @@ static UniValue manageaddressbook(const JSONRPCRequest &request)
         // Only update the purpose field if address does not yet exist
         if (mabi != pwallet->m_address_book.end()) {
             sPurpose = ""; // "" means don't change purpose
+            if (!label_was_set) {
+                sLabel = mabi->second.GetLabel();
+            }
         }
-
         if (!pwallet->SetAddressBook(dest, sLabel, sPurpose)) {
             throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
         }
-
         if (mabi != pwallet->m_address_book.end()) {
             sPurpose = mabi->second.purpose;
         }
@@ -4391,6 +4414,7 @@ static UniValue getstakinginfo(const JSONRPCRequest &request)
                         {RPCResult::Type::STR_AMOUNT, "wallettreasurydonationpercent", "User set percentage of the block reward ceded to the treasury"},
                         {RPCResult::Type::STR_AMOUNT, "treasurydonationpercent", "Network enforced percentage of the block reward ceded to the treasury"},
                         {RPCResult::Type::STR_AMOUNT, "minstakeablevalue", "The minimum value for an output to attempt staking in " + CURRENCY_UNIT},
+                        {RPCResult::Type::NUM, "minstakeabledepth", "Minimum depth required in the chain for an output to stake"},
                         {RPCResult::Type::NUM, "currentblocksize", "The last approximate block size in bytes"},
                         {RPCResult::Type::NUM, "currentblockweight", "The last block weight"},
                         {RPCResult::Type::NUM, "currentblocktx", "The number of transactions in the last block"},
@@ -4478,8 +4502,11 @@ static UniValue getstakinginfo(const JSONRPCRequest &request)
         obj.pushKV("treasurydonationpercent", pTreasuryFundSettings->nMinTreasuryStakePercent);
     }
 
-    obj.pushKV("minstakeablevalue", pwallet->m_min_stakeable_value);
+    obj.pushKV("minstakeablevalue", ValueFromAmount(pwallet->m_min_stakeable_value));
 
+    int nHeight = pwallet->chain().getHeightInt();
+    int nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations() - 1), (int)(nHeight / 2));
+    obj.pushKV("minstakeabledepth", nRequiredDepth);
     obj.pushKV("currentblocksize", (uint64_t)nLastBlockSize);
     obj.pushKV("currentblocktx", (uint64_t)nLastBlockTx);
 
@@ -4512,10 +4539,11 @@ static UniValue getcoldstakinginfo(const JSONRPCRequest &request)
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::BOOL, "enabled", "If a valid coldstakingaddress is loaded or not on this wallet"},
-                        {RPCResult::Type::STR, "coldstaking_extkey_id", "The id of the current coldstakingaddress"},
+                        {RPCResult::Type::STR, "coldstaking_extkey_id", /*optional=*/true, "The id of the current coldstakingaddress"},
                         {RPCResult::Type::STR_AMOUNT, "coin_in_stakeable_script", "Current amount of coin in scripts stakeable by this wallet"},
                         {RPCResult::Type::STR_AMOUNT, "coin_in_coldstakeable_script", "Current amount of coin in scripts stakeable by the wallet with the coldstakingaddress"},
                         {RPCResult::Type::STR_AMOUNT, "percent_in_coldstakeable_script", "Percentage of coin in coldstakeable scripts"},
+                        {RPCResult::Type::STR_AMOUNT, "pending_depth", "Amount of coin in this wallet that will stake once it reaches the required depth"},
                         {RPCResult::Type::STR_AMOUNT, "currently_staking", "Amount of coin estimated to be currently staking by this wallet"},
                 }},
                 RPCExamples{
@@ -4552,16 +4580,13 @@ static UniValue getcoldstakinginfo(const JSONRPCRequest &request)
         cctl.m_include_immature = true;
         LOCK(pwallet->cs_wallet);
         nHeight = ::ChainActive().Tip()->nHeight;
-        nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations()-1), (int)(nHeight / 2));
+        nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations() - 1), (int)(nHeight / 2));
         pwallet->AvailableCoins(vecOutputs, !include_unsafe, &cctl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount);
     }
 
     LOCK(pwallet->cs_wallet);
 
-    CAmount nStakeable = 0;
-    CAmount nColdStakeable = 0;
-    CAmount nWalletStaking = 0;
-
+    CAmount nStakeable{0}, nColdStakeable{0}, nWalletStaking{0}, nWalletPendingDepth{0};
     CKeyID keyID;
     CScript coinstakePath;
     for (const auto &out : vecOutputs) {
@@ -4577,8 +4602,8 @@ static UniValue getcoldstakinginfo(const JSONRPCRequest &request)
         if (scriptPubKey->IsPayToPublicKeyHash256_CS() || scriptPubKey->IsPayToScriptHash256_CS() || scriptPubKey->IsPayToScriptHash_CS()) {
             // Show output on both the spending and staking wallets
             if (!out.fSpendable) {
-                if (!particl::ExtractStakingKeyID(*scriptPubKey, keyID)
-                    || !pwallet->HaveKey(keyID)) {
+                if (!particl::ExtractStakingKeyID(*scriptPubKey, keyID) ||
+                    !pwallet->HaveKey(keyID)) {
                     continue;
                 }
             }
@@ -4587,23 +4612,24 @@ static UniValue getcoldstakinginfo(const JSONRPCRequest &request)
             continue;
         }
 
-        if (out.nDepth < nRequiredDepth) {
-            continue;
-        }
-
         if (!particl::ExtractStakingKeyID(*scriptPubKey, keyID)) {
             continue;
         }
+
         if (pwallet->HaveKey(keyID)) {
-            nWalletStaking += nValue;
+            if (out.nDepth < nRequiredDepth) {
+                nWalletPendingDepth += nValue;
+            } else {
+                nWalletStaking += nValue;
+            }
         }
     }
 
     bool fEnabled = false;
     UniValue jsonSettings;
     CBitcoinAddress addrColdStaking;
-    if (pwallet->GetSetting("changeaddress", jsonSettings)
-        && jsonSettings["coldstakingaddress"].isStr()) {
+    if (pwallet->GetSetting("changeaddress", jsonSettings) &&
+        jsonSettings["coldstakingaddress"].isStr()) {
         std::string sAddress;
         try { sAddress = jsonSettings["coldstakingaddress"].get_str();
         } catch (std::exception &e) {
@@ -4630,6 +4656,7 @@ static UniValue getcoldstakinginfo(const JSONRPCRequest &request)
     CAmount nTotal = nColdStakeable + nStakeable;
     obj.pushKV("percent_in_coldstakeable_script",
         UniValue(UniValue::VNUM, strprintf("%.2f", nTotal == 0 ? 0.0 : (nColdStakeable * 10000 / nTotal) / 100.0)));
+    obj.pushKV("pending_depth", ValueFromAmount(nWalletPendingDepth));
     obj.pushKV("currently_staking", ValueFromAmount(nWalletStaking));
 
     return obj;
@@ -4994,24 +5021,24 @@ static UniValue listunspentblind(const JSONRPCRequest &request)
         }
     }
 
-    std::set<CBitcoinAddress> setAddress;
+    std::set<CTxDestination> setAddress;
     if (request.params.size() > 2 && !request.params[2].isNull()) {
         RPCTypeCheckArgument(request.params[2], UniValue::VARR);
         UniValue inputs = request.params[2].get_array();
         for (unsigned int idx = 0; idx < inputs.size(); idx++) {
             const UniValue& input = inputs[idx];
             CBitcoinAddress address(input.get_str());
-            if (!address.IsValidStealthAddress()) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Ghost stealth address: ")+input.get_str());
+            if (!address.IsValidStealthAddress() && !address.IsValid()) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Ghost address or stealth address: ")+input.get_str());
             }
-            if (setAddress.count(address)) {
+            if (setAddress.count(address.Get())) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ")+input.get_str());
             }
-           setAddress.insert(address);
+           setAddress.insert(address.Get());
         }
     }
 
-    bool include_unsafe = true;
+    bool include_unsafe{true};
     if (request.params.size() > 3 && !request.params[3].isNull()) {
         RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
         include_unsafe = request.params[3].get_bool();
@@ -5046,21 +5073,23 @@ static UniValue listunspentblind(const JSONRPCRequest &request)
 
         CAmount nValue = pout->nValue;
 
+        bool address_is_whitelisted{false};
         CTxDestination address;
         const CScript *scriptPubKey = &pout->scriptPubKey;
         bool fValidAddress = ExtractDestination(*scriptPubKey, address);
         bool reused = avoid_reuse && pwallet->IsSpentKey(out.txhash, out.i);
-        if (setAddress.size() && (!fValidAddress || !setAddress.count(CBitcoinAddress(address))))
-            continue;
+        if (fValidAddress && setAddress.count(address)) {
+            address_is_whitelisted = true;
+        }
 
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("txid", out.txhash.GetHex());
         entry.pushKV("vout", out.i);
 
         if (fValidAddress) {
-            entry.pushKV("address", CBitcoinAddress(address).ToString());
+            entry.pushKV("address", EncodeDestination(address));
 
-            auto i = pwallet->m_address_book.find(address);
+            const auto i = pwallet->m_address_book.find(address);
             if (i != pwallet->m_address_book.end()) {
                 entry.pushKV("label", i->second.GetLabel());
             }
@@ -5075,6 +5104,9 @@ static UniValue listunspentblind(const JSONRPCRequest &request)
                         if (i != pwallet->m_address_book.end()) {
                             entry.pushKV("label", i->second.GetLabel());
                         }
+                    }
+                    if (!address_is_whitelisted && setAddress.count(sx)) {
+                        address_is_whitelisted = true;
                     }
                 }
             }
@@ -5094,6 +5126,10 @@ static UniValue listunspentblind(const JSONRPCRequest &request)
                 if (provider->GetCScript(scriptID, redeemScript))
                     entry.pushKV("redeemScript", HexStr(redeemScript));
             }
+        }
+
+        if (setAddress.size() && !address_is_whitelisted) {
+            continue;
         }
 
         entry.pushKV("scriptPubKey", HexStr(*scriptPubKey));
@@ -6669,7 +6705,9 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         "options"},
                 },
                 RPCResults{},
-                RPCExamples{""},
+                RPCExamples{
+                    HelpExampleCli("debugwallet", "\"{\\\"attempt_repair\\\":true}\"")
+                },
             }.Check(request);
 
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -7136,16 +7174,16 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         }
                         continue;
                     }
-                    if ((r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT)
-                        && (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY)
-                        && !pwallet->IsSpent(txhash, r.n)) {
+                    if ((r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) &&
+                        (r.nFlags & ORF_OWNED || r.nFlags & ORF_STAKEONLY) &&
+                        !pwallet->IsSpent(txhash, r.n)) {
                         uint256 tmp;
                         if (!stx.GetBlind(r.n, tmp.begin())) {
                             add_error("Missing blinding factor.", txhash, r.n);
                         }
                     }
-                    if (r.nType == OUTPUT_RINGCT
-                        && (r.nFlags & ORF_OWNED)) {
+                    if (r.nType == OUTPUT_RINGCT &&
+                        (r.nFlags & ORF_OWNED)) {
                         CCmpPubKey anon_pubkey, ki;
                         if (!stx.GetAnonPubkey(r.n, anon_pubkey)) {
                             add_error("Could not get anon pubkey.", txhash, r.n);
@@ -7163,13 +7201,16 @@ static UniValue debugwallet(const JSONRPCRequest &request)
                         }
                         CAnonKeyImageInfo ki_data;
                         bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, ki_data);
-                        bool spent_in_wallet = pwallet->IsSpent(txhash, r.n);
+                        uint256 spent_by;
+                        bool spent_in_wallet = pwallet->GetSpendingTxid(txhash, r.n, spent_by);
 
                         if (spent_in_chain && !spent_in_wallet) {
                             add_error("Spent in chain but not wallet.", txhash, r.n);
+                            errors.get(errors.size() - 1).pushKV("spent_by", ki_data.txid.ToString());
                         } else
                         if (!spent_in_chain && spent_in_wallet) {
                             add_error("Spent in wallet but not chain.", txhash, r.n);
+                            errors.get(errors.size() - 1).pushKV("spent_by", spent_by.ToString());
                         }
                     }
                 }
@@ -7240,7 +7281,15 @@ static UniValue walletsettings(const JSONRPCRequest &request)
                         },
                     },
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::OBJ, "setting_name", "",
+                        {
+                            {RPCResult::Type::STR, "time", /*optional=*/true, "Timestamp from when setting was last changed."},
+                        }
+                    }}
+                },
                 RPCExamples{
             "Set coldstaking changeaddress extended public key:\n"
             + HelpExampleCli("walletsettings", "changeaddress \"{\\\"coldstakingaddress\\\":\\\"extpubkey\\\"}\"") + "\n"
@@ -8669,8 +8718,8 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                 {"estimate_mode", UniValueType(UniValue::VSTR)},
                 {"avoid_reuse", UniValueType(UniValue::VBOOL)},
                 {"sign_tx", UniValueType(UniValue::VBOOL)},
-                {"anon_ring_size", UniValueType(UniValue::VBOOL)},
-                {"anon_inputs_per_sig", UniValueType(UniValue::VBOOL)},
+                {"anon_ring_size", UniValueType(UniValue::VNUM)},
+                {"anon_inputs_per_sig", UniValueType(UniValue::VNUM)},
                 {"blind_watchonly_visible", UniValueType(UniValue::VBOOL)},
                 {"minimumAmount", UniValueType()},
                 {"maximumAmount", UniValueType()},
