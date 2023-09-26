@@ -83,7 +83,7 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure automake
-        run: ./configure --with-gui=auto"
+        run: ./configure --with-gui=auto
 
       - name: Build codebase
         run: make -j4
