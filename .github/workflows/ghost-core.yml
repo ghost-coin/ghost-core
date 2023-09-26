@@ -64,12 +64,16 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - uses: actions/cache@v2
-      - uses: maxim-lobanov/setup-xcode@v1
         with:
           path: /Users/runner/Library/Caches/ccache
           key: ccache-${{ runner.os }}-build-${{ github.sha }}
           restore-keys: ccache-${{ runner.os }}-build-
+
+      - name: Select xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
           xcode-version: '12.4'
+        
     
       
       - name: install dependencies
