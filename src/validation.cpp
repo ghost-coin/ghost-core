@@ -3232,6 +3232,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return error("%s: Failed to get dev fund destination: %s.", __func__, pTreasuryFundSettings->sTreasuryFundAddresses);
                     }
 
+                    const int devFundPercent = pindex->nHeight >= consensus.nBlockRewardCorrectionHeight ? 21 : 16;
+
                     if (pindex->nHeight % pTreasuryFundSettings->nTreasuryOutputPeriod == 0) {
                         CScript fundScriptPubKey = GetScriptForDestination(dfDest);
 
@@ -3251,7 +3253,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                         }
 
-                        const CAmount devFundPart = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * 16) / 100);
+                        const CAmount devFundPart = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * devFundPercent) / 100);
                         if (outputDF->nValue != devFundPart) {
                             LogPrintf("ERROR: %s: Bad dev fund output value.\n", __func__);
                             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-devfund-amount");
@@ -3259,7 +3261,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         devFundPaidOut = true;
                     } else {
                         // The dev fund carried forward has to be set
-                        CAmount nTreasuryCfwd = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * 16) / 100);;
+                        CAmount nTreasuryCfwd = nTreasuryBfwd + ((nCalculatedStakeRewardWithoutFees * devFundPercent) / 100);;
                         if (!txCoinstake->GetTreasuryFundCfwd(nTreasuryCfwdCheck)
                             || nTreasuryCfwdCheck != nTreasuryCfwd) {
                             LogPrintf("ERROR: %s: Coinstake treasury fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nTreasuryCfwdCheck, nTreasuryCfwd);
@@ -3268,6 +3270,8 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                     }
                 }
             }
+
+            const int agvrFundPercent = pindex->nHeight >= consensus.nBlockRewardCorrectionHeight ? 33 : 50;
 
             if (pindex->nHeight >= consensus.automatedGvrActivationHeight && pindex->nHeight > consensus.agvrStartPayingHeight) {
                 if (pindex->pprev->nHeight > 0) { // Genesis block is pow
@@ -3308,7 +3312,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                                         const CTxDestination& trackedAddrDest = DecodeDestination(std::string(addrMul.first.begin(), addrMul.first.end()));
                                         return trackedAddrDest == stakerAddrDest;
                                     });
-
+                
                 if (wasEligible != eligibleAddresses.end()) {
                     // if he was elig then the vpout[2] is the gvr out
                     // The staker was eligible then compare scripts
@@ -3339,7 +3343,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
                     }
 
-                    CAmount nGvrCfwd = ngvrBfwd + ((nCalculatedStakeRewardWithoutFees * 50) / 100);
+                    CAmount nGvrCfwd = ngvrBfwd + ((nCalculatedStakeRewardWithoutFees * agvrFundPercent) / 100);
                     if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)
                         || ngvrCfwdCheck != nGvrCfwd) {
                         LogPrintf("ERROR: %s: GVR fund carried forward mismatch (actual=%d vs expected=%d)\n", __func__, nGvrCfwd, ngvrCfwdCheck);
@@ -3352,7 +3356,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 // Check that total carried forward was paid
                 const auto* outGvr = devFundPaidOut? txCoinstake->vpout[0]->GetStandardOutput() : txCoinstake->vpout[1]->GetStandardOutput();
 
-                auto gvrAmount = (nCalculatedStakeRewardWithoutFees * 50) / 100;
+                auto gvrAmount = (nCalculatedStakeRewardWithoutFees * agvrFundPercent) / 100;
                 auto expectedGvrAmount = (consensus.minRewardRangeSpan + 2) * gvrAmount;
                 if (outGvr->nValue != expectedGvrAmount) {
                     LogPrintf("[GVR activation] ERROR: %s: Paid GVR amount mismatch (actual=%d vs expected=%d)\n", __func__, outGvr->nValue, expectedGvrAmount);

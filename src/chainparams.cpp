@@ -118,6 +118,10 @@ CAmount CChainParams::GetProofOfStakeRewardAtHeight(const int nHeight) const
     CAmount nSubsidy = GetProofOfStakeRewardAtYear(currYear);
     if(nHeight >= consensus.nBlockRewardIncreaseHeight)
         nSubsidy *= nBlockRewardIncrease;
+    
+    if (nHeight >= consensus.nBlockRewardCorrectionHeight) {
+        nSubsidy = ((9 * COIN) * GetCoinYearPercent(currYear)) / 100;
+    }
 
     return nSubsidy;
 }
@@ -125,6 +129,11 @@ CAmount CChainParams::GetProofOfStakeRewardAtHeight(const int nHeight) const
 int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const int64_t nFees) const
 {
     int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
+
+    if(pindexPrev->nMoneySupply / COIN >= 55000000) {
+        return (((9 * COIN) * 10) / 100) + nFees;
+    }
+
     return GetProofOfStakeRewardAtHeight(nHeight) + nFees;
 }
 
@@ -539,6 +548,8 @@ public:
         consensus.minRewardRangeSpan = DEFAULT_MIN_REWARD_RANGE_SPAN;
         consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
         consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
+
+        consensus.nBlockRewardCorrectionHeight = 869106;
 
         nBlockRewardIncrease = 2;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
