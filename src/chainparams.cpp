@@ -1054,6 +1054,9 @@ public:
         consensus.nGVRTreasuryFundAdjustment = 140536;
         nBlockRewardIncrease = 2;
         nStakeTimestampMask = 0;
+
+        consensus.nBlockRewardCorrectionHeight = 869106;
+        
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
 
         nPruneAfterHeight = 1000;
