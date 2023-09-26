@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         os: [x86_64-linux-gnu]
@@ -58,7 +58,7 @@ jobs:
         run: make check
 
   build-macos:
-    runs-on: macOS-latest
+    runs-on: macOS-11
     env:
       CCACHE_TEMPDIR: /tmp/.ccache-temp
     steps:
