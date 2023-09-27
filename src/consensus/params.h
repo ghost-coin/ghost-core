@@ -150,6 +150,8 @@ struct Params {
     int nOneTimeGVRPayHeight;
     //Block reward correction height
     int nBlockRewardCorrectionHeight;
+    //Block reward correction height
+    int nMoneySupplyCap;
     //GVR Devfund Adjustment to a GVR held address
     int nGVRTreasuryFundAdjustment;
     int64_t nGVRPayOnetimeAmt;
