@@ -328,7 +328,8 @@ PARTICL_SCRIPTS = [
     'feature_control_anon4.py',
     'feature_gvr.py',
     'feature_gvr2.py',
-    'feature_gvr3.py'
+    'feature_gvr3.py',
+    'feature_supply_limit.py'
 ]
 
 PARTICL_SCRIPTS_EXT = [

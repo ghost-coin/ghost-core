@@ -13540,6 +13540,9 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     bool devFundPaid = false;
 
     const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
+    const int agvrFundPercent = nBlockHeight >= consensusParams.nBlockRewardCorrectionHeight ? 33 : 50;
+    const int devFundPercent = nBlockHeight >= consensusParams.nBlockRewardCorrectionHeight ? 21 : 16;
+
     if (!pTreasuryFundSettings || pTreasuryFundSettings->nMinTreasuryStakePercent <= 0) {
         nRewardOut = nReward;
     } else {
@@ -13598,8 +13601,9 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
         } else {
             // Place devfunds
+
             CAmount nTreasuryBfwd = 0;
-            CAmount devFundOut = (nRewardFeesExcluded * 16) / 100; // 16% goes to devfund
+            CAmount devFundOut = (nRewardFeesExcluded * devFundPercent) / 100; // 16% goes to devfund
 
             if (nBlockHeight > 1) { // genesis block is pow
                 LOCK(cs_main);
@@ -13675,7 +13679,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             return trackedAddrDest == stakerAddrDest;
         });
 
-        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        CAmount gvrOut = (nRewardFeesExcluded * agvrFundPercent) / 100; // 50% goes to the veteran
         CAmount gvrOutTotal = nGVRfwd + gvrOut;
 
         nRewardOut -= gvrOut;
@@ -13722,7 +13726,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         
         CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
 
-        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        CAmount gvrOut = (nRewardFeesExcluded * agvrFundPercent) / 100; // 50% goes to the veteran
         auto gvrOutTotal = nGVRfwd + gvrOut;
 
         OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
@@ -13743,7 +13747,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             nGVRfwd = 0;
         }
 
-        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        CAmount gvrOut = (nRewardFeesExcluded * agvrFundPercent) / 100; // 50% goes to the veteran
         nRewardOut -= gvrOut;
         auto gvrOutTotal = nGVRfwd + gvrOut;
         std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();

@@ -126,6 +126,9 @@ static const CAmount DEFAULT_GVR_THRESHOLD = 20000 * COIN;
 static const int DEFAULT_MIN_REWARD_RANGE_SPAN = 30 * 24 * 30; // Which is 21600 blocks per month
 static const int DEFAULT_GVR_START_HEIGHT = 100000;
 
+static const int DEFAULT_REWARD_CORRECTION_HEIGHT = 100;
+static const int DEFAULT_MONEY_SUPPLY_CAP = 55000000;
+
 
 
 struct BlockHasher

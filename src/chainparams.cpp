@@ -130,7 +130,7 @@ int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, const
 {
     int nHeight = pindexPrev ? pindexPrev->nHeight + 1 : 0;
 
-    if(pindexPrev->nMoneySupply / COIN >= 55000000) {
+    if (pindexPrev->nMoneySupply / COIN >= consensus.nMoneySupplyCap) {
         return (((9 * COIN) * 10) / 100) + nFees;
     }
 
@@ -550,6 +550,7 @@ public:
         consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
 
         consensus.nBlockRewardCorrectionHeight = 869106;
+        consensus.nMoneySupplyCap = DEFAULT_MONEY_SUPPLY_CAP;
 
         nBlockRewardIncrease = 2;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
@@ -775,6 +776,9 @@ public:
         consensus.nOneTimeGVRPayHeight = 42308;
         consensus.nGVRTreasuryFundAdjustment = 140536;
         consensus.m_frozen_blinded_height = 884433;
+
+        consensus.nBlockRewardCorrectionHeight = 869106;
+        consensus.nMoneySupplyCap = 55000000;
 
         nBlockRewardIncrease = 1;
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
@@ -1054,9 +1058,6 @@ public:
         consensus.nGVRTreasuryFundAdjustment = 140536;
         nBlockRewardIncrease = 2;
         nStakeTimestampMask = 0;
-
-        consensus.nBlockRewardCorrectionHeight = 869106;
-        
         nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
 
         nPruneAfterHeight = 1000;
@@ -1134,6 +1135,9 @@ public:
         consensus.gvrThreshold = gArgs.GetArg("-gvrthreshold", DEFAULT_GVR_THRESHOLD);
         consensus.minRewardRangeSpan = gArgs.GetArg("-minrewardrangespan", DEFAULT_MIN_REWARD_RANGE_SPAN);
         consensus.agvrStartPayingHeight = gArgs.GetArg("-startpayingheight", 0);
+
+        consensus.nBlockRewardCorrectionHeight = gArgs.GetArg("-rewardcorrectionheight", DEFAULT_REWARD_CORRECTION_HEIGHT);
+        consensus.nMoneySupplyCap = gArgs.GetArg("-moneysupplycap", DEFAULT_MONEY_SUPPLY_CAP);
     }
 
     void SetOld()
