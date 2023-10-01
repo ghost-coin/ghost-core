@@ -133,15 +133,19 @@ class GhostSupplyLimitTest(GhostTestFramework):
             n.pushtreasuryfundsetting({'timefrom': 0, 'fundaddress': treas_addr, 'minstakepercent': 10, 'outputperiod': 1})
 
         node2_to_addr = reward_address2
-        amount = 10_002
+        amount = 20_000
 
         nodes[0].walletsettings('stakingoptions', {'enabled': True})
         
         # send a vet amount to node 2.
         # This sets up one of two veteran accounts.
+        # We specify the inputs so that there is no change.
+        # The change could get vet status and could throw off results.
+
+        txInputs = [{'tx': 'f89653c7208af2c76a3070d436229fb782acbd065bd5810307995b9982423ce7', 'n': 0}, {'tx': 'f89653c7208af2c76a3070d436229fb782acbd065bd5810307995b9982423ce7', 'n': 1}]
         
         outputs = [{'address': node2_to_addr, 'amount': amount, 'subfee': True}]
-        tx = nodes[0].sendtypeto('ghost', 'ghost', outputs, '', '', 1, 1, False, {'show_fee': True})
+        tx = nodes[0].sendtypeto('ghost', 'ghost', outputs, '', '', 1, 1, False, {'inputs': txInputs, 'show_fee': True})
         rawtx = nodes[0].getrawtransaction(tx['txid'])
         txhash = nodes[0].sendrawtransaction(rawtx)
 
@@ -174,11 +178,7 @@ class GhostSupplyLimitTest(GhostTestFramework):
         # This puts our total expected agvr amount at 33 (11 * 3)
 
         nodes[1].walletsettings('stakingoptions', {'enabled': True})
-        #print(nodes[1].getbalances())
-        #print(nodes[1].getstakinginfo())
         self.stakeBlocks(1, 1)
-
-        #print(nodes[1].getblockreward(nodes[1].getblockcount()))
         
         assert_equal(33, nodes[1].getblockreward(nodes[1].getblockcount())['gvrreward'])
 

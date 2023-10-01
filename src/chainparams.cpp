@@ -549,7 +549,7 @@ public:
         consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
         consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
 
-        consensus.nBlockRewardCorrectionHeight = 869106;
+        consensus.nBlockRewardCorrectionHeight = 884840;
         consensus.nMoneySupplyCap = DEFAULT_MONEY_SUPPLY_CAP;
 
         nBlockRewardIncrease = 2;
