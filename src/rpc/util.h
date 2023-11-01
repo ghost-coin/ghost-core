@@ -1,11 +1,10 @@
-// Copyright (c) 2017-2020 The Bitcoin Core developers
+// Copyright (c) 2017-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_RPC_UTIL_H
 #define BITCOIN_RPC_UTIL_H
 
-#include <node/coinstats.h>
 #include <node/transaction.h>
 #include <outputtype.h>
 #include <protocol.h>
@@ -19,9 +18,16 @@
 #include <util/check.h>
 
 #include <string>
+#include <variant>
 #include <vector>
 
-#include <boost/variant.hpp>
+static constexpr bool DEFAULT_RPC_DOC_CHECK{
+#ifdef RPC_DOC_CHECK
+    true
+#else
+    false
+#endif
+};
 
 /**
  * String used to describe UNIX epoch time in documentation, factored out to a
@@ -42,6 +48,13 @@ class CPubKey;
 class CScript;
 struct Sections;
 
+/**
+ * Gets all existing output types formatted for RPC help sections.
+ *
+ * @return Comma separated string representing output type names.
+ */
+std::string GetAllOutputTypes();
+
 /** Wrapper for UniValue::VType, which includes typeAny:
  * Used to denote don't care type. */
 struct UniValueType {
@@ -50,18 +63,6 @@ struct UniValueType {
     bool typeAny;
     UniValue::VType type;
 };
-
-/**
- * Type-check arguments; throws JSONRPCError if wrong type given. Does not check that
- * the right number of arguments are passed, just that any passed are the correct type.
- */
-void RPCTypeCheck(const UniValue& params,
-                  const std::list<UniValueType>& typesExpected, bool fAllowNull=false);
-
-/**
- * Type-check one argument; throws JSONRPCError if wrong type given.
- */
-void RPCTypeCheckArgument(const UniValue& value, const UniValueType& typeExpected);
 
 /*
   Check for expected keys/value types in an Object.
@@ -75,16 +76,25 @@ void RPCTypeCheckObj(const UniValue& o,
  * Utilities: convert hex-encoded Values
  * (throws error if not hex).
  */
-extern uint256 ParseHashV(const UniValue& v, std::string strName);
-extern uint256 ParseHashO(const UniValue& o, std::string strKey);
-extern std::vector<unsigned char> ParseHexV(const UniValue& v, std::string strName);
-extern std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKey);
+uint256 ParseHashV(const UniValue& v, std::string strName);
+uint256 ParseHashO(const UniValue& o, std::string strKey);
+std::vector<unsigned char> ParseHexV(const UniValue& v, std::string strName);
+std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKey);
 
-CoinStatsHashType ParseHashType(const UniValue& param, const CoinStatsHashType default_type);
+/**
+ * Validate and return a CAmount from a UniValue number or string.
+ *
+ * @param[in] value     UniValue number or string to parse.
+ * @param[in] decimals  Number of significant digits (default: 8).
+ * @returns a CAmount if the various checks pass.
+ */
+CAmount AmountFromValue(const UniValue& value, int decimals = 8);
 
-extern CAmount AmountFromValue(const UniValue& value);
-extern std::string HelpExampleCli(const std::string& methodname, const std::string& args);
-extern std::string HelpExampleRpc(const std::string& methodname, const std::string& args);
+using RPCArgList = std::vector<std::pair<std::string, UniValue>>;
+std::string HelpExampleCli(const std::string& methodname, const std::string& args);
+std::string HelpExampleCliNamed(const std::string& methodname, const RPCArgList& args);
+std::string HelpExampleRpc(const std::string& methodname, const std::string& args);
+std::string HelpExampleRpcNamed(const std::string& methodname, const RPCArgList& args);
 
 CPubKey HexToPubKey(const std::string& hex_in);
 CPubKey AddrToPubKey(const FillableSigningProvider& keystore, const std::string& addr_in);
@@ -93,6 +103,7 @@ CTxDestination AddAndGetMultisigDestination(const int required, const std::vecto
 UniValue DescribeAddress(const CTxDestination& dest);
 
 bool GetBool(const UniValue &uv);
+uint32_t GetUInt32(const UniValue &uv);
 
 //! Parse a confirm target option and raise an RPC error if it is invalid.
 unsigned int ParseConfirmTarget(const UniValue& value, unsigned int max_target);
@@ -119,6 +130,13 @@ enum class OuterType {
     NONE, // Only set on first recursion
 };
 
+struct RPCArgOptions {
+    bool skip_type_check{false};
+    std::string oneline_description{};   //!< Should be empty unless it is supposed to override the auto-generated summary line
+    std::vector<std::string> type_str{}; //!< Should be empty unless it is supposed to override the auto-generated type strings. Vector length is either 0 or 2, m_opts.type_str.at(0) will override the type of the value in a key-value pair, m_opts.type_str.at(1) will override the type in the argument description.
+    bool hidden{false};                  //!< For testing only
+};
+
 struct RPCArg {
     enum class Type {
         OBJ,
@@ -136,68 +154,67 @@ struct RPCArg {
         /** Required arg */
         NO,
         /**
-         * Optional arg that is a named argument and has a default value of
-         * `null`. When possible, the default value should be specified.
-         */
-        OMITTED_NAMED_ARG,
-        /**
-         * Optional argument with default value omitted because they are
-         * implicitly clear. That is, elements in an array or object may not
-         * exist by default.
+         * Optional argument for which the default value is omitted from
+         * help text for one of two reasons:
+         * - It's a named argument and has a default value of `null`.
+         * - Its default value is implicitly clear. That is, elements in an
+         *    array may not exist by default.
          * When possible, the default value should be specified.
          */
         OMITTED,
     };
-    using Fallback = boost::variant<Optional, /* default value for optional args */ std::string>;
+    /** Hint for default value */
+    using DefaultHint = std::string;
+    /** Default constant value */
+    using Default = UniValue;
+    using Fallback = std::variant<Optional, DefaultHint, Default>;
+
     const std::string m_names; //!< The name of the arg (can be empty for inner args, can contain multiple aliases separated by | for named request arguments)
     const Type m_type;
-    const bool m_hidden;
     const std::vector<RPCArg> m_inner; //!< Only used for arrays or dicts
     const Fallback m_fallback;
     const std::string m_description;
-    const std::string m_oneline_description; //!< Should be empty unless it is supposed to override the auto-generated summary line
-    const std::vector<std::string> m_type_str; //!< Should be empty unless it is supposed to override the auto-generated type strings. Vector length is either 0 or 2, m_type_str.at(0) will override the type of the value in a key-value pair, m_type_str.at(1) will override the type in the argument description.
+    const RPCArgOptions m_opts;
 
     RPCArg(
-        const std::string name,
-        const Type type,
-        const Fallback fallback,
-        const std::string description,
-        const std::string oneline_description = "",
-        const std::vector<std::string> type_str = {},
-        const bool hidden = false)
+        std::string name,
+        Type type,
+        Fallback fallback,
+        std::string description,
+        RPCArgOptions opts = {})
         : m_names{std::move(name)},
           m_type{std::move(type)},
-          m_hidden{hidden},
           m_fallback{std::move(fallback)},
           m_description{std::move(description)},
-          m_oneline_description{std::move(oneline_description)},
-          m_type_str{std::move(type_str)}
+          m_opts{std::move(opts)}
     {
-        CHECK_NONFATAL(type != Type::ARR && type != Type::OBJ);
+        CHECK_NONFATAL(type != Type::ARR && type != Type::OBJ && type != Type::OBJ_USER_KEYS);
     }
 
     RPCArg(
-        const std::string name,
-        const Type type,
-        const Fallback fallback,
-        const std::string description,
-        const std::vector<RPCArg> inner,
-        const std::string oneline_description = "",
-        const std::vector<std::string> type_str = {})
+        std::string name,
+        Type type,
+        Fallback fallback,
+        std::string description,
+        std::vector<RPCArg> inner,
+        RPCArgOptions opts = {})
         : m_names{std::move(name)},
           m_type{std::move(type)},
-          m_hidden{false},
           m_inner{std::move(inner)},
           m_fallback{std::move(fallback)},
           m_description{std::move(description)},
-          m_oneline_description{std::move(oneline_description)},
-          m_type_str{std::move(type_str)}
+          m_opts{std::move(opts)}
     {
-        CHECK_NONFATAL(type == Type::ARR || type == Type::OBJ);
+        CHECK_NONFATAL(type == Type::ARR || type == Type::OBJ || type == Type::OBJ_USER_KEYS);
     }
 
     bool IsOptional() const;
+
+    /**
+     * Check whether the request JSON type matches.
+     * Returns true if type matches, or object describing error(s) if not.
+     */
+    UniValue MatchesType(const UniValue& request) const;
 
     /** Return the first of all aliases */
     std::string GetFirstName() const;
@@ -207,7 +224,7 @@ struct RPCArg {
 
     /**
      * Return the type string of the argument.
-     * Set oneline to allow it to be overridden by a custom oneline type string (m_oneline_description).
+     * Set oneline to allow it to be overridden by a custom oneline type string (m_opts.oneline_description).
      */
     std::string ToString(bool oneline) const;
     /**
@@ -219,7 +236,7 @@ struct RPCArg {
      * Return the description string, including the argument type and whether
      * the argument is required.
      */
-    std::string ToDescriptionString() const;
+    std::string ToDescriptionString(bool is_named_arg) const;
 };
 
 struct RPCResult {
@@ -230,6 +247,7 @@ struct RPCResult {
         NUM,
         BOOL,
         NONE,
+        ANY,        //!< Special type to disable type checks (for testing only)
         STR_AMOUNT, //!< Special string to represent a floating point amount
         STR_HEX,    //!< Special string with only hex chars
         OBJ_DYN,    //!< Special dictionary with keys that are not literals
@@ -242,59 +260,62 @@ struct RPCResult {
     const std::string m_key_name;         //!< Only used for dicts
     const std::vector<RPCResult> m_inner; //!< Only used for arrays or dicts
     const bool m_optional;
+    const bool m_skip_type_check;
     const std::string m_description;
     const std::string m_cond;
 
     RPCResult(
-        const std::string cond,
-        const Type type,
-        const std::string m_key_name,
-        const bool optional,
-        const std::string description,
-        const std::vector<RPCResult> inner = {})
+        std::string cond,
+        Type type,
+        std::string m_key_name,
+        bool optional,
+        std::string description,
+        std::vector<RPCResult> inner = {})
         : m_type{std::move(type)},
           m_key_name{std::move(m_key_name)},
           m_inner{std::move(inner)},
           m_optional{optional},
+          m_skip_type_check{false},
           m_description{std::move(description)},
           m_cond{std::move(cond)}
     {
         CHECK_NONFATAL(!m_cond.empty());
-        const bool inner_needed{type == Type::ARR || type == Type::ARR_FIXED || type == Type::OBJ || type == Type::OBJ_DYN};
-        CHECK_NONFATAL(inner_needed != inner.empty());
+        CheckInnerDoc();
     }
 
     RPCResult(
-        const std::string cond,
-        const Type type,
-        const std::string m_key_name,
-        const std::string description,
-        const std::vector<RPCResult> inner = {})
-        : RPCResult{cond, type, m_key_name, false, description, inner} {}
+        std::string cond,
+        Type type,
+        std::string m_key_name,
+        std::string description,
+        std::vector<RPCResult> inner = {})
+        : RPCResult{std::move(cond), type, std::move(m_key_name), /*optional=*/false, std::move(description), std::move(inner)} {}
 
     RPCResult(
-        const Type type,
-        const std::string m_key_name,
-        const bool optional,
-        const std::string description,
-        const std::vector<RPCResult> inner = {})
+        Type type,
+        std::string m_key_name,
+        bool optional,
+        std::string description,
+        std::vector<RPCResult> inner = {},
+        bool skip_type_check = false)
         : m_type{std::move(type)},
           m_key_name{std::move(m_key_name)},
           m_inner{std::move(inner)},
           m_optional{optional},
+          m_skip_type_check{skip_type_check},
           m_description{std::move(description)},
           m_cond{}
     {
-        const bool inner_needed{type == Type::ARR || type == Type::ARR_FIXED || type == Type::OBJ || type == Type::OBJ_DYN};
-        CHECK_NONFATAL(inner_needed != inner.empty());
+        CheckInnerDoc();
     }
 
     RPCResult(
-        const Type type,
-        const std::string m_key_name,
-        const std::string description,
-        const std::vector<RPCResult> inner = {})
-        : RPCResult{type, m_key_name, false, description, inner} {}
+        Type type,
+        std::string m_key_name,
+        std::string description,
+        std::vector<RPCResult> inner = {},
+        bool skip_type_check = false)
+        : RPCResult{type, std::move(m_key_name), /*optional=*/false, std::move(description), std::move(inner), skip_type_check} {}
 
     /** Append the sections of the result. */
     void ToSections(Sections& sections, OuterType outer_type = OuterType::NONE, const int current_indent = 0) const;
@@ -302,6 +323,13 @@ struct RPCResult {
     std::string ToStringObj() const;
     /** Return the description string, including the result type. */
     std::string ToDescriptionString() const;
+    /** Check whether the result JSON type matches.
+     * Returns true if type matches, or object describing error(s) if not.
+     */
+    UniValue MatchesType(const UniValue& result) const;
+
+private:
+    void CheckInnerDoc() const;
 };
 
 struct RPCResults {
@@ -340,24 +368,12 @@ public:
     using RPCMethodImpl = std::function<UniValue(const RPCHelpMan&, const JSONRPCRequest&)>;
     RPCHelpMan(std::string name, std::string description, std::vector<RPCArg> args, RPCResults results, RPCExamples examples, RPCMethodImpl fun);
 
+    UniValue HandleRequest(const JSONRPCRequest& request) const;
     std::string ToString() const;
-    UniValue HandleRequest(const JSONRPCRequest& request)
-    {
-        Check(request);
-        return m_fun(*this, request);
-    }
+    /** Return the named args that need to be converted from string to another JSON type */
+    UniValue GetArgMap() const;
     /** If the supplied number of args is neither too small nor too high */
     bool IsValidNumArgs(size_t num_args) const;
-    /**
-     * Check if the given request is valid according to this command or if
-     * the user is asking for help information, and throw help when appropriate.
-     */
-    inline void Check(const JSONRPCRequest& request) const {
-        if (request.fHelp || !IsValidNumArgs(request.params.size())) {
-            throw std::runtime_error(ToString());
-        }
-    }
-
     std::vector<std::string> GetArgNames() const;
 
     const std::string m_name;
@@ -369,5 +385,16 @@ private:
     const RPCResults m_results;
     const RPCExamples m_examples;
 };
+
+/**
+ * Push warning messages to an RPC "warnings" field as a JSON array of strings.
+ *
+ * @param[in] warnings  Warning messages to push.
+ * @param[out] obj      UniValue object to push the warnings array object to.
+ */
+void PushWarnings(const UniValue& warnings, UniValue& obj);
+void PushWarnings(const std::vector<bilingual_str>& warnings, UniValue& obj);
+
+void PushTime(UniValue &o, const char *name, int64_t nTime);
 
 #endif // BITCOIN_RPC_UTIL_H

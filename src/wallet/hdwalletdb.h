@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,13 +6,19 @@
 #define PARTICL_WALLET_HDWALLETDB_H
 
 #include <primitives/transaction.h>
+#include <wallet/bdb.h>
 #include <wallet/walletdb.h>
 #include <key/types.h>
 
 #include <string>
 #include <vector>
 
-class CAddressBookData;
+namespace wallet {
+struct CAddressBookData;
+} // namespace wallet
+
+using namespace wallet;
+
 class CEKAKeyPack;
 class CEKASCKeyPack;
 class CEKAStealthKeyPack;
@@ -273,10 +279,10 @@ public:
         return (ret == 0);
     }
 
-    int ReadAtCursor(Dbc *pcursor, CDataStream &ssKey, CDataStream &ssValue, unsigned int fFlags=DB_NEXT)
+    int ReadAtCursor(Dbc *pcursor, DataStream &ssKey, DataStream &ssValue, unsigned int fFlags=DB_NEXT)
     {
         // Read at cursor
-        BerkeleyBatch::SafeDbt datKey, datValue;
+        SafeDbt datKey, datValue;
         if (fFlags == DB_SET || fFlags == DB_SET_RANGE || fFlags == DB_GET_BOTH || fFlags == DB_GET_BOTH_RANGE) {
             datKey.set_data(ssKey.data(), ssKey.size());
         }
@@ -298,20 +304,18 @@ public:
         }
 
         // Convert to streams
-        ssKey.SetType(SER_DISK);
         ssKey.clear();
-        ssKey.write((char*)datKey.get_data(), datKey.get_size());
+        ssKey.write(AsBytes(Span{(char*)datKey.get_data(), datKey.get_size()}));
 
-        ssValue.SetType(SER_DISK);
         ssValue.clear();
-        ssValue.write((char*)datValue.get_data(), datValue.get_size());
+        ssValue.write(AsBytes(Span{(char*)datValue.get_data(), datValue.get_size()}));
         return 0;
     }
 
-    int ReadKeyAtCursor(Dbc *pcursor, CDataStream &ssKey, unsigned int fFlags=DB_NEXT)
+    int ReadKeyAtCursor(Dbc *pcursor, DataStream &ssKey, unsigned int fFlags=DB_NEXT)
     {
         // Read key at cursor
-        BerkeleyBatch::SafeDbt datKey;
+        SafeDbt datKey;
         if (fFlags == DB_SET || fFlags == DB_SET_RANGE) {
             datKey.set_data(&ssKey[0], ssKey.size());
         }
@@ -327,9 +331,8 @@ public:
         }
 
         // Convert to streams
-        ssKey.SetType(SER_DISK);
         ssKey.clear();
-        ssKey.write((char*)datKey.get_data(), datKey.get_size());
+        ssKey.write(AsBytes(Span{(char*)datKey.get_data(), datKey.get_size()}));
         return 0;
     }
 
@@ -381,7 +384,7 @@ public:
     bool ReadStealthAddressLink(const CKeyID &keyId, uint32_t &id, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteStealthAddressLink(const CKeyID &keyId, uint32_t id);
 
-    bool WriteAddressBookEntry(const std::string &sKey, const CAddressBookData &data);
+    bool WriteAddressBookEntry(const std::string &sKey, const wallet::CAddressBookData &data);
     bool EraseAddressBookEntry(const std::string &sKey);
 
     bool ReadVoteTokens(std::vector<CVoteToken> &vVoteTokens, uint32_t nFlags=DB_READ_UNCOMMITTED);

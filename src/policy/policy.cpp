@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,10 +7,24 @@
 
 #include <policy/policy.h>
 
-#include <consensus/validation.h>
 #include <coins.h>
-#include <chainparams.h>
+#include <consensus/amount.h>
+#include <consensus/consensus.h>
+#include <consensus/validation.h>
+#include <policy/feerate.h>
+#include <primitives/transaction.h>
+#include <script/interpreter.h>
+#include <script/script.h>
+#include <script/standard.h>
+#include <serialize.h>
 #include <span.h>
+
+#include <algorithm>
+#include <cstddef>
+#include <vector>
+
+// Particl
+#include <chainparams.h>
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
@@ -22,12 +36,12 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
     // need a CTxIn of at least 148 bytes to spend:
     // so dust is a spendable txout less than
     // 182*dustRelayFee/1000 (in satoshis).
-    // 546 satoshis at the default rate of 3000 sat/kB.
-    // A typical spendable segwit txout is 31 bytes big, and will
+    // 546 satoshis at the default rate of 3000 sat/kvB.
+    // A typical spendable segwit P2WPKH txout is 31 bytes big, and will
     // need a CTxIn of at least 67 bytes to spend:
     // so dust is a spendable txout less than
     // 98*dustRelayFee/1000 (in satoshis).
-    // 294 satoshis at the default rate of 3000 sat/kB.
+    // 294 satoshis at the default rate of 3000 sat/kvB.
     if (txout.scriptPubKey.IsUnspendable())
         return 0;
 
@@ -35,6 +49,11 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
     int witnessversion = 0;
     std::vector<unsigned char> witnessprogram;
 
+    // Note this computation is for spending a Segwit v0 P2WPKH output (a 33 bytes
+    // public key + an ECDSA signature). For Segwit v1 Taproot outputs the minimum
+    // satisfaction is lower (a single BIP340 signature) but this computation was
+    // kept to not further reduce the dust level.
+    // See discussion in https://github.com/bitcoin/bitcoin/pull/22779 for details.
     if (txout.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
         // sum the sizes of the parts of a transaction input
         // with 75% segwit discount applied to the script size.
@@ -51,61 +70,14 @@ bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
     return (txout.nValue < GetDustThreshold(txout, dustRelayFeeIn));
 }
 
-CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn)
-{
-    // "Dust" is defined in terms of dustRelayFee,
-    // which has units satoshis-per-kilobyte.
-    // If you'd pay more in fees than the value of the output
-    // to spend something, then we consider it dust.
-    // A typical spendable non-segwit txout is 34 bytes big, and will
-    // need a CTxIn of at least 148 bytes to spend:
-    // so dust is a spendable txout less than
-    // 182*dustRelayFee/1000 (in satoshis).
-    // 546 satoshis at the default rate of 3000 sat/kB.
-    // A typical spendable segwit txout is 31 bytes big, and will
-    // need a CTxIn of at least 67 bytes to spend:
-    // so dust is a spendable txout less than
-    // 98*dustRelayFee/1000 (in satoshis).
-    // 294 satoshis at the default rate of 3000 sat/kB.
-    if (txout->scriptPubKey.IsUnspendable()) {
-        return 0;
-    }
-
-    size_t nSize = GetSerializeSize(*txout);
-    int witnessversion = 0;
-    std::vector<unsigned char> witnessprogram;
-
-    if (txout->scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
-        // sum the sizes of the parts of a transaction input
-        // with 75% segwit discount applied to the script size.
-        nSize += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);
-    } else {
-        nSize += (32 + 4 + 1 + 107 + 4); // the 148 mentioned above
-    }
-
-    return dustRelayFeeIn.GetFee(nSize);
-}
-
-bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee)
-{
-    if (txout->IsType(OUTPUT_STANDARD)) {
-        return (((CTxOutStandard*)txout)->nValue < GetDustThreshold((CTxOutStandard*)txout, dustRelayFee));
-    }
-    return false;
-}
-
-bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType, int64_t time)
+bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_datacarrier_bytes, TxoutType& whichType, int64_t time)
 {
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     if (time >= consensusParams.OpIsCoinstakeTime) {
-        // TODO: better method
-        if (HasIsCoinstakeOp(scriptPubKey)) {
-            CScript scriptA, scriptB;
-            if (!SplitConditionalCoinstakeScript(scriptPubKey, scriptA, scriptB, true)) {
-                return false;
-            }
-            return IsStandard(scriptA, whichType) && IsStandard(scriptB, whichType);
+        CScript scriptA, scriptB;
+        if (SplitConditionalCoinstakeScript(scriptPubKey, scriptA, scriptB)) {
+            return IsStandard(scriptA, max_datacarrier_bytes, whichType, time) && IsStandard(scriptB, max_datacarrier_bytes, whichType, time);
         }
     }
 
@@ -122,15 +94,16 @@ bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType, int64_t time)
             return false;
         if (m < 1 || m > n)
             return false;
-    } else if (whichType == TxoutType::NULL_DATA &&
-               (!fAcceptDatacarrier || scriptPubKey.size() > nMaxDatacarrierBytes)) {
-          return false;
+    } else if (whichType == TxoutType::NULL_DATA) {
+        if (!max_datacarrier_bytes || scriptPubKey.size() > *max_datacarrier_bytes) {
+            return false;
+        }
     }
 
     return true;
 }
 
-bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason, int64_t time)
+bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason, int64_t time)
 {
     if (tx.IsParticlVersion()) {
         if (tx.GetParticlVersion() > GHOST_TXN_VERSION) {
@@ -138,7 +111,7 @@ bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeR
             return false;
         }
     } else
-    if (tx.nVersion > CTransaction::MAX_STANDARD_VERSION || tx.nVersion < 1) {
+    if (tx.nVersion > TX_MAX_STANDARD_VERSION || tx.nVersion < 1) {
         reason = "version";
         return false;
     }
@@ -155,14 +128,15 @@ bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeR
 
     for (const CTxIn& txin : tx.vin)
     {
-        // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
-        // keys (remember the 520 byte limit on redeemScript size). That works
-        // out to a (15*(33+1))+3=513 byte redeemScript, 513+1+15*(73+1)+3=1627
-        // bytes of scriptSig, which we round off to 1650 bytes for some minor
-        // future-proofing. That's also enough to spend a 20-of-20
-        // CHECKMULTISIG scriptPubKey, though such a scriptPubKey is not
-        // considered standard.
-        if (txin.scriptSig.size() > 1650) {
+        // Biggest 'standard' txin involving only keys is a 15-of-15 P2SH
+        // multisig with compressed keys (remember the 520 byte limit on
+        // redeemScript size). That works out to a (15*(33+1))+3=513 byte
+        // redeemScript, 513+1+15*(73+1)+3=1627 bytes of scriptSig, which
+        // we round off to 1650(MAX_STANDARD_SCRIPTSIG_SIZE) bytes for
+        // some minor future-proofing. That's also enough to spend a
+        // 20-of-20 CHECKMULTISIG scriptPubKey, though such a scriptPubKey
+        // is not considered standard.
+        if (txin.scriptSig.size() > MAX_STANDARD_SCRIPTSIG_SIZE) {
             reason = "scriptsig-size";
             return false;
         }
@@ -175,7 +149,7 @@ bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeR
     unsigned int nDataOut = 0;
     TxoutType whichType;
     for (const CTxOut& txout : tx.vout) {
-        if (!::IsStandard(txout.scriptPubKey, whichType, time)) {
+        if (!::IsStandard(txout.scriptPubKey, max_datacarrier_bytes, whichType, time)) {
             reason = "scriptpubkey";
             return false;
         }
@@ -197,7 +171,7 @@ bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeR
         if (!p->IsType(OUTPUT_STANDARD) && !p->IsType(OUTPUT_CT)) {
             continue;
         }
-        if (!::IsStandard(*p->GetPScriptPubKey(), whichType, time)) {
+        if (!::IsStandard(*p->GetPScriptPubKey(), max_datacarrier_bytes, whichType, time)) {
             reason = "scriptpubkey";
             return false;
         }
@@ -206,7 +180,7 @@ bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeR
         } else if ((whichType == TxoutType::MULTISIG) && (!permit_bare_multisig)) {
             reason = "bare-multisig";
             return false;
-        } else if (IsDust(p, dust_relay_fee)) {
+        } else if (particl::IsDust(p, dust_relay_fee)) {
             reason = "dust";
             return false;
         }
@@ -239,7 +213,7 @@ bool IsStandardTx(const CTransaction& tx, bool permit_bare_multisig, const CFeeR
  *
  * Note that only the non-witness portion of the transaction is checked here.
  */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, bool taproot_active, int64_t time)
+bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, int64_t time)
 {
     if (tx.IsCoinBase()) {
         return true; // Coinbases don't use vin normally
@@ -263,7 +237,7 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
             const CScript& prevScript = prev.scriptPubKey;
 
             //if (!Solver(prevScript, whichType, vSolutions))
-            if (!::IsStandard(prevScript, whichType, time)) {
+            if (!::IsStandard(prevScript, std::nullopt, whichType, time)) {
                 return false;
             }
 
@@ -321,9 +295,6 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
             if (subscript.GetSigOpCount(true) > MAX_P2SH_SIGOPS) {
                 return false;
             }
-        } else if (whichType == TxoutType::WITNESS_V1_TAPROOT) {
-            // Don't allow Taproot spends unless Taproot is active.
-            if (!taproot_active) return false;
         }
     }
 
@@ -411,7 +382,7 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         // - No annexes
         if (witnessversion == 1 && witnessprogram.size() == WITNESS_V1_TAPROOT_SIZE && !p2sh) {
             // Taproot spend (non-P2SH-wrapped, version 1, witness program size 32; see BIP 341)
-            auto stack = MakeSpan(tx.vin[i].scriptWitness.stack);
+            Span stack{tx.vin[i].scriptWitness.stack};
             if (stack.size() >= 2 && !stack.back().empty() && stack.back()[0] == ANNEX_TAG) {
                 // Annexes are nonstandard as long as no semantics are defined for them.
                 return false;
@@ -453,3 +424,48 @@ int64_t GetVirtualTransactionInputSize(const CTxIn& txin, int64_t nSigOpCost, un
 {
     return GetVirtualTransactionSize(GetTransactionInputWeight(txin), nSigOpCost, bytes_per_sigop);
 }
+
+namespace particl {
+CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn)
+{
+    // "Dust" is defined in terms of dustRelayFee,
+    // which has units satoshis-per-kilobyte.
+    // If you'd pay more in fees than the value of the output
+    // to spend something, then we consider it dust.
+    // A typical spendable non-segwit txout is 34 bytes big, and will
+    // need a CTxIn of at least 148 bytes to spend:
+    // so dust is a spendable txout less than
+    // 182*dustRelayFee/1000 (in satoshis).
+    // 546 satoshis at the default rate of 3000 sat/kB.
+    // A typical spendable segwit txout is 31 bytes big, and will
+    // need a CTxIn of at least 67 bytes to spend:
+    // so dust is a spendable txout less than
+    // 98*dustRelayFee/1000 (in satoshis).
+    // 294 satoshis at the default rate of 3000 sat/kB.
+    if (txout->scriptPubKey.IsUnspendable()) {
+        return 0;
+    }
+
+    size_t nSize = GetSerializeSize(*txout);
+    int witnessversion = 0;
+    std::vector<unsigned char> witnessprogram;
+
+    if (txout->scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        // sum the sizes of the parts of a transaction input
+        // with 75% segwit discount applied to the script size.
+        nSize += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);
+    } else {
+        nSize += (32 + 4 + 1 + 107 + 4); // the 148 mentioned above
+    }
+
+    return dustRelayFeeIn.GetFee(nSize);
+}
+
+bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee)
+{
+    if (txout->IsType(OUTPUT_STANDARD)) {
+        return (((CTxOutStandard*)txout)->nValue < GetDustThreshold((CTxOutStandard*)txout, dustRelayFee));
+    }
+    return false;
+}
+} // namespace particl

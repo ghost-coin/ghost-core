@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,7 +8,19 @@
 
 #include <coins.h>
 #include <dbwrapper.h>
-#include <chain.h>
+#include <kernel/cs_main.h>
+#include <sync.h>
+#include <util/fs.h>
+
+#include "coldreward/coldrewardtracker.h"
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+
+// Particl
 #include <insight/addressindex.h>
 #include <insight/spentindex.h>
 #include <insight/timestampindex.h>
@@ -16,15 +28,13 @@
 #include <rctindex.h>
 #include <primitives/block.h>
 
-#include "coldreward/coldrewardtracker.h"
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
+class CBlockFileInfo;
 class CBlockIndex;
-class CCoinsViewDBCursor;
 class uint256;
+namespace Consensus {
+struct Params;
+};
+struct bilingual_str;
 
 const char DB_RCTOUTPUT = 'A';
 const char DB_RCTOUTPUT_LINK = 'L';
@@ -56,65 +66,48 @@ static const int64_t max_filter_index_cache = 1024;
 //! Max memory allocated to coin DB specific cache (MiB)
 static const int64_t nMaxCoinsDBCache = 8;
 
-// Actually declared in validation.cpp; can't include because of circular dependency.
-extern RecursiveMutex cs_main;
+//! User-controlled performance and debug options.
+struct CoinsViewOptions {
+    //! Maximum database write batch size in bytes.
+    size_t batch_write_bytes = nDefaultDbBatchSize;
+    //! If non-zero, randomly exit when the database is flushed with (1/ratio)
+    //! probability.
+    int simulate_crash_ratio = 0;
+};
 
 /** CCoinsView backed by the coin database (chainstate/) */
 class CCoinsViewDB final : public CCoinsView
 {
 protected:
+    DBParams m_db_params;
+    CoinsViewOptions m_options;
     std::unique_ptr<CDBWrapper> m_db;
-    fs::path m_ldb_path;
-    bool m_is_memory;
 public:
-    /**
-     * @param[in] ldb_path    Location in the filesystem where leveldb data will be stored.
-     */
-    explicit CCoinsViewDB(fs::path ldb_path, size_t nCacheSize, bool fMemory, bool fWipe);
+    explicit CCoinsViewDB(DBParams db_params, CoinsViewOptions options);
 
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
     std::vector<uint256> GetHeadBlocks() const override;
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
-    CCoinsViewCursor *Cursor() const override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, bool erase = true) override;
+    std::unique_ptr<CCoinsViewCursor> Cursor() const override;
 
-    //! Attempt to update from an older database format. Returns whether an error occurred.
-    bool Upgrade();
+    //! Whether an unsupported database format is used.
+    bool NeedsUpgrade();
     size_t EstimateSize() const override;
 
     //! Dynamically alter the underlying leveldb cache size.
     void ResizeCache(size_t new_cache_size) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-};
 
-/** Specialization of CCoinsViewCursor to iterate over a CCoinsViewDB */
-class CCoinsViewDBCursor: public CCoinsViewCursor
-{
-public:
-    ~CCoinsViewDBCursor() {}
-
-    bool GetKey(COutPoint &key) const override;
-    bool GetValue(Coin &coin) const override;
-    unsigned int GetValueSize() const override;
-
-    bool Valid() const override;
-    void Next() override;
-
-private:
-    CCoinsViewDBCursor(CDBIterator* pcursorIn, const uint256 &hashBlockIn):
-        CCoinsViewCursor(hashBlockIn), pcursor(pcursorIn) {}
-    std::unique_ptr<CDBIterator> pcursor;
-    std::pair<char, COutPoint> keyTmp;
-
-    friend class CCoinsViewDB;
+    //! @returns filesystem path to on-disk storage or std::nullopt if in memory.
+    std::optional<fs::path> StoragePath() { return m_db->StoragePath(); }
 };
 
 /** Access to the block database (blocks/index/) */
 class CBlockTreeDB : public CDBWrapper
 {
 public:
-    explicit CBlockTreeDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool compression = true, int maxOpenFiles = 1000);
-
+    using CDBWrapper::CDBWrapper;
     bool WriteBatchSync(const std::vector<std::pair<int, const CBlockFileInfo*> >& fileInfo, int nLastFile, const std::vector<const CBlockIndex*>& blockinfo);
     bool ReadBlockFileInfo(int nFile, CBlockFileInfo &info);
     bool ReadLastBlockFile(int &nFile);
@@ -132,7 +125,7 @@ public:
                           std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex,
                           int start = 0, int end = 0);
     bool WriteTimestampIndex(const CTimestampIndexKey &timestampIndex);
-    bool ReadTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &vect) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool ReadTimestampIndex(const unsigned int &high, const unsigned int &low, std::vector<std::pair<uint256, unsigned int> > &vect) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool WriteTimestampBlockIndex(const CTimestampBlockIndexKey &blockhashIndex, const CTimestampBlockIndexValue &logicalts);
     bool ReadTimestampBlockIndex(const uint256 &hash, unsigned int &logicalTS);
 
@@ -141,7 +134,9 @@ public:
 
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
-    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
+    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex)
+        EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    size_t CountBlockIndex();
 
 
     bool ReadRCTOutput(int64_t i, CAnonOutput &ao);
@@ -169,5 +164,7 @@ public:
 
     //bool WriteRCTOutputBatch(std::vector<std::pair<int64_t, CAnonOutput> > &vao);
 };
+
+std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
 
 #endif // BITCOIN_TXDB_H

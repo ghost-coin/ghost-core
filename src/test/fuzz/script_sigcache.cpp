@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,26 +10,29 @@
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
+#include <test/util/setup_common.h>
 
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
-void initialize()
+namespace {
+const BasicTestingSetup* g_setup;
+} // namespace
+
+void initialize_script_sigcache()
 {
-    static const ECCVerifyHandle ecc_verify_handle;
-    ECC_Start();
-    SelectParams(CBaseChainParams::REGTEST);
-    InitSignatureCache();
+    static const auto testing_setup = MakeNoLogFileContext<>();
+    g_setup = testing_setup.get();
 }
 
-void test_one_input(const std::vector<uint8_t>& buffer)
+FUZZ_TARGET_INIT(script_sigcache, initialize_script_sigcache)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
 
     const std::optional<CMutableTransaction> mutable_transaction = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider);
-    const CTransaction tx = mutable_transaction ? CTransaction{*mutable_transaction} : CTransaction{};
+    const CTransaction tx{mutable_transaction ? *mutable_transaction : CMutableTransaction{}};
     const unsigned int n_in = fuzzed_data_provider.ConsumeIntegral<unsigned int>();
     const CAmount amount = ConsumeMoney(fuzzed_data_provider);
     const bool store = fuzzed_data_provider.ConsumeBool();

@@ -30,7 +30,7 @@ from test_framework.script import (
     OP_CHECKSIG,
 )
 from test_framework.messages import sha256
-from test_framework.address import chars as __b58chars, script_to_p2sh
+from test_framework.address import b58chars, script_to_p2sh
 from test_framework.authproxy import JSONRPCException
 
 
@@ -41,7 +41,7 @@ def script_to_p2sh_part(b):
 def b58decode(v, length=None):
     long_value = 0
     for (i, c) in enumerate(v[::-1]):
-        ofs = __b58chars.find(c)
+        ofs = b58chars.find(c)
         if ofs < 0:
             return None
         long_value += ofs * (58**i)
@@ -53,7 +53,7 @@ def b58decode(v, length=None):
     result = bytes((long_value,)) + result
     nPad = 0
     for c in v:
-        if c == __b58chars[0]:
+        if c == b58chars[0]:
             nPad += 1
         else:
             break
@@ -71,7 +71,7 @@ def SerializeNum(n):
         return rv
     neg = n < 0
     absvalue = -n if neg else n
-    while(absvalue):
+    while (absvalue):
         rv.append(absvalue & 0xff)
         absvalue >>= 8
 
@@ -116,9 +116,9 @@ def CreateAtomicSwapScript(payTo, refundTo, lockTime, secretHash):
 def getOutputByAddr(tx, addr):
     for i, vout in enumerate(tx['vout']):
         try:
-            if addr in vout['scriptPubKey']['addresses']:
+            if addr == vout['scriptPubKey']['address']:
                 return i
-        except:
+        except Exception:
             continue
     return -1
 
@@ -232,7 +232,7 @@ def createClaimTx(node, rawtx, script, secret, addrClaimFrom, addrClaimTo):
     ]
     rawtxClaim = node.tx([rawtxClaim, 'witness=0:' + ':'.join(witnessStack)])
 
-    assert(node.testmempoolaccept([rawtxClaim,])[0]['allowed'] == True)
+    assert (node.testmempoolaccept([rawtxClaim,])[0]['allowed'] == True)
     return rawtxClaim
 
 
@@ -291,7 +291,7 @@ def createRefundTxCT(node, rawtx, output_amounts, script, lockTime, privKeySign,
     rawtxrefund = node.tx([rawtxrefund, 'witness=0:' + ':'.join(witnessStack)])
 
     ro = node.decoderawtransaction(rawtxrefund)
-    assert(len(ro['vin'][0]['txinwitness']) == 4)
+    assert (len(ro['vin'][0]['txinwitness']) == 4)
 
     return rawtxrefund
 
@@ -353,7 +353,7 @@ def createClaimTxCT(node, rawtx, output_amounts, script, secret, privKeySign, pu
     rawtxClaim = node.tx([rawtxClaim, 'witness=0:' + ':'.join(witnessStack)])
 
     ro = node.decoderawtransaction(rawtxClaim)
-    assert(len(ro['vin'][0]['txinwitness']) == 5)
+    assert (len(ro['vin'][0]['txinwitness']) == 5)
 
     return rawtxClaim
 
@@ -404,7 +404,7 @@ class AtomicSwapTest(GhostTestFramework):
         rawtxInitiate = nodes[0].createrawtransaction([], {p2sh_initiate:amountA})
         rawtxInitiate = nodes[0].fundrawtransaction(rawtxInitiate)['hex']
         ro = nodes[0].signrawtransactionwithwallet(rawtxInitiate)
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
         rawtxInitiate = ro['hex']
 
         rawtx1refund = createRefundTx(nodes[0], rawtxInitiate, scriptInitiate, lockTime, addrA_0, addrA_0)
@@ -413,20 +413,20 @@ class AtomicSwapTest(GhostTestFramework):
         self.stakeBlocks(1)
 
         ro = nodes[0].getblockchaininfo()
-        assert(ro['mediantime'] < lockTime)
+        assert (ro['mediantime'] < lockTime)
         try:
             txnidrefund = nodes[0].sendrawtransaction(rawtx1refund)
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('non-final' in e.error['message'])
+            assert ('non-final' in e.error['message'])
 
         # Party A sends B rawtxInitiate/txnid1 and script
 
         # auditcontract
         # Party B extracts the secrethash and verifies the txn:
-        assert(len(scriptInitiate) == 97)
+        assert (len(scriptInitiate) == 97)
         extractedSecretAHash = scriptInitiate[7:7+32]
-        assert(extractedSecretAHash == secretAHash)
+        assert (extractedSecretAHash == secretAHash)
         tx1 = nodes[1].decoderawtransaction(rawtxInitiate)
         self.log.info("Verify txn " + tx1['txid']) # TODO
 
@@ -441,7 +441,7 @@ class AtomicSwapTest(GhostTestFramework):
         rawtx_p = nodes[1].fundrawtransaction(rawtx_p)['hex']
 
         ro = nodes[1].signrawtransactionwithwallet(rawtx_p)
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
         rawtx_p = ro['hex']
 
         rawtxRefundP = createRefundTx(nodes[1], rawtx_p, scriptParticipate, lockTimeP, addrB_0, addrB_0)
@@ -449,15 +449,15 @@ class AtomicSwapTest(GhostTestFramework):
         txnidParticipate = nodes[1].sendrawtransaction(rawtx_p)
         self.sync_all()
         self.stakeBlocks(1)
-        assert(txnidParticipate in nodes[0].getblock(nodes[0].getblockhash(nodes[0].getblockcount()))['tx'])
+        assert (txnidParticipate in nodes[0].getblock(nodes[0].getblockhash(nodes[0].getblockcount()))['tx'])
 
         ro = nodes[0].getblockchaininfo()
-        assert(ro['mediantime'] < lockTimeP)
+        assert (ro['mediantime'] < lockTimeP)
         try:
             txnidrefund = nodes[1].sendrawtransaction(rawtxRefundP)
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('non-final' in e.error['message'])
+            assert ('non-final' in e.error['message'])
 
         # auditcontract
         # Party A verifies the participate txn from B
@@ -481,13 +481,13 @@ class AtomicSwapTest(GhostTestFramework):
 
         self.stakeBlocks(1)
         last_block_txns = nodes[0].getblock(nodes[0].getblockhash(nodes[0].getblockcount()))['tx']
-        assert(txnidAClaim in last_block_txns)
-        assert(txnidBClaim in last_block_txns)
+        assert (txnidAClaim in last_block_txns)
+        assert (txnidBClaim in last_block_txns)
 
         ftxB = nodes[1].filtertransactions()
-        assert(ftxB[0]['confirmations'] == 1)
-        assert(ftxB[0]['outputs'][0]['amount'] < 5.0 and ftxB[-1]['outputs'][0]['amount'] > 4.9)
-        assert(isclose(ftxB[1]['outputs'][0]['amount'], -5.0))
+        assert (ftxB[0]['confirmations'] == 1)
+        assert (ftxB[0]['outputs'][0]['amount'] < 5.0 and ftxB[-1]['outputs'][0]['amount'] > 4.9)
+        assert (isclose(ftxB[1]['outputs'][0]['amount'], -5.0))
 
 
         # Test Refund expired initiate tx
@@ -499,7 +499,7 @@ class AtomicSwapTest(GhostTestFramework):
         rawtxInitiate = nodes[0].createrawtransaction([], {p2sh_initiate:6.0})
         rawtxInitiate = nodes[0].fundrawtransaction(rawtxInitiate)['hex']
         ro = nodes[0].signrawtransactionwithwallet(rawtxInitiate)
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
         rawtxInitiate = ro['hex']
 
 
@@ -509,14 +509,14 @@ class AtomicSwapTest(GhostTestFramework):
         self.stakeBlocks(1)
 
         ro = nodes[0].getblockchaininfo()
-        assert(ro['mediantime'] > lockTime)
+        assert (ro['mediantime'] > lockTime)
 
         txnidrefund = nodes[0].sendrawtransaction(rawtx2refund)
 
         ftxA = nodes[0].filtertransactions()
         n = getIndexAtProperty(ftxA, 'txid', txnidrefund)
-        assert(n > -1)
-        assert(ftxA[n]['outputs'][0]['amount'] > 5.9 and ftxA[n]['outputs'][0]['amount'] < 6.0)
+        assert (n > -1)
+        assert (ftxA[n]['outputs'][0]['amount'] > 5.9 and ftxA[n]['outputs'][0]['amount'] < 6.0)
 
 
     def test_cttx(self):
@@ -540,7 +540,7 @@ class AtomicSwapTest(GhostTestFramework):
         rawtx = ro['hex']
 
         ro = nodes[0].signrawtransactionwithwallet(rawtx)
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
 
         ro = nodes[0].sendrawtransaction(ro['hex'])
         txnid = ro
@@ -548,20 +548,20 @@ class AtomicSwapTest(GhostTestFramework):
         self.stakeBlocks(1)
 
         ro = nodes[0].getwalletinfo()
-        assert(isclose(ro['blind_balance'], 100.0))
+        assert (isclose(ro['blind_balance'], 100.0))
 
         ro = nodes[0].filtertransactions()
         n = getIndexAtProperty(ro, 'txid', txnid)
-        assert(n > -1)
-        assert(isclose(ro[n]['amount'], -100.00203200))
+        assert (n > -1)
+        assert (isclose(ro[n]['amount'], -100.00203200))
 
         ro = nodes[1].getwalletinfo()
-        assert(isclose(ro['blind_balance'], 100.0))
+        assert (isclose(ro['blind_balance'], 100.0))
 
         ro = nodes[1].filtertransactions()
         n = getIndexAtProperty(ro, 'txid', txnid)
-        assert(n > -1)
-        assert(isclose(ro[n]['amount'], 100.0))
+        assert (n > -1)
+        assert (isclose(ro[n]['amount'], 100.0))
 
 
         # Initiate A -> B
@@ -604,14 +604,14 @@ class AtomicSwapTest(GhostTestFramework):
         ro = nodes[0].fundrawtransactionfrom('blind', ro['hex'], {}, ro['amounts'])
         output_amounts_i = ro['output_amounts']
         ro = nodes[0].signrawtransactionwithwallet(ro['hex'])
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
         rawtx_i = ro['hex']
 
 
         rawtx_i_refund = createRefundTxCT(nodes[0], rawtx_i, output_amounts_i, scriptInitiate, lockTime, privKeyA, pubKeyA, addrA_sx)
         ro = nodes[0].testmempoolaccept([rawtx_i_refund,])
         print(ro)
-        assert('non-final' in ro[0]['reject-reason'])
+        assert ('non-final' in ro[0]['reject-reason'])
 
         nodes[0].sendrawtransaction(rawtx_i)
         self.stakeBlocks(1)
@@ -630,7 +630,7 @@ class AtomicSwapTest(GhostTestFramework):
         amount = output_amounts_i[str(n)]['value']
         blind = output_amounts_i[str(n)]['blind']
 
-        assert(nodes[1].verifycommitment(valueCommitment, blind, amount)['result'] == True)
+        assert (nodes[1].verifycommitment(valueCommitment, blind, amount)['result'] == True)
 
 
 
@@ -656,11 +656,11 @@ class AtomicSwapTest(GhostTestFramework):
 
         rawtx_p_refund = createRefundTxCT(nodes[1], rawtx_p, output_amounts_p, scriptParticipate, lockTime, privKeyB, pubKeyB, addrB_sx)
         ro = nodes[1].testmempoolaccept([rawtx_p_refund,])
-        assert('non-final' in ro[0]['reject-reason'])
+        assert ('non-final' in ro[0]['reject-reason'])
 
         txnid_p = nodes[0].sendrawtransaction(rawtx_p)
         self.stakeBlocks(1)
-        assert(txnid_p in nodes[0].getblock(nodes[0].getblockhash(nodes[0].getblockcount()))['tx'])
+        assert (txnid_p in nodes[0].getblock(nodes[0].getblockhash(nodes[0].getblockcount()))['tx'])
 
         # B sends output_amounts to A
 
@@ -703,11 +703,11 @@ class AtomicSwapTest(GhostTestFramework):
         ro = nodes[0].fundrawtransactionfrom('blind', ro['hex'], {}, ro['amounts'])
 
         r2 = nodes[0].verifyrawtransaction(ro['hex'])
-        assert(r2['complete'] == False)
+        assert (r2['complete'] == False)
 
         output_amounts_i = ro['output_amounts']
         ro = nodes[0].signrawtransactionwithwallet(ro['hex'])
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
         rawtx_i = ro['hex']
 
         r2 = nodes[0].verifyrawtransaction(rawtx_i)
@@ -717,18 +717,18 @@ class AtomicSwapTest(GhostTestFramework):
 
         rawtx_i_refund = createRefundTxCT(nodes[0], rawtx_i, output_amounts_i, scriptInitiate, lockTime, privKeyA, pubKeyA, addrA_sx)
         ro = nodes[0].testmempoolaccept([rawtx_i_refund,])
-        assert('missing-inputs' in ro[0]['reject-reason'])
+        assert ('missing-inputs' in ro[0]['reject-reason'])
 
 
         nodes[0].sendrawtransaction(rawtx_i)
         ro = nodes[0].getwalletinfo()
-        assert(ro['unconfirmed_blind'] > 6.0 and ro['unconfirmed_blind'] < 7.0)
+        assert (ro['unconfirmed_blind'] > 6.0 and ro['unconfirmed_blind'] < 7.0)
 
         txnidRefund = nodes[0].sendrawtransaction(rawtx_i_refund)
         nodes[0].getmempoolentry(txnidRefund)
 
         ro = nodes[0].getwalletinfo()
-        assert(ro['unconfirmed_blind'] > 14.0 and ro['unconfirmed_blind'] < 14.1)
+        assert (ro['unconfirmed_blind'] > 14.0 and ro['unconfirmed_blind'] < 14.1)
 
     def test_generatematchingblindfactor(self):
         nodes = self.nodes
@@ -739,7 +739,7 @@ class AtomicSwapTest(GhostTestFramework):
         # A + B = A + ?
         # B = ?
         ro = nodes[0].generatematchingblindfactor([bfA, bfB], [bfA])
-        assert(ro['blind'] == bfB)
+        assert (ro['blind'] == bfB)
 
     def test_generatecustomfeeoutput(self):
         nodes = self.nodes
@@ -759,7 +759,7 @@ class AtomicSwapTest(GhostTestFramework):
         ro = nodes[0].createrawparttransaction([], outputs)
 
         ro = nodes[1].decoderawtransaction(ro['hex'])
-        assert(ro['vout'][0]['ct_fee'] == amount)
+        assert (ro['vout'][0]['ct_fee'] == amount)
 
     def test_deterministicrangeproof(self):
         nodes = self.nodes
@@ -786,7 +786,7 @@ class AtomicSwapTest(GhostTestFramework):
 
         rangeproofA = nodes[1].decoderawtransaction(txA['hex'])['vout'][0]['rangeproof']
         rangeproofB = nodes[0].decoderawtransaction(txB['hex'])['vout'][0]['rangeproof']
-        assert(rangeproofA == rangeproofB)
+        assert (rangeproofA == rangeproofB)
 
     def run_test(self):
         nodes = self.nodes

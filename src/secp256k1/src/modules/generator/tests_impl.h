@@ -10,9 +10,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "scalar.h"
-#include "testrand.h"
-#include "util.h"
+#include "../../scalar.h"
+#include "../../testrand.h"
+#include "../../util.h"
 
 #include "include/secp256k1_generator.h"
 
@@ -42,33 +42,41 @@ void test_generator_api(void) {
     CHECK(secp256k1_generator_generate(none, &gen, NULL) == 0);
     CHECK(ecount == 2);
 
+    CHECK(secp256k1_ecmult_gen_context_is_built(&none->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&sign->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&vrfy->ecmult_gen_ctx));
+    ecount = 2;
     CHECK(secp256k1_generator_generate_blinded(sign, &gen, key, blind) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, key, blind) == 0);
+    /*CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, key, blind) == 0);
+    CHECK(ecount == 3);*/
+    CHECK(ecount == 2);
+
+    /*CHECK(secp256k1_generator_generate_blinded(none, &gen, key, blind) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_generator_generate_blinded(none, &gen, key, blind) == 0);
-    CHECK(ecount == 4);
+    * */
     CHECK(secp256k1_generator_generate_blinded(vrfy, NULL, key, blind) == 0);
-    CHECK(ecount == 5);
+    CHECK(ecount == 3);
+
     CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, NULL, blind) == 0);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
     CHECK(secp256k1_generator_generate_blinded(vrfy, &gen, key, NULL) == 0);
-    CHECK(ecount == 7);
+    CHECK(ecount == 5);
 
     CHECK(secp256k1_generator_serialize(none, sergen, &gen) == 1);
-    CHECK(ecount == 7);
+    CHECK(ecount == 5);
     CHECK(secp256k1_generator_serialize(none, NULL, &gen) == 0);
-    CHECK(ecount == 8);
+    CHECK(ecount == 6);
     CHECK(secp256k1_generator_serialize(none, sergen, NULL) == 0);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
 
     CHECK(secp256k1_generator_serialize(none, sergen, &gen) == 1);
     CHECK(secp256k1_generator_parse(none, &gen, sergen) == 1);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
     CHECK(secp256k1_generator_parse(none, NULL, sergen) == 0);
-    CHECK(ecount == 10);
+    CHECK(ecount == 8);
     CHECK(secp256k1_generator_parse(none, &gen, NULL) == 0);
-    CHECK(ecount == 11);
+    CHECK(ecount == 9);
 
     secp256k1_context_destroy(none);
     secp256k1_context_destroy(sign);
@@ -178,11 +186,11 @@ void test_generator_generate(void) {
     for (i = 1; i <= 32; i++) {
         memset(v, 0, 31);
         v[31] = i;
-        CHECK(secp256k1_generator_generate_blinded(ctx, &gen, v, s));
+        CHECK(secp256k1_generator_generate_blinded(CTX, &gen, v, s));
         secp256k1_generator_load(&ge, &gen);
         secp256k1_ge_to_storage(&ges, &ge);
         CHECK(memcmp(&ges, &results[i - 1], sizeof(secp256k1_ge_storage)) == 0);
-        CHECK(secp256k1_generator_generate(ctx, &gen, v));
+        CHECK(secp256k1_generator_generate(CTX, &gen, v));
         secp256k1_generator_load(&ge, &gen);
         secp256k1_ge_to_storage(&ges, &ge);
         CHECK(memcmp(&ges, &results[i - 1], sizeof(secp256k1_ge_storage)) == 0);
@@ -198,14 +206,14 @@ void test_generator_fixed_vector(void) {
     unsigned char result[33];
     secp256k1_generator parse;
 
-    CHECK(secp256k1_generator_parse(ctx, &parse, two_g));
-    CHECK(secp256k1_generator_serialize(ctx, result, &parse));
+    CHECK(secp256k1_generator_parse(CTX, &parse, two_g));
+    CHECK(secp256k1_generator_serialize(CTX, result, &parse));
     CHECK(memcmp(two_g, result, 33) == 0);
 
     result[0] = 0x0a;
-    CHECK(secp256k1_generator_parse(ctx, &parse, result));
+    CHECK(secp256k1_generator_parse(CTX, &parse, result));
     result[0] = 0x08;
-    CHECK(!secp256k1_generator_parse(ctx, &parse, result));
+    CHECK(!secp256k1_generator_parse(CTX, &parse, result));
 }
 
 void run_generator_tests(void) {

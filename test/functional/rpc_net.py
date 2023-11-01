@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Bitcoin Core developers
+# Copyright (c) 2017-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test RPC calls related to net.
@@ -11,11 +11,10 @@ from decimal import Decimal
 from itertools import product
 import time
 
-from test_framework.p2p import P2PInterface
 import test_framework.messages
-from test_framework.messages import (
-    NODE_NETWORK,
-    NODE_WITNESS,
+from test_framework.p2p import (
+    P2PInterface,
+    P2P_SERVICES,
 )
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
@@ -25,6 +24,7 @@ from test_framework.util import (
     assert_raises_rpc_error,
     p2p_port,
 )
+from test_framework.wallet import MiniWallet
 
 
 def assert_net_servicesnames(servicesflag, servicenames):
@@ -42,14 +42,13 @@ def assert_net_servicesnames(servicesflag, servicenames):
 
 class NetTest(BitcoinTestFramework):
     def set_test_params(self):
-        self.setup_clean_chain = True
         self.num_nodes = 2
         self.extra_args = [["-minrelaytxfee=0.00001000"], ["-minrelaytxfee=0.00000500"]]
         self.supports_cli = False
 
     def run_test(self):
-        # Get out of IBD for the minfeefilter and getpeerinfo tests.
-        self.nodes[0].generate(101)
+        # We need miniwallet to make a transaction
+        self.wallet = MiniWallet(self.nodes[0])
 
         # By default, the test framework sets up an addnode connection from
         # node 1 --> node0. By connecting node0 --> node 1, we're left with
@@ -65,6 +64,7 @@ class NetTest(BitcoinTestFramework):
         self.test_getaddednodeinfo()
         self.test_service_flags()
         self.test_getnodeaddresses()
+        self.test_addpeeraddress()
 
     def test_connection_count(self):
         self.log.info("Test getconnectioncount")
@@ -74,10 +74,8 @@ class NetTest(BitcoinTestFramework):
     def test_getpeerinfo(self):
         self.log.info("Test getpeerinfo")
         # Create a few getpeerinfo last_block/last_transaction values.
-        if self.is_wallet_compiled():
-            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1)
-        self.nodes[1].generate(1)
-        self.sync_all()
+        self.wallet.send_self_transfer(from_node=self.nodes[0]) # Make a transaction so we can see it in the getpeerinfo results
+        self.generate(self.nodes[1], 1)
         time_now = int(time.time())
         peer_info = [x.getpeerinfo() for x in self.nodes]
         # Verify last_block and last_transaction keys/values.
@@ -100,6 +98,63 @@ class NetTest(BitcoinTestFramework):
 
         assert_equal(peer_info[1][0]['connection_type'], 'manual')
         assert_equal(peer_info[1][1]['connection_type'], 'inbound')
+
+        # Check dynamically generated networks list in getpeerinfo help output.
+        assert "(ipv4, ipv6, onion, i2p, cjdns, not_publicly_routable)" in self.nodes[0].help("getpeerinfo")
+
+        self.log.info("Check getpeerinfo output before a version message was sent")
+        no_version_peer_id = 2
+        no_version_peer_conntime = int(time.time())
+        self.nodes[0].setmocktime(no_version_peer_conntime)
+        with self.nodes[0].assert_debug_log([f"Added connection peer={no_version_peer_id}"]):
+            no_version_peer = self.nodes[0].add_p2p_connection(P2PInterface(), send_version=False, wait_for_verack=False)
+        self.nodes[0].setmocktime(0)
+        peer_info = self.nodes[0].getpeerinfo()[no_version_peer_id]
+        peer_info.pop("addr")
+        peer_info.pop("addrbind")
+        assert_equal(
+            peer_info,
+            {
+                "addr_processed": 0,
+                "addr_rate_limited": 0,
+                "addr_relay_enabled": False,
+                "bip152_hb_from": False,
+                "bip152_hb_to": False,
+                "bytesrecv": 0,
+                "bytesrecv_per_msg": {},
+                "bytessent": 0,
+                "bytessent_per_msg": {},
+                "connection_type": "inbound",
+                "conntime": no_version_peer_conntime,
+                "id": no_version_peer_id,
+                "inbound": True,
+                "inflight": [],
+                "last_block": 0,
+                "last_transaction": 0,
+                "lastrecv": 0,
+                "lastsend": 0,
+                "minfeefilter": Decimal("0E-8"),
+                "network": "not_publicly_routable",
+                "permissions": [],
+                "presynced_headers": -1,
+                "relaytxes": False,
+                "services": "0000000000000000",
+                "servicesnames": [],
+                "startingheight": -1,
+                "subver": "",
+                "synced_blocks": -1,
+                "synced_headers": -1,
+                "timeoffset": 0,
+                "version": 0,
+                # Particl
+                "banscore": 0,
+                "currentheight": -1,
+                "duplicate_count": 0,
+                "loose_headers": 0,
+            },
+        )
+        no_version_peer.peer_disconnect()
+        self.wait_until(lambda: len(self.nodes[0].getpeerinfo()) == 2)
 
     def test_getnettotals(self):
         self.log.info("Test getnettotals")
@@ -130,7 +185,8 @@ class NetTest(BitcoinTestFramework):
             self.nodes[0].setnetworkactive(state=False)
         assert_equal(self.nodes[0].getnetworkinfo()['networkactive'], False)
         # Wait a bit for all sockets to close
-        self.wait_until(lambda: self.nodes[0].getnetworkinfo()['connections'] == 0, timeout=3)
+        for n in self.nodes:
+            self.wait_until(lambda: n.getnetworkinfo()['connections'] == 0, timeout=3)
 
         with self.nodes[0].assert_debug_log(expected_msgs=['SetNetworkActive: true\n']):
             self.nodes[0].setnetworkactive(state=True)
@@ -148,6 +204,9 @@ class NetTest(BitcoinTestFramework):
         network_info = [node.getnetworkinfo() for node in self.nodes]
         for info in network_info:
             assert_net_servicesnames(int(info["localservices"], 0x10), info["localservicesnames"])
+
+        # Check dynamically generated networks list in getnetworkinfo help output.
+        assert "(ipv4, ipv6, onion, i2p, cjdns)" in self.nodes[0].help("getnetworkinfo")
 
     def test_getaddednodeinfo(self):
         self.log.info("Test getaddednodeinfo")
@@ -179,41 +238,100 @@ class NetTest(BitcoinTestFramework):
         self.log.info("Test getnodeaddresses")
         self.nodes[0].add_p2p_connection(P2PInterface())
 
-        # Add some addresses to the Address Manager over RPC. Due to the way
-        # bucket and bucket position are calculated, some of these addresses
-        # will collide.
+        # Add an IPv6 address to the address manager.
+        ipv6_addr = "1233:3432:2434:2343:3234:2345:6546:4534"
+        self.nodes[0].addpeeraddress(address=ipv6_addr, port=8333)
+
+        # Add 10,000 IPv4 addresses to the address manager. Due to the way bucket
+        # and bucket positions are calculated, some of these addresses will collide.
         imported_addrs = []
         for i in range(10000):
             first_octet = i >> 8
             second_octet = i % 256
-            a = "{}.{}.1.1".format(first_octet, second_octet)
+            a = f"{first_octet}.{second_octet}.1.1"
             imported_addrs.append(a)
             self.nodes[0].addpeeraddress(a, 8333)
 
-        # Obtain addresses via rpc call and check they were ones sent in before.
-        #
-        # Maximum possible addresses in addrman is 10000, although actual
-        # number will usually be less due to bucket and bucket position
-        # collisions.
-        node_addresses = self.nodes[0].getnodeaddresses(0)
+        # Fetch the addresses via the RPC and test the results.
+        assert_equal(len(self.nodes[0].getnodeaddresses()), 1)  # default count is 1
+        assert_equal(len(self.nodes[0].getnodeaddresses(count=2)), 2)
+        assert_equal(len(self.nodes[0].getnodeaddresses(network="ipv4", count=8)), 8)
+
+        # Maximum possible addresses in AddrMan is 10000. The actual number will
+        # usually be less due to bucket and bucket position collisions.
+        node_addresses = self.nodes[0].getnodeaddresses(0, "ipv4")
         assert_greater_than(len(node_addresses), 5000)
         assert_greater_than(10000, len(node_addresses))
         for a in node_addresses:
             assert_greater_than(a["time"], 1527811200)  # 1st June 2018
-            assert_equal(a["services"], NODE_NETWORK | NODE_WITNESS)
+            assert_equal(a["services"], P2P_SERVICES)
             assert a["address"] in imported_addrs
             assert_equal(a["port"], 8333)
+            assert_equal(a["network"], "ipv4")
 
-        node_addresses = self.nodes[0].getnodeaddresses(1)
-        assert_equal(len(node_addresses), 1)
+        # Test the IPv6 address.
+        res = self.nodes[0].getnodeaddresses(0, "ipv6")
+        assert_equal(len(res), 1)
+        assert_equal(res[0]["address"], ipv6_addr)
+        assert_equal(res[0]["network"], "ipv6")
+        assert_equal(res[0]["port"], 8333)
+        assert_equal(res[0]["services"], P2P_SERVICES)
 
+        # Test for the absence of onion, I2P and CJDNS addresses.
+        for network in ["onion", "i2p", "cjdns"]:
+            assert_equal(self.nodes[0].getnodeaddresses(0, network), [])
+
+        # Test invalid arguments.
         assert_raises_rpc_error(-8, "Address count out of range", self.nodes[0].getnodeaddresses, -1)
+        assert_raises_rpc_error(-8, "Network not recognized: Foo", self.nodes[0].getnodeaddresses, 1, "Foo")
 
-        # addrman's size cannot be known reliably after insertion, as hash collisions may occur
-        # so only test that requesting a large number of addresses returns less than that
-        LARGE_REQUEST_COUNT = 10000
-        node_addresses = self.nodes[0].getnodeaddresses(LARGE_REQUEST_COUNT)
-        assert_greater_than(LARGE_REQUEST_COUNT, len(node_addresses))
+    def test_addpeeraddress(self):
+        """RPC addpeeraddress sets the source address equal to the destination address.
+        If an address with the same /16 as an existing new entry is passed, it will be
+        placed in the same new bucket and have a 1/64 chance of the bucket positions
+        colliding (depending on the value of nKey in the addrman), in which case the
+        new address won't be added.  The probability of collision can be reduced to
+        1/2^16 = 1/65536 by using an address from a different /16.  We avoid this here
+        by first testing adding a tried table entry before testing adding a new table one.
+        """
+        self.log.info("Test addpeeraddress")
+        self.restart_node(1, ["-checkaddrman=1"])
+        node = self.nodes[1]
+
+        self.log.debug("Test that addpeerinfo is a hidden RPC")
+        # It is hidden from general help, but its detailed help may be called directly.
+        assert "addpeerinfo" not in node.help()
+        assert "addpeerinfo" in node.help("addpeerinfo")
+
+        self.log.debug("Test that adding an empty address fails")
+        assert_equal(node.addpeeraddress(address="", port=8333), {"success": False})
+        assert_equal(node.getnodeaddresses(count=0), [])
+
+        self.log.debug("Test that non-bool tried fails")
+        assert_raises_rpc_error(-3, "JSON value of type string is not of expected type bool", self.nodes[0].addpeeraddress, address="1.2.3.4", tried="True", port=1234)
+
+        self.log.debug("Test that adding an address with invalid port fails")
+        assert_raises_rpc_error(-1, "JSON integer out of range", self.nodes[0].addpeeraddress, address="1.2.3.4", port=-1)
+        assert_raises_rpc_error(-1, "JSON integer out of range", self.nodes[0].addpeeraddress,address="1.2.3.4", port=65536)
+
+        self.log.debug("Test that adding a valid address to the tried table succeeds")
+        assert_equal(node.addpeeraddress(address="1.2.3.4", tried=True, port=8333), {"success": True})
+        with node.assert_debug_log(expected_msgs=["CheckAddrman: new 0, tried 1, total 1 started"]):
+            addrs = node.getnodeaddresses(count=0)  # getnodeaddresses re-runs the addrman checks
+            assert_equal(len(addrs), 1)
+            assert_equal(addrs[0]["address"], "1.2.3.4")
+            assert_equal(addrs[0]["port"], 8333)
+
+        self.log.debug("Test that adding an already-present tried address to the new and tried tables fails")
+        for value in [True, False]:
+            assert_equal(node.addpeeraddress(address="1.2.3.4", tried=value, port=8333), {"success": False})
+        assert_equal(len(node.getnodeaddresses(count=0)), 1)
+
+        self.log.debug("Test that adding a second address, this time to the new table, succeeds")
+        assert_equal(node.addpeeraddress(address="2.0.0.0", port=8333), {"success": True})
+        with node.assert_debug_log(expected_msgs=["CheckAddrman: new 1, tried 1, total 2 started"]):
+            addrs = node.getnodeaddresses(count=0)  # getnodeaddresses re-runs the addrman checks
+            assert_equal(len(addrs), 2)
 
 
 if __name__ == '__main__':

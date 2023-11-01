@@ -36,7 +36,9 @@ class AnonTest(GhostTestFramework):
 
         nodes[1].extkeyimportmaster('drip fog service village program equip minute dentist series hawk crop sphere olympic lazy garbage segment fox library good alley steak jazz force inmate')
         sxAddrTo1_1 = nodes[1].getnewstealthaddress('lblsx11')
-        assert(sxAddrTo1_1 == 'TetbYTGv5LiqyFiUD3a5HHbpSinQ9KiRYDGAMvRzPfz4RnHMbKGAwDr1fjLGJ5Eqg1XDwpeGyqWMiwdK3qM3zKWjzHNpaatdoHVzzA')
+        assert (sxAddrTo1_1 == 'TetbYTGv5LiqyFiUD3a5HHbpSinQ9KiRYDGAMvRzPfz4RnHMbKGAwDr1fjLGJ5Eqg1XDwpeGyqWMiwdK3qM3zKWjzHNpaatdoHVzzA')
+
+        nodes[2].extkeyimportmaster(nodes[2].mnemonic('new')['master'])
 
         nodes[2].extkeyimportmaster(nodes[2].mnemonic('new')['master'])
 
@@ -53,21 +55,20 @@ class AnonTest(GhostTestFramework):
             txnHash = nodes[0].sendghosttoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 p->a')
             txnHashes.append(txnHash)
         for k in range(10):
-            txnHash = nodes[0].sendblindtoanon(sxAddrTo1_1, 10, '', '', False, 'node0 -> node1 b->a')
-            txnHashes.append(txnHash)
+            txnHashes.append(nodes[0].sendtypeto('blind', 'anon', [{'address': sxAddrTo1_1, 'amount': 10, 'narr': 'node0 -> node1 b->a'}, ]))
 
         for h in txnHashes:
-            assert(self.wait_for_mempool(nodes[1], h))
+            assert (self.wait_for_mempool(nodes[1], h))
 
-        assert('node0 -> node1 b->a 4' in self.dumpj(nodes[1].listtransactions('*', 100)))
-        assert('node0 -> node1 b->a 4' in self.dumpj(nodes[0].listtransactions('*', 100)))
+        assert ('node0 -> node1 b->a 4' in self.dumpj(nodes[1].listtransactions('*', 100)))
+        assert ('node0 -> node1 b->a 4' in self.dumpj(nodes[0].listtransactions('*', 100)))
 
         self.stakeBlocks(2)
 
         block1_hash = nodes[1].getblockhash(1)
         ro = nodes[1].getblock(block1_hash)
         for txnHash in txnHashes:
-            assert(txnHash in ro['tx'])
+            assert (txnHash in ro['tx'])
 
         txnHash = nodes[1].sendanontoanon(sxAddrTo0_1, 1, '', '', False, 'node1 -> node0 a->a', 5, 1)
         txnHashes = [txnHash,]
@@ -75,18 +76,18 @@ class AnonTest(GhostTestFramework):
         # Get a change address
         change_addr2 = nodes[2].deriverangekeys(0, 0, 'internal', False, True)[0]
         addr_info = nodes[2].getaddressinfo(change_addr2)
-        assert(addr_info['ischange'] is True)
+        assert (addr_info['ischange'] is True)
 
-        # Recieving wallet should not mark an output as change if tx spends no inputs
+        # Receiving wallet should not mark an output as change if tx spends no inputs
         txnHash2 = nodes[1].sendtypeto('anon', 'part', [{'address': change_addr2, 'amount': 1, 'narr': 'node1 -> node2 a->p'}, ], '', '', 5)
         txnHashes.append(txnHash2)
 
-        assert(self.wait_for_mempool(nodes[0], txnHash))
+        assert (self.wait_for_mempool(nodes[0], txnHash))
         self.stakeBlocks(1)
 
         ro = nodes[1].getblock(nodes[1].getblockhash(3))
         for txnHash in txnHashes:
-            assert(txnHash in ro['tx'])
+            assert (txnHash in ro['tx'])
 
         assert(nodes[1].anonoutput()['lastindex'] == 29)
 
@@ -113,20 +114,20 @@ class AnonTest(GhostTestFramework):
         assert(rv['transactions'][0]['txid'] == txnHash2)
 
         txnHashes.clear()
-        txnHashes.append(nodes[1].sendanontoanon(sxAddrTo0_1, 101, '', '', False, 'node1 -> node0 a->a', 5, 1))
-        txnHashes.append(nodes[1].sendanontoanon(sxAddrTo0_1, 0.1, '', '', False, '', 5, 2))
+        txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo0_1, 'amount': 101, 'narr': 'node1 -> node0 a->a'}, ], '', '', 5, 1))
+        txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo0_1, 'amount': 0.1}, ], '', '', 5, 2))
 
-        assert(nodes[1].getwalletinfo()['anon_balance'] > 10)
+        assert (nodes[1].getwalletinfo()['anon_balance'] > 10)
 
         outputs = [{'address': sxAddrTo0_1, 'amount': 10, 'subfee': True},]
         ro = nodes[1].sendtypeto('anon', 'part', outputs, 'comment_to', 'comment_from', 4, 32, True)
-        assert(ro['bytes'] > 0)
+        assert (ro['bytes'] > 0)
 
         txnHashes.append(nodes[1].sendtypeto('anon', 'part', outputs, '', '', 5))
         txnHashes.append(nodes[1].sendtypeto('anon', 'anon', [{'address': sxAddrTo1_1, 'amount': 1},], '', '', 5))
 
         for txhash in txnHashes:
-            assert(self.wait_for_mempool(nodes[0], txhash))
+            assert (self.wait_for_mempool(nodes[0], txhash))
 
         self.log.info('Test filtertransactions with type filter')
         ro = nodes[1].filtertransactions({'type': 'anon', 'count': 20, 'show_anon_spends': True, 'show_change': True})
@@ -160,7 +161,7 @@ class AnonTest(GhostTestFramework):
 
         self.log.info('Test unspent with address filter')
         unspent_filtered = nodes[1].listunspentanon(1, 9999, [sxAddrTo1_1])
-        assert(unspent_filtered[0]['label'] == 'lblsx11')
+        assert (unspent_filtered[0]['label'] == 'lblsx11')
 
         self.log.info('Test permanent lockunspent')
 
@@ -176,18 +177,18 @@ class AnonTest(GhostTestFramework):
         self.stop_node(1)
         self.start_node(1, self.extra_args[1] + ['-wallet=default_wallet',])
         self.connect_nodes_bi(0, 1)
-        assert(len(nodes[1].listlockunspent()) == 2)
-        assert(len(nodes[1].listunspentanon()) < len(unspent))
-        assert(nodes[1].lockunspent(True, [unspent[0]]) == True)
+        assert (len(nodes[1].listlockunspent()) == 2)
+        assert (len(nodes[1].listunspentanon()) < len(unspent))
+        assert (nodes[1].lockunspent(True, [unspent[0]]) == True)
         assert_raises_rpc_error(-8, 'Invalid parameter, expected locked output', nodes[1].lockunspent, True, [unspent[0]])
 
-        assert(len(nodes[1].listunspentanon()) == len(unspent)-1)
-        assert(nodes[1].lockunspent(True) == True)
-        assert(len(nodes[1].listunspentanon()) == len(unspent))
-        assert(nodes[1].lockunspent(True) == True)
+        assert (len(nodes[1].listunspentanon()) == len(unspent)-1)
+        assert (nodes[1].lockunspent(True) == True)
+        assert (len(nodes[1].listunspentanon()) == len(unspent))
+        assert (nodes[1].lockunspent(True) == True)
 
         ro = nodes[2].getblockstats(nodes[2].getblockchaininfo()['blocks'])
-        assert(ro['height'] == 3)
+        assert (ro['height'] == 3)
 
         self.log.info('Test recover from mnemonic')
         # Txns currently in the mempool will be reprocessed in the next block
@@ -200,7 +201,7 @@ class AnonTest(GhostTestFramework):
         w1_2.getnewstealthaddress('lblsx11')
         w1_2.rescanblockchain(0)
         wi_1_2 = w1_2.getwalletinfo()
-        assert(wi_1_2['anon_balance'] == wi_1['anon_balance'])
+        assert (wi_1_2['anon_balance'] == wi_1['anon_balance'])
 
         nodes[1].createwallet('test_import_locked')
         w1_3 = nodes[1].get_wallet_rpc('test_import_locked')
@@ -217,13 +218,16 @@ class AnonTest(GhostTestFramework):
         w1_3.getnewstealthaddress('lblsx11')
         w1_3.walletsettings('other', {'onlyinstance': False})
         w1_3.walletlock()
-        assert(w1_3.getwalletinfo()['encryptionstatus'] == 'Locked')
-        w1_3.rescanblockchain(0)
+        assert (w1_3.getwalletinfo()['encryptionstatus'] == 'Locked')
+
+        # rescanblockchain here causes
+        #   Error: Please enter the wallet passphrase with walletpassphrase first
 
         w1_3.walletpassphrase('test', 30)
+        w1_3.rescanblockchain(0)
 
         wi_1_3 = w1_3.getwalletinfo()
-        assert(wi_1_3['anon_balance'] == wi_1['anon_balance'])
+        assert (wi_1_3['anon_balance'] == wi_1['anon_balance'])
 
 
         # Coverage

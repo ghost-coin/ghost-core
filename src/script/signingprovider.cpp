@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +7,7 @@
 #include <script/signingprovider.h>
 #include <script/standard.h>
 
-#include <util/system.h>
+#include <logging.h>
 
 const SigningProvider& DUMMY_SIGNING_PROVIDER = SigningProvider();
 
@@ -44,6 +44,15 @@ bool HidingSigningProvider::GetKeyOrigin(const CKeyID& keyid, KeyOriginInfo& inf
     return m_provider->GetKeyOrigin(keyid, info);
 }
 
+bool HidingSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const
+{
+    return m_provider->GetTaprootSpendData(output_key, spenddata);
+}
+bool HidingSigningProvider::GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const
+{
+    return m_provider->GetTaprootBuilder(output_key, builder);
+}
+
 bool FlatSigningProvider::GetCScript(const CScriptID& scriptid, CScript& script) const { return LookupHelper(scripts, scriptid, script); }
 bool FlatSigningProvider::GetPubKey(const CKeyID& keyid, CPubKey& pubkey) const { return LookupHelper(pubkeys, keyid, pubkey); }
 bool FlatSigningProvider::GetKeyOrigin(const CKeyID& keyid, KeyOriginInfo& info) const
@@ -54,19 +63,28 @@ bool FlatSigningProvider::GetKeyOrigin(const CKeyID& keyid, KeyOriginInfo& info)
     return ret;
 }
 bool FlatSigningProvider::GetKey(const CKeyID& keyid, CKey& key) const { return LookupHelper(keys, keyid, key); }
-
-FlatSigningProvider Merge(const FlatSigningProvider& a, const FlatSigningProvider& b)
+bool FlatSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const
 {
-    FlatSigningProvider ret;
-    ret.scripts = a.scripts;
-    ret.scripts.insert(b.scripts.begin(), b.scripts.end());
-    ret.pubkeys = a.pubkeys;
-    ret.pubkeys.insert(b.pubkeys.begin(), b.pubkeys.end());
-    ret.keys = a.keys;
-    ret.keys.insert(b.keys.begin(), b.keys.end());
-    ret.origins = a.origins;
-    ret.origins.insert(b.origins.begin(), b.origins.end());
-    return ret;
+    TaprootBuilder builder;
+    if (LookupHelper(tr_trees, output_key, builder)) {
+        spenddata = builder.GetSpendData();
+        return true;
+    }
+    return false;
+}
+bool FlatSigningProvider::GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const
+{
+    return LookupHelper(tr_trees, output_key, builder);
+}
+
+FlatSigningProvider& FlatSigningProvider::Merge(FlatSigningProvider&& b)
+{
+    scripts.merge(b.scripts);
+    pubkeys.merge(b.pubkeys);
+    keys.merge(b.keys);
+    origins.merge(b.origins);
+    tr_trees.merge(b.tr_trees);
+    return *this;
 }
 
 void FillableSigningProvider::ImplicitlyLearnRelatedKeyScripts(const CPubKey& pubkey)
@@ -175,32 +193,47 @@ bool FillableSigningProvider::GetCScript(const CScriptID &hash, CScript& redeemS
     return false;
 }
 
-isminetype FillableSigningProvider::IsMine(const CKeyID &address) const
+wallet::isminetype FillableSigningProvider::IsMine(const CKeyID &address) const
 {
     LOCK(cs_KeyStore);
     if (mapKeys.count(address) > 0)
-        return ISMINE_SPENDABLE;
-    return ISMINE_NO;
+        return wallet::ISMINE_SPENDABLE;
+    return wallet::ISMINE_NO;
+}
+
+bool FillableSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const
+{
+    return LookupHelper(tr_spenddata, output_key, spenddata);
 }
 
 CKeyID GetKeyForDestination(const SigningProvider& store, const CTxDestination& dest)
 {
-    // Only supports destinations which map to single public keys, i.e. P2PKH,
-    // P2WPKH, and P2SH-P2WPKH.
-    if (auto id = boost::get<PKHash>(&dest)) {
+    // Only supports destinations which map to single public keys:
+    // P2PKH, P2WPKH, P2SH-P2WPKH, P2TR
+    if (auto id = std::get_if<PKHash>(&dest)) {
         return ToKeyID(*id);
     }
-    if (auto witness_id = boost::get<WitnessV0KeyHash>(&dest)) {
+    if (auto witness_id = std::get_if<WitnessV0KeyHash>(&dest)) {
         return ToKeyID(*witness_id);
     }
-    if (auto script_hash = boost::get<ScriptHash>(&dest)) {
+    if (auto script_hash = std::get_if<ScriptHash>(&dest)) {
         CScript script;
         CScriptID script_id(*script_hash);
         CTxDestination inner_dest;
         if (store.GetCScript(script_id, script) && ExtractDestination(script, inner_dest)) {
-            if (auto inner_witness_id = boost::get<WitnessV0KeyHash>(&inner_dest)) {
+            if (auto inner_witness_id = std::get_if<WitnessV0KeyHash>(&inner_dest)) {
                 return ToKeyID(*inner_witness_id);
             }
+        }
+    }
+    if (auto output_key = std::get_if<WitnessV1Taproot>(&dest)) {
+        TaprootSpendData spenddata;
+        CPubKey pub;
+        if (store.GetTaprootSpendData(*output_key, spenddata)
+            && !spenddata.internal_key.IsNull()
+            && spenddata.merkle_root.IsNull()
+            && store.GetPubKeyByXOnly(spenddata.internal_key, pub)) {
+            return pub.GetID();
         }
     }
     return CKeyID();

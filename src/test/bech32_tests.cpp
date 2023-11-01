@@ -1,10 +1,13 @@
 // Copyright (c) 2017 Pieter Wuille
+// Copyright (c) 2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <key_io.h>
 #include <bech32.h>
+#include <test/util/str.h>
 #include <test/util/setup_common.h>
+#include <string>
 
 #include <boost/test/unit_test.hpp>
 
@@ -42,8 +45,7 @@ BOOST_AUTO_TEST_CASE(bech32_test)
     CBitcoinAddress addr_base58;
     CBitcoinAddress addr_bech32;
 
-    for (auto &v : testsPass)
-    {
+    for (auto &v : testsPass) {
         addr_base58.SetString(v.first);
         CTxDestination dest = addr_base58.Get();
         BOOST_CHECK(addr_bech32.Set(dest, true));
@@ -58,37 +60,23 @@ BOOST_AUTO_TEST_CASE(bech32_test)
         BOOST_CHECK(addr_bech32_2.IsValid());
         CTxDestination dest3 = addr_bech32_2.Get();
         BOOST_CHECK(dest == dest3);
-    };
+    }
 
-    for (auto &v : testsFail)
-    {
+    for (auto &v : testsFail) {
         BOOST_CHECK(!addr_bech32.SetString(v));
-    };
+    }
 
     CKeyID knull;
-    for (auto &v : testsType)
-    {
+    for (auto &v : testsType) {
         CBitcoinAddress addr;
         addr.Set(knull, v.first, true);
         BOOST_MESSAGE(addr.ToString());
         BOOST_CHECK(addr.ToString() == v.second);
-    };
-}
-
-static bool CaseInsensitiveEqual(const std::string &s1, const std::string &s2)
-{
-    if (s1.size() != s2.size()) return false;
-    for (size_t i = 0; i < s1.size(); ++i) {
-        char c1 = s1[i];
-        if (c1 >= 'A' && c1 <= 'Z') c1 -= ('A' - 'a');
-        char c2 = s2[i];
-        if (c2 >= 'A' && c2 <= 'Z') c2 -= ('A' - 'a');
-        if (c1 != c2) return false;
     }
-    return true;
 }
 
-BOOST_AUTO_TEST_CASE(bip173_testvectors_valid)
+
+BOOST_AUTO_TEST_CASE(bech32_testvectors_valid)
 {
     static const std::string CASES[] = {
         "A12UEL5L",
@@ -100,15 +88,35 @@ BOOST_AUTO_TEST_CASE(bip173_testvectors_valid)
         "?1ezyfcl",
     };
     for (const std::string& str : CASES) {
-        auto ret = bech32::Decode(str);
-        BOOST_CHECK(!ret.hrp.empty());
-        std::string recode = bech32::Encode(ret.encoding, ret.hrp, ret.data);
+        const auto dec = bech32::Decode(str);
+        BOOST_CHECK(dec.encoding == bech32::Encoding::BECH32);
+        std::string recode = bech32::Encode(bech32::Encoding::BECH32, dec.hrp, dec.data);
         BOOST_CHECK(!recode.empty());
         BOOST_CHECK(CaseInsensitiveEqual(str, recode));
     }
 }
 
-BOOST_AUTO_TEST_CASE(bip173_testvectors_invalid)
+BOOST_AUTO_TEST_CASE(bech32m_testvectors_valid)
+{
+    static const std::string CASES[] = {
+        "A1LQFN3A",
+        "a1lqfn3a",
+        "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6",
+        "abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx",
+        "11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8",
+        "split1checkupstagehandshakeupstreamerranterredcaperredlc445v",
+        "?1v759aa"
+    };
+    for (const std::string& str : CASES) {
+        const auto dec = bech32::Decode(str);
+        BOOST_CHECK(dec.encoding == bech32::Encoding::BECH32M);
+        std::string recode = bech32::Encode(bech32::Encoding::BECH32M, dec.hrp, dec.data);
+        BOOST_CHECK(!recode.empty());
+        BOOST_CHECK(CaseInsensitiveEqual(str, recode));
+    }
+}
+
+BOOST_AUTO_TEST_CASE(bech32_testvectors_invalid)
 {
     static const std::string CASES[] = {
         " 1nwldj5",
@@ -125,10 +133,90 @@ BOOST_AUTO_TEST_CASE(bip173_testvectors_invalid)
         "1qzzfhee",
         "a12UEL5L",
         "A12uEL5L",
+        "abcdef1qpzrz9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
+        "test1zg69w7y6hn0aqy352euf40x77qddq3dc",
     };
+    static const std::pair<std::string, std::vector<int>> ERRORS[] = {
+        {"Invalid character or mixed case", {0}},
+        {"Invalid character or mixed case", {0}},
+        {"Invalid character or mixed case", {0}},
+        {"Bech32 string too long", {90}},
+        {"Missing separator", {}},
+        {"Invalid separator position", {0}},
+        {"Invalid Base 32 character", {2}},
+        {"Invalid separator position", {2}},
+        {"Invalid character or mixed case", {8}},
+        {"Invalid checksum", {}}, // The checksum is calculated using the uppercase form so the entire string is invalid, not just a few characters
+        {"Invalid separator position", {0}},
+        {"Invalid separator position", {0}},
+        {"Invalid character or mixed case", {3, 4, 5, 7}},
+        {"Invalid character or mixed case", {3}},
+        {"Invalid Bech32 checksum", {11}},
+        {"Invalid Bech32 checksum", {9, 16}},
+    };
+    static_assert(std::size(CASES) == std::size(ERRORS), "Bech32 CASES and ERRORS should have the same length");
+
+    int i = 0;
     for (const std::string& str : CASES) {
-        auto ret = bech32::Decode(str);
-        BOOST_CHECK(ret.hrp.empty());
+        const auto& err = ERRORS[i];
+        const auto dec = bech32::Decode(str);
+        BOOST_CHECK(dec.encoding == bech32::Encoding::INVALID);
+        auto [error, error_locations] = bech32::LocateErrors(str);
+        BOOST_CHECK_EQUAL(err.first, error);
+        BOOST_CHECK(err.second == error_locations);
+        i++;
+    }
+}
+
+BOOST_AUTO_TEST_CASE(bech32m_testvectors_invalid)
+{
+    static const std::string CASES[] = {
+        " 1xj0phk",
+        "\x7f""1g6xzxy",
+        "\x80""1vctc34",
+        "an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4",
+        "qyrz8wqd2c9m",
+        "1qyrz8wqd2c9m",
+        "y1b0jsk6g",
+        "lt1igcx5c0",
+        "in1muywd",
+        "mm1crxm3i",
+        "au1s5cgom",
+        "M1VUXWEZ",
+        "16plkw9",
+        "1p2gdwpf",
+        "abcdef1l7aum6echk45nj2s0wdvt2fg8x9yrzpqzd3ryx",
+        "test1zg69v7y60n00qy352euf40x77qcusag6",
+    };
+    static const std::pair<std::string, std::vector<int>> ERRORS[] = {
+        {"Invalid character or mixed case", {0}},
+        {"Invalid character or mixed case", {0}},
+        {"Invalid character or mixed case", {0}},
+        {"Bech32 string too long", {90}},
+        {"Missing separator", {}},
+        {"Invalid separator position", {0}},
+        {"Invalid Base 32 character", {2}},
+        {"Invalid Base 32 character", {3}},
+        {"Invalid separator position", {2}},
+        {"Invalid Base 32 character", {8}},
+        {"Invalid Base 32 character", {7}},
+        {"Invalid checksum", {}},
+        {"Invalid separator position", {0}},
+        {"Invalid separator position", {0}},
+        {"Invalid Bech32m checksum", {21}},
+        {"Invalid Bech32m checksum", {13, 32}},
+    };
+    static_assert(std::size(CASES) == std::size(ERRORS), "Bech32m CASES and ERRORS should have the same length");
+
+    int i = 0;
+    for (const std::string& str : CASES) {
+        const auto& err = ERRORS[i];
+        const auto dec = bech32::Decode(str);
+        BOOST_CHECK(dec.encoding == bech32::Encoding::INVALID);
+        auto [error, error_locations] = bech32::LocateErrors(str);
+        BOOST_CHECK_EQUAL(err.first, error);
+        BOOST_CHECK(err.second == error_locations);
+        i++;
     }
 }
 

@@ -29,7 +29,7 @@ class FilterTransactionsTest(GhostTestFramework):
         nodes = self.nodes
 
         # import keys for node wallets
-        nodes[0].extkeyimportmaster('abandon baby cabbage dad eager fabric gadget habit ice kangaroo lab absorb')
+        self.import_genesis_coins_a(nodes[0])
         nodes[1].extkeyimportmaster('drip fog service village program equip minute dentist series hawk crop sphere olympic lazy garbage segment fox library good alley steak jazz force inmate')
         nodes[2].extkeyimportmaster('sección grito médula hecho pauta posada nueve ebrio bruto buceo baúl mitad')
 
@@ -159,9 +159,9 @@ class FilterTransactionsTest(GhostTestFramework):
         # Too many arguments
         try:
             nodes[0].filtertransactions('foo', 'bar')
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('filtertransactions' in e.error['message'])
+            assert ('filtertransactions' in e.error['message'])
 
         #
         # count
@@ -170,9 +170,9 @@ class FilterTransactionsTest(GhostTestFramework):
         # count: -1 => JSONRPCException
         try:
             nodes[0].filtertransactions({ 'count': -1 })
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('Invalid count' in e.error['message'])
+            assert ('Invalid count' in e.error['message'])
 
         # count: 0 => all transactions
         assert(len(nodes[0].filtertransactions({ 'count': 0 })) == 11)
@@ -187,19 +187,19 @@ class FilterTransactionsTest(GhostTestFramework):
         # skip: -1 => JSONRPCException
         try:
             nodes[0].filtertransactions({ 'skip': -1 })
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('Invalid skip' in e.error['message'])
+            assert ('Invalid skip' in e.error['message'])
 
         # skip = count => no entry
         ro = nodes[0].filtertransactions({ 'count': 50 })
         ro = nodes[0].filtertransactions({ 'skip': len(ro) })
-        assert(len(ro) == 0)
+        assert (len(ro) == 0)
 
         # skip == count - 1 => one entry
         ro = nodes[0].filtertransactions({ 'count': 50 })
         ro = nodes[0].filtertransactions({ 'skip': len(ro) - 1 })
-        assert(len(ro) == 1)
+        assert (len(ro) == 1)
 
         # skip: 1
         ro = nodes[0].filtertransactions({
@@ -207,16 +207,16 @@ class FilterTransactionsTest(GhostTestFramework):
             'count':    20,
             'skip':     1
         })
-        assert(float(ro[0]['amount']) == -20.0)
+        assert (float(ro[0]['amount']) == -20.0)
 
         #
         # include_watchonly
         #
 
         ro = nodes[2].filtertransactions({ 'include_watchonly': False })
-        assert(len(ro) == 0)
+        assert (len(ro) == 0)
         ro = nodes[2].filtertransactions({ 'include_watchonly': True })
-        assert(len(ro) == 1)
+        assert (len(ro) == 1)
 
         #
         # search
@@ -230,7 +230,7 @@ class FilterTransactionsTest(GhostTestFramework):
 
         for query in queries:
             ro = nodes[0].filtertransactions({ 'search': query[0] })
-            assert(len(ro) == query[1])
+            assert (len(ro) == query[1])
 
         #
         # category
@@ -252,21 +252,21 @@ class FilterTransactionsTest(GhostTestFramework):
         for category in categories:
             ro = nodes[0].filtertransactions({ 'category': category[0] })
             for t in ro:
-                assert(t['category'] == category[0])
+                assert (t['category'] == category[0])
             if (category[0] != 'stake'):
-                assert(len(ro) == category[1])
+                assert (len(ro) == category[1])
 
         # category 'all'
         length = len(nodes[0].filtertransactions({'count': 20}))
         ro = nodes[0].filtertransactions({ 'category': 'all', 'count': 20 })
-        assert(len(ro) == length)
+        assert (len(ro) == length)
 
         # invalid transaction category
         try:
             ro = nodes[0].filtertransactions({ 'category': 'invalid' })
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('Invalid category' in e.error['message'])
+            assert ('Invalid category' in e.error['message'])
 
         #
         # type
@@ -275,50 +275,50 @@ class FilterTransactionsTest(GhostTestFramework):
         # type 'all'
         length = len(nodes[0].filtertransactions({'count': 20}))
         ro = nodes[0].filtertransactions({ 'type': 'all', 'count': 20 })
-        assert(len(ro) == length)
+        assert (len(ro) == length)
 
         # type 'standard'
         ro = nodes[0].filtertransactions({ 'type': 'standard', 'count': 20 })
-        assert(len(ro) == 9)
+        assert (len(ro) == 9)
         for t in ro:
-            assert('type' not in t)
+            assert ('type' not in t)
             for o in t['outputs']:
-                assert('type' not in o)
+                assert ('type' not in o)
 
         # type 'anon'
         ro = nodes[0].filtertransactions({ 'type': 'anon', 'count': 20 })
-        assert(len(ro) == 1)
+        assert (len(ro) == 1)
         for t in ro:
             foundA = False
             for o in t['outputs']:
                 if 'type' in o and o['type'] == 'anon':
                     foundA = True
                     break
-            assert(foundA is True)
+            assert (foundA is True)
 
         # type 'blind'
         ro = nodes[0].filtertransactions({ 'type': 'blind', 'count': 20 })
-        assert(len(ro) == 1)
+        assert (len(ro) == 1)
         for t in ro:
             foundB = False
             for o in t['outputs']:
                 if 'type' in o and o['type'] == 'blind':
                     foundB = True
                     break
-            assert(foundB is True)
+            assert (foundB is True)
 
         # invalid transaction type
         try:
             ro = nodes[0].filtertransactions({ 'type': 'invalid' })
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('Invalid type' in e.error['message'])
+            assert ('Invalid type' in e.error['message'])
 
         #
         # sort
         #
 
-        sortings = [
+        sortable_fields = [
             [ 'time',          'desc' ],
             [ 'address',        'asc' ],
             [ 'category',       'asc' ],
@@ -327,7 +327,7 @@ class FilterTransactionsTest(GhostTestFramework):
             [ 'txid',           'asc' ]
         ]
 
-        for sorting in sortings:
+        for sorting in sortable_fields:
             ro = nodes[0].filtertransactions({ 'sort': sorting[0] })
             prev = None
             for t in ro:
@@ -341,22 +341,22 @@ class FilterTransactionsTest(GhostTestFramework):
                     t["amount"] = -t["amount"]
                 if prev is not None:
                     if sorting[1] == 'asc':
-                        assert(t[sorting[0]] >= prev[sorting[0]])
+                        assert (t[sorting[0]] >= prev[sorting[0]])
                     if sorting[1] == 'desc':
-                        assert(t[sorting[0]] <= prev[sorting[0]])
+                        assert (t[sorting[0]] <= prev[sorting[0]])
                 prev = t
 
         # invalid sort
         try:
             ro = nodes[0].filtertransactions({ 'sort': 'invalid' })
-            assert(False)
+            assert (False)
         except JSONRPCException as e:
-            assert('Invalid sort' in e.error['message'])
+            assert ('Invalid sort' in e.error['message'])
 
         # Sent blind should show when filtered for blinded txns
         nodes[0].sendblindtoghost(targetStealth, 1.0)
         ro = nodes[0].filtertransactions({ 'type': 'blind', 'count': 20 })
-        assert(len(ro) == 2)
+        assert (len(ro) == 2)
 
 
 if __name__ == '__main__':

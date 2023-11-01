@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,6 +9,7 @@
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
+#include <util/time.h>
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
  * and scan through nonce values to make the block's hash satisfy proof-of-work
@@ -60,14 +61,23 @@ public:
 
     uint256 GetHash() const;
 
-    bool IsParticlVersion() const
+    NodeSeconds Time() const
     {
+<<<<<<< HEAD
         return nVersion == GHOST_BLOCK_VERSION;
+=======
+        return NodeSeconds{std::chrono::seconds{nTime}};
+>>>>>>> particl/25.x
     }
 
     int64_t GetBlockTime() const
     {
         return (int64_t)nTime;
+    }
+
+    bool IsParticlVersion() const
+    {
+        return nVersion == PARTICL_BLOCK_VERSION;
     }
 };
 
@@ -162,7 +172,7 @@ struct CBlockLocator
 
     CBlockLocator() {}
 
-    explicit CBlockLocator(const std::vector<uint256>& vHaveIn) : vHave(vHaveIn) {}
+    explicit CBlockLocator(std::vector<uint256>&& have) : vHave(std::move(have)) {}
 
     SERIALIZE_METHODS(CBlockLocator, obj)
     {

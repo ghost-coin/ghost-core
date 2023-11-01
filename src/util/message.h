@@ -1,17 +1,19 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_UTIL_MESSAGE_H
 #define BITCOIN_UTIL_MESSAGE_H
 
-#include <key.h> // For CKey
 #include <uint256.h>
 
 #include <string>
 
+class CKey;
+
 extern const std::string MESSAGE_MAGIC;
+extern const std::string BTC_MESSAGE_MAGIC;
 
 /** The result of a signed message verification.
  * Message verification takes as an input:
@@ -64,7 +66,8 @@ MessageVerificationResult MessageVerify(
 bool MessageSign(
     const CKey& privkey,
     const std::string& message,
-    std::string& signature);
+    std::string& signature,
+    const std::string& message_magic = MESSAGE_MAGIC);
 
 /**
  * Hashes a message for signing and verification in a manner that prevents

@@ -7,11 +7,11 @@
 #ifndef SECP256K1_MODULE_BULLETPROOF_INNER_PRODUCT_IMPL
 #define SECP256K1_MODULE_BULLETPROOF_INNER_PRODUCT_IMPL
 
-#include "group.h"
-#include "scalar.h"
+#include "../../group.h"
+#include "../../scalar.h"
 
-#include "modules/bulletproofs/main_impl.h"
-#include "modules/bulletproofs/util.h"
+#include "../../modules/bulletproofs/main_impl.h"
+#include "../../modules/bulletproofs/util.h"
 
 /* Number of scalars that should remain at the end of a recursive proof. The paper
  * uses 2, by reducing the scalars as far as possible. We stop one recursive step
@@ -314,7 +314,7 @@ static int secp256k1_bulletproof_innerproduct_vfy_ecmult_callback(secp256k1_scal
  *    needed to compute `P`. We do not hash it in during verification since `P`
  *    may be specified indirectly as a bunch of scalar offsets.
  */
-static int secp256k1_bulletproof_inner_product_verify_impl(const secp256k1_ecmult_context *ecmult_ctx, secp256k1_scratch *scratch, const secp256k1_bulletproof_generators *gens, size_t vec_len, const secp256k1_bulletproof_innerproduct_context *proof, size_t n_proofs, size_t plen, int shared_g) {
+static int secp256k1_bulletproof_inner_product_verify_impl(secp256k1_scratch *scratch, const secp256k1_bulletproof_generators *gens, size_t vec_len, const secp256k1_bulletproof_innerproduct_context *proof, size_t n_proofs, size_t plen, int shared_g) {
     secp256k1_sha256 sha256;
     secp256k1_bulletproof_innerproduct_vfy_ecmult_context ecmult_data;
     unsigned char commit[32];
@@ -495,7 +495,7 @@ static int secp256k1_bulletproof_inner_product_verify_impl(const secp256k1_ecmul
     }
 
     /* Do the multiexp */
-    if (secp256k1_ecmult_multi_var(&bp_error_callback, ecmult_ctx, scratch, &r, NULL, secp256k1_bulletproof_innerproduct_vfy_ecmult_callback, (void *) &ecmult_data, total_n_points) != 1) {
+    if (secp256k1_ecmult_multi_var(&bp_error_callback, scratch, &r, NULL, secp256k1_bulletproof_innerproduct_vfy_ecmult_callback, (void *) &ecmult_data, total_n_points) != 1) {
         secp256k1_scratch_apply_checkpoint(&bp_error_callback, scratch, scratch_checkpoint);
         return 0;
     }
@@ -647,7 +647,7 @@ static int secp256k1_bulletproof_innerproduct_pf_ecmult_callback_h(secp256k1_sca
 /* These proofs are not zero-knowledge. There is no need to worry about constant timeness.
  * `commit_inp` must contain 256 bits of randomness, it is used immediately as a randomizer.
  */
-static int secp256k1_bulletproof_inner_product_real_prove_impl(const secp256k1_ecmult_context *ecmult_ctx, secp256k1_scratch *scratch, secp256k1_ge *out_pt, size_t *pt_idx, const secp256k1_ge *g, secp256k1_ge *geng, secp256k1_ge *genh, secp256k1_scalar *a_arr, secp256k1_scalar *b_arr, const secp256k1_scalar *yinv, const secp256k1_scalar *ux, const size_t n, unsigned char *commit) {
+static int secp256k1_bulletproof_inner_product_real_prove_impl(secp256k1_scratch *scratch, secp256k1_ge *out_pt, size_t *pt_idx, const secp256k1_ge *g, secp256k1_ge *geng, secp256k1_ge *genh, secp256k1_scalar *a_arr, secp256k1_scalar *b_arr, const secp256k1_scalar *yinv, const secp256k1_scalar *ux, const size_t n, unsigned char *commit) {
     size_t i;
     size_t halfwidth;
 
@@ -678,7 +678,7 @@ static int secp256k1_bulletproof_inner_product_real_prove_impl(const secp256k1_e
         secp256k1_scalar_mul(&pfdata.g_sc, &pfdata.g_sc, ux);
 
         secp256k1_scalar_set_int(&pfdata.yinvn, 1);
-        secp256k1_ecmult_multi_var(&bp_error_callback, ecmult_ctx, scratch, &tmplj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_l, (void *) &pfdata, n + 1);
+        secp256k1_ecmult_multi_var(&bp_error_callback, scratch, &tmplj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_l, (void *) &pfdata, n + 1);
         secp256k1_ge_set_gej(&out_pt[(*pt_idx)++], &tmplj);
 
         /* R */
@@ -691,7 +691,7 @@ static int secp256k1_bulletproof_inner_product_real_prove_impl(const secp256k1_e
         secp256k1_scalar_mul(&pfdata.g_sc, &pfdata.g_sc, ux);
 
         secp256k1_scalar_set_int(&pfdata.yinvn, 1);
-        secp256k1_ecmult_multi_var(&bp_error_callback, ecmult_ctx, scratch, &tmprj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_r, (void *) &pfdata, n + 1);
+        secp256k1_ecmult_multi_var(&bp_error_callback, scratch, &tmprj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_r, (void *) &pfdata, n + 1);
         secp256k1_ge_set_gej(&out_pt[(*pt_idx)++], &tmprj);
 
         /* x, x^2, x^-1, x^-2 */
@@ -721,11 +721,11 @@ static int secp256k1_bulletproof_inner_product_real_prove_impl(const secp256k1_e
 
             for (j = 0; j < halfwidth; j++) {
                 secp256k1_gej rj;
-                secp256k1_ecmult_multi_var(&bp_error_callback, ecmult_ctx, scratch, &rj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_g, (void *) &pfdata, 2u << i);
+                secp256k1_ecmult_multi_var(&bp_error_callback, scratch, &rj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_g, (void *) &pfdata, 2u << i);
                 pfdata.geng += 2u << i;
                 secp256k1_ge_set_gej(&geng[j], &rj);
                 secp256k1_scalar_set_int(&pfdata.yinvn, 1);
-                secp256k1_ecmult_multi_var(&bp_error_callback, ecmult_ctx, scratch, &rj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_h, (void *) &pfdata, 2u << i);
+                secp256k1_ecmult_multi_var(&bp_error_callback, scratch, &rj, NULL, &secp256k1_bulletproof_innerproduct_pf_ecmult_callback_h, (void *) &pfdata, 2u << i);
                 pfdata.genh += 2u << i;
                 secp256k1_ge_set_gej(&genh[j], &rj);
             }
@@ -734,7 +734,7 @@ static int secp256k1_bulletproof_inner_product_real_prove_impl(const secp256k1_e
             for (j = 0; j < i; j++) {
                 secp256k1_scalar_sqr(&yinv2, &yinv2);
             }
-            if (!secp256k1_bulletproof_inner_product_real_prove_impl(ecmult_ctx, scratch, out_pt, pt_idx, g, geng, genh, a_arr, b_arr, &yinv2, ux, halfwidth, commit)) {
+            if (!secp256k1_bulletproof_inner_product_real_prove_impl(scratch, out_pt, pt_idx, g, geng, genh, a_arr, b_arr, &yinv2, ux, halfwidth, commit)) {
                 return 0;
             }
             break;
@@ -743,7 +743,7 @@ static int secp256k1_bulletproof_inner_product_real_prove_impl(const secp256k1_e
     return 1;
 }
 
-static int secp256k1_bulletproof_inner_product_prove_impl(const secp256k1_ecmult_context *ecmult_ctx, secp256k1_scratch *scratch, unsigned char *proof, size_t *proof_len, const secp256k1_bulletproof_generators *gens, const secp256k1_scalar *yinv, const size_t n, secp256k1_ecmult_multi_callback *cb, void *cb_data, const unsigned char *commit_inp) {
+static int secp256k1_bulletproof_inner_product_prove_impl(secp256k1_scratch *scratch, unsigned char *proof, size_t *proof_len, const secp256k1_bulletproof_generators *gens, const secp256k1_scalar *yinv, const size_t n, secp256k1_ecmult_multi_callback *cb, void *cb_data, const unsigned char *commit_inp) {
     secp256k1_sha256 sha256;
     size_t i;
     unsigned char commit[32];
@@ -823,7 +823,7 @@ static int secp256k1_bulletproof_inner_product_prove_impl(const secp256k1_ecmult
         return 0;
     }
 
-    if (!secp256k1_bulletproof_inner_product_real_prove_impl(ecmult_ctx, scratch, out_pt, &pt_idx, gens->blinding_gen, geng, genh, a_arr, b_arr, yinv, &ux, n, commit)) {
+    if (!secp256k1_bulletproof_inner_product_real_prove_impl(scratch, out_pt, &pt_idx, gens->blinding_gen, geng, genh, a_arr, b_arr, yinv, &ux, n, commit)) {
         secp256k1_scratch_apply_checkpoint(&bp_error_callback, scratch, scratch_checkpoint);
         return 0;
     }

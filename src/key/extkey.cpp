@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -120,7 +120,7 @@ static uint32_t strtou32max(const char *nptr, int base)
     s = nptr;
     do {
         c = *s++;
-    } while (isspace((unsigned char)c));
+    } while (IsSpace((unsigned char)c));
 
     if (c == '-') {
         neg = 1;
@@ -203,7 +203,7 @@ int ExtractExtKeyPath(const std::string &sPath, std::vector<uint32_t> &vPath)
 
     size_t nStart = 0;
     size_t nLen = sPath.length();
-    if (tolower(sPath[0]) == 'm') {
+    if (ToLower(sPath[0]) == 'm') {
         nStart+=2;
         nLen-=2;
     }
@@ -244,7 +244,7 @@ int ExtractExtKeyPath(const std::string &sPath, std::vector<uint32_t> &vPath)
         char *ps = p;
         for (; *p; ++p) {
             // Last char can be (h, H ,')
-            if (!*(p+1) && (tolower(*p) == 'h' || *p == '\'')) {
+            if (!*(p+1) && (ToLower(*p) == 'h' || *p == '\'')) {
                 fHarden = true;
                 *p = '\0';
             } else
@@ -296,11 +296,12 @@ void CExtPubKey::Decode(const unsigned char code[74])
     nChild = (code[5] << 24) | (code[6] << 16) | (code[7] << 8) | code[8];
     memcpy(chaincode, code+9, 32);
     pubkey.Set(code+41, code+74);
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || !pubkey.IsFullyValid()) pubkey = CPubKey();
 };
 
 bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const
 {
-    // Depth wraps around
+    if (nDepth == std::numeric_limits<unsigned char>::max()) return false;
     out.nDepth = (uint8_t) (nDepth + 1) & 0xFF;
     CKeyID id = pubkey.GetID();
 
@@ -309,11 +310,9 @@ bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const
     return pubkey.Derive(out.pubkey, out.chaincode, nChild, chaincode);
 };
 
-
-
 bool CExtKey::Derive(CExtKey &out, unsigned int nChild) const
 {
-    // Depth wraps around
+    if (nDepth == std::numeric_limits<unsigned char>::max()) return false;
     out.nDepth = (uint8_t) (nDepth + 1) & 0xFF;
     CKeyID id = key.GetPubKey().GetID();
     memcpy(&out.vchFingerprint[0], &id, 4);
@@ -324,16 +323,38 @@ bool CExtKey::Derive(CExtKey &out, unsigned int nChild) const
 void CExtKey::SetSeed(const unsigned char *seed, unsigned int nSeedLen)
 {
     static const unsigned char hashkey[] = {'B','i','t','c','o','i','n',' ','s','e','e','d'};
-
     std::vector<unsigned char, secure_allocator<unsigned char>> vout(64);
     CHMAC_SHA512(hashkey, sizeof(hashkey)).Write(seed, nSeedLen).Finalize(vout.data());
-
-    key.Set(&vout[0], &vout[32], true);
-    memcpy(chaincode, &vout[32], 32);
+    key.Set(vout.data(), vout.data() + 32, true);
+    memcpy(chaincode, vout.data() + 32, 32);
     nDepth = 0;
     nChild = 0;
     memset(vchFingerprint, 0, sizeof(vchFingerprint));
 };
+
+void CExtKey::SetSeed(Span<const uint8_t> seed)
+{
+    static const unsigned char hashkey[] = {'B','i','t','c','o','i','n',' ','s','e','e','d'};
+    std::vector<unsigned char, secure_allocator<unsigned char>> vout(64);
+    CHMAC_SHA512{hashkey, sizeof(hashkey)}.Write(seed.data(), seed.size()).Finalize(vout.data());
+    key.Set(vout.data(), vout.data() + 32, true);
+    memcpy(chaincode, vout.data() + 32, 32);
+    nDepth = 0;
+    nChild = 0;
+    memset(vchFingerprint, 0, sizeof(vchFingerprint));
+}
+
+void CExtKey::SetSeed(Span<const std::byte> seed)
+{
+    static const unsigned char hashkey[] = {'B','i','t','c','o','i','n',' ','s','e','e','d'};
+    std::vector<unsigned char, secure_allocator<unsigned char>> vout(64);
+    CHMAC_SHA512{hashkey, sizeof(hashkey)}.Write(UCharCast(seed.data()), seed.size()).Finalize(vout.data());
+    key.Set(vout.data(), vout.data() + 32, true);
+    memcpy(chaincode, vout.data() + 32, 32);
+    nDepth = 0;
+    nChild = 0;
+    memset(vchFingerprint, 0, sizeof(vchFingerprint));
+}
 
 void CExtKey::SetKeyCode(const unsigned char *pkey, const unsigned char *pcode)
 {
@@ -374,8 +395,20 @@ void CExtKey::Decode(const unsigned char code[74])
     nChild = (code[5] << 24) | (code[6] << 16) | (code[7] << 8) | code[8];
     memcpy(chaincode, code+9, 32);
     key.Set(code+42, code+74, true);
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || code[41] != 0) key = CKey();
 };
 
+void CExtPubKey::EncodeWithVersion(unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]) const
+{
+    memcpy(code, version, 4);
+    Encode(&code[4]);
+}
+
+void CExtPubKey::DecodeWithVersion(const unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE])
+{
+    memcpy(version, code, 4);
+    Decode(&code[4]);
+}
 
 void CExtKeyPair::EncodeV(unsigned char code[74]) const
 {
@@ -397,6 +430,10 @@ void CExtKeyPair::DecodeV(const unsigned char code[74])
     memcpy(chaincode, code+9, 32);
     key.Set(code+42, code+74, true);
     pubkey = key.GetPubKey();
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || code[41] != 0) {
+        key = CKey();
+        pubkey = CPubKey();
+    }
 };
 
 void CExtKeyPair::EncodeP(unsigned char code[74]) const
@@ -418,6 +455,7 @@ void CExtKeyPair::DecodeP(const unsigned char code[74])
     memcpy(chaincode, code+9, 32);
     pubkey.Set(code+41, code+74);
     key.Clear();
+    if ((nDepth == 0 && (nChild != 0 || ReadLE32(vchFingerprint) != 0)) || !pubkey.IsFullyValid()) pubkey = CPubKey();
 };
 
 bool CExtKeyPair::Derive(CExtKey &out, unsigned int nChild) const
@@ -599,7 +637,7 @@ int CExtKeyAccount::HaveSavedKey(const CKeyID &id)
     return HK_NO;
 };
 
-int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, isminetype &ismine)
+int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, wallet::isminetype &ismine)
 {
     // If fUpdate, promote key if found in look ahead
     LOCK(cs_account);
@@ -616,7 +654,7 @@ int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak,
     if (mi != mapLookAhead.end()) {
         pak = &mi->second;
         ismine = IsMine(pak->nParent);
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
+        if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
             LogPrintf("HaveKey in lookAhead %s\n", EncodeDestination(PKHash(mi->first)));
         }
         return fUpdate ? HK_LOOKAHEAD_DO_UPDATE : HK_LOOKAHEAD;
@@ -626,7 +664,7 @@ int CExtKeyAccount::HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak,
     return HaveStealthKey(id, pasc, ismine);
 };
 
-int CExtKeyAccount::HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, isminetype &ismine)
+int CExtKeyAccount::HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, wallet::isminetype &ismine)
 {
     LOCK(cs_account);
 
@@ -635,13 +673,13 @@ int CExtKeyAccount::HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, ism
         pasc = &miSck->second;
         AccStealthKeyMap::const_iterator miSk = mapStealthKeys.find(pasc->idStealthKey);
         if (miSk == mapStealthKeys.end()) {
-            ismine = ISMINE_NO;
+            ismine = wallet::ISMINE_NO;
         } else {
             ismine = IsMine(miSk->second.akSpend.nParent);
         }
         return HK_YES;
     }
-    ismine = ISMINE_NO;
+    ismine = wallet::ISMINE_NO;
     return HK_NO;
 };
 
@@ -709,7 +747,7 @@ int CExtKeyAccount::GetKey(const CKeyID &id, CKey &keyOut, CEKAKey &ak, CKeyID &
         return KS_NONE;
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET) && keyOut.GetPubKey().GetID() != id) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug) && keyOut.GetPubKey().GetID() != id) {
         return error("Stored key mismatch.");
     }
     return rv;
@@ -733,7 +771,7 @@ bool CExtKeyAccount::GetPubKey(const CKeyID &id, CPubKey &pkOut) const
         return false;
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         if (pkOut.GetID() != id) {
             return errorN(1, "%s: Extracted public key mismatch.", __func__);
         }
@@ -810,7 +848,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKAKey &keyIn)
 
                 const CEKAKey *pak = nullptr;
                 const CEKASCKey *pasc = nullptr;
-                isminetype ismine;
+                wallet::isminetype ismine;
                 if (HK_YES != HaveKey(pk.GetID(), false, pak, pasc, ismine)) {
                     break;
                 }
@@ -825,7 +863,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKAKey &keyIn)
         }
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("Saved key %s %d, %s.\n", GetIDString58(), keyIn.nParent, EncodeDestination(PKHash(id)));
 
         // Check match
@@ -869,7 +907,7 @@ bool CExtKeyAccount::SaveKey(const CKeyID &id, const CEKASCKey &keyIn)
 
     mapStealthChildKeys[id] = keyIn;
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("SaveKey(): CEKASCKey %s, %s.\n", GetIDString58(), EncodeDestination(PKHash(id)));
     }
 
@@ -894,7 +932,7 @@ int CExtKeyAccount::AddLookBehind(uint32_t nChain, uint32_t nKeys)
         return errorN(1, "%s: Unknown chain, %d.", __func__, nChain);
     }
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("%s: chain %s, keys %d.\n", __func__, pc->GetIDString58(), nKeys);
     }
 
@@ -925,7 +963,7 @@ int CExtKeyAccount::AddLookBehind(uint32_t nChain, uint32_t nKeys)
 
             keyId = pk.GetID();
             if ((mi = mapKeys.find(keyId)) != mapKeys.end()) {
-                if (LogAcceptCategory(BCLog::HDWALLET)) {
+                if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                     LogPrintf("%s: key exists in map skipping %s.\n", __func__, EncodeDestination(PKHash(keyId)));
                 }
                 continue;
@@ -946,7 +984,7 @@ int CExtKeyAccount::AddLookBehind(uint32_t nChain, uint32_t nKeys)
 
         mapLookAhead[keyId] = CEKAKey(nChain, nChildOut);
 
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
+        if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
             LogPrintf("%s: Added %s, look-ahead size %u.\n", __func__, EncodeDestination(PKHash(keyId)), mapLookAhead.size());
         }
     }
@@ -966,7 +1004,7 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
     uint32_t nChild = std::max(pc->nGenerated, pc->nLastLookAhead);
     uint32_t nChildOut = nChild;
 
-    if (LogAcceptCategory(BCLog::HDWALLET)) {
+    if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
         LogPrintf("%s: chain %s, keys %d, from %d.\n", __func__, pc->GetIDString58(), nKeys, nChildOut);
     }
 
@@ -986,7 +1024,7 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
 
             keyId = pk.GetID();
             if ((mi = mapKeys.find(keyId)) != mapKeys.end()) {
-                if (LogAcceptCategory(BCLog::HDWALLET)) {
+                if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                     LogPrintf("%s: key exists in map skipping %s.\n", __func__, EncodeDestination(PKHash(keyId)));
                 }
                 continue;
@@ -1008,7 +1046,7 @@ int CExtKeyAccount::AddLookAhead(uint32_t nChain, uint32_t nKeys)
         mapLookAhead[keyId] = CEKAKey(nChain, nChildOut);
         pc->nLastLookAhead = nChildOut;
 
-        if (LogAcceptCategory(BCLog::HDWALLET)) {
+        if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
             LogPrintf("%s: Added %s, look-ahead size %u.\n", __func__, EncodeDestination(PKHash(keyId)), mapLookAhead.size());
         }
     }
@@ -1246,7 +1284,11 @@ std::string GetDefaultAccountPath(bool fLegacy)
     // Return path of default account: 44'/44'/0',will not be 44 as bip44 coin id if legacy is false
     std::vector<uint32_t> vPath;
     vPath.push_back(WithHardenedBit(44)); // purpose
-    vPath.push_back(WithHardenedBit(Params().BIP44ID(fLegacy))); // coin
+    if (HaveParams()) {
+        vPath.push_back(WithHardenedBit(Params().BIP44ID())); // coin
+    } else {
+        vPath.push_back(WithHardenedBit(44)); // coin
+    }
     vPath.push_back(WithHardenedBit(0)); // account
     std::string rv;
     if (0 == PathToString(vPath, rv, 'h')) {

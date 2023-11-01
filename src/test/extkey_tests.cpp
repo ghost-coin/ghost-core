@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -127,7 +127,6 @@ public:
 
 void RunDeriveTest(std::vector<DeriveTestData> &vData)
 {
-    int rv;
     CBitcoinExtKey extKey58;
     CExtKey evkeyM;
     CExtPubKey epkeyM;
@@ -138,37 +137,32 @@ void RunDeriveTest(std::vector<DeriveTestData> &vData)
         if (dt.nDerives == 0) {
             // Set master
 
-            BOOST_CHECK(0 == (rv = extKey58.Set58(dt.vKey58.c_str())));
-            BOOST_CHECK(0 == (rv += abs(strcmp(extKey58.ToString().c_str(), dt.vKey58.c_str()))));
+            BOOST_REQUIRE(0 == extKey58.Set58(dt.vKey58.c_str()));
+            BOOST_REQUIRE(0 == abs(strcmp(extKey58.ToString().c_str(), dt.vKey58.c_str())));
 
             evkeyM = extKey58.GetKey();
-            BOOST_CHECK(0 == (rv += abs(strcmp(CBitcoinExtKey(evkeyM).ToString().c_str(), dt.vKey58.c_str()))));
+            BOOST_REQUIRE(0 == abs(strcmp(CBitcoinExtKey(evkeyM).ToString().c_str(), dt.vKey58.c_str())));
             epkeyM = evkeyM.Neutered();
 
-            BOOST_CHECK(0 == (rv += abs(strcmp(CBitcoinExtPubKey(epkeyM).ToString().c_str(), dt.pKey58.c_str()))));
-
-            BOOST_CHECK(CBitcoinExtPubKey(epkeyM).ToString().c_str());
-
-            if (rv != 0) {
-                BOOST_MESSAGE("Set master failed, aborting test.");
-                break;
-            }
-            continue;
+            BOOST_REQUIRE(0 == abs(strcmp(CBitcoinExtPubKey(epkeyM).ToString().c_str(), dt.pKey58.c_str())));
+            BOOST_REQUIRE(CBitcoinExtPubKey(epkeyM).ToString().c_str());
         }
 
 
         CExtKey evkey[2], evkeyOut;
         CExtPubKey epkeyOut;
         evkey[0] = evkeyM;
-        rv = 0;
+        int rv = 0;
         for (uint32_t d = 0; d < dt.nDerives; ++d) {
             rv += evkey[d % 2].Derive(evkey[(d+1) % 2], 1);
         }
+
         BOOST_CHECK(dt.nDerives == (uint32_t)rv);
         evkeyOut = evkey[dt.nDerives % 2];
 
         BOOST_CHECK(CBitcoinExtKey(evkeyOut).ToString().c_str());
         BOOST_CHECK(evkeyOut.nDepth == dt.nDerives % 256);
+        // ndepth used to wrap around: dt.nDerives % 256
 
         BOOST_CHECK(0 == strcmp(CBitcoinExtKey(evkeyOut).ToString().c_str(), dt.vKey58.c_str()));
 
@@ -203,10 +197,9 @@ void RunDeriveTests()
         DeriveTestData(1,
             std::string("xparFfqM6xibpb6fDtB6tLPNpC89yZejLSqW4CTaGbVkkws3VtRrw3siNhGBxuAFAy1C6rMbrbasWFsMSLho4imGzV1DFczz8ZfcDVuKLSj11kc"),
             std::string("pparszFbdzdENYiiv8djUKDBhhYZjDegiweri9Fv4NMaaT9qtp11jRmmxuJmj2guRodVqE1jj7vJxZUm2fzBCUPxfrvCAi5iD2SinpS3Vu1KTDZL")),
-
-        DeriveTestData(350,
-            std::string("xparJhpVV3WDMMgrKbzP8eoMQMf8m6T8nbyfhGJdVSexTvyrR1MToMxoma8GZRN3tfMTPnVwbVJ6mjKSkfLTvoucDtXVPaefovGGu5oQwNoJECr"),
-            std::string("ppart3HanNi1z5VK7EMYkZXbgHi6i1BV8PozsnKm7bCjnA8xhj7wLJ5s4JBdodEmyCwRnwiSe66qx4fej5nkKTDioEGwKn1qoyJccJwDSBXEsZmM")),
+        DeriveTestData(94,
+            std::string("xparJhXAGxmqnk8sarQj17F7vitYfE3ZghWz4USKsSRwnfFznQ2S6SFZqcAhNpBUU6fU6Pv6UKUNiMTJRYDQHL899d5fHge73thmnJeUTAJ16St"),
+            std::string("ppart3HHTAdHcWsm8Vby6Rz3Sp5L7uK5ZHuYC9XtoyCWmUsEr6WcJbA9pNDgESfdciRF2aMC4uWyvSuxyaPwGo27KjmAgsDME8tPGqmD4Sg85X3t")),
     };
     CBitcoinExtKey extKey58;
 
@@ -302,7 +295,6 @@ void RunSerialiseTests()
 
     BOOST_CHECK(0 == skInvalid.kp.IsValidV());
     BOOST_CHECK(0 == skInvalid.kp.IsValidP());
-
 
 
     // path
@@ -417,7 +409,6 @@ void RunSerialiseTests()
     BOOST_CHECK(1 == skp.DeriveNextKey(k, nChild, true));
 
 
-
     CPubKey pk;
     sk.nGenerated = 1;
     BOOST_CHECK(0 == sk.DeriveNextKey(pk, nChild, false));
@@ -441,8 +432,6 @@ void RunSerialiseTests()
 
     // CBitcoinAddress tests
     // CBitcoinAddress always deals in public keys - should never expose a secret in an address
-
-
 
     CExtKeyPair kp, kpT;
     CTxDestination dest;
@@ -489,8 +478,8 @@ void RunSerialiseTests()
     BOOST_CHECK(addr.IsValid(CChainParams::EXT_PUBLIC_KEY) == true);
     BOOST_CHECK(addr.ToString() == "pparszDdEByd5kvHotS5WeLAiv5gp7b1YfUTs31TmudPuf1dHtos22oNJPmHT2NKyysyfqN56nFPVkUwZjPhK5zqLMucuT8g9dHXjnjsKufeSuVm");
     dest = addr.Get();
-    BOOST_CHECK(dest.type() == typeid(CExtPubKey));
-    kpT = CExtKeyPair(boost::get<CExtPubKey>(dest));
+    BOOST_CHECK(dest.index() == DI::_CExtPubKey);
+    kpT = CExtKeyPair(std::get<CExtPubKey>(dest));
     BOOST_CHECK(kpT == kp);
 
     // Return to mainnet
@@ -550,7 +539,7 @@ BOOST_AUTO_TEST_CASE(extkey_account)
 
     const CEKAKey *pak = nullptr;
     const CEKASCKey *pasc = nullptr;
-    isminetype ismine;
+    wallet::isminetype ismine;
     BOOST_CHECK(HK_YES == eka.HaveKey(idk, false, pak, pasc, ismine));
     BOOST_CHECK(pak != nullptr);
     BOOST_CHECK(pasc == nullptr);
@@ -569,4 +558,3 @@ BOOST_AUTO_TEST_CASE(extkey_misc_keys)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-

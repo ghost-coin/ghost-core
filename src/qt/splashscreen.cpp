@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 The Bitcoin Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,6 +18,8 @@
 #include <util/system.h>
 #include <util/translation.h>
 
+#include <functional>
+
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDesktopWidget>
@@ -26,13 +28,37 @@
 #include <QScreen>
 
 
-SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) :
-    QWidget(nullptr, f), curAlignment(0)
+SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
+    : QWidget()
 {
     // transparent background
     setAttribute(Qt::WA_TranslucentBackground);
     setStyleSheet("background:transparent;");
     setWindowFlags(Qt::FramelessWindowHint);
+    // set reference point, paddings
+    int paddingRight            = 50;
+    int paddingTop              = 100;
+    int titleVersionVSpace      = 25;
+    int titleCopyrightVSpace    = 40;
+
+    float fontFactor            = 1.0;
+    float devicePixelRatio      = 1.0;
+    devicePixelRatio = static_cast<QGuiApplication*>(QCoreApplication::instance())->devicePixelRatio();
+
+    // define text to place
+    QString titleText       = PACKAGE_NAME;
+    QString versionText     = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
+    QString copyrightText   = QString::fromUtf8(CopyrightHolders("\xc2\xA9").c_str());
+    const QString& titleAddText    = networkStyle->getTitleAddText();
+
+    QString font            = QApplication::font().toString();
+
+    // create a bitmap according to device pixelratio
+    QSize splashSize(480*devicePixelRatio,320*devicePixelRatio);
+    pixmap = QPixmap(splashSize);
+
+    // change to HiDPI if it makes sense
+    pixmap.setDevicePixelRatio(devicePixelRatio);
 
     // load the bitmap for writing some text over it
     const QSize requiredSize(400,378);
@@ -83,16 +109,6 @@ bool SplashScreen::eventFilter(QObject * obj, QEvent * ev) {
     return QObject::eventFilter(obj, ev);
 }
 
-void SplashScreen::finish()
-{
-    /* If the window is minimized, hide() will be ignored. */
-    /* Make sure we de-minimize the splashscreen window before hiding */
-    if (isMinimized())
-        showNormal();
-    hide();
-    deleteLater(); // No more need for this
-}
-
 static void InitMessage(SplashScreen *splash, const std::string &message)
 {
     bool invoked = QMetaObject::invokeMethod(splash, "showMessage",
@@ -106,8 +122,8 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
 static void ShowProgress(SplashScreen *splash, const std::string &title, int nProgress, bool resume_possible)
 {
     InitMessage(splash, title + std::string("\n") +
-            (resume_possible ? _("(press q to shutdown and continue later)").translated
-                                : _("press q to shutdown").translated) +
+            (resume_possible ? SplashScreen::tr("(press q to shutdown and continue later)").toStdString()
+                                : SplashScreen::tr("press q to shutdown").toStdString()) +
             strprintf("\n%d", nProgress) + "%");
 }
 
@@ -116,13 +132,14 @@ void SplashScreen::subscribeToCoreSignals()
     // Connect signals to client
     m_handler_init_message = m_node->handleInitMessage(std::bind(InitMessage, this, std::placeholders::_1));
     m_handler_show_progress = m_node->handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_handler_init_wallet = m_node->handleInitWallet([this]() { handleLoadWallet(); });
 }
 
 void SplashScreen::handleLoadWallet()
 {
 #ifdef ENABLE_WALLET
     if (!WalletModel::isWalletEnabled()) return;
-    m_handler_load_wallet = m_node->walletClient().handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) {
+    m_handler_load_wallet = m_node->walletLoader().handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) {
         m_connected_wallet_handlers.emplace_back(wallet->handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, false)));
         m_connected_wallets.emplace_back(std::move(wallet));
     });

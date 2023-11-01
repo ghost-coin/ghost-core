@@ -3,6 +3,7 @@ Name "@PACKAGE_NAME@ (64-bit)"
 RequestExecutionLevel highest
 SetCompressor /SOLID lzma
 SetDateSave off
+Unicode true
 
 # Uncomment these lines when investigating reproducibility errors
 #SetCompress off
@@ -52,13 +53,12 @@ Var StartMenuGroup
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-InstallDir $PROGRAMFILES64\Ghost
-CRCCheck on
+InstallDir $PROGRAMFILES64\Particl
+CRCCheck force
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-# VIProductVersion ${VERSION}.@CLIENT_VERSION_BUILD@
-VIProductVersion ${VERSION}
+VIProductVersion @CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_PARTICL@.@CLIENT_VERSION_BUILD@
 VIAddVersionKey ProductName "@PACKAGE_NAME@"
 VIAddVersionKey ProductVersion "@PACKAGE_VERSION@"
 VIAddVersionKey CompanyName "${COMPANY}"
@@ -73,16 +73,18 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File @abs_top_srcdir@/release/@BITCOIN_GUI_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@BITCOIN_GUI_NAME@@EXEEXT@
     File /oname=COPYING.txt @abs_top_srcdir@/COPYING
     File /oname=readme.txt @abs_top_srcdir@/doc/README_windows.txt
+    File @abs_top_srcdir@/share/examples/bitcoin.conf
+    SetOutPath $INSTDIR\share\rpcauth
+    File @abs_top_srcdir@/share/rpcauth/*.*
     SetOutPath $INSTDIR\daemon
-    File @abs_top_srcdir@/release/@BITCOIN_DAEMON_NAME@@EXEEXT@
-    File @abs_top_srcdir@/release/@BITCOIN_CLI_NAME@@EXEEXT@
-    File @abs_top_srcdir@/release/@BITCOIN_TX_NAME@@EXEEXT@
-    File @abs_top_srcdir@/release/@BITCOIN_WALLET_TOOL_NAME@@EXEEXT@
-    SetOutPath $INSTDIR\doc
-    File /r /x Makefile* @abs_top_srcdir@/doc\*.*
+    File @abs_top_builddir@/release/@BITCOIN_DAEMON_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@BITCOIN_CLI_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@BITCOIN_TX_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@BITCOIN_WALLET_TOOL_NAME@@EXEEXT@
+    File @abs_top_builddir@/release/@BITCOIN_TEST_NAME@@EXEEXT@
     SetOutPath $INSTDIR
     WriteRegStr HKCU "${REGKEY}\Components" Main 1
 SectionEnd
@@ -129,8 +131,9 @@ Section /o -un.Main UNSEC0000
     Delete /REBOOTOK $INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@
     Delete /REBOOTOK $INSTDIR\COPYING.txt
     Delete /REBOOTOK $INSTDIR\readme.txt
+    Delete /REBOOTOK $INSTDIR\bitcoin.conf
+    RMDir /r /REBOOTOK $INSTDIR\share
     RMDir /r /REBOOTOK $INSTDIR\daemon
-    RMDir /r /REBOOTOK $INSTDIR\doc
     DeleteRegValue HKCU "${REGKEY}\Components" Main
 SectionEnd
 

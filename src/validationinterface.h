@@ -1,25 +1,23 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_VALIDATIONINTERFACE_H
 #define BITCOIN_VALIDATIONINTERFACE_H
 
+#include <kernel/cs_main.h>
 #include <primitives/transaction.h> // CTransaction(Ref)
 #include <sync.h>
 
 #include <functional>
 #include <memory>
 
-extern RecursiveMutex cs_main;
 class BlockValidationState;
 class CBlock;
 class CBlockIndex;
 struct CBlockLocator;
-class CConnman;
 class CValidationInterface;
-class uint256;
 class CScheduler;
 enum class MemPoolRemovalReason;
 
@@ -180,14 +178,16 @@ protected:
 
     virtual void TransactionAddedToWallet(const std::string &sWalletName, const CTransactionRef& tx) {};
     virtual void NewSecureMessage(const smsg::SecureMessage *psmsg, const uint160 &hash) {};
+    virtual void LeavingIBD() {};
 
     friend class CMainSignals;
+    friend class ValidationInterfaceTest;
 };
 
-struct MainSignalsInstance;
+class MainSignalsImpl;
 class CMainSignals {
 private:
-    std::unique_ptr<MainSignalsInstance> m_internals;
+    std::unique_ptr<MainSignalsImpl> m_internals;
 
     friend void ::RegisterSharedValidationInterface(std::shared_ptr<CValidationInterface>);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
@@ -214,8 +214,10 @@ public:
     void BlockChecked(const CBlock&, const BlockValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
 
+    /** Particl */
     void TransactionAddedToWallet(const std::string &sWalletName, const CTransactionRef& tx);
     void NewSecureMessage(const smsg::SecureMessage *psmsg, const uint160 &hash);
+    void LeavingIBD();
 };
 
 CMainSignals& GetMainSignals();

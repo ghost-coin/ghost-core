@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -73,6 +73,7 @@ enum HaveKeyResult {HK_NO = 0, HK_YES, HK_LOOKAHEAD, HK_LOOKAHEAD_DO_UPDATE};
 enum KeySourceTypes {KS_NONE = 0, KS_ACCOUNT_CHAIN, KS_STEALTH, KS_LEGACY, KS_LOOSE_CHAIN};
 
 struct CExtPubKey {
+    unsigned char version[4];
     unsigned char nDepth;
     unsigned char vchFingerprint[4];
     unsigned int nChild;
@@ -82,6 +83,10 @@ struct CExtPubKey {
     friend bool operator==(const CExtPubKey &a, const CExtPubKey &b) {
         return a.nDepth == b.nDepth && memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], 4) == 0 && a.nChild == b.nChild &&
                memcmp(&a.chaincode[0], &b.chaincode[0], 32) == 0 && a.pubkey == b.pubkey;
+    }
+    friend bool operator!=(const CExtPubKey &a, const CExtPubKey &b)
+    {
+        return !(a == b);
     }
     friend bool operator < (const CExtPubKey &a, const CExtPubKey &b)
     {
@@ -97,25 +102,27 @@ struct CExtPubKey {
 
     void Encode(unsigned char code[74]) const;
     void Decode(const unsigned char code[74]);
-    bool Derive(CExtPubKey &out, unsigned int nChild) const;
+    void EncodeWithVersion(unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]) const;
+    void DecodeWithVersion(const unsigned char code[BIP32_EXTKEY_WITH_VERSION_SIZE]);
+    [[nodiscard]] bool Derive(CExtPubKey &out, unsigned int nChild) const;
 
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)&nDepth, 1);
-        s.write((char*)vchFingerprint, 4);
+        s.write(AsBytes(Span{(char*)&nDepth, 1}));
+        s.write(AsBytes(Span{(char*)vchFingerprint, 4}));
         ser_writedata32(s, nChild);
-        s.write((char*)chaincode, 32);
+        s.write(AsBytes(Span{(char*)chaincode, 32}));
 
         pubkey.Serialize(s);
     }
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)&nDepth, 1);
-        s.read((char*)vchFingerprint, 4);
+        s.read(AsWritableBytes(Span{(char*)&nDepth, 1}));
+        s.read(AsWritableBytes(Span{(char*)vchFingerprint, 4}));
         nChild = ser_readdata32(s);
-        s.read((char*)chaincode, 32);
+        s.read(AsWritableBytes(Span{(char*)chaincode, 32}));
 
         pubkey.Unserialize(s);
     }
@@ -137,9 +144,11 @@ struct CExtKey {
 
     void Encode(unsigned char code[74]) const;
     void Decode(const unsigned char code[74]);
-    bool Derive(CExtKey &out, unsigned int nChild) const;
+    [[nodiscard]] bool Derive(CExtKey &out, unsigned int nChild) const;
     CExtPubKey Neutered() const;
     void SetSeed(const unsigned char *seed, unsigned int nSeedLen);
+    void SetSeed(Span<const uint8_t> seed);
+    void SetSeed(Span<const std::byte> seed);
     void SetKeyCode(const unsigned char *pkey, const unsigned char *pcode);
 
     size_t GetSerializeSize(int nType, int nVersion) const
@@ -150,29 +159,29 @@ struct CExtKey {
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)&nDepth, 1);
-        s.write((char*)vchFingerprint, 4);
+        s.write(AsBytes(Span{(char*)&nDepth, 1}));
+        s.write(AsBytes(Span{(char*)vchFingerprint, 4}));
         ser_writedata32(s, nChild);
-        s.write((char*)chaincode, 32);
+        s.write(AsBytes(Span{(char*)chaincode, 32}));
 
         char fValid = key.IsValid();
-        s.write((char*)&fValid, 1);
+        s.write(AsBytes(Span{(char*)&fValid, 1}));
         if (fValid) {
-            s.write((char*)key.begin(), 32);
+            s.write(AsBytes(Span{(char*)key.begin(), 32}));
         }
     }
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)&nDepth, 1);
-        s.read((char*)vchFingerprint, 4);
+        s.read(AsWritableBytes(Span{(char*)&nDepth, 1}));
+        s.read(AsWritableBytes(Span{(char*)vchFingerprint, 4}));
         nChild = ser_readdata32(s);
-        s.read((char*)chaincode, 32);
+        s.read(AsWritableBytes(Span{(char*)chaincode, 32}));
 
         char tmp[33];
-        s.read((char*)tmp, 1); // key.IsValid()
+        s.read(AsWritableBytes(Span{(char*)tmp, 1})); // key.IsValid()
         if (tmp[0]) {
-            s.read((char*)tmp+1, 32);
+            s.read(AsWritableBytes(Span{(char*)tmp+1, 32}));
             key.Set((uint8_t*)tmp+1, 1);
         }
     }
@@ -259,15 +268,15 @@ public:
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)&nDepth, 1);
-        s.write((char*)vchFingerprint, 4);
+        s.write(AsBytes(Span{(char*)&nDepth, 1}));
+        s.write(AsBytes(Span{(char*)vchFingerprint, 4}));
         ser_writedata32(s, nChild);
-        s.write((char*)chaincode, 32);
+        s.write(AsBytes(Span{(char*)chaincode, 32}));
 
         char fValid = key.IsValid();
-        s.write((char*)&fValid, 1);
+        s.write(AsBytes(Span{(char*)&fValid, 1}));
         if (fValid) {
-            s.write((char*)key.begin(), 32);
+            s.write(AsBytes(Span{(char*)key.begin(), 32}));
         }
 
         pubkey.Serialize(s);
@@ -275,15 +284,15 @@ public:
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)&nDepth, 1);
-        s.read((char*)vchFingerprint, 4);
+        s.read(AsWritableBytes(Span{(char*)&nDepth, 1}));
+        s.read(AsWritableBytes(Span{(char*)vchFingerprint, 4}));
         nChild = ser_readdata32(s);
-        s.read((char*)chaincode, 32);
+        s.read(AsWritableBytes(Span{(char*)chaincode, 32}));
 
         char tmp[33];
-        s.read((char*)tmp, 1); // key.IsValid()
+        s.read(AsWritableBytes(Span{(char*)tmp, 1})); // key.IsValid()
         if (tmp[0]) {
-            s.read((char*)tmp+1, 32);
+            s.read(AsWritableBytes(Span{(char*)tmp+1, 32}));
             key.Set((uint8_t*)tmp+1, 1);
         } else {
             key.Clear();
@@ -372,18 +381,18 @@ public:
 
     int SetPath(const std::vector<uint32_t> &vPath_);
 
-    isminetype IsMine() const
+    wallet::isminetype IsMine() const
     {
         if (kp.key.IsValid() || IsEncrypted()) {
-            return ISMINE_SPENDABLE;
+            return wallet::ISMINE_SPENDABLE;
         }
         if ((nFlags & EAF_HARDWARE_DEVICE)) {
 #if !ENABLE_USBDEVICE
-            return (isminetype)((int)ISMINE_WATCH_ONLY_ | (int)ISMINE_HARDWARE_DEVICE);
+            return (wallet::isminetype)(int(wallet::ISMINE_WATCH_ONLY_) | int(wallet::ISMINE_HARDWARE_DEVICE));
 #endif
-            return (isminetype)((int)ISMINE_SPENDABLE | (int)ISMINE_HARDWARE_DEVICE);
+            return (wallet::isminetype)(int(wallet::ISMINE_SPENDABLE) | int(wallet::ISMINE_HARDWARE_DEVICE));
         }
-        return ISMINE_WATCH_ONLY_;
+        return wallet::ISMINE_WATCH_ONLY_;
     };
 
     bool IsActive() const { return nFlags & EAF_ACTIVE; };
@@ -500,7 +509,7 @@ public:
     void Serialize(Stream &s) const
     {
         s << idStealthKey;
-        s.write((char*)sShared.begin(), EC_SECRET_SIZE);
+        s.write(AsBytes(Span{(char*)sShared.begin(), EC_SECRET_SIZE}));
         std::string obsolete_label;
         s << obsolete_label;
     }
@@ -508,7 +517,7 @@ public:
     void Unserialize(Stream &s)
     {
         s >> idStealthKey;
-        s.read((char*)sShared.begin(), EC_SECRET_SIZE);
+        s.read(AsWritableBytes(Span{(char*)sShared.begin(), EC_SECRET_SIZE}));
         sShared.SetFlags(true, true);
         std::string obsolete_label;
         s >> obsolete_label;
@@ -710,8 +719,8 @@ public:
     };
 
     int HaveSavedKey(const CKeyID &id);
-    int HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, isminetype &ismine);
-    int HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, isminetype &ismine);
+    int HaveKey(const CKeyID &id, bool fUpdate, const CEKAKey *&pak, const CEKASCKey *&pasc, wallet::isminetype &ismine);
+    int HaveStealthKey(const CKeyID &id, const CEKASCKey *&pasc, wallet::isminetype &ismine);
     bool GetKey(const CKeyID &id, CKey &keyOut) const;
     bool GetKey(const CEKAKey &ak, CKey &keyOut) const;
     bool GetKey(const CEKASCKey &asck, CKey &keyOut) const;
@@ -787,10 +796,10 @@ public:
         return vExtKeys.size() - 1;
     };
 
-    isminetype IsMine(uint32_t nChain) const
+    wallet::isminetype IsMine(uint32_t nChain) const
     {
         CStoredExtKey *p = GetChain(nChain);
-        return p ? p->IsMine() : ISMINE_NO;
+        return p ? p->IsMine() : wallet::ISMINE_NO;
     };
 
     int AddLookBehind(uint32_t nChain, uint32_t nKeys);

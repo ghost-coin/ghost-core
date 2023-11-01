@@ -7,12 +7,12 @@
 #ifndef SECP256K1_MODULE_RANGEPROOF_MAIN
 #define SECP256K1_MODULE_RANGEPROOF_MAIN
 
-#include "group.h"
+#include "../../group.h"
 
-#include "modules/commitment/main_impl.h"
+#include "../../modules/commitment/main_impl.h"
 
-#include "modules/rangeproof/borromean_impl.h"
-#include "modules/rangeproof/rangeproof_impl.h"
+#include "../../modules/rangeproof/borromean_impl.h"
+#include "../../modules/rangeproof/rangeproof_impl.h"
 
 int secp256k1_rangeproof_info(const secp256k1_context* ctx, int *exp, int *mantissa,
  uint64_t *min_value, uint64_t *max_value, const unsigned char *proof, size_t plen) {
@@ -44,11 +44,10 @@ int secp256k1_rangeproof_rewind(const secp256k1_context* ctx,
     ARG_CHECK(nonce != NULL);
     ARG_CHECK(extra_commit != NULL || extra_commit_len == 0);
     ARG_CHECK(gen != NULL);
-    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
     secp256k1_pedersen_commitment_load(&commitp, commit);
     secp256k1_generator_load(&genp, gen);
-    return secp256k1_rangeproof_verify_impl(&ctx->ecmult_ctx, &ctx->ecmult_gen_ctx,
+    return secp256k1_rangeproof_verify_impl(&ctx->ecmult_gen_ctx,
      blind_out, value_out, message_out, outlen, nonce, min_value, max_value, &commitp, proof, plen, extra_commit, extra_commit_len, &genp);
 }
 
@@ -63,10 +62,9 @@ int secp256k1_rangeproof_verify(const secp256k1_context* ctx, uint64_t *min_valu
     ARG_CHECK(max_value != NULL);
     ARG_CHECK(extra_commit != NULL || extra_commit_len == 0);
     ARG_CHECK(gen != NULL);
-    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     secp256k1_pedersen_commitment_load(&commitp, commit);
     secp256k1_generator_load(&genp, gen);
-    return secp256k1_rangeproof_verify_impl(&ctx->ecmult_ctx, NULL,
+    return secp256k1_rangeproof_verify_impl(NULL,
      NULL, NULL, NULL, NULL, NULL, min_value, max_value, &commitp, proof, plen, extra_commit, extra_commit_len, &genp);
 }
 
@@ -84,11 +82,10 @@ int secp256k1_rangeproof_sign(const secp256k1_context* ctx, unsigned char *proof
     ARG_CHECK(message != NULL || msg_len == 0);
     ARG_CHECK(extra_commit != NULL || extra_commit_len == 0);
     ARG_CHECK(gen != NULL);
-    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
     secp256k1_pedersen_commitment_load(&commitp, commit);
     secp256k1_generator_load(&genp, gen);
-    return secp256k1_rangeproof_sign_impl(&ctx->ecmult_ctx, &ctx->ecmult_gen_ctx,
+    return secp256k1_rangeproof_sign_impl(&ctx->ecmult_gen_ctx,
      proof, plen, min_value, &commitp, blind, nonce, exp, min_bits, value, message, msg_len, extra_commit, extra_commit_len, &genp);
 }
 

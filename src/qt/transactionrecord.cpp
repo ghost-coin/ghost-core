@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,13 +7,17 @@
 #include <chain.h>
 #include <interfaces/wallet.h>
 #include <key_io.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 
 #include <stdint.h>
 
 #include <wallet/hdwallet.h>
 
 #include <QDateTime>
+
+using wallet::ISMINE_SPENDABLE;
+using wallet::ISMINE_WATCH_ONLY;
+using wallet::isminetype;
 
 /* Return positive answer if transaction should be shown in list.
  */
@@ -59,7 +63,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     }
                 }
             } else {
-                if (address.type() == typeid(CNoDestination)) {
+                if (std::get_if<CNoDestination>(&address)) {
                     ExtractDestination(r.scriptPubKey, address);
                 }
             }
@@ -82,7 +86,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             }
         }
 
-        if (address.type() != typeid(CNoDestination)) {
+        if (!std::get_if<CNoDestination>(&address)) {
             sub.address = EncodeDestination(address);
         }
         if (sub.debit != 0) {
@@ -244,7 +248,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     continue;
                 }
 
-                if (!boost::get<CNoDestination>(&wtx.txout_address[nOut]))
+                if (!std::get_if<CNoDestination>(&wtx.txout_address[nOut]))
                 {
                     // Sent to Bitcoin Address
                     sub.type = TransactionRecord::SendToAddress;
@@ -296,21 +300,8 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, cons
     status.depth = wtx.depth_in_main_chain;
     status.m_cur_block_hash = block_hash;
 
-    const bool up_to_date = ((int64_t)QDateTime::currentMSecsSinceEpoch() / 1000 - block_time < MAX_BLOCK_TIME_GAP);
-    if (up_to_date && !wtx.is_final) {
-        if (wtx.lock_time < LOCKTIME_THRESHOLD) {
-            status.status = TransactionStatus::OpenUntilBlock;
-            status.open_for = wtx.lock_time - numBlocks;
-        }
-        else
-        {
-            status.status = TransactionStatus::OpenUntilDate;
-            status.open_for = wtx.lock_time;
-        }
-    }
     // For generated transactions, determine maturity
-    else if(type == TransactionRecord::Generated)
-    {
+    if (type == TransactionRecord::Generated) {
         if (wtx.blocks_to_maturity > 0)
         {
             status.status = TransactionStatus::Immature;

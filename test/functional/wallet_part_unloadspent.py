@@ -26,8 +26,8 @@ class WalletParticlUnloadSpentTest(GhostTestFramework):
         self.import_genesis_coins_a(nodes[0])
 
         ro = nodes[0].walletsettings('unloadspent', {'mode':1, 'mindepth':2})
-        assert(ro['unloadspent']['mode'] == 1)
-        assert(ro['unloadspent']['mindepth'] == 2)
+        assert (ro['unloadspent']['mode'] == 1)
+        assert (ro['unloadspent']['mindepth'] == 2)
 
         ro = nodes[1].extkey('importaccount', nodes[0].extkey('account', 'default', 'true')['epkey'])
         ro = nodes[1].extkey('setdefaultaccount', ro['account_id'])
@@ -35,28 +35,28 @@ class WalletParticlUnloadSpentTest(GhostTestFramework):
         w0 = nodes[0].getwalletinfo()
         w1 = nodes[1].getwalletinfo()
 
-        assert(w0['total_balance'] == w1['watchonly_total_balance'])
-        assert(w0['txcount'] == w1['txcount'])
+        assert (w0['total_balance'] == w1['watchonly_total_balance'])
+        assert (w0['txcount'] == w1['txcount'])
 
         self.stakeBlocks(40)
 
         w0 = nodes[0].getwalletinfo()
         w1 = nodes[1].getwalletinfo()
-        assert(w0['total_balance'] == w1['watchonly_total_balance'])
-        assert(w0['txcount'] < w1['txcount'])
+        assert (w0['total_balance'] == w1['watchonly_total_balance'])
+        assert (w0['txcount'] < w1['txcount'])
 
         d0 = nodes[0].debugwallet()
         d1 = nodes[1].debugwallet()
-        assert(d0['mapWallet_size'] + d0['m_collapsed_txns_size'] == d1['mapWallet_size'])
-        assert(d1['m_collapsed_txns_size'] == 0)
+        assert (d0['mapWallet_size'] + d0['m_collapsed_txns_size'] == d1['mapWallet_size'])
+        assert (d1['m_collapsed_txns_size'] == 0)
 
         self.log.info('Test node restart')
         self.stop_node(0)
         self.start_node(0, self.extra_args[0] + ['-wallet=default_wallet',])
 
         ro = nodes[0].walletsettings('unloadspent')
-        assert(ro['unloadspent']['mode'] == 1)
-        assert(ro['unloadspent']['mindepth'] == 2)
+        assert (ro['unloadspent']['mode'] == 1)
+        assert (ro['unloadspent']['mindepth'] == 2)
 
 
 if __name__ == '__main__':

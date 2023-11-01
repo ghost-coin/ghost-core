@@ -31,11 +31,11 @@ class WalletParticlWatchOnlyTest(GhostTestFramework):
         nodes[1].importaddress(addr, addr, True)
 
         ro = nodes[1].getaddressinfo(addr)
-        assert(ro['ismine'] == False)
-        assert(ro['iswatchonly'] == True)
+        assert (ro['ismine'] == False)
+        assert (ro['iswatchonly'] == True)
 
-        assert(isclose(nodes[1].getwalletinfo()['watchonly_balance'], 10000.0))
-        assert(len(nodes[1].filtertransactions({'include_watchonly': True})) == 1)
+        assert (isclose(nodes[1].getwalletinfo()['watchonly_balance'], 10000.0))
+        assert (len(nodes[1].filtertransactions({'include_watchonly': True})) == 1)
 
         self.log.info('Import watchonly account')
         ro = nodes[2].extkey('importaccount', nodes[0].extkey('account', 'default', 'true')['epkey'])
@@ -44,22 +44,23 @@ class WalletParticlWatchOnlyTest(GhostTestFramework):
         w0 = nodes[0].getwalletinfo()
         w2 = nodes[2].getwalletinfo()
 
-        assert(w0['total_balance'] == w2['watchonly_total_balance'])
-        assert(w0['txcount'] == w2['txcount'])
+        assert (w0['total_balance'] == w2['watchonly_total_balance'])
+        assert (w0['txcount'] == w2['txcount'])
 
         sxaddr0 = nodes[0].getnewstealthaddress()
         sxaddrs = nodes[0].liststealthaddresses(True)
         addr_info = nodes[0].getaddressinfo(sxaddr0)
-        assert(addr_info['ismine'] is True)
+        assert (addr_info['ismine'] is True)
+        assert (addr_info['isstealthaddress'] is True)
         scan_vk = sxaddrs[0]['Stealth Addresses'][0]['Scan Secret']
         spend_pk = sxaddrs[0]['Stealth Addresses'][0]['spend_public_key']
         spend_vk = sxaddrs[0]['Stealth Addresses'][0]['Spend Secret']
         ro = nodes[2].importstealthaddress(scan_vk, spend_pk)
-        assert(ro['stealth_address'] == sxaddr0)
-        assert(ro['watchonly'] == True)
+        assert (ro['stealth_address'] == sxaddr0)
+        assert (ro['watchonly'] == True)
         ro = nodes[2].getaddressinfo(sxaddr0)
-        assert(ro['ismine'] == False)
-        assert(ro['iswatchonly'] == True)
+        assert (ro['ismine'] == False)
+        assert (ro['iswatchonly'] == True)
 
         nodes[0].sendtoaddress(sxaddr0, 1.0)
         self.stakeBlocks(1)
@@ -67,8 +68,8 @@ class WalletParticlWatchOnlyTest(GhostTestFramework):
         w0 = nodes[0].getwalletinfo()
         w2 = nodes[2].getwalletinfo()
 
-        assert(w0['total_balance'] == w2['watchonly_total_balance'])
-        assert(w0['txcount'] == w2['txcount'])
+        assert (w0['total_balance'] == w2['watchonly_total_balance'])
+        assert (w0['txcount'] == w2['txcount'])
 
 
         self.log.info('Test sending blind output to watchonly')
@@ -78,10 +79,10 @@ class WalletParticlWatchOnlyTest(GhostTestFramework):
         self.stakeBlocks(1)
         w0 = nodes[0].getbalances()
         w2 = nodes[2].getbalances()
-        assert(isclose(w0['mine']['blind_trusted'], 10.0))
-        assert('watchonly' not in w0)
-        assert(isclose(w2['mine']['blind_trusted'], 0.0))
-        assert(isclose(w2['watchonly']['blind_trusted'], 10.0))
+        assert (isclose(w0['mine']['blind_trusted'], 10.0))
+        assert ('watchonly' not in w0)
+        assert (isclose(w2['mine']['blind_trusted'], 0.0))
+        assert (isclose(w2['watchonly']['blind_trusted'], 10.0))
 
         self.log.info('Test sending anon output to watchonly')
         coincontrol = {'blind_watchonly_visible': True}
@@ -90,27 +91,27 @@ class WalletParticlWatchOnlyTest(GhostTestFramework):
         self.stakeBlocks(1)
         w0 = nodes[0].getbalances()
         w2 = nodes[2].getbalances()
-        assert(isclose(w0['mine']['anon_immature'], 10.0))
-        assert('watchonly' not in w0)
-        assert(isclose(w2['mine']['anon_immature'], 0.0))
-        assert(isclose(w2['watchonly']['anon_immature'], 10.0))
+        assert (isclose(w0['mine']['anon_immature'], 10.0))
+        assert ('watchonly' not in w0)
+        assert (isclose(w2['mine']['anon_immature'], 0.0))
+        assert (isclose(w2['watchonly']['anon_immature'], 10.0))
 
         self.log.info('Test fully importing the watchonly stealth address')
         nodes[2].importstealthaddress(scan_vk, spend_vk)
         ro = nodes[2].getaddressinfo(sxaddr0)
-        assert(ro['ismine'] == True)
-        assert(ro['iswatchonly'] == False)
+        assert (ro['ismine'] == True)
+        assert (ro['iswatchonly'] == False)
 
         nodes[2].rescanblockchain(0)
 
         w2_balances = nodes[2].getbalances()
         w2_bm = w2_balances['mine']
-        assert(w2_bm['trusted'] == 1.0 or w2_bm['staked'] > 1.0)
-        assert(isclose(w2_bm['blind_trusted'], 10.0))
-        assert(isclose(w2_bm['anon_immature'], 10.0))
+        assert (w2_bm['trusted'] == 1.0 or w2_bm['staked'] > 1.0)
+        assert (isclose(w2_bm['blind_trusted'], 10.0))
+        assert (isclose(w2_bm['anon_immature'], 10.0))
         w2_bw = w2_balances['watchonly']
-        assert(w2_bw['anon_immature'] == 0.0)
-        assert(w2_bw['anon_immature'] == 0.0)
+        assert (w2_bw['anon_immature'] == 0.0)
+        assert (w2_bw['anon_immature'] == 0.0)
 
 
 if __name__ == '__main__':

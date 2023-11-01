@@ -1,13 +1,16 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <rpc/client.h>
+#include <tinyformat.h>
 #include <util/system.h>
 
 #include <set>
 #include <stdint.h>
+#include <string>
+#include <string_view>
 
 class CRPCConvertParam
 {
@@ -36,6 +39,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "generatetodescriptor", 0, "num_blocks" },
     { "generatetodescriptor", 2, "maxtries" },
     { "generateblock", 1, "transactions" },
+    { "generateblock", 2, "submit" },
     { "getnetworkhashps", 0, "nblocks" },
     { "getnetworkhashps", 1, "height" },
     { "sendtoaddress", 1, "amount" },
@@ -48,16 +52,21 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "settxfee", 0, "amount" },
     { "sethdseed", 0, "newkeypool" },
     { "getreceivedbyaddress", 1, "minconf" },
+    { "getreceivedbyaddress", 2, "include_immature_coinbase" },
     { "getreceivedbylabel", 1, "minconf" },
+    { "getreceivedbylabel", 2, "include_immature_coinbase" },
     { "listreceivedbyaddress", 0, "minconf" },
     { "listreceivedbyaddress", 1, "include_empty" },
     { "listreceivedbyaddress", 2, "include_watchonly" },
+    { "listreceivedbyaddress", 4, "include_immature_coinbase" },
     { "listreceivedbylabel", 0, "minconf" },
     { "listreceivedbylabel", 1, "include_empty" },
     { "listreceivedbylabel", 2, "include_watchonly" },
+    { "listreceivedbylabel", 3, "include_immature_coinbase" },
     { "getbalance", 1, "minconf" },
     { "getbalance", 2, "include_watchonly" },
     { "getbalance", 3, "avoid_reuse" },
+    { "getblockfrompeer", 1, "peer_id" },
     { "getblockhash", 0, "height" },
     { "waitforblockheight", 0, "height" },
     { "waitforblockheight", 1, "timeout" },
@@ -72,6 +81,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listsinceblock", 1, "target_confirmations" },
     { "listsinceblock", 2, "include_watchonly" },
     { "listsinceblock", 3, "include_removed" },
+    { "listsinceblock", 4, "include_change" },
     { "sendmany", 1, "amounts" },
     { "sendmany", 2, "minconf" },
     { "sendmany", 4, "subtractfeefrom" },
@@ -80,6 +90,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendmany", 8, "fee_rate"},
     { "sendmany", 9, "verbose" },
     { "deriveaddresses", 1, "range" },
+    { "scanblocks", 1, "scanobjects" },
+    { "scanblocks", 2, "start_height" },
+    { "scanblocks", 3, "stop_height" },
+    { "scanblocks", 5, "options" },
     { "scantxoutset", 1, "scanobjects" },
     { "addmultisigaddress", 0, "nrequired" },
     { "addmultisigaddress", 1, "keys" },
@@ -100,6 +114,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getchaintxstats", 0, "nblocks" },
     { "gettransaction", 1, "include_watchonly" },
     { "gettransaction", 2, "verbose" },
+    { "getrawtransaction", 1, "verbosity" },
     { "getrawtransaction", 1, "verbose" },
     { "createrawtransaction", 0, "inputs" },
     { "createrawtransaction", 1, "outputs" },
@@ -108,11 +123,14 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "decoderawtransaction", 1, "iswitness" },
     { "signrawtransactionwithkey", 1, "privkeys" },
     { "signrawtransactionwithkey", 2, "prevtxs" },
+    { "signrawtransactionwithkey", 4, "options" },
     { "signrawtransactionwithwallet", 1, "prevtxs" },
     { "sendrawtransaction", 1, "maxfeerate" },
+    { "sendrawtransaction", 2, "maxburnamount" },
     { "testmempoolaccept", 0, "rawtxs" },
     { "testmempoolaccept", 1, "maxfeerate" },
     { "testmempoolaccept", 2, "ignorelocks" },
+    { "submitpackage", 0, "package" },
     { "combinerawtransaction", 0, "txs" },
     { "fundrawtransaction", 1, "options" },
     { "fundrawtransaction", 2, "iswitness" },
@@ -123,6 +141,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "walletcreatefundedpsbt", 4, "bip32derivs" },
     { "walletprocesspsbt", 1, "sign" },
     { "walletprocesspsbt", 3, "bip32derivs" },
+    { "walletprocesspsbt", 4, "finalize" },
     { "createpsbt", 0, "inputs" },
     { "createpsbt", 1, "outputs" },
     { "createpsbt", 2, "locktime" },
@@ -135,13 +154,21 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "gettxout", 1, "n" },
     { "gettxout", 2, "include_mempool" },
     { "gettxoutproof", 0, "txids" },
+    { "gettxoutsetinfo", 1, "hash_or_height" },
+    { "gettxoutsetinfo", 2, "use_index"},
     { "lockunspent", 0, "unlock" },
     { "lockunspent", 1, "transactions" },
-    { "lockunspent", 2, "permanent" },
+    { "lockunspent", 2, "persistent" },
     { "send", 0, "outputs" },
     { "send", 1, "conf_target" },
     { "send", 3, "fee_rate"},
     { "send", 4, "options" },
+    { "sendall", 0, "recipients" },
+    { "sendall", 1, "conf_target" },
+    { "sendall", 3, "fee_rate"},
+    { "sendall", 4, "options" },
+    { "simulaterawtransaction", 0, "rawtxs" },
+    { "simulaterawtransaction", 1, "options" },
     { "importprivkey", 2, "rescan" },
     { "importaddress", 2, "rescan" },
     { "importaddress", 3, "p2sh" },
@@ -149,6 +176,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "importmulti", 0, "requests" },
     { "importmulti", 1, "options" },
     { "importdescriptors", 0, "requests" },
+    { "listdescriptors", 0, "private" },
     { "verifychain", 0, "checklevel" },
     { "verifychain", 1, "nblocks" },
     { "getblockstats", 0, "hash_or_height" },
@@ -181,16 +209,30 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listcoldstakeunspent", 2, "options"},
     { "getblockreward", 0, "height"},
     { "getblockbalances", 1, "options"},
+    { "gettxspendingprevout", 0, "outputs" },
     { "bumpfee", 1, "options" },
     { "psbtbumpfee", 1, "options" },
 
-
-    { "reservebalance", 0, "enabled" },
+    // Particl
+    { "importstealthaddress", 3, "num_prefix_bits" },
+    { "liststealthaddresses", 0, "show_secrets" },
+    { "clearwallettransactions", 0, "remove_all" },
     { "deriverangekeys", 0, "start" },
     { "deriverangekeys", 1, "end" },
+    { "deriverangekeys", 3, "hardened" },
+    { "deriverangekeys", 4, "save" },
+    { "deriverangekeys", 5, "add_to_addressbook" },
+    { "deriverangekeys", 6, "256bithash" },
+    { "rehashblock", 2, "addtxns" },
+    { "verifycommitment", 2, "amount" },
+    { "getposdifficulty", 0, "height" },
+    { "reservebalance", 0, "enabled" },
     { "filtertransactions", 0, "options" },
     { "filteraddresses", 0, "offset" },
     { "filteraddresses", 1, "count" },
+    { "filteraddresses", 2, "sort_code" },
+    { "filteraddresses", 4, "match_owned" },
+    { "filteraddresses", 5, "show_path" },
     { "setvote", 0, "proposal" },
     { "setvote", 1, "option" },
     { "setvote", 2, "height_start" },
@@ -240,11 +282,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createsignaturewithwallet", 4, "options" },
     { "createsignaturewithkey", 4, "options" },
 
-
-    { "walletsettings", 1, "value" },
+    { "walletsettings", 1, "setting_value" },
 
     { "getnewextaddress", 2, "bech32" },
     { "getnewextaddress", 3, "hardened" },
+    { "getnewstealthaddress", 1, "num_prefix_bits" },
     { "getnewstealthaddress", 3, "bech32" },
     { "getnewstealthaddress", 4, "makeV2" },
     { "importstealthaddress", 5, "bech32" },
@@ -278,7 +320,23 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "generatematchingblindfactor", 0, "blind_in" },
     { "generatematchingblindfactor", 1, "blind_out" },
 
+    { "pruneorphanedblocks", 0, "testonly" },
+    { "extkeyimportmaster", 2, "save_bip44_root" },
+    { "extkeyimportmaster", 5, "scan_chain_from" },
+    { "extkeyimportmaster", 6, "options" },
+    { "extkeygenesisimport", 2, "save_bip44_root" },
+    { "extkeygenesisimport", 5, "scan_chain_from" },
+    { "extkeygenesisimport", 6, "options" },
+    { "debugwallet", 0, "options" },
+    { "reservebalance", 1, "amount" },
+    { "votehistory", 0, "current_only" },
+    { "votehistory", 1, "include_future" },
+    { "splitmnemonic", 0, "parameters" },
+    { "combinemnemonic", 0, "parameters" },
+    { "mnemonictoentropy", 0, "parameters" },
+    { "mnemonicfromentropy", 0, "parameters" },
 
+    // Particl: SMSG
     { "smsgsend", 3, "paid_msg" },
     { "smsgsend", 4, "days_retention" },
     { "smsgsend", 5, "testfee" },
@@ -287,7 +345,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "smsgfund", 0, "msgids" },
     { "smsgfund", 1, "options" },
     { "smsgfund", 2, "coin_control" },
-
     { "smsg", 1, "options" },
     { "smsgimport", 1, "options" },
     { "smsginbox", 2, "options" },
@@ -309,12 +366,40 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
     { "devicesignrawtransaction", 1, "prevtxs" },
     { "devicesignrawtransaction", 2, "paths" },
+    // Particl: Hardware Device
+    { "devicesignrawtransaction", 1, "prevtxs" },
+    { "devicesignrawtransaction", 2, "paths" },
+    { "devicesignrawtransactionwithwallet", 1, "prevtxs" },
+    { "devicesignrawtransactionwithwallet", 2, "paths" },
     { "initaccountfromdevice", 2, "makedefault" },
     { "initaccountfromdevice", 3, "scan_chain_from" },
     { "initaccountfromdevice", 4, "initstealthchain" },
+    { "unlockdevice", 1, "pin" },
+    { "deviceloadmnemonic", 0, "wordcount" },
+    { "deviceloadmnemonic", 1, "pinprotection" },
+    { "devicegetnewstealthaddress", 1, "num_prefix_bits" },
+    { "devicegetnewstealthaddress", 3, "bech32" },
 
-    { "getposdifficulty", 0, "height" },
-
+    // Particl: Insight
+    { "getblockhashes", 0 , "high"},
+    { "getblockhashes", 1, "low"},
+    { "getblockhashes", 2, "options" },
+    { "getspentinfo", 0, "inputs"},
+    { "getaddressbalance", 0, "addresses"},
+    { "getaddressmempool", 0, "addresses"},
+    { "listcoldstakeunspent", 1, "height"},
+    { "listcoldstakeunspent", 2, "options"},
+    { "getblockreward", 0, "height"},
+    { "getblockbalances", 1, "options"},
+    { "getaddresstxids", 0, "addresses"},
+    { "getaddresstxids", 1, "start" },
+    { "getaddresstxids", 2, "end" },
+    { "getaddressdeltas", 0, "addresses"},
+    { "getaddressdeltas", 1, "start" },
+    { "getaddressdeltas", 2, "end" },
+    { "getaddressdeltas", 3, "chainInfo" },
+    { "getaddressutxos", 0, "addresses"},
+    { "getaddressutxos", 1, "chainInfo" },
 
     { "logging", 0, "include" },
     { "logging", 1, "exclude" },
@@ -338,11 +423,13 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "createwallet", 4, "avoid_reuse"},
     { "createwallet", 5, "descriptors"},
     { "createwallet", 6, "load_on_startup"},
-    { "createwallet", 7, "use_legacy"},
+    { "createwallet", 7, "external_signer"},
+    { "restorewallet", 2, "load_on_startup"},
     { "loadwallet", 1, "load_on_startup"},
     { "unloadwallet", 1, "load_on_startup"},
     { "getnodeaddresses", 0, "count"},
     { "addpeeraddress", 1, "port"},
+    { "addpeeraddress", 2, "tried"},
     { "stop", 0, "wait" },
 };
 // clang-format on
@@ -356,24 +443,24 @@ private:
 public:
     CRPCConvertTable();
 
-    bool convert(const std::string& method, int idx) {
-        return (members.count(std::make_pair(method, idx)) > 0);
+    /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
+    UniValue ArgToUniValue(std::string_view arg_value, const std::string& method, int param_idx)
+    {
+        return members.count({method, param_idx}) > 0 ? ParseNonRFCJSONValue(arg_value) : arg_value;
     }
-    bool convert(const std::string& method, const std::string& name) {
-        return (membersByName.count(std::make_pair(method, name)) > 0);
+
+    /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
+    UniValue ArgToUniValue(std::string_view arg_value, const std::string& method, const std::string& param_name)
+    {
+        return membersByName.count({method, param_name}) > 0 ? ParseNonRFCJSONValue(arg_value) : arg_value;
     }
 };
 
 CRPCConvertTable::CRPCConvertTable()
 {
-    const unsigned int n_elem =
-        (sizeof(vRPCConvertParams) / sizeof(vRPCConvertParams[0]));
-
-    for (unsigned int i = 0; i < n_elem; i++) {
-        members.insert(std::make_pair(vRPCConvertParams[i].methodName,
-                                      vRPCConvertParams[i].paramIdx));
-        membersByName.insert(std::make_pair(vRPCConvertParams[i].methodName,
-                                            vRPCConvertParams[i].paramName));
+    for (const auto& cp : vRPCConvertParams) {
+        members.emplace(cp.methodName, cp.paramIdx);
+        membersByName.emplace(cp.methodName, cp.paramName);
     }
 }
 
@@ -382,13 +469,11 @@ static CRPCConvertTable rpcCvtTable;
 /** Non-RFC4627 JSON parser, accepts internal values (such as numbers, true, false, null)
  * as well as objects and arrays.
  */
-UniValue ParseNonRFCJSONValue(const std::string& strVal)
+UniValue ParseNonRFCJSONValue(std::string_view raw)
 {
-    UniValue jVal;
-    if (!jVal.read(std::string("[")+strVal+std::string("]")) ||
-        !jVal.isArray() || jVal.size()!=1)
-        throw std::runtime_error(std::string("Error parsing JSON: ") + strVal);
-    return jVal[0];
+    UniValue parsed;
+    if (!parsed.read(raw)) throw std::runtime_error(tfm::format("Error parsing JSON: %s", raw));
+    return parsed;
 }
 
 UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::string> &strParams)
@@ -396,15 +481,8 @@ UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::s
     UniValue params(UniValue::VARR);
 
     for (unsigned int idx = 0; idx < strParams.size(); idx++) {
-        const std::string& strVal = strParams[idx];
-
-        if (!rpcCvtTable.convert(strMethod, idx)) {
-            // insert string value directly
-            params.push_back(strVal);
-        } else {
-            // parse string as JSON, insert bool/number/object/etc. value
-            params.push_back(ParseNonRFCJSONValue(strVal));
-        }
+        std::string_view value{strParams[idx]};
+        params.push_back(rpcCvtTable.ArgToUniValue(value, strMethod, idx));
     }
 
     return params;
@@ -413,23 +491,29 @@ UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::s
 UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<std::string> &strParams)
 {
     UniValue params(UniValue::VOBJ);
+    UniValue positional_args{UniValue::VARR};
 
-    for (const std::string &s: strParams) {
+    for (std::string_view s: strParams) {
         size_t pos = s.find('=');
         if (pos == std::string::npos) {
-            throw(std::runtime_error("No '=' in named argument '"+s+"', this needs to be present for every argument (even if it is empty)"));
+            positional_args.push_back(rpcCvtTable.ArgToUniValue(s, strMethod, positional_args.size()));
+            continue;
         }
 
-        std::string name = s.substr(0, pos);
-        std::string value = s.substr(pos+1);
+        std::string name{s.substr(0, pos)};
+        std::string_view value{s.substr(pos+1)};
 
-        if (!rpcCvtTable.convert(strMethod, name)) {
-            // insert string value directly
-            params.pushKV(name, value);
-        } else {
-            // parse string as JSON, insert bool/number/object/etc. value
-            params.pushKV(name, ParseNonRFCJSONValue(value));
-        }
+        // Intentionally overwrite earlier named values with later ones as a
+        // convenience for scripts and command line users that want to merge
+        // options.
+        params.pushKV(name, rpcCvtTable.ArgToUniValue(value, strMethod, name));
+    }
+
+    if (!positional_args.empty()) {
+        // Use __pushKV instead of pushKV to avoid overwriting an explicit
+        // "args" value with an implicit one. Let the RPC server handle the
+        // request as given.
+        params.__pushKV("args", positional_args);
     }
 
     return params;

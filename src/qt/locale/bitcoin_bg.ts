@@ -458,14 +458,6 @@
         <translation>Актуално</translation>
     </message>
     <message>
-        <source>Node window</source>
-        <translation>Прозорец на възела</translation>
-    </message>
-    <message>
-        <source>Open Wallet</source>
-        <translation>Отворете портфейл</translation>
-    </message>
-    <message>
         <source>Close Wallet...</source>
         <translation>Затвори Портфейла</translation>
     </message>
@@ -482,7 +474,7 @@
         <translation>Затвори всички портфейли</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Ghost command-line options</source>
+        <source>Show the %1 help message to get a list with possible Particl command-line options</source>
         <translation>Покажи %1 помощно съобщение за да получиш лист с възможни Биткойн команди</translation>
     </message>
     <message>

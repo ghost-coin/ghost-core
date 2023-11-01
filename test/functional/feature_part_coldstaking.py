@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from test_framework.test_particl import GhostTestFramework
 from test_framework.util import assert_equal
-from test_framework.address import keyhash_to_p2pkh, hex_str_to_bytes
+from test_framework.address import keyhash_to_p2pkh
 from test_framework.authproxy import JSONRPCException
 
 
@@ -55,19 +55,19 @@ class ColdStakingTest(GhostTestFramework):
 
         changeaddress = {'coldstakingaddress': coldstakingaddr}
         ro = nodes[0].walletsettings('changeaddress', changeaddress)
-        assert(ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
+        assert (ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
 
         ro = nodes[0].walletsettings('changeaddress')
-        assert(ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
+        assert (ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
 
         ro = nodes[0].walletsettings('changeaddress', {})
-        assert(ro['changeaddress'] == 'cleared')
+        assert (ro['changeaddress'] == 'cleared')
 
         ro = nodes[0].walletsettings('changeaddress')
-        assert(ro['changeaddress'] == 'default')
+        assert (ro['changeaddress'] == 'default')
 
         ro = nodes[0].walletsettings('changeaddress', changeaddress)
-        assert(ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
+        assert (ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
 
 
         # Trying to set a coldstakingchangeaddress known to the wallet should fail
@@ -78,14 +78,14 @@ class ColdStakingTest(GhostTestFramework):
                 continue
             externalChain0 = c['chain']
             break
-        assert(externalChain0 == 'pparszMzzW1247AwkKCH1MqneucXJfDoR3M5KoLsJZJpHkcjayf1xUMwPoTcTfUoQ32ahnkHhjvD2vNiHN5dHL6zmx8vR799JxgCw95APdkwuGm1')
+        assert (externalChain0 == 'pparszMzzW1247AwkKCH1MqneucXJfDoR3M5KoLsJZJpHkcjayf1xUMwPoTcTfUoQ32ahnkHhjvD2vNiHN5dHL6zmx8vR799JxgCw95APdkwuGm1')
 
         changeaddress = {'coldstakingaddress': externalChain0}
         try:
             ro = nodes[0].walletsettings('changeaddress', changeaddress)
-            assert(False), 'Added known address as cold-staking-change-address.'
+            assert (False), 'Added known address as cold-staking-change-address.'
         except JSONRPCException as e:
-            assert('is spendable from this wallet' in e.error['message'])
+            assert ('is spendable from this wallet' in e.error['message'])
 
         assert_equal(nodes[0].getcoldstakinginfo()['coin_in_coldstakeable_script'], Decimal(0))
         txid1 = nodes[0].sendtoaddress(addr2_1, 100)
@@ -106,11 +106,11 @@ class ColdStakingTest(GhostTestFramework):
             hashCoinstake = asm[4]
             hashOther = asm[10]
 
-        assert(hashCoinstake == '65674e752b3a336337510bf5b57794c71c45cd4f')
-        assert(hashOther == 'e5c8967e77fdeecaa46a446a0f71988c65b51432f35f8e58fdfe628c5a169386')
+        assert (hashCoinstake == '65674e752b3a336337510bf5b57794c71c45cd4f')
+        assert (hashOther == 'e5c8967e77fdeecaa46a446a0f71988c65b51432f35f8e58fdfe628c5a169386')
 
         ro = nodes[0].deriverangekeys(0, 0, coldstakingaddr)
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashCoinstake)))
+        assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
 
         ro = nodes[0].extkey('list', 'true')
@@ -119,29 +119,29 @@ class ColdStakingTest(GhostTestFramework):
         for ek in ro:
             if ek['id'] == 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB':
                 fFound = True
-                assert(ek['evkey'] == 'Unknown')
-                assert(ek['num_derives'] == '1')
-        assert(fFound)
+                assert (ek['evkey'] == 'Unknown')
+                assert (ek['num_derives'] == '1')
+        assert (fFound)
 
-        assert(self.wait_for_mempool(nodes[1], txid1))
+        assert (self.wait_for_mempool(nodes[1], txid1))
 
         ro = nodes[1].extkey('key', 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB', 'true')
-        assert(ro['num_derives'] == '1')
+        assert (ro['num_derives'] == '1')
 
         ro = nodes[1].listtransactions('*', 999999, 0, True)
-        assert(len(ro) == 1)
+        assert (len(ro) == 1)
 
         ro = nodes[1].getwalletinfo()
         last_balance = ro['watchonly_unconfirmed_balance']
-        assert(last_balance > 0)
+        assert (last_balance > 0)
 
         ekChange = nodes[0].getnewextaddress()
-        assert(ekChange == 'pparszMzzW1247AwkR61QFUH6L8zSJDnRvsS8a2FLwfSsgbeusiLNdBkLRXjFb3E5AXVoR6PJTj9nSEF1feCsCyBdGw165XqVcaWs5HiDmcZrLAX')
+        assert (ekChange == 'pparszMzzW1247AwkR61QFUH6L8zSJDnRvsS8a2FLwfSsgbeusiLNdBkLRXjFb3E5AXVoR6PJTj9nSEF1feCsCyBdGw165XqVcaWs5HiDmcZrLAX')
 
         changeaddress = {'coldstakingaddress': coldstakingaddr, 'address_standard': ekChange}
         ro = nodes[0].walletsettings('changeaddress', changeaddress)
-        assert(ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
-        assert(ro['changeaddress']['address_standard'] == ekChange)
+        assert (ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
+        assert (ro['changeaddress']['address_standard'] == ekChange)
 
         txid2 = nodes[0].sendtoaddress(addr2_1, 100)
 
@@ -158,43 +158,43 @@ class ColdStakingTest(GhostTestFramework):
             hashCoinstake = asm[4]
             hashSpend = asm[10]
 
-        assert(hashCoinstake == '1ac277619e43a7e0558c612f86b918104742f65c')
-        assert(hashSpend == '55e9e9b1aebf76f2a2ce9d7af6267be996bc235e3a65fa0f87a345267f9b3895')
+        assert (hashCoinstake == '1ac277619e43a7e0558c612f86b918104742f65c')
+        assert (hashSpend == '55e9e9b1aebf76f2a2ce9d7af6267be996bc235e3a65fa0f87a345267f9b3895')
 
         ro = nodes[0].deriverangekeys(1, 1, coldstakingaddr)
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashCoinstake)))
+        assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
-        ro = nodes[0].deriverangekeys(0, 0, ekChange, 'false', 'false', 'false', 'true')
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashSpend)))
+        ro = nodes[0].deriverangekeys(0, 0, ekChange, False, False, False, True)
+        assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashSpend)))
 
         ro = nodes[0].extkey('list', 'true')
         fFound = False
         for ek in ro:
             if ek['id'] == 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB':
                 fFound = True
-                assert(ek['evkey'] == 'Unknown')
-                assert(ek['num_derives'] == '2')
-        assert(fFound)
+                assert (ek['evkey'] == 'Unknown')
+                assert (ek['num_derives'] == '2')
+        assert (fFound)
 
         ro = nodes[0].extkey('account')
         fFound = False
         for chain in ro['chains']:
             if chain['id'] == 'xXZRLYvJgbJyrqJhgNzMjEvVGViCdGmVAt':
                 fFound = True
-                assert(chain['num_derives'] == '1')
-                assert(chain['path'] == 'm/0h/2')
-        assert(fFound)
+                assert (chain['num_derives'] == '1')
+                assert (chain['path'] == 'm/0h/2')
+        assert (fFound)
 
-        assert(self.wait_for_mempool(nodes[1], txid2))
+        assert (self.wait_for_mempool(nodes[1], txid2))
 
         ro = nodes[1].extkey('key', 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB', 'true')
-        assert(ro['num_derives'] == '2')
+        assert (ro['num_derives'] == '2')
 
         ro = nodes[1].listtransactions('*', 999999, 0, True)
-        assert(len(ro) == 2)
+        assert (len(ro) == 2)
 
         ro = nodes[1].getwalletinfo()
-        assert(ro['watchonly_unconfirmed_balance'] > last_balance)
+        assert (ro['watchonly_unconfirmed_balance'] > last_balance)
 
         txid3 = nodes[0].sendtoaddress(addr2_1, 100)
         tx = nodes[0].getrawtransaction(txid3, True)
@@ -211,28 +211,28 @@ class ColdStakingTest(GhostTestFramework):
             hashSpend = asm[10]
 
         ro = nodes[0].deriverangekeys(2, 2, coldstakingaddr)
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashCoinstake)))
+        assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashCoinstake)))
 
-        ro = nodes[0].deriverangekeys(1, 1, ekChange, 'false', 'false', 'false', 'true')
-        assert(ro[0] == keyhash_to_p2pkh_part(hex_str_to_bytes(hashSpend)))
+        ro = nodes[0].deriverangekeys(1, 1, ekChange, False, False, False, True)
+        assert (ro[0] == keyhash_to_p2pkh_part(bytes.fromhex(hashSpend)))
 
         ro = nodes[0].extkey('list', 'true')
         fFound = False
         for ek in ro:
             if ek['id'] == 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB':
                 fFound = True
-                assert(ek['evkey'] == 'Unknown')
-                assert(ek['num_derives'] == '3')
-        assert(fFound)
+                assert (ek['evkey'] == 'Unknown')
+                assert (ek['num_derives'] == '3')
+        assert (fFound)
 
         ro = nodes[0].extkey('account')
         fFound = False
         for chain in ro['chains']:
             if chain['id'] == 'xXZRLYvJgbJyrqJhgNzMjEvVGViCdGmVAt':
                 fFound = True
-                assert(chain['num_derives'] == '2')
-                assert(chain['path'] == 'm/0h/2')
-        assert(fFound)
+                assert (chain['num_derives'] == '2')
+                assert (chain['path'] == 'm/0h/2')
+        assert (fFound)
 
         assert(self.wait_for_mempool(nodes[1], txid3))
         assert(nodes[1].extkey('key', 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB', 'true')['num_derives'] == '3')
@@ -242,21 +242,21 @@ class ColdStakingTest(GhostTestFramework):
         nodes[0].reservebalance(False)
 
         # Test walletsettings stakelimit view path
-        assert(nodes[0].walletsettings('stakelimit')['height'] == 2)
+        assert (nodes[0].walletsettings('stakelimit')['height'] == 2)
 
-        assert(self.wait_for_height(nodes[0], 2))
+        assert (self.wait_for_height(nodes[0], 2))
         self.sync_all()
 
-        assert(nodes[1].getwalletinfo()['watchonly_staked_balance'] > 0)
+        assert (nodes[1].getwalletinfo()['watchonly_staked_balance'] > 0)
 
         ro = nodes[0].extkey('list', 'true')
         fFound = False
         for ek in ro:
             if ek['id'] == 'xBDBWFLeYrbBhPRSKHzVwN61rwUGwCXvUB':
                 fFound = True
-                assert(ek['evkey'] == 'Unknown')
-                assert(ek['num_derives'] == '5')
-        assert(fFound)
+                assert (ek['evkey'] == 'Unknown')
+                assert (ek['num_derives'] == '5')
+        assert (fFound)
 
         # Test mapRecord watchonly
         wotBefore = nodes[1].getwalletinfo()['watchonly_total_balance']
@@ -271,9 +271,9 @@ class ColdStakingTest(GhostTestFramework):
         self.sync_all()
 
         wotAfter = nodes[1].getwalletinfo()['watchonly_total_balance']
-        assert(wotAfter > wotBefore-Decimal(2.0))
+        assert (wotAfter > wotBefore-Decimal(2.0))
 
-        assert(len(nodes[1].listtransactions('*', 10, 0)) == 0)
+        assert (len(nodes[1].listtransactions('*', 10, 0)) == 0)
 
         txn_list = nodes[1].listtransactions('*', 10, 0, True)
 
@@ -281,12 +281,12 @@ class ColdStakingTest(GhostTestFramework):
         for txn in txn_list:
             if txn['txid'] == txid:
                 fFound = True
-                assert(txn['involvesWatchonly'] == True)
-        assert(fFound)
+                assert (txn['involvesWatchonly'] == True)
+        assert (fFound)
 
         self.log.info('Test gettxoutsetinfobyscript')
         ro = nodes[0].gettxoutsetinfobyscript()
-        assert(ro['coldstake_paytopubkeyhash']['num_plain'] > 5)
+        assert (ro['coldstake_paytopubkeyhash']['num_plain'] > 5)
 
         self.log.info('Test p2sh in changeaddress')
         ms_addrs0 = []
@@ -312,16 +312,16 @@ class ColdStakingTest(GhostTestFramework):
         for ms_addr in (ms_addr0['address'], ms_addr1['address']):
             changeaddress = {'coldstakingaddress': coldstakingaddr, 'address_standard': ms_addr}
             ro = nodes[0].walletsettings('changeaddress', changeaddress)
-            assert(ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
-            assert(ro['changeaddress']['address_standard'] == ms_addr)
+            assert (ro['changeaddress']['coldstakingaddress'] == coldstakingaddr)
+            assert (ro['changeaddress']['address_standard'] == ms_addr)
 
             addr_to = nodes[0].getnewaddress()
             rtx = nodes[0].createrawtransaction([], {addr_to: 0.0001})
             ftx = nodes[0].fundrawtransaction(rtx)
             dtx = nodes[0].decoderawtransaction(ftx['hex'])
-            n_change = 1 if dtx['vout'][0]['scriptPubKey']['addresses'][0] == addr_to else 0
-            assert(dtx['vout'][n_change]['scriptPubKey']['addresses'][0] == ms_addr)
-            stake_addr = dtx['vout'][n_change]['scriptPubKey']['stakeaddresses'][0]
+            n_change = 1 if dtx['vout'][0]['scriptPubKey']['address'] == addr_to else 0
+            assert (dtx['vout'][n_change]['scriptPubKey']['address'] == ms_addr)
+            stake_addr = dtx['vout'][n_change]['scriptPubKey']['stakeaddress']
             stake_addr_alt = nodes[0].validateaddress(stake_addr, True)['stakeonly_address']
             assert(stake_addr_alt == coldstakingaddr)
 

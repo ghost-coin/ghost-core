@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,13 +8,13 @@
 #include <base58.h>
 #include <chainparams.h>
 #include <smsg/smessage.h>
-#include <smsg/crypter.h>
+#include <key/crypter.h>
 #include <blind.h>
 #include <primitives/transaction.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <wallet/coincontrol.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     r.address = sx;
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_CHECK(34 == vecSend[1].vData.size());
 
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     sNarr = "test narration";
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_REQUIRE(51 == vecSend[1].vData.size());
     BOOST_REQUIRE(vecSend[1].vData[34] == DO_NARR_CRYPT);
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(stealth)
 
     BOOST_REQUIRE(StealthSecret(sScan, vchEphemPK, sx.spend_pubkey, sShared, pkExtracted) == 0);
 
-    SecMsgCrypter crypter;
+    NarrationCrypter crypter;
     crypter.SetKey(sShared.begin(), &vchEphemPK[0]);
     std::vector<uint8_t> vchNarr;
     BOOST_REQUIRE(crypter.Decrypt(&vchENarr[0], vchENarr.size(), vchNarr));
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     r.address = sx;
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_REQUIRE(39 == vecSend[1].vData.size());
     BOOST_CHECK(vecSend[1].vData[34] == DO_STEALTH_PREFIX);
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(stealth)
     r.address = sx;
     r.sNarration = sNarr;
     vecSend.push_back(r);
-    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, NULL, strError));
+    BOOST_CHECK(0 == pwallet->ExpandTempRecipients(vecSend, nullptr, strError));
     BOOST_CHECK(2 == vecSend.size());
     BOOST_REQUIRE(72 == vecSend[1].vData.size());
 
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(stealth_key_index)
     BOOST_CHECK(sxId == 1);
 
 
-    CHDWalletDB wdb(pwallet->GetDBHandle());
+    CHDWalletDB wdb(pwallet->GetDatabase());
     uint160 hash;
     uint32_t nIndex = 0;
     for (size_t k = 0; k < 512; ++k) {
@@ -248,7 +248,7 @@ BOOST_AUTO_TEST_CASE(ext_key_index)
 {
     CHDWallet *pwallet = pwalletMain.get();
 
-    CHDWalletDB wdb(pwallet->GetDBHandle());
+    CHDWalletDB wdb(pwallet->GetDatabase());
     CKeyID dummy;
     uint32_t nIndex = 0;
     for (size_t k = 0; k < 512; ++k) {
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     pkTemp = kSpendOut_test2.GetPubKey();
     BOOST_CHECK(CPubKey(pkSendTo) == pkTemp);
 
-    BOOST_MESSAGE("----------------Setup Recipient---------------------\n");
+    // ----------------Setup Recipient---------------------
     CTempRecipient r;
     r.nType = OUTPUT_RINGCT;
     CAmount nValue = 20*COIN;
@@ -325,30 +325,30 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     r.scriptPubKey = GetScriptForDestination(PKHash(r.pkTo));
     r.nStealthPrefix = FillStealthPrefix(sxAddr.prefix.number_bits, sxAddr.prefix.bitfield);
     r.vBlind.resize(32);
-    GetStrongRandBytes(&r.vBlind[0], 32);
+    GetStrongRandBytes2(&r.vBlind[0], 32);
     BOOST_CHECK_MESSAGE(r.pkTo.IsValid(), "pubkeyto is not valid");
 
     {
     LOCK(wallet->cs_wallet);
 
-    BOOST_MESSAGE("---------------- Make RingCT Output : SetCTOutVData ---------------------\n");
+    // ---------------- Make RingCT Output : SetCTOutVData ---------------------
     auto txout = MAKE_OUTPUT<CTxOutRingCT>();
     txout->pk = CCmpPubKey(r.pkTo);
 
     CPubKey pkEphem = r.sEphem.GetPubKey();
     SetCTOutVData(txout->vData, pkEphem, r);
 
-    BOOST_MESSAGE("---------------- Make RingCT Output : AddCTData ---------------------\n");
+    // ---------------- Make RingCT Output : AddCTData ---------------------
     std::string strError;
     CCoinControl cctl;
     BOOST_CHECK_MESSAGE(wallet->AddCTData(&cctl, txout.get(), r, strError) == 0, "failed to add CT Data");
 
-    BOOST_MESSAGE("---------------- Checking RingCT Output---------------------\n");
+    // ---------------- Checking RingCT Output---------------------
     TxValidationState state;
     state.rct_active = true;
     BOOST_CHECK_MESSAGE(CheckAnonOutput(state, (CTxOutRingCT*)txout.get()), "failed to check ringct output");
 
-    BOOST_MESSAGE("---------------- Serialize Transaction with No Segwit ---------------------\n");
+    // ---------------- Serialize Transaction with No Segwit ---------------------
     CMutableTransaction tx;
     tx.vpout.emplace_back(txout);
     tx.nVersion = 2|GHOST_TXN_VERSION;
@@ -358,14 +358,14 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION|SERIALIZE_TRANSACTION_NO_WITNESS);
     ss << tx;
 
-    BOOST_MESSAGE("---------------- Deserialize Transaction ---------------------\n");
+    // ---------------- Deserialize Transaction ---------------------
     CMutableTransaction txCheck;
     ss >> txCheck;
     BOOST_CHECK_MESSAGE(!txCheck.HasWitness(), "deserialize shows witness");
     auto txout_check = txCheck.vpout.at(0);
     BOOST_CHECK_MESSAGE(txout_check->GetType() == OUTPUT_RINGCT, "deserialized output is not ringct");
 
-    BOOST_MESSAGE("---------------- Check RingCT Output ---------------------\n");
+    // ---------------- Check RingCT Output ---------------------
     BOOST_CHECK_MESSAGE(!CheckAnonOutput(state, (CTxOutRingCT*)txout_check.get()), "passed check ringct output");
     }
 
@@ -384,9 +384,9 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
     // one key that would satisfy an (a|b) or 2-of-3 keys needed
     // to spend an escrow transaction.
     //
-    CHDWallet keystore(m_chain.get(), "", CreateDummyWalletDatabase());
-    CHDWallet emptykeystore(m_chain.get(), "", CreateDummyWalletDatabase());
-    CHDWallet partialkeystore(m_chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet keystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet emptykeystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet partialkeystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
     CKey key[3];
     std::vector<CTxDestination> keyaddr(3); // Wmaybe-uninitialized
     for (int i = 0; i < 3; i++) {
@@ -456,17 +456,11 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
     }
     {
         std::vector<valtype> solutions;
-        TxoutType whichType;
         CScript s;
         s << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
         BOOST_CHECK(Solver(s, solutions) != TxoutType::NONSTANDARD);
         BOOST_CHECK_EQUAL(solutions.size(), 4U);
         std::vector<CTxDestination> addrs;
-        int nRequired;
-        BOOST_CHECK(ExtractDestinations(s, whichType, addrs, nRequired));
-        BOOST_CHECK(addrs[0] == keyaddr[0]);
-        BOOST_CHECK(addrs[1] == keyaddr[1]);
-        BOOST_CHECK(nRequired == 1);
         {
             LOCK(keystore.cs_wallet);
             BOOST_CHECK(keystore.IsMineP2SH(s));
@@ -492,8 +486,8 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
 BOOST_AUTO_TEST_CASE(opiscoinstake_test)
 {
     SeedInsecureRand();
-    CHDWallet keystoreA(m_chain.get(), "", CreateDummyWalletDatabase());
-    CHDWallet keystoreB(m_chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet keystoreA(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet keystoreB(m_node.chain.get(), "", CreateDummyWalletDatabase());
 
     CKey kA, kB;
     InsecureNewKey(kA, true);
@@ -549,7 +543,7 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
 
     TxoutType whichType;
     // IsStandard should fail until chain time is >= OpIsCoinstakeTime
-    BOOST_CHECK(!IsStandard(script, whichType));
+    BOOST_CHECK(!IsStandard(script, std::nullopt, whichType));
 
     {
         LOCK(keystoreA.cs_wallet);
@@ -587,14 +581,14 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     part::SetAmount(vchAmount, nValue);
 
 
-    BOOST_CHECK(ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataA));
-    BOOST_CHECK(!ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
+    BOOST_CHECK(ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataA));
+    BOOST_CHECK(!ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
 
 
     ScriptError serror = SCRIPT_ERR_OK;
     int nFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
     CScript scriptSig;
-    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount), &serror));
+    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
 
     txn.nVersion = GHOST_TXN_VERSION;
@@ -602,12 +596,12 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     BOOST_CHECK(!txn.IsCoinStake());
 
     // This should fail anyway as the txn changed
-    BOOST_CHECK(!VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount), &serror));
+    BOOST_CHECK(!VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
-    BOOST_CHECK(!ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataC));
-    BOOST_CHECK(ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(&txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
+    BOOST_CHECK(!ProduceSignature(*keystoreA.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataC));
+    BOOST_CHECK(ProduceSignature(*keystoreB.GetLegacyScriptPubKeyMan(), MutableTransactionSignatureCreator(txn, 0, vchAmount, SIGHASH_ALL), script, sigdataB));
 
-    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataB.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount), &serror));
+    BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataB.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
 
     CScript script_h160 = CScript()

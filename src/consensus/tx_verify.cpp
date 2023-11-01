@@ -1,23 +1,17 @@
-// Copyright (c) 2017-2019 The Bitcoin Core developers
+// Copyright (c) 2017-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/tx_verify.h>
 
-#include <consensus/consensus.h>
-#include <primitives/transaction.h>
-#include <script/interpreter.h>
-#include <consensus/validation.h>
-#include <validation.h>
-#include <consensus/params.h>
-#include <chainparams.h>
-
-#include <timedata.h>
-#include <util/system.h>
-
-// TODO remove the following dependencies
 #include <chain.h>
 #include <coins.h>
+#include <consensus/amount.h>
+#include <consensus/consensus.h>
+#include <consensus/validation.h>
+#include <primitives/transaction.h>
+#include <script/interpreter.h>
+#include <util/check.h>
 #include <util/moneystr.h>
 
 
@@ -28,12 +22,31 @@
 #include <insight/balanceindex.h>
 #include <adapter.h>
 
+// Particl dependencies
+#include <blind.h>
+#include <insight/balanceindex.h>
+#include <validation.h>
+#include <consensus/params.h>
+#include <chainparams.h>
+#include <timedata.h>
+#include <util/system.h>
+
+
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
     if (tx.nLockTime == 0)
         return true;
     if ((int64_t)tx.nLockTime < ((int64_t)tx.nLockTime < LOCKTIME_THRESHOLD ? (int64_t)nBlockHeight : nBlockTime))
         return true;
+
+    // Even if tx.nLockTime isn't satisfied by nBlockHeight/nBlockTime, a
+    // transaction is still considered final if all inputs' nSequence ==
+    // SEQUENCE_FINAL (0xffffffff), in which case nLockTime is ignored.
+    //
+    // Because of this behavior OP_CHECKLOCKTIMEVERIFY/CheckLockTime() will
+    // also check that the spending input's nSequence != SEQUENCE_FINAL,
+    // ensuring that an unsatisfied nLockTime value will actually cause
+    // IsFinalTx() to return false here:
     for (const auto& txin : tx.vin) {
         if (!(txin.nSequence == CTxIn::SEQUENCE_FINAL))
             return false;
@@ -71,8 +84,8 @@ std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags
         // Sequence numbers with the most significant bit set are not
         // treated as relative lock-times, nor are they given any
         // consensus-enforced meaning at this point.
-        if (txin.IsAnonInput()
-            || txin.nSequence & CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG) {
+        if (txin.IsAnonInput() ||
+            txin.nSequence & CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG) {
             // The height of this input is not relevant for sequence locks
             prevHeights[txinIndex] = 0;
             continue;
@@ -81,7 +94,7 @@ std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags
         int nCoinHeight = prevHeights[txinIndex];
 
         if (txin.nSequence & CTxIn::SEQUENCE_LOCKTIME_TYPE_FLAG) {
-            int64_t nCoinTime = block.GetAncestor(std::max(nCoinHeight-1, 0))->GetMedianTimePast();
+            const int64_t nCoinTime{Assert(block.GetAncestor(std::max(nCoinHeight - 1, 0)))->GetMedianTimePast()};
             // NOTE: Subtract 1 to maintain nLockTime semantics
             // BIP 68 relative lock times have the semantics of calculating
             // the first block or time at which the transaction would be
@@ -133,8 +146,7 @@ unsigned int GetLegacySigOpCount(const CTransaction& tx)
             nSigOps += txout.scriptPubKey.GetSigOpCount(false);
         }
     }
-    for (const auto &txout : tx.vpout)
-    {
+    for (const auto &txout : tx.vpout) {
         const CScript *pScriptPubKey = txout->GetPScriptPubKey();
         if (pScriptPubKey) {
             nSigOps += pScriptPubKey->GetSigOpCount(false);
@@ -164,7 +176,7 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
     return nSigOps;
 }
 
-int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, int flags)
+int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, uint32_t flags)
 {
     int64_t nSigOps = GetLegacySigOpCount(tx) * WITNESS_SCALE_FACTOR;
 
@@ -198,12 +210,14 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     state.m_spends_frozen_blinded = false;
     state.m_setHaveKI.clear();  // Pass keyimages through state to add to db
     bool spends_tainted_blinded = false;  // If true limit max plain output
+    bool spends_post_fork_blinded = false;
 
     if (!state.m_consensus_params) {
         state.m_consensus_params = &::Params().GetConsensus();
     }
-    size_t min_ring_size = state.m_consensus_params->m_max_ringsize;
-    size_t max_ring_size = state.m_consensus_params->m_min_ringsize;
+    // Track the least and greatest ring sizes used in the transaction
+    size_t min_ring_size_count = state.m_consensus_params->m_max_ringsize;
+    size_t max_ring_size_count = state.m_consensus_params->m_min_ringsize;
 
     bool is_particl_tx = tx.IsParticlVersion();
     if (is_particl_tx && tx.vin.size() < 1) { // early out
@@ -237,18 +251,18 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if (nRingSize < state.m_consensus_params->m_min_ringsize || nRingSize > state.m_consensus_params->m_max_ringsize) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anon-ringsize");
             }
-            if (min_ring_size > nRingSize) {
-                min_ring_size = nRingSize;
+            if (min_ring_size_count > nRingSize) {
+                min_ring_size_count = nRingSize;
             }
-            if (max_ring_size < nRingSize) {
-                max_ring_size = nRingSize;
+            if (max_ring_size_count < nRingSize) {
+                max_ring_size_count = nRingSize;
             }
 
             size_t ofs = 0, nB = 0;
             for (size_t k = 0; k < nInputs; ++k) {
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
                 if (!state.m_setHaveKI.insert(ki).second) {
-                    if (LogAcceptCategory(BCLog::RINGCT)) {
+                    if (LogAcceptCategory(BCLog::VALIDATION, BCLog::Level::Debug)) {
                         LogPrintf("%s: Duplicate keyimage detected in txn %s.\n", __func__,
                             HexStr(ki));
                     }
@@ -542,7 +556,7 @@ static bool CheckStandardOutput(TxValidationState &state, const CTxOutStandard *
     nValueOut += p->nValue;
 
     if (HasIsCoinstakeOp(p->scriptPubKey)) {
-        if (GetAdjustedTime() < state.m_consensus_params->OpIsCoinstakeTime) {
+        if (TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime()) < state.m_consensus_params->OpIsCoinstakeTime) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-opiscoinstake");
         }
         if (!state.m_consensus_params->fAllowOpIsCoinstakeWithP2PKH) {
@@ -583,7 +597,7 @@ static bool CheckBlindOutput(TxValidationState &state, const CTxOutCT *p)
             secp256k1_generator_h);
     }
 
-    if (LogAcceptCategory(BCLog::RINGCT)) {
+    if (LogAcceptCategory(BCLog::VALIDATION, BCLog::Level::Debug)) {
         LogPrintf("%s: rv, min_value, max_value %d, %s, %s\n", __func__,
             rv, FormatMoney((CAmount)min_value), FormatMoney((CAmount)max_value));
     }
@@ -627,7 +641,7 @@ bool CheckAnonOutput(TxValidationState &state, const CTxOutRingCT *p)
             secp256k1_generator_h);
     }
 
-    if (LogAcceptCategory(BCLog::RINGCT)) {
+    if (LogAcceptCategory(BCLog::VALIDATION, BCLog::Level::Debug)) {
         LogPrintf("%s: rv, min_value, max_value %d, %s, %s\n", __func__,
             rv, FormatMoney((CAmount)min_value), FormatMoney((CAmount)max_value));
     }

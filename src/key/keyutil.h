@@ -17,4 +17,4 @@ inline uint32_t WithoutHardenedBit(uint32_t n)  { return (n &= ~((uint32_t)1 << 
 bool VerifyChecksum(const std::vector<uint8_t> &data);
 
 
-#endif  // PARTICL_KEY_KEYUTIL_H
+#endif // PARTICL_KEY_KEYUTIL_H

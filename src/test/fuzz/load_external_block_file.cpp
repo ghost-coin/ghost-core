@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,12 +13,17 @@
 #include <cstdint>
 #include <vector>
 
-void initialize()
+namespace {
+const TestingSetup* g_setup;
+} // namespace
+
+void initialize_load_external_block_file()
 {
-    InitializeFuzzingContext();
+    static const auto testing_setup = MakeNoLogFileContext<const TestingSetup>();
+    g_setup = testing_setup.get();
 }
 
-void test_one_input(const std::vector<uint8_t>& buffer)
+FUZZ_TARGET_INIT(load_external_block_file, initialize_load_external_block_file)
 {
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
     FuzzedFileProvider fuzzed_file_provider = ConsumeFile(fuzzed_data_provider);
@@ -26,6 +31,13 @@ void test_one_input(const std::vector<uint8_t>& buffer)
     if (fuzzed_block_file == nullptr) {
         return;
     }
-    FlatFilePos flat_file_pos;
-    LoadExternalBlockFile(Params(), fuzzed_block_file, fuzzed_data_provider.ConsumeBool() ? &flat_file_pos : nullptr);
+    if (fuzzed_data_provider.ConsumeBool()) {
+        // Corresponds to the -reindex case (track orphan blocks across files).
+        FlatFilePos flat_file_pos;
+        std::multimap<uint256, FlatFilePos> blocks_with_unknown_parent;
+        g_setup->m_node.chainman->ActiveChainstate().LoadExternalBlockFile(fuzzed_block_file, &flat_file_pos, &blocks_with_unknown_parent);
+    } else {
+        // Corresponds to the -loadblock= case (orphan blocks aren't tracked across files).
+        g_setup->m_node.chainman->ActiveChainstate().LoadExternalBlockFile(fuzzed_block_file);
+    }
 }

@@ -1,8 +1,9 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <test/util/setup_common.h>
+#include <test/util/random.h>
 #include <test/data/ringct.json.h>
 
 #include <crypto/sha256.h>
@@ -401,7 +402,7 @@ BOOST_AUTO_TEST_CASE(ringct_test)
     BOOST_CHECK(0 == secp256k1_generate_mlsag(ctx, &ki[0], pc, &ss[0],
         randSeed, preimage, nCols, nRows, index,
         &sk[0], m));
-    BOOST_CHECK(0 == secp256k1_verify_mlsag(ctx,
+    BOOST_CHECK(0 == secp256k1_verify_mlsag(
         preimage, nCols, nRows,
         m, &ki[0], pc, &ss[0]));
 
@@ -462,7 +463,7 @@ static int GetBytes(uint8_t *p, size_t len, bool fDeterministic)
     if (fDeterministic) {
         GetDeterministicBytes(p, len);
     } else {
-        GetStrongRandBytes(p, len);
+        GetStrongRandBytes2(p, len);
     }
     return 0;
 }
@@ -639,7 +640,7 @@ int doTest(secp256k1_context *ctx, size_t nInputs, size_t nOutputs, CAmount nFee
         randSeed, preimage, nCols, nRows, index,
         &sk[0], m));
 
-    BOOST_CHECK(0 == secp256k1_verify_mlsag(ctx,
+    BOOST_CHECK(0 == secp256k1_verify_mlsag(
         preimage, nCols, nRows,
         m, &ki[0], pc, &ss[0]));
 
@@ -726,9 +727,9 @@ BOOST_AUTO_TEST_CASE(ringct_test_deterministic)
 
     for (unsigned int idx = 0; idx < tests_vectors.size(); idx++) {
         const UniValue &test = tests_vectors[idx];
-        size_t rows = test[0].get_int();
-        size_t cols = test[1].get_int();
-        size_t real_column = test[2].get_int();
+        size_t rows = test[0].getInt<int>();
+        size_t cols = test[1].getInt<int>();
+        size_t real_column = test[2].getInt<int>();
 
         std::vector<uint8_t> nonce = ParseHex(test[3].get_str());
         std::vector<uint8_t> preimage = ParseHex(test[4].get_str());

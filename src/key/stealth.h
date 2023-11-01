@@ -93,7 +93,7 @@ public:
         bool fHaveScanSecret = scan_secret.IsValid();
         s << fHaveScanSecret;
         if (fHaveScanSecret) {
-            s.write((char*)scan_secret.begin(), EC_SECRET_SIZE);
+            s.write(AsBytes(Span{(char*)scan_secret.begin(), EC_SECRET_SIZE}));
         }
     }
     template <typename Stream>
@@ -113,7 +113,7 @@ public:
         s >> fHaveScanSecret;
 
         if (fHaveScanSecret) {
-            s.read((char*)scan_secret.begin(), EC_SECRET_SIZE);
+            s.read(AsWritableBytes(Span{(char*)scan_secret.begin(), EC_SECRET_SIZE}));
             scan_secret.SetFlags(true, true);
 
             // Only derive spend_secret_id if also have the scan secret.
@@ -151,9 +151,11 @@ int MakeStealthData(const std::string &sNarration, stealth_prefix prefix, const 
 int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarration,
     CScript &scriptPubKey, std::vector<uint8_t> &vData, std::string &sError);
 
+namespace particl {
 void ECC_Start_Stealth();
 void ECC_Stop_Stealth();
+} // namespace particl
 
 
-#endif  // PARTICL_KEY_STEALTH_H
+#endif // PARTICL_KEY_STEALTH_H
 

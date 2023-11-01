@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 The Particl Core developers
+// Copyright (c) 2018-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,8 +15,15 @@
 #include <shutdown.h>
 #include <univalue.h>
 
+#include <string>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic ignored "-Wshadow"
+#elif defined(__clang__)
+#pragma GCC diagnostic ignored "-Wshadow-field"
+#endif
 #include <usbdevice/trezor/messages-bitcoin.pb.h>
 #include <usbdevice/trezor/messages-management.pb.h>
 #include <usbdevice/trezor/messages.pb.h>
@@ -418,7 +425,7 @@ int CTrezorDevice::GetXPub(const std::vector<uint32_t>& vPath, CExtPubKey& ekp, 
     return 0;
 };
 
-int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::string& sMessage, std::vector<uint8_t>& vchSig, std::string& sError)
+int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::string& sMessage, const std::string &message_magic, std::vector<uint8_t>& vchSig, std::string& sError)
 {
     if (vPath.size() < 1 || vPath.size() > 10) {
         return errorN(1, sError, __func__, "Path depth out of range.");
@@ -431,7 +438,16 @@ int CTrezorDevice::SignMessage(const std::vector<uint32_t>& vPath, const std::st
         msg_in.add_address_n(i);
     }
 
-    msg_in.set_coin_name("Bitcoin");
+    std::string coin_name;
+    if (message_magic.find("Bitcoin") != std::string::npos) {
+        coin_name = "Bitcoin";
+    } else
+    if (message_magic.find("Particl") != std::string::npos) {
+        coin_name = "Particl";
+    } else {
+        return errorN(1, sError, __func__, "Unknown message magic string.");
+    }
+    msg_in.set_coin_name(coin_name);
     msg_in.set_message(sMessage);
 
     std::vector<uint8_t> vec_in, vec_out;
@@ -550,11 +566,11 @@ static int SetAddressFromScript(std::string &addr, std::string &str_error, const
         if (!ExtractDestination(scriptB, addrSpend)) {
             return errorN(1, str_error, __func__, "ExtractDestination failed.");
         }
-        if (addrStake.type() != typeid(PKHash) || addrSpend.type() != typeid(CKeyID256)) {
+        if (addrStake.index() != DI::_PKHash || addrSpend.index() != DI::_CKeyID256) {
             return errorN(1, str_error, __func__, "Unsupported coldstake script types.");
         }
-        PKHash idStake = boost::get<PKHash>(addrStake);
-        CKeyID256 idSpend = boost::get<CKeyID256>(addrSpend);
+        PKHash idStake = std::get<PKHash>(addrStake);
+        CKeyID256 idSpend = std::get<CKeyID256>(addrSpend);
 
         // Construct joined address, p2pkh prefix +2
         std::vector<uint8_t> addr_raw(53);
@@ -695,6 +711,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     stream << txin.scriptData.stack;
                     std::string s_scriptData(stream.begin(), stream.end());
                     msg_input->set_script_sig(s_scriptData);
+                    msg_input->set_script_sig(stream.str());
                 } else {
                     std::string s_scriptSig(txin.scriptSig.begin(), txin.scriptSig.end());
                     msg_input->set_script_sig(s_scriptSig);
@@ -806,16 +823,14 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     msg_output->set_particl_output_type(OUTPUT_CT);
                     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
                     stream << *((CTxOutCT*)send_output.get());
-                    std::string s(stream.begin(), stream.end());
-                    msg_output->set_script_pubkey(s);
+                    msg_output->set_script_pubkey(stream.str());
                     msg_output->set_amount(0);
                 } else
                 if (send_output->IsType(OUTPUT_RINGCT)) {
                     msg_output->set_particl_output_type(OUTPUT_RINGCT);
                     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
                     stream << *((CTxOutRingCT*)send_output.get());
-                    std::string s(stream.begin(), stream.end());
-                    msg_output->set_script_pubkey(s);
+                    msg_output->set_script_pubkey(stream.str());
                     msg_output->set_amount(0);
                 } else {
                     return errorN(1, m_error, __func__, "Unknown output type.");
@@ -887,7 +902,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
             msg_tx->set_outputs_cnt(prev_tx.vpout.size());
             msg_tx->set_particl_tx(true);
         } else if (req.request_type() == tzr_proto::TxRequest::TXFINISHED) {
-            if (LogAcceptCategory(BCLog::HDWALLET)) {
+            if (LogAcceptCategory(BCLog::HDWALLET, BCLog::Level::Debug)) {
                 LogPrintf("%s: Debug, serialised_tx %s.\n", __func__, HexStr(serialised_tx));
             }
             break;

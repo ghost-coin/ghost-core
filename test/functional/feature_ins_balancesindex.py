@@ -12,8 +12,8 @@ class BalancesIndexTest(GhostTestFramework):
         self.num_nodes = 3
         self.extra_args = [
             ['-debug', '-anonrestricted=0'],
-            ['-debug', '-balancesindex', '-anonrestricted=0'],
-            ['-debug', '-balancesindex', '-anonrestricted=0'],
+            ['-debug', '-balancesindex', '-anonrestricted=0', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug', '-balancesindex', '-anonrestricted=0', '-dbcompression', '-dbmaxopenfiles=1000',]
         ]
 
     def skip_test_if_missing_module(self):

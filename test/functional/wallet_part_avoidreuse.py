@@ -48,21 +48,28 @@ class WalletParticlAvoidReuseTest(GhostTestFramework):
 
         self.sync_all()
         self.stakeBlocks(1)
-        assert(isclose(nodes[2].getbalances()['mine']['trusted'], 3.0))
+        assert (isclose(nodes[2].getbalances()['mine']['trusted'], 3.0))
 
         nodes[2].sendtoaddress(nodes[1].getnewaddress(), 0.5)
-        print(nodes[2].getbalances()['mine']['trusted'])
-        assert(isclose(nodes[2].getbalances()['mine']['trusted'], 2.499464))
+        assert (isclose(nodes[2].getbalances()['mine']['trusted'], 2.499654))
 
         nodes[1].sendtoaddress(addr_plain, 3)
         self.sync_all()
         self.stakeBlocks(1)
 
-        assert(len(nodes[2].listunspent()) == 2)
-        assert(isclose(nodes[2].getbalances()['mine']['trusted'], 2.499464))
+        unspents_2 = nodes[2].listunspent()
+        assert (len(unspents_2) == 3)
+        num_reused = 0
+        for utxo in unspents_2:
+            if utxo['reused'] is True:
+                num_reused += 1
+        assert (num_reused == 2)
 
-        assert(len(nodes[3].listunspent()) == 2)
-        assert(isclose(nodes[3].getbalances()['mine']['trusted'], 5.499464))
+        assert (isclose(nodes[2].getbalances()['mine']['trusted'], 0.499654))
+        assert (isclose(nodes[2].getbalances()['mine']['used'], 5.0))
+
+        assert (len(nodes[3].listunspent()) == 3)
+        assert (isclose(nodes[3].getbalances()['mine']['trusted'], 5.499654))
 
 
 if __name__ == '__main__':

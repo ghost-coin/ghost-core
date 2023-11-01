@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 The Bitcoin Core developers
+// Copyright (c) 2016-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,7 +22,6 @@
 static void CCoinsCaching(benchmark::Bench& bench)
 {
     fParticlMode = false;
-    const ECCVerifyHandle verify_handle;
     ECC_Start();
 
     FillableSigningProvider keystore;
@@ -49,10 +48,10 @@ static void CCoinsCaching(benchmark::Bench& bench)
     // Benchmark.
     const CTransaction tx_1(t1);
     bench.run([&] {
-        bool success = AreInputsStandard(tx_1, coins, false);
+        bool success{AreInputsStandard(tx_1, coins)};
         assert(success);
     });
     ECC_Stop();
 }
 
-BENCHMARK(CCoinsCaching);
+BENCHMARK(CCoinsCaching, benchmark::PriorityLevel::HIGH);

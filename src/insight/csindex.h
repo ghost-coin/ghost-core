@@ -7,9 +7,9 @@
 
 #include <script/standard.h>
 
-constexpr char DB_TXINDEX_CSOUTPUT = 'O';
-constexpr char DB_TXINDEX_CSLINK = 'L';
-constexpr char DB_TXINDEX_CSBESTBLOCK = 'C';
+constexpr uint8_t DB_TXINDEX_CSOUTPUT{'O'};
+constexpr uint8_t DB_TXINDEX_CSLINK{'L'};
+constexpr uint8_t DB_TXINDEX_CSBESTBLOCK{'C'};
 
 enum CSIndexFlags
 {
@@ -33,7 +33,7 @@ public:
     template<typename Stream>
     void Unserialize(Stream& s) {
         m_txnid.Unserialize(s);
-        m_n = (int)ser_readdata32be(s);
+        m_n = int(ser_readdata32be(s));
     }
 
     friend bool operator<(const ColdStakeIndexOutputKey& a, const ColdStakeIndexOutputKey& b) {
@@ -69,22 +69,22 @@ public:
     template<typename Stream>
     void Serialize(Stream& s) const {
         ser_writedata8(s, particl::FromTxoutType(m_stake_type));
-        s.write((char*)m_stake_id.begin(), (m_stake_type == TxoutType::PUBKEYHASH256) ? 32 : 20);
+        s.write(AsBytes(Span{(char*)m_stake_id.begin(), size_t((m_stake_type == TxoutType::PUBKEYHASH256) ? 32 : 20)}));
         ser_writedata32be(s, m_height);
         ser_writedata8(s, particl::FromTxoutType(m_spend_type));
-        s.write((char*)m_spend_id.begin(), (m_spend_type == TxoutType::PUBKEYHASH256 || m_spend_type == TxoutType::SCRIPTHASH256) ? 32 : 20);
+        s.write(AsBytes(Span{(char*)m_spend_id.begin(), size_t((m_spend_type == TxoutType::PUBKEYHASH256 || m_spend_type == TxoutType::SCRIPTHASH256) ? 32 : 20)}));
     }
     template<typename Stream>
     void Unserialize(Stream& s) {
         uint8_t stake_type = ser_readdata8(s);
         m_stake_type = particl::ToTxoutType(stake_type);
         m_stake_id.SetNull();
-        s.read((char*)m_stake_id.begin(), (m_stake_type == TxoutType::PUBKEYHASH256) ? 32 : 20);
+        s.read(AsWritableBytes(Span{m_stake_id.begin(), size_t((m_stake_type == TxoutType::PUBKEYHASH256) ? 32 : 20)}));
         m_height = ser_readdata32be(s);
         uint8_t spend_type = ser_readdata8(s);
         m_spend_type = particl::ToTxoutType(spend_type);
         m_spend_id.SetNull();
-        s.read((char*)m_spend_id.begin(), (m_spend_type == TxoutType::PUBKEYHASH256 || m_spend_type == TxoutType::SCRIPTHASH256) ? 32 : 20);
+        s.read(AsWritableBytes(Span{m_spend_id.begin(), size_t((m_spend_type == TxoutType::PUBKEYHASH256 || m_spend_type == TxoutType::SCRIPTHASH256) ? 32 : 20)}));
     }
 
     friend bool operator<(const ColdStakeIndexLinkKey& a, const ColdStakeIndexLinkKey& b) {

@@ -7,10 +7,10 @@
 
 #include <key_io.h>
 #include <key/keyutil.h>
+#include <key/crypter.h>
 #include <pubkey.h>
 #include <random.h>
 #include <script/script.h>
-#include <smsg/crypter.h>
 #include <serialize.h>
 
 #include <support/allocators/secure.h>
@@ -274,8 +274,8 @@ int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, cons
     }
 
     secretOut = spendSecret;
-    if (!secp256k1_ec_privkey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), tmp32)) {
-        return errorN(1, "%s: secp256k1_ec_privkey_tweak_add failed.", __func__);
+    if (!secp256k1_ec_seckey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), tmp32)) {
+        return errorN(1, "%s: secp256k1_ec_seckey_tweak_add failed.", __func__);
     }
 
     return 0;
@@ -285,8 +285,8 @@ int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, cons
 int StealthSharedToSecretSpend(const CKey &sharedS, const CKey &spendSecret, CKey &secretOut)
 {
     secretOut = spendSecret;
-    if (!secp256k1_ec_privkey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), sharedS.begin())) {
-        return errorN(1, "%s: secp256k1_ec_privkey_tweak_add failed.", __func__);
+    if (!secp256k1_ec_seckey_tweak_add(secp256k1_ctx_stealth, secretOut.begin_nc(), sharedS.begin())) {
+        return errorN(1, "%s: secp256k1_ec_seckey_tweak_add failed.", __func__);
     }
 
     if (!secp256k1_ec_seckey_verify(secp256k1_ctx_stealth, secretOut.begin())) { // necessary?
@@ -356,7 +356,7 @@ bool IsStealthAddress(const std::string &encodedAddress)
 uint32_t FillStealthPrefix(uint8_t nBits, uint32_t nBitfield)
 {
     uint32_t prefix, mask = SetStealthMask(nBits);
-    GetStrongRandBytes((uint8_t*) &prefix, 4);
+    GetStrongRandBytes2((uint8_t*) &prefix, 4);
 
     prefix &= (~mask);
     prefix |= nBitfield & mask;
@@ -394,7 +394,7 @@ int MakeStealthData(const std::string &sNarration, stealth_prefix prefix, const 
 {
     std::vector<uint8_t> vchNarr;
     if (sNarration.length() > 0) {
-        SecMsgCrypter crypter;
+        NarrationCrypter crypter;
         crypter.SetKey(sShared.begin(), pkEphem.begin());
 
         if (!crypter.Encrypt((uint8_t*)sNarration.data(), sNarration.length(), vchNarr)) {
@@ -440,8 +440,9 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
     int k, nTries = 24;
     for (k = 0; k < nTries; ++k) { // if StealthSecret fails try again with new ephem key
         sEphem.MakeNewKey(true);
-        if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0)
+        if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0) {
             break;
+        }
     }
     if (k >= nTries) {
         return errorN(1, sError, __func__, "Could not generate receiving public key.");
@@ -456,6 +457,7 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
     return 0;
 };
 
+namespace particl {
 void ECC_Start_Stealth()
 {
     assert(secp256k1_ctx_stealth == nullptr);
@@ -466,13 +468,13 @@ void ECC_Start_Stealth()
     {
         // Pass in a random blinding seed to the secp256k1 context.
         std::vector<unsigned char, secure_allocator<unsigned char>> vseed(32);
-        GetRandBytes(vseed.data(), 32);
+        GetRandBytes(vseed);
         bool ret = secp256k1_context_randomize(ctx, vseed.data());
         assert(ret);
     }
 
     secp256k1_ctx_stealth = ctx;
-};
+}
 
 void ECC_Stop_Stealth()
 {
@@ -482,4 +484,5 @@ void ECC_Stop_Stealth()
     if (ctx) {
         secp256k1_context_destroy(ctx);
     }
-};
+}
+} // namespace particl

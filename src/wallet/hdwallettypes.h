@@ -9,7 +9,7 @@
 #include <key/extkey.h>
 #include <key/stealth.h>
 #include <primitives/transaction.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <serialize.h>
 
 #include <stdint.h>
@@ -26,6 +26,7 @@ typedef std::multimap<int64_t, std::map<uint256, CTransactionRecord>::iterator> 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
 
 extern const uint256 ABANDON_HASH;
+
 
 enum OutputRecordFlags
 {
@@ -153,6 +154,7 @@ public:
     COutputRecord *GetOutput(int n);
     const COutputRecord *GetOutput(int n) const;
     const COutputRecord *GetChangeOutput() const;
+    unsigned int GetMaxVout() const;
 
     void SetMerkleBranch(const uint256 &blockHash_, int posInBlock)
     {

@@ -11,13 +11,13 @@
 
 #include <support/events.h>
 
-void CallRPCVoid(std::string args, const util::Ref& context, std::string wallet, bool force_wallet)
+void CallRPCVoid(std::string args, const std::any& context, std::string wallet, bool force_wallet)
 {
     CallRPC(args, context, wallet, force_wallet);
     return;
 };
 
-void CallRPCVoidRv(std::string args, const util::Ref& context, std::string wallet, bool *passed, UniValue *rv, bool force_wallet)
+void CallRPCVoidRv(std::string args, const std::any& context, std::string wallet, bool *passed, UniValue *rv, bool force_wallet)
 {
     try {
         *rv = CallRPC(args, context, wallet, force_wallet);
@@ -32,7 +32,7 @@ void CallRPCVoidRv(std::string args, const util::Ref& context, std::string walle
     return;
 };
 
-UniValue CallRPC(std::string args, const util::Ref& context, std::string wallet, bool force_wallet)
+UniValue CallRPC(std::string args, const std::any& context, std::string wallet, bool force_wallet)
 {
     if (args.empty()) {
         throw std::runtime_error("No input.");
@@ -44,8 +44,8 @@ UniValue CallRPC(std::string args, const util::Ref& context, std::string wallet,
     std::string s;
     for (size_t i = 0; i < args.size(); ++i) {
         char c = args[i];
-        if (!fInQuotes
-            && (c == ' ' || c == '\t')) {
+        if (!fInQuotes &&
+            (c == ' ' || c == '\t')) {
             if (s.empty()) continue; // trim whitespace
             vArgs.push_back(part::TrimQuotes(s));
             s.clear();
@@ -71,10 +71,11 @@ UniValue CallRPC(std::string args, const util::Ref& context, std::string wallet,
     std::string strMethod = vArgs[0];
     vArgs.erase(vArgs.begin());
 
-    JSONRPCRequest request(context);
+    JSONRPCRequest request;
+    request.context = context;
     request.strMethod = strMethod;
     request.params = RPCConvertValues(strMethod, vArgs);
-    request.fHelp = false;
+    //request.mode = EXECUTE;
 
     AddUri(request, wallet, force_wallet);
 

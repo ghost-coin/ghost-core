@@ -7,11 +7,11 @@
 #ifndef SECP256K1_MODULE_BULLETPROOF_RANGEPROOF_IMPL
 #define SECP256K1_MODULE_BULLETPROOF_RANGEPROOF_IMPL
 
-#include "modules/bulletproofs/inner_product_impl.h"
-#include "modules/bulletproofs/util.h"
-#include "group.h"
+#include "../../modules/bulletproofs/inner_product_impl.h"
+#include "../../modules/bulletproofs/util.h"
+#include "../../group.h"
 
-#define MAX_NBITS	64
+#define MAX_NBITS 64
 
 typedef struct {
     secp256k1_scalar yinv;
@@ -162,7 +162,7 @@ static int secp256k1_bulletproof_rangeproof_vfy_callback(secp256k1_scalar *sc, s
     return 1;
 }
 
-static int secp256k1_bulletproof_rangeproof_verify_impl(const secp256k1_ecmult_context *ecmult_ctx, secp256k1_scratch *scratch, const unsigned char* const* proof, const size_t n_proofs, const size_t plen, size_t nbits, const uint64_t* const* min_value, const secp256k1_ge* const* commitp, size_t n_commits, const secp256k1_ge *value_gen, const secp256k1_bulletproof_generators *gens, const unsigned char* const* extra_commit, size_t *extra_commit_len) {
+static int secp256k1_bulletproof_rangeproof_verify_impl(secp256k1_scratch *scratch, const unsigned char* const* proof, const size_t n_proofs, const size_t plen, size_t nbits, const uint64_t* const* min_value, const secp256k1_ge* const* commitp, size_t n_commits, const secp256k1_ge *value_gen, const secp256k1_bulletproof_generators *gens, const unsigned char* const* extra_commit, size_t *extra_commit_len) {
     secp256k1_bulletproof_vfy_ecmult_context *ecmult_data;
     secp256k1_bulletproof_innerproduct_context *innp_ctx;
     int ret;
@@ -336,7 +336,7 @@ static int secp256k1_bulletproof_rangeproof_verify_impl(const secp256k1_ecmult_c
         innp_ctx[i].n_extra_rangeproof_points = 5 + n_commits;
     }
 
-    ret = secp256k1_bulletproof_inner_product_verify_impl(ecmult_ctx, scratch, gens, nbits * n_commits, innp_ctx, n_proofs, plen - (64 + 128 + 1), same_generators);
+    ret = secp256k1_bulletproof_inner_product_verify_impl(scratch, gens, nbits * n_commits, innp_ctx, n_proofs, plen - (64 + 128 + 1), same_generators);
     secp256k1_scratch_apply_checkpoint(&bp_error_callback, scratch, scratch_checkpoint);
 
     return ret;
@@ -430,7 +430,7 @@ static int secp256k1_bulletproof_abgh_callback(secp256k1_scalar *sc, secp256k1_g
  * The non-bold `h` in the Bulletproofs paper corresponds to our gens->blinding_gen
  * while the non-bold `g` corresponds to the asset type `value_gen`.
  */
-static int secp256k1_bulletproof_rangeproof_prove_impl(const secp256k1_ecmult_context *ecmult_ctx, secp256k1_scratch *scratch, unsigned char *proof, size_t *plen, const size_t nbits, const uint64_t *value, const uint64_t *min_value, const secp256k1_scalar *blind, const secp256k1_ge *commitp, size_t n_commits, const secp256k1_ge *value_gen, const secp256k1_bulletproof_generators *gens, const unsigned char *nonce, const unsigned char *extra_commit, size_t extra_commit_len) {
+static int secp256k1_bulletproof_rangeproof_prove_impl(secp256k1_scratch *scratch, unsigned char *proof, size_t *plen, const size_t nbits, const uint64_t *value, const uint64_t *min_value, const secp256k1_scalar *blind, const secp256k1_ge *commitp, size_t n_commits, const secp256k1_ge *value_gen, const secp256k1_bulletproof_generators *gens, const unsigned char *nonce, const unsigned char *extra_commit, size_t extra_commit_len) {
     secp256k1_bulletproof_lr_generator lr_gen;
     secp256k1_bulletproof_abgh_data abgh_data;
     secp256k1_scalar zero;
@@ -659,7 +659,7 @@ static int secp256k1_bulletproof_rangeproof_prove_impl(const secp256k1_ecmult_co
     secp256k1_lr_generator_init(&abgh_data.lr_gen, nonce, &y, &z, nbits, value, min_value, n_commits);
     *plen -= 64 + 128 + 1;
     secp256k1_scalar_inverse_var(&y, &y);
-    if (secp256k1_bulletproof_inner_product_prove_impl(ecmult_ctx, scratch, &proof[64 + 128 + 1], plen, gens, &y, nbits * n_commits, secp256k1_bulletproof_abgh_callback, (void *) &abgh_data, commit) == 0) {
+    if (secp256k1_bulletproof_inner_product_prove_impl(scratch, &proof[64 + 128 + 1], plen, gens, &y, nbits * n_commits, secp256k1_bulletproof_abgh_callback, (void *) &abgh_data, commit) == 0) {
         return 0;
     }
     *plen += 64 + 128 + 1;

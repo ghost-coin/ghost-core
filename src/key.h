@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Copyright (c) 2017 The Zcash developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -17,7 +17,6 @@
 
 
 /**
- * secure_allocator is defined in allocators.h
  * CPrivKey is a serialized private key, with all parameters included
  * (SIZE bytes)
  */
@@ -43,10 +42,10 @@ public:
 private:
     //! Whether this private key is valid. We check for correctness when modifying the key
     //! data, so fValid should always correspond to the actual state.
-    bool fValid;
+    bool fValid{false};
 
     //! Whether the public key corresponding to this private key is (to be) compressed.
-    bool fCompressed;
+    bool fCompressed{false};
 
     //! The actual byte data
     std::vector<unsigned char, secure_allocator<unsigned char> > keydata;
@@ -56,7 +55,7 @@ private:
 
 public:
     //! Construct an invalid private key.
-    CKey() : fValid(false), fCompressed(false)
+    CKey()
     {
         // Important: vch must be 32 bytes in length to not break serialization
         keydata.resize(32);
@@ -113,6 +112,7 @@ public:
 
     //! Simple read-only vector-like interface.
     unsigned int size() const { return (fValid ? keydata.size() : 0); }
+    const std::byte* data() const { return reinterpret_cast<const std::byte*>(keydata.data()); }
     const unsigned char* begin() const { return keydata.data(); }
     const unsigned char* end() const { return keydata.data() + size(); }
     unsigned char* begin_nc() { return keydata.data(); }
@@ -169,10 +169,27 @@ public:
      */
     bool SignCompact(const uint256& hash, std::vector<unsigned char>& vchSig) const;
 
-    //! Derive BIP32 child key.
-    bool Derive(CKey& keyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const;
+    /**
+     * Create a BIP-340 Schnorr signature, for the xonly-pubkey corresponding to *this,
+     * optionally tweaked by *merkle_root. Additional nonce entropy is provided through
+     * aux.
+     *
+     * merkle_root is used to optionally perform tweaking of the private key, as specified
+     * in BIP341:
+     * - If merkle_root == nullptr: no tweaking is done, sign with key directly (this is
+     *                              used for signatures in BIP342 script).
+     * - If merkle_root->IsNull():  sign with key + H_TapTweak(pubkey) (this is used for
+     *                              key path spending when no scripts are present).
+     * - Otherwise:                 sign with key + H_TapTweak(pubkey || *merkle_root)
+     *                              (this is used for key path spending, with specific
+     *                              Merkle root of the script tree).
+     */
+    bool SignSchnorr(const uint256& hash, Span<unsigned char> sig, const uint256* merkle_root, const uint256& aux) const;
 
-    bool Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
+    //! Derive BIP32 child key.
+    [[nodiscard]] bool Derive(CKey& keyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const;
+
+    [[nodiscard]] bool Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
 
     /**
      * Verify thoroughly whether a private key and a public key match.
@@ -186,9 +203,9 @@ public:
     SERIALIZE_METHODS(CKey, obj)
     {
         if (!ser_action.ForRead()) {
-            s.write((char*)&obj.keydata[0], 32);
+            s.write(AsBytes(Span{(char*)&obj.keydata[0], 32}));
         } else {
-            s.read((char*)&obj.keydata[0], 32);
+            s.read(AsWritableBytes(Span{(char*)&obj.keydata[0], 32}));
         }
         READWRITE(obj.fValid);
         READWRITE(obj.fCompressed);
@@ -205,7 +222,7 @@ struct CExtKey {
     friend bool operator==(const CExtKey& a, const CExtKey& b)
     {
         return a.nDepth == b.nDepth &&
-            memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], sizeof(vchFingerprint)) == 0 &&
+            memcmp(a.vchFingerprint, b.vchFingerprint, sizeof(vchFingerprint)) == 0 &&
             a.nChild == b.nChild &&
             a.chaincode == b.chaincode &&
             a.key == b.key;
@@ -213,9 +230,9 @@ struct CExtKey {
 
     void Encode(unsigned char code[BIP32_EXTKEY_SIZE]) const;
     void Decode(const unsigned char code[BIP32_EXTKEY_SIZE]);
-    bool Derive(CExtKey& out, unsigned int nChild) const;
+    [[nodiscard]] bool Derive(CExtKey& out, unsigned int nChild) const;
     CExtPubKey Neuter() const;
-    void SetSeed(const unsigned char* seed, unsigned int nSeedLen);
+    void SetSeed(Span<const std::byte> seed);
 };
 */
 /** Initialize the elliptic curve support. May not be called twice without calling ECC_Stop first. */

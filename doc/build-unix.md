@@ -9,7 +9,7 @@ Note
 Always use absolute paths to configure and compile Particl Core and the dependencies.
 For example, when specifying the path of the dependency:
 
-	../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
+    ../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
 
 Here BDB_PREFIX must be an absolute path - it is defined using $(pwd) which ensures
 the usage of the absolute path.
@@ -20,37 +20,13 @@ To Build
 ```bash
 ./autogen.sh
 ./configure
-make
+make # use "-j N" for N parallel jobs
 make install # optional
 ```
 
 This will build particl-qt as well, if the dependencies are met.
 
-Dependencies
----------------------
-
-These dependencies are required:
-
- Library     | Purpose          | Description
- ------------|------------------|----------------------
- libboost    | Utility          | Library for threading, data structures, etc
- libevent    | Networking       | OS independent asynchronous networking
-
-Optional dependencies:
-
- Library     | Purpose          | Description
- ------------|------------------|----------------------
- miniupnpc   | UPnP Support     | Firewall-jumping support
- libdb4.8    | Berkeley DB      | Wallet storage (only needed when wallet enabled)
- qt          | GUI              | GUI toolkit (only needed when GUI enabled)
- libqrencode | QR codes in GUI  | Optional for generating QR codes (only needed when GUI enabled)
- univalue    | Utility          | JSON parsing and encoding (bundled version will be used unless --with-system-univalue passed to configure)
- libzmq3     | ZMQ notification | Optional, allows generating ZMQ notifications (requires ZMQ version >= 4.0.0)
- sqlite3     | SQLite DB        | Optional, wallet storage (only needed when wallet enabled)
- protobuf    | USB Devices      | Optional, Data interchange format (only needed when usbdevice enabled)
- hidapi      | USB Devices      | Optional, USB interface wrapper (only needed when usbdevice enabled)
-
-For the versions used, see [dependencies.md](dependencies.md)
+See [dependencies.md](dependencies.md) for a complete overview.
 
 Memory Requirements
 --------------------
@@ -83,31 +59,25 @@ Build requirements:
 
 Now, you can either build from self-compiled [depends](/depends/README.md) or install the required dependencies:
 
-    sudo apt-get install libevent-dev libboost-system-dev libboost-filesystem-dev libboost-test-dev libboost-thread-dev
+    sudo apt-get install libevent-dev libboost-dev
 
-BerkeleyDB is required for the wallet.
-
-Ubuntu and Debian have their own `libdb-dev` and `libdb++-dev` packages, but these will install
-BerkeleyDB 5.1 or later. This will break binary wallet compatibility with the distributed executables, which
-are based on BerkeleyDB 4.8. If you do not care about wallet compatibility,
-pass `--with-incompatible-bdb` to configure.
-
-Otherwise, you can build from self-compiled `depends` (see above).
-
-SQLite is required for the wallet:
+SQLite is required for the descriptor wallet:
 
     sudo apt install libsqlite3-dev
 
-To build Particl Core without wallet, see [*Disable-wallet mode*](/doc/build-unix.md#disable-wallet-mode)
+To build Particl Core without wallet, see [*Disable-wallet mode*](#disable-wallet-mode)
 
+Optional port mapping libraries (see: `--with-miniupnpc` and `--with-natpmp`):
 
-Optional (see `--with-miniupnpc` and `--enable-upnp-default`):
-
-    sudo apt-get install libminiupnpc-dev
+    sudo apt install libminiupnpc-dev libnatpmp-dev
 
 ZMQ dependencies (provides ZMQ API):
 
     sudo apt-get install libzmq3-dev
+
+User-Space, Statically Defined Tracing (USDT) dependencies:
+
+    sudo apt install systemtap-sdt-dev
 
 GUI dependencies:
 
@@ -118,6 +88,10 @@ To build without GUI pass `--without-gui`.
 To build with Qt 5 you need the following:
 
     sudo apt-get install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools
+
+Additionally, to support Wayland protocol for modern desktop environments:
+
+    sudo apt install qtwayland5
 
 libqrencode (optional) can be installed with:
 
@@ -139,27 +113,59 @@ built by default.
 
 Build requirements:
 
-    sudo dnf install gcc-c++ libtool make autoconf automake libevent-devel boost-devel libdb4-devel libdb4-cxx-devel python3
+    sudo dnf install gcc-c++ libtool make autoconf automake python3
 
-Optional (see `--with-miniupnpc` and `--enable-upnp-default`):
+Now, you can either build from self-compiled [depends](/depends/README.md) or install the required dependencies:
 
-    sudo dnf install miniupnpc-devel
+    sudo dnf install libevent-devel boost-devel
+
+SQLite is required for the descriptor wallet:
+
+    sudo dnf install sqlite-devel
+
+Berkeley DB is required for the legacy wallet:
+
+    sudo dnf install libdb4-devel libdb4-cxx-devel
+
+Newer Fedora releases, since Fedora 33, have only `libdb-devel` and `libdb-cxx-devel` packages, but these will install
+Berkeley DB 5.3 or later. This will break binary wallet compatibility with the distributed executables, which
+are based on Berkeley DB 4.8. If you do not care about wallet compatibility,
+pass `--with-incompatible-bdb` to configure. Otherwise, you can build Berkeley DB [yourself](#berkeley-db).
+
+To build Bitcoin Core without wallet, see [*Disable-wallet mode*](#disable-wallet-mode)
+
+Optional port mapping libraries (see: `--with-miniupnpc` and `--with-natpmp`):
+
+    sudo dnf install miniupnpc-devel libnatpmp-devel
 
 ZMQ dependencies (provides ZMQ API):
 
     sudo dnf install zeromq-devel
 
+User-Space, Statically Defined Tracing (USDT) dependencies:
+
+    sudo dnf install systemtap
+
+GUI dependencies:
+
+If you want to build bitcoin-qt, make sure that the required packages for Qt development
+are installed. Qt 5 is necessary to build the GUI.
+To build without GUI pass `--without-gui`.
+
 To build with Qt 5 you need the following:
 
     sudo dnf install qt5-qttools-devel qt5-qtbase-devel
+
+Additionally, to support Wayland protocol for modern desktop environments:
+
+    sudo dnf install qt5-qtwayland
 
 libqrencode (optional) can be installed with:
 
     sudo dnf install qrencode-devel
 
-SQLite can be installed with:
-
-    sudo dnf install sqlite-devel
+Once these are installed, they will be found by configure and a bitcoin-qt executable will be
+built by default.
 
 protobuf (optional) can be installed with:
 
@@ -170,41 +176,41 @@ Notes
 The release is built with GCC and then "strip particld" to strip the debug
 symbols, which reduces the executable size by about 90%.
 
-
 miniupnpc
 ---------
 
 [miniupnpc](https://miniupnp.tuxfamily.org) may be used for UPnP port mapping.  It can be downloaded from [here](
 https://miniupnp.tuxfamily.org/files/).  UPnP support is compiled in and
-turned off by default.  See the configure options for upnp behavior desired:
+turned off by default.
 
-	--without-miniupnpc      No UPnP support miniupnp not required
-	--disable-upnp-default   (the default) UPnP support turned off by default at runtime
-	--enable-upnp-default    UPnP support turned on by default at runtime
+libnatpmp
+---------
 
+[libnatpmp](https://miniupnp.tuxfamily.org/libnatpmp.html) may be used for NAT-PMP port mapping. It can be downloaded
+from [here](https://miniupnp.tuxfamily.org/files/). NAT-PMP support is compiled in and
+turned off by default.
 
 Berkeley DB
 -----------
-It is recommended to use Berkeley DB 4.8. If you have to build it yourself,
-you can use [the installation script included in contrib/](/contrib/install_db4.sh)
-like so:
 
-```shell
-./contrib/install_db4.sh `pwd`
+The legacy wallet uses Berkeley DB. To ensure backwards compatibility it is
+recommended to use Berkeley DB 4.8. If you have to build it yourself, and don't
+want to use any other libraries built in depends, you can do:
+```bash
+make -C depends NO_BOOST=1 NO_LIBEVENT=1 NO_QT=1 NO_SQLITE=1 NO_NATPMP=1 NO_UPNP=1 NO_ZMQ=1 NO_USDT=1
+...
+to: /path/to/bitcoin/depends/x86_64-pc-linux-gnu
+```
+and configure using the following:
+```bash
+export BDB_PREFIX="/path/to/bitcoin/depends/x86_64-pc-linux-gnu"
+
+./configure \
+    BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" \
+    BDB_CFLAGS="-I${BDB_PREFIX}/include"
 ```
 
-from the root of the repository.
-
-**Note**: You only need Berkeley DB if the wallet is enabled (see [*Disable-wallet mode*](/doc/build-unix.md#disable-wallet-mode)).
-
-Boost
------
-If you need to build Boost yourself:
-
-	sudo su
-	./bootstrap.sh
-	./bjam install
-
+**Note**: You only need Berkeley DB if the legacy wallet is enabled (see [*Disable-wallet mode*](#disable-wallet-mode)).
 
 Security
 --------
@@ -214,8 +220,8 @@ This can be disabled with:
 
 Hardening Flags:
 
-	./configure --enable-hardening
-	./configure --disable-hardening
+    ./configure --enable-hardening
+    ./configure --disable-hardening
 
 
 Hardening enables the following features:
@@ -230,7 +236,7 @@ Hardening enables the following features:
 
     To test that you have built PIE executable, install scanelf, part of paxutils, and use:
 
-    	scanelf -e ./particl
+        scanelf -e ./particl
 
     The output should contain:
 
@@ -247,19 +253,19 @@ Hardening enables the following features:
     `scanelf -e ./particl`
 
     The output should contain:
-	STK/REL/PTL
-	RW- R-- RW-
+    STK/REL/PTL
+    RW- R-- RW-
 
     The STK RW- means that the stack is readable and writeable but not executable.
 
 Disable-wallet mode
 --------------------
-When the intention is to run only a P2P node without a wallet, Particl Core may be compiled in
-disable-wallet mode with:
+When the intention is to only run a P2P node, without a wallet, Particl Core can
+be compiled in disable-wallet mode with:
 
     ./configure --disable-wallet
 
-In this case there is no dependency on Berkeley DB 4.8 and SQLite.
+In this case there is no dependency on SQLite or Berkeley DB.
 
 Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
 
@@ -272,39 +278,14 @@ A list of additional configure flags can be displayed with:
 
 Setup and Build Example: Arch Linux
 -----------------------------------
-This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
+This example lists the steps necessary to setup and build a command line only distribution of the latest changes on Arch Linux:
 
-    pacman -S git base-devel boost libevent python
+    pacman --sync --needed autoconf automake boost gcc git libevent libtool make pkgconf python sqlite
     git clone https://github.com/particl/particl-core.git
     cd particl-core/
     ./autogen.sh
-    ./configure --disable-wallet --without-gui --without-miniupnpc
+    ./configure
     make check
+    ./src/particld
 
-Note:
-Enabling wallet support requires either compiling against a Berkeley DB newer than 4.8 (package `db`) using `--with-incompatible-bdb`,
-or building and depending on a local version of Berkeley DB 4.8.
-
-
-ARM Cross-compilation
--------------------
-These steps can be performed on, for example, an Ubuntu VM. The depends system
-will also work on other Linux distributions, however the commands for
-installing the toolchain will be different.
-
-Make sure you install the build requirements mentioned above.
-Then, install the toolchain and curl:
-
-    sudo apt-get install g++-arm-linux-gnueabihf curl
-
-To build executables for ARM:
-
-    cd depends
-    make HOST=arm-linux-gnueabihf NO_QT=1
-    cd ..
-    ./autogen.sh
-    ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
-    make
-
-
-For further documentation on the depends system see [README.md](../depends/README.md) in the depends directory.
+If you intend to work with legacy Berkeley DB wallets, see [Berkeley DB](#berkeley-db) section.

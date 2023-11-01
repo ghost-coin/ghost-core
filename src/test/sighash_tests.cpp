@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2020 The Bitcoin Core developers
+// Copyright (c) 2013-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +11,8 @@
 #include <serialize.h>
 #include <streams.h>
 #include <test/data/sighash.json.h>
+#include <test/util/json.h>
+#include <test/util/random.h>
 #include <test/util/setup_common.h>
 #include <util/strencodings.h>
 #include <util/system.h>
@@ -21,8 +23,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include <univalue.h>
-
-extern UniValue read_json(const std::string& jsondata);
 
 // Old script.cpp SignatureHash function
 uint256 static SignatureHashOld(CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType)
@@ -89,7 +89,7 @@ void static RandomScript(CScript &script) {
     script = CScript();
     int ops = (InsecureRandRange(10));
     for (int i=0; i<ops; i++)
-        script << oplist[InsecureRandRange(sizeof(oplist)/sizeof(oplist[0]))];
+        script << oplist[InsecureRandRange(std::size(oplist))];
 }
 
 void static RandomTransaction(CMutableTransaction &tx, bool fSingle) {
@@ -112,7 +112,7 @@ void static RandomTransaction(CMutableTransaction &tx, bool fSingle) {
     for (int out = 0; out < outs; out++) {
         tx.vout.push_back(CTxOut());
         CTxOut &txout = tx.vout.back();
-        txout.nValue = InsecureRandRange(100000000);
+        txout.nValue = InsecureRandMoneyAmount();
         RandomScript(txout.scriptPubKey);
     }
 }
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(sighash_test)
     int nRandomTests = 50000;
     #endif
     for (int i=0; i<nRandomTests; i++) {
-        int nHashType = InsecureRand32();
+        int nHashType{int(InsecureRand32())};
         CMutableTransaction txTo;
         RandomTransaction(txTo, (nHashType & 0x1f) == SIGHASH_SINGLE);
         CScript scriptCode;
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(sighash_from_data)
     UniValue tests = read_json(std::string(json_tests::sighash, json_tests::sighash + sizeof(json_tests::sighash)));
 
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
-        UniValue test = tests[idx];
+        const UniValue& test = tests[idx];
         std::string strTest = test.write();
         if (test.size() < 1) // Allow for extra stuff (useful for comments)
         {
@@ -191,15 +191,15 @@ BOOST_AUTO_TEST_CASE(sighash_from_data)
           // deserialize test data
           raw_tx = test[0].get_str();
           raw_script = test[1].get_str();
-          nIn = test[2].get_int();
-          nHashType = test[3].get_int();
+          nIn = test[2].getInt<int>();
+          nHashType = test[3].getInt<int>();
           sigHashHex = test[4].get_str();
 
 
             char strHex[2];
             strHex[0] = raw_tx[0];
             strHex[1] = raw_tx[1];
-            if (std::strtoul(strHex, 0, 16) >= GHOST_TXN_VERSION)
+            if (std::strtoul(strHex, nullptr, 16) >= GHOST_TXN_VERSION)
             {
                 raw_tx[0] = '0';
                 raw_tx[1] = '0';

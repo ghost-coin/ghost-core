@@ -36,7 +36,7 @@ class MultiWalletTest(GhostTestFramework):
         self.log.info('Check loaded wallets rescan any missed blocks')
 
         nodes[2].createwallet('wallet_2')
-        assert(len(nodes[2].listwallets()) == 2)
+        assert (len(nodes[2].listwallets()) == 2)
 
         w1 = nodes[2].get_wallet_rpc('default_wallet')
         w2 = nodes[2].get_wallet_rpc('wallet_2')
@@ -45,11 +45,11 @@ class MultiWalletTest(GhostTestFramework):
         addr = w1.getnewaddress()
         nodes[0].sendtoaddress(addr, 1000)
         self.stakeBlocks(1)
-        assert(w1.getwalletinfo()['total_balance'] == 1000)
-        assert(w2.getwalletinfo()['total_balance'] == 1000)
+        assert (w1.getwalletinfo()['total_balance'] == 1000)
+        assert (w2.getwalletinfo()['total_balance'] == 1000)
 
         nodes[2].unloadwallet('wallet_2')
-        assert(len(nodes[2].listwallets()) == 1)
+        assert (len(nodes[2].listwallets()) == 1)
 
         nodes[2].sendtoaddress(nodes[1].getnewaddress(), 100)
 
@@ -87,19 +87,49 @@ class MultiWalletTest(GhostTestFramework):
         w1 = nodes[2].get_wallet_rpc('default_wallet')
         w2 = nodes[2].get_wallet_rpc('wallet_2')
 
-        assert(w1.getwalletinfo()['total_balance'] < 900)
-        assert(w1.getwalletinfo()['total_balance'] == w2.getwalletinfo()['total_balance'])
+        assert (w1.getwalletinfo()['total_balance'] < 900)
+        assert (w1.getwalletinfo()['total_balance'] == w2.getwalletinfo()['total_balance'])
 
         ro = nodes[2].getblockstats(nodes[2].getblockchaininfo()['blocks'])
-        assert(ro['height'] == 2)
+        assert (ro['height'] == 2)
 
         self.log.info('createwallet with passphrase')
 
         nodes[2].createwallet('wallet_3', False, False, 'password_abc')
         w3 = nodes[2].get_wallet_rpc('wallet_3')
         ro = w3.getwalletinfo()
-        assert('hdseedid' in ro)
-        assert(ro['encryptionstatus'] == 'Locked')
+        assert ('hdseedid' in ro)
+        assert (ro['encryptionstatus'] == 'Locked')
+
+        w4.reservebalance(False)
+        w5.reservebalance(False)
+        w6.reservebalance(False)
+        time.sleep(0.5)
+        assert (float(w4.getbalances()['mine']['trusted']) == 1.99)
+        assert (float(w5.getbalances()['mine']['trusted']) == 1.99)
+        assert (float(w6.getbalances()['mine']['trusted']) == 1.0)
+        w4_stakinginfo = w4.getstakinginfo()
+        w5_stakinginfo = w5.getstakinginfo()
+        w6_stakinginfo = w6.getstakinginfo()
+        assert (float(w4_stakinginfo['minstakeablevalue']) == 0.00000001)
+        assert (w4_stakinginfo['weight'] == 199000000)
+        assert (w5_stakinginfo['minstakeablevalue'] == 1.0)
+        assert (w5_stakinginfo['weight'] == 100000000)
+        assert (float(w6_stakinginfo['minstakeablevalue']) == 0.00000001)
+        assert (w6_stakinginfo['weight'] == 100000000)
+        assert (float(w6.walletsettings('other')['other']['minownedvalue']) == 1.0)
+
+        nodes[2].createwallet('w8')
+        w8 = nodes[2].get_wallet_rpc('w8')
+        w8.extkeyimportmaster(w7_mnemonic, '', 'false', '', '', 0, {'lookaheadsize': 0, 'stealthv1lookaheadsize': 6})
+        print(w7.getbalances())
+        print(w8.getbalances())
+        assert (float(w8.getbalances()['mine']['trusted']) == 1.0)
+
+        nodes[2].createwallet('w9')
+        w9 = nodes[2].get_wallet_rpc('w9')
+        w9.extkeyimportmaster(w7_mnemonic)
+        assert (float(w9.getbalances()['mine']['trusted']) == 2.0)
 
         w4.reservebalance(False)
         w5.reservebalance(False)

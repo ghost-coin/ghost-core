@@ -4,14 +4,14 @@
 
 #include <usbdevice/usbwrapper.h>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <stdio.h>
 #include <string.h>
 #include <logging.h>
 
 namespace usb_device {
 
-static libusb_context *usb_context = NULL;
+static libusb_context *usb_context = nullptr;
 
 int webusb_init()
 {
@@ -32,7 +32,7 @@ int webusb_exit()
 {
     if (usb_context) {
         libusb_exit(usb_context);
-        usb_context = NULL;
+        usb_context = nullptr;
     }
 
     return 0;
@@ -64,7 +64,7 @@ static char *make_path(libusb_device *dev, int interface_number)
 
 webusb_device *webusb_open_path(const char *path)
 {
-    webusb_device *dev = NULL;
+    webusb_device *dev = nullptr;
 
     libusb_device **devs;
     libusb_device *usb_dev;
@@ -73,15 +73,15 @@ webusb_device *webusb_open_path(const char *path)
     int good_open = 0;
 
     if (webusb_init() < 0) {
-        return NULL;
+        return nullptr;
     }
 
     dev = new_webusb_device();
 
     libusb_get_device_list(usb_context, &devs);
-    while ((usb_dev = devs[d++]) != NULL) {
+    while ((usb_dev = devs[d++]) != nullptr) {
         struct libusb_device_descriptor desc;
-        struct libusb_config_descriptor *conf_desc = NULL;
+        struct libusb_config_descriptor *conf_desc = nullptr;
         int i,j,k;
         libusb_get_device_descriptor(usb_dev, &desc);
 
@@ -181,7 +181,7 @@ webusb_device *webusb_open_path(const char *path)
 
     /* Unable to open any devices. */
     free_webusb_device(dev);
-    return NULL;
+    return nullptr;
 }
 
 void webusb_close(webusb_device *dev)
@@ -227,7 +227,7 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
 {
     char buf[512];
     int len;
-    wchar_t *str = NULL;
+    wchar_t *str = nullptr;
 
     /* Determine which language to use. */
     uint16_t lang;
@@ -243,7 +243,7 @@ static wchar_t *get_usb_string(libusb_device_handle *dev, uint8_t idx)
             sizeof(buf));
 
     if (len < 0) {
-        return NULL;
+        return nullptr;
     }
 
     /* The following code will only work for
@@ -271,16 +271,16 @@ struct webusb_device_info *webusb_enumerate(unsigned short vendor_id, unsigned s
     ssize_t num_devs;
     int i = 0;
 
-    struct webusb_device_info *root = NULL; /* return object */
-    struct webusb_device_info *cur_dev = NULL;
+    struct webusb_device_info *root = nullptr; /* return object */
+    struct webusb_device_info *cur_dev = nullptr;
 
     num_devs = libusb_get_device_list(usb_context, &devs);
     if (num_devs < 0) {
-        return NULL;
+        return nullptr;
     }
-    while ((dev = devs[i++]) != NULL) {
+    while ((dev = devs[i++]) != nullptr) {
         struct libusb_device_descriptor desc;
-        struct libusb_config_descriptor *conf_desc = NULL;
+        struct libusb_config_descriptor *conf_desc = nullptr;
         int j, k;
         int interface_num = 0;
 
@@ -320,7 +320,7 @@ struct webusb_device_info *webusb_enumerate(unsigned short vendor_id, unsigned s
                         cur_dev = tmp;
 
                         /* Fill out the record */
-                        cur_dev->next = NULL;
+                        cur_dev->next = nullptr;
                         cur_dev->path = make_path(dev, interface_num);
 
                         res = libusb_open(dev, &handle);

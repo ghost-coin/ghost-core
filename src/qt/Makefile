@@ -7,3 +7,5 @@ check: FORCE
 	$(MAKE) -C .. test_particl_qt_check
 bitcoin-qt bitcoin-qt.exe: FORCE
 	 $(MAKE) -C .. particl_qt
+apk: FORCE
+	$(MAKE) -C .. particl_qt_apk

@@ -1,8 +1,86 @@
 
-0.21.2.12
+Next Major Version
+==============
+
+- listunspent include_immature parameter is deprecated, repalced by include_immature_coinbase
+
+
+24.0.1
+==============
+
+- rpc changes:
+  - Reverted bip125_replaceable change back to bip125-replaceable.
+  - smsgsend
+    - Changed tx_bytes to tx_vsize
+  - getrawtransaction
+    - Changed ring_row_{row} to object of row: value pairs
+  - gettransaction
+    - Removed n{vout}: narration pairs, vouts already have separate narration entry
+    - Removed duplicate tx info in details section.
+  - getstakinginfo
+    - errors -> warnings
+  - verifymessage
+    signmessage
+    signmessagewithprivkey
+    devicesignmessage
+    - Switched default message magic string to 'Particl Signed Message:\\n'
+    - Sign functions accept a message magic parameter.
+      Note: The ledger firmware will still use the Bitcoin message magic string.
+- Add experimental support for splitting and joining mnemonics according to
+  https://github.com/iancoleman/shamir39/blob/master/specification.md
+  - new rpc commands:
+    - splitmnemonic
+    - combinemnemonic
+- rpc: Add mnemonictoentropy and mnemonicfromentropy
+  - Convert mnemonics to and from entropy and word form.
+
+
+23.0.4
 ==============
 
 - rpc: Fix listunspentblind filter by address
+- wallet: Fix disabling recscan for importaccount command
+- wallet: Locked blinded outputs are processed in order when unlocked.
+  - Should make the onlyinstance option obsolete.
+- rpc: debugwallet added some output for a locked wallet if no parameters provided.
+
+
+23.0.3
+==============
+
+- qt: Fix crash when retrieving record transaction descriptions.
+- wallet: Fix walletpassphrasechange after encryptwallet without restarting.
+
+
+23.0.2
+==============
+
+- Coincontrol allow_other_inputs defaults to true
+  - Added allow_other_inputs to smsg rpc functions which accept a coincontrol parameter.
+
+
+23.0.1
+==============
+
+- rpc: devicesignrawtransactionwithwallet is split out of devicesignrawtransaction.
+  - Workaround for wallet context only provided for wallet rpc commands.
+
+
+22.0.2
+==============
+
+- rpc: signrawtransactionwithkey accepts tapscript spending data.
+
+
+22.0.1
+==============
+
+- script: Remove timelocked script signing.
+
+
+0.21.2.12
+==============
+
 - Added new PID for Ledger Nano S Plus (5015).
 
 
@@ -24,8 +102,6 @@
   - getcoldstakinginfo pending_depth shows coins unstakable until after 225 blocks (nStakeMinConfirmations)
 - rpc: Added minstakeabledepth to getstakinginfo
 - wallet: Only mark anon/blind tx outputs as change if wallet owns inputs.
-- New checkpoints
-
 
 
 0.21.2.9

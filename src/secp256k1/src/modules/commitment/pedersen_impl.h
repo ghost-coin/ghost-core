@@ -9,9 +9,9 @@
 
 #include <string.h>
 
-#include "ecmult_const.h"
-#include "group.h"
-#include "scalar.h"
+#include "../../ecmult_const.h"
+#include "../../group.h"
+#include "../../scalar.h"
 
 /* sec * G + value * G2. */
 SECP256K1_INLINE static void secp256k1_pedersen_ecmult(secp256k1_gej *rj, const secp256k1_scalar *sec, uint64_t value, const secp256k1_ge* value_gen, const secp256k1_ge* blind_gen) {

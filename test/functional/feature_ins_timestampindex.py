@@ -19,11 +19,11 @@ class TimestampIndexTest(GhostTestFramework):
         self.num_nodes = 4
         self.extra_args = [
             # Nodes 0/1 are "wallet" nodes
-            ['-debug',],
-            ['-debug','-timestampindex'],
+            ['-debug', ],
+            ['-debug', '-timestampindex'],
             # Nodes 2/3 are used for testing
-            ['-debug',],
-            ['-debug','-timestampindex'],]
+            ['-debug', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug', '-timestampindex', '-dbcompression', '-dbmaxopenfiles=1000',],]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -51,11 +51,9 @@ class TimestampIndexTest(GhostTestFramework):
         blockhashes = []
         self.stakeToHeight(1, False)
         blockhashes.append(nodes[0].getblockhash(1))
-        time.sleep(3)
 
         self.stakeToHeight(2, False)
         blockhashes.append(nodes[0].getblockhash(2))
-        time.sleep(3)
 
         self.stakeToHeight(3, False)
         blockhashes.append(nodes[0].getblockhash(3))

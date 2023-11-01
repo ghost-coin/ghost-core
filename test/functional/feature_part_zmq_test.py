@@ -89,8 +89,8 @@ class ZMQTest(GhostTestFramework):
             topic = msg[0].decode('utf-8')
             if topic == 'smsg':
                 zmqhash = msg[1].hex()
-                assert(zmqhash[:4] == '0300')  # version 3.0
-                assert(zmqhash[4:] == msgid)
+                assert (zmqhash[:4] == '0300')  # version 3.0
+                assert (zmqhash[4:] == msgid)
                 return True
         return False
 
@@ -123,7 +123,7 @@ class ZMQTest(GhostTestFramework):
             if topic == 'hashtx' and msgSequence == 1:
                 fFound = True
                 zmqhash = msg[1].hex()
-                assert(zmqhash == txnHash)
+                assert (zmqhash == txnHash)
             elif topic == 'rawtx' and msgSequence == 1:
                 fFoundRawTx = True
                 #body = msg[1]
@@ -133,16 +133,16 @@ class ZMQTest(GhostTestFramework):
             elif topic == 'hashwtx' and msgSequence == 0:
                 fFoundWtx = True
                 zmqhash = msg[1][0:32].hex()
-                assert(zmqhash == txnHash)
+                assert (zmqhash == txnHash)
                 walletName = msg[1][32:].decode('utf-8')
-                assert(walletName == 'wallet_test')
+                assert (walletName == 'wallet_test')
 
             if fFound and fFoundRawTx and fFoundWtx:
                 break
 
-        assert(fFound)
-        assert(fFoundRawTx)
-        assert(fFoundWtx)
+        assert (fFound)
+        assert (fFoundRawTx)
+        assert (fFoundWtx)
 
         self.stakeBlocks(1, nStakeNode=1)
         self.log.info("Wait for block")
@@ -160,47 +160,47 @@ class ZMQTest(GhostTestFramework):
                 fFound = True
                 blkhash = msg[1].hex()
                 besthash = nodes[1].getbestblockhash()
-                assert(blkhash == besthash)
+                assert (blkhash == besthash)
                 break
-        assert(fFound)
+        assert (fFound)
 
         address0 = nodes[0].getnewaddress()  # Will be different each run
         address1 = nodes[1].getnewaddress()
-        assert(address1 == 'pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it')
+        assert (address1 == 'pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it')
 
         ro = nodes[0].smsglocalkeys()
-        assert(len(ro['wallet_keys']) == 0)
+        assert (len(ro['wallet_keys']) == 0)
 
         ro = nodes[0].smsgaddlocaladdress(address0)  # Listen on address0
-        assert('Receiving messages enabled for address' in ro['result'])
+        assert ('Receiving messages enabled for address' in ro['result'])
 
         ro = nodes[0].smsglocalkeys()
-        assert(len(ro['wallet_keys']) == 1)
+        assert (len(ro['wallet_keys']) == 1)
 
         ro = nodes[1].smsgaddaddress(address0, ro['wallet_keys'][0]['public_key'])
-        assert(ro['result'] == 'Public key added to db.')
+        assert (ro['result'] == 'Public key added to db.')
 
 
         ro = nodes[1].smsgsend(address1, address0, "['data':'test','value':1]", True, 4)
         msgid = ro['msgid']
-        assert(ro['result'] == 'Sent.')
+        assert (ro['result'] == 'Sent.')
 
         self.stakeBlocks(1, nStakeNode=1)
         self.waitForSmsgExchange(1, 1, 0)
 
-        assert(self.waitForZmqSmsg(msgid))
+        assert (self.waitForZmqSmsg(msgid))
 
         ro = nodes[0].getnewzmqserverkeypair()
-        assert(len(ro['server_secret_key']) == 40)
-        assert(len(ro['server_public_key']) == 40)
-        assert(len(ro['server_secret_key_b64']) > 40)
+        assert (len(ro['server_secret_key']) == 40)
+        assert (len(ro['server_public_key']) == 40)
+        assert (len(ro['server_secret_key_b64']) > 40)
 
         ro = nodes[0].smsgzmqpush()
-        assert(ro['numsent'] == 1)
-        assert(self.waitForZmqSmsg(msgid))
+        assert (ro['numsent'] == 1)
+        assert (self.waitForZmqSmsg(msgid))
 
         ro = nodes[0].smsgzmqpush({"timefrom": int(time.time()) + 1})
-        assert(ro['numsent'] == 0)
+        assert (ro['numsent'] == 0)
 
 
 if __name__ == '__main__':

@@ -1,78 +1,78 @@
-<TS language="gu" version="2.1">
+<TS version="2.1" language="gu">
 <context>
     <name>AddressBookPage</name>
     <message>
         <source>Right-click to edit address or label</source>
-        <translation>સરનામું અથવા લેબલ બદલવા માટે જમણું-ક્લિક કરો</translation>
+        <translation type="unfinished">સરનામું અથવા લેબલ બદલવા માટે જમણું-ક્લિક કરો</translation>
     </message>
     <message>
         <source>Create a new address</source>
-        <translation>નવું સરનામું બનાવો</translation>
+        <translation type="unfinished">નવું સરનામું બનાવો</translation>
     </message>
     <message>
         <source>&amp;New</source>
-        <translation>નવું</translation>
+        <translation type="unfinished">નવું</translation>
     </message>
     <message>
         <source>Copy the currently selected address to the system clipboard</source>
-        <translation>હાલમાં પસંદ કરેલા સરનામાંને સિસ્ટમ ક્લિપબોર્ડ પર નકલ કરો</translation>
+        <translation type="unfinished">હાલમાં પસંદ કરેલા સરનામાંને સિસ્ટમ ક્લિપબોર્ડ પર નકલ કરો</translation>
     </message>
     <message>
         <source>&amp;Copy</source>
-        <translation>&amp; નકલ કરો</translation>
+        <translation type="unfinished">&amp; નકલ કરો</translation>
     </message>
     <message>
         <source>C&amp;lose</source>
-        <translation>&amp; બંધ કરો</translation>
+        <translation type="unfinished">&amp; બંધ કરો</translation>
     </message>
     <message>
         <source>Delete the currently selected address from the list</source>
-        <translation>સૂચિમાંથી હાલમાં પસંદ કરેલું સરનામું કાઢી નાખો</translation>
+        <translation type="unfinished">સૂચિમાંથી હાલમાં પસંદ કરેલું સરનામું કાઢી નાખો</translation>
     </message>
     <message>
         <source>Enter address or label to search</source>
-        <translation>શોધવા માટે સરનામું અથવા લેબલ દાખલ કરો</translation>
+        <translation type="unfinished">શોધવા માટે સરનામું અથવા લેબલ દાખલ કરો</translation>
     </message>
     <message>
         <source>Export the data in the current tab to a file</source>
-        <translation>હાલ માં પસંદ કરેલ માહિતી ને ફાઇલમાં નિકાસ કરો</translation>
+        <translation type="unfinished">હાલ માં પસંદ કરેલ માહિતી ને ફાઇલમાં નિકાસ કરો</translation>
     </message>
     <message>
         <source>&amp;Export</source>
-        <translation>&amp; નિકાસ કરો</translation>
+        <translation type="unfinished">&amp; નિકાસ કરો</translation>
     </message>
     <message>
         <source>&amp;Delete</source>
-        <translation>&amp; કાઢી નાખો</translation>
+        <translation type="unfinished">&amp; કાઢી નાખો</translation>
     </message>
     <message>
         <source>Choose the address to send coins to</source>
-        <translation>સિક્કા મોકલવા માટે સરનામું પસંદ કરો</translation>
+        <translation type="unfinished">સિક્કા મોકલવા માટે સરનામું પસંદ કરો</translation>
     </message>
     <message>
         <source>Choose the address to receive coins with</source>
-        <translation>સિક્કા મેળવવા માટે સરનામું પસંદ કરો</translation>
+        <translation type="unfinished">સિક્કા મેળવવા માટે સરનામું પસંદ કરો</translation>
     </message>
     <message>
         <source>C&amp;hoose</source>
-        <translation>&amp; પસંદ કરો</translation>
+        <translation type="unfinished">&amp; પસંદ કરો</translation>
     </message>
     <message>
         <source>Sending addresses</source>
-        <translation>મોકલવા માટે ના સરનામાં</translation>
+        <translation type="unfinished">મોકલવા માટે ના સરનામાં</translation>
     </message>
     <message>
         <source>Receiving addresses</source>
-        <translation>મેળવવા માટે ના સરનામાં</translation>
+        <translation type="unfinished">મેળવવા માટે ના સરનામાં</translation>
     </message>
     <message>
         <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>આ તમારા ચુકવણી કરવા માટે ના સરનામાં છે, હંમેશા કિંમત અને મોકલવાના ના સરનામાં ચકાસી લેવા સિક્કા આપતા પહેલા.</translation>
+        <translation type="unfinished">આ તમારા ચુકવણી કરવા માટે ના સરનામાં છે, હંમેશા કિંમત અને મોકલવાના ના સરનામાં ચકાસી લેવા સિક્કા આપતા પહેલા.</translation>
     </message>
     <message>
         <source>These are your Particl addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
 Signing is only possible with addresses of the type 'legacy'.</source>
-        <translation>આ તમારુ ચૂકવણું લેવા માટે નું સરનામા છે. નવું સરનામું બનાવા માટે "મેળવવા" માટે ની ટેબ માં "ચૂકવણું લેવા માટે નવું સરનામુ બનાવો" બટન વાપરો.
+        <translation type="unfinished">આ તમારુ ચૂકવણું લેવા માટે નું સરનામા છે. નવું સરનામું બનાવા માટે "મેળવવા" માટે ની ટેબ માં "ચૂકવણું લેવા માટે નવું સરનામુ બનાવો" બટન વાપરો.
 ડિજિટલી સહી કરવા માટે 'legacy એટલેકે જુના પ્રકાર નુ' પ્રકાર નું સરનામું હોવું જરૂરી છે.</translation>
     </message>
     <message>

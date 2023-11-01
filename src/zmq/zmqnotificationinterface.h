@@ -1,17 +1,21 @@
-// Copyright (c) 2015-2019 The Bitcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 #define BITCOIN_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 
+#include <primitives/transaction.h>
 #include <validationinterface.h>
 #include <netaddress.h>
+
+#include <cstdint>
 #include <list>
 #include <memory>
 #include <thread>
 #include <atomic>
 
+class CBlock;
 class CBlockIndex;
 namespace smsg {
 class SecureMessage;
@@ -44,7 +48,7 @@ protected:
 private:
     CZMQNotificationInterface();
 
-    void *pcontext;
+    void* pcontext{nullptr};
     std::list<std::unique_ptr<CZMQAbstractNotifier>> notifiers;
 
     bool IsWhitelistedRange(const CNetAddr &addr);

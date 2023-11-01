@@ -95,7 +95,7 @@ class ForkTest(GhostTestFramework):
             try:
                 ro = nodes[0].getblockhash(k)
             except JSONRPCException as e:
-                assert('Block height out of range' in e.error['message'])
+                assert ('Block height out of range' in e.error['message'])
                 ro = ''
             node0_chain.append(ro)
             print('node0 ', k, ' - ', ro)
@@ -119,14 +119,14 @@ class ForkTest(GhostTestFramework):
                 try:
                     ro = nodes[0].getblockhash(k)
                 except JSONRPCException as e:
-                    assert('Block height out of range' in e.error['message'])
+                    assert ('Block height out of range' in e.error['message'])
                     ro = ''
                 if not ro == node3_chain[k]:
                     fPass = False
                     break
             if fPass:
                 break
-        #assert(fPass)
+        #assert (fPass)
 
 
         node0_chain = []
@@ -134,7 +134,7 @@ class ForkTest(GhostTestFramework):
             try:
                 ro = nodes[0].getblockhash(k)
             except JSONRPCException as e:
-                assert('Block height out of range' in e.error['message'])
+                assert ('Block height out of range' in e.error['message'])
                 ro = ''
             node0_chain.append(ro)
             print('node0 ', k, ' - ', ro)
@@ -161,7 +161,19 @@ class ForkTest(GhostTestFramework):
         for tx in n0_ft:
             if tx['category'] == 'orphaned_stake':
                 num_orphaned += 1
-        assert(num_orphaned == 2)
+        assert (num_orphaned == 2)
+
+        n0_lt = nodes[0].listtransactions()
+        num_orphaned = 0
+        for tx in n0_lt:
+            if tx['category'] == 'orphaned_stake':
+                num_orphaned += 1
+        assert (num_orphaned == 2)
+
+        n0_wi_after = nodes[0].getwalletinfo()
+        # Some small amounts were spent.
+        difference = float(n0_wi_before['total_balance']) - float(n0_wi_after['total_balance'])
+        assert (difference > 0.0 and difference < 5.0)
 
         n0_lt = nodes[0].listtransactions()
         num_orphaned = 0

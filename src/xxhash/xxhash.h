@@ -75,6 +75,24 @@ XXH32        6.8 GB/s            6.0 GB/s
 extern "C" {
 #endif
 
+/*  -DFALLTHROUGH_INTENDED=[[fallthrough]] or -DFALLTHROUGH_INTENDED=__attribute__((fallthrough)) work on a few platforms */
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#elif defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+
+// The FALLTHROUGH_INTENDED macro can be used to annotate implicit fall-through
+// between switch labels. The real definition should be provided externally.
+// This one is a fallback version for unsupported compilers.
+#ifndef FALLTHROUGH_INTENDED
+#define FALLTHROUGH_INTENDED \
+  do {                       \
+  } while (0)
+#endif
+
 /* ****************************
  *  INLINE mode
  ******************************/
@@ -835,7 +853,7 @@ XXH_PUBLIC_API XXH128_hash_t XXH128(const void* data, size_t len, XXH64_hash_t s
  *
  * The check costs one initial branch per hash, which is generally negligible, but not zero.
  * Moreover, it's not useful to generate binary for an additional code path
- * if memory access uses same instruction for both aligned and unaligned adresses.
+ * if memory access uses same instruction for both aligned and unaligned addresses.
  *
  * In these cases, the alignment check can be removed by setting this macro to 0.
  * Then the code will always use unaligned memory access.
@@ -1300,41 +1318,41 @@ XXH32_finalize(xxh_u32 h32, const xxh_u8* ptr, size_t len, XXH_alignment align)
     } else {
          switch(len&15) /* or switch(bEnd - p) */ {
            case 12:      XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 8:       XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 4:       XXH_PROCESS4;
                          return XXH32_avalanche(h32);
 
            case 13:      XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 9:       XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 5:       XXH_PROCESS4;
                          XXH_PROCESS1;
                          return XXH32_avalanche(h32);
 
            case 14:      XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 10:      XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 6:       XXH_PROCESS4;
                          XXH_PROCESS1;
                          XXH_PROCESS1;
                          return XXH32_avalanche(h32);
 
            case 15:      XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 11:      XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 7:       XXH_PROCESS4;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 3:       XXH_PROCESS1;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 2:       XXH_PROCESS1;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 1:       XXH_PROCESS1;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 0:       return XXH32_avalanche(h32);
         }
         XXH_ASSERT(0);
@@ -1793,63 +1811,63 @@ XXH64_finalize(xxh_u64 h64, const xxh_u8* ptr, size_t len, XXH_alignment align)
     } else {
         switch(len & 31) {
            case 24: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 16: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  8: XXH_PROCESS8_64;
                     return XXH64_avalanche(h64);
 
            case 28: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 20: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 12: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  4: XXH_PROCESS4_64;
                     return XXH64_avalanche(h64);
 
            case 25: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 17: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  9: XXH_PROCESS8_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 29: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 21: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 13: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  5: XXH_PROCESS4_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 26: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 18: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 10: XXH_PROCESS8_64;
                     XXH_PROCESS1_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 30: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 22: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 14: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  6: XXH_PROCESS4_64;
                     XXH_PROCESS1_64;
                     XXH_PROCESS1_64;
                     return XXH64_avalanche(h64);
 
            case 27: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 19: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 11: XXH_PROCESS8_64;
                     XXH_PROCESS1_64;
                     XXH_PROCESS1_64;
@@ -1857,19 +1875,19 @@ XXH64_finalize(xxh_u64 h64, const xxh_u8* ptr, size_t len, XXH_alignment align)
                     return XXH64_avalanche(h64);
 
            case 31: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 23: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case 15: XXH_PROCESS8_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  7: XXH_PROCESS4_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  3: XXH_PROCESS1_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  2: XXH_PROCESS1_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  1: XXH_PROCESS1_64;
-                         /* fallthrough */
+                         FALLTHROUGH_INTENDED;
            case  0: return XXH64_avalanche(h64);
         }
     }
@@ -4759,6 +4777,12 @@ XXH128_hashFromCanonical(const XXH128_canonical_t* src)
 
 
 #endif  /* XXH_IMPLEMENTATION */
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 
 #if defined (__cplusplus)

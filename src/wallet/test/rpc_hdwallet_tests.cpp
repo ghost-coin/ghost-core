@@ -14,7 +14,6 @@
 
 #include <wallet/test/hdwallet_test_fixture.h>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include <univalue.h>
@@ -23,7 +22,7 @@
 
 using namespace std;
 
-extern UniValue createArgs(int nRequired, const char* address1 = NULL, const char* address2 = nullptr);
+extern UniValue createArgs(int nRequired, const char* address1 = nullptr, const char* address2 = nullptr);
 
 void RewindHdSxChain(CHDWallet *pwallet)
 {
@@ -42,7 +41,7 @@ BOOST_FIXTURE_TEST_SUITE(rpc_hdwallet_tests, HDWalletTestingSetup)
 BOOST_AUTO_TEST_CASE(rpc_hdwallet)
 {
     UniValue rv;
-    util::Ref context{m_node};
+    const auto context = util::AnyPtr<node::NodeContext>(&m_node);
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster xprv9s21ZrQH143K3VrEYG4rhyPddr2o53qqqpCufLP6Rb3XSta2FZsqCanRJVfpTi4UX28pRaAfVGfiGpYDczv8tzTM6Qm5TRvUA9HDStbNUbQ", context));
 

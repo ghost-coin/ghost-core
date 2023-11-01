@@ -43,7 +43,7 @@ class SmsgMultiWalletTest(GhostTestFramework):
         w2.encryptwallet('qwerty234')
 
         smsg_info = nodes[2].smsggetinfo()
-        assert(len(smsg_info['enabled_wallets']) == 2)
+        assert (len(smsg_info['enabled_wallets']) == 2)
 
         address2_1 = w1.getnewaddress()
         address2_1_info = w1.getaddressinfo(address2_1)
@@ -74,9 +74,9 @@ class SmsgMultiWalletTest(GhostTestFramework):
             if len(ro['messages']) > 1:
                 break
             time.sleep(1)
-        assert(i < 19)
+        assert (i < 19)
 
-        assert(len(ro['messages']) == 2)
+        assert (len(ro['messages']) == 2)
 
         w2.walletpassphrase('qwerty234', 30)
 
@@ -86,9 +86,9 @@ class SmsgMultiWalletTest(GhostTestFramework):
             if len(ro['messages']) > 0:
                 break
             time.sleep(1)
-        assert(i < 19)
+        assert (i < 19)
 
-        assert(len(ro['messages']) == 1)
+        assert (len(ro['messages']) == 1)
 
         self.log.info('Test smsgsend with coincontrol')
         w2.walletlock()
@@ -100,7 +100,7 @@ class SmsgMultiWalletTest(GhostTestFramework):
         self.stakeBlocks(1)
 
         plain_unspent = w2.listunspent()
-        assert(len(plain_unspent) == 6)
+        assert (len(plain_unspent) == 6)
 
         for i in range(len(plain_unspent)):
             if plain_unspent[i]['amount'] < 1.0:
@@ -111,7 +111,7 @@ class SmsgMultiWalletTest(GhostTestFramework):
 
         nodes[2].smsgsetwallet('wallet_2')
         smsg_info = nodes[2].smsggetinfo()
-        assert(smsg_info['active_wallet'] == 'wallet_2')
+        assert (smsg_info['active_wallet'] == 'wallet_2')
 
         coincontrol = {'inputs': [{'tx': spend['txid'], 'n': spend['vout']}]}
         sendoptions = {}
@@ -122,33 +122,33 @@ class SmsgMultiWalletTest(GhostTestFramework):
             ro = nodes[2].smsgsend(address2_2, address1, msg, True, 6, False, sendoptions, coincontrol)
             raise AssertionError('Should have failed.')
         except JSONRPCException as e:
-            assert('Wallet locked' in e.error['message'])
+            assert ('Wallet locked' in e.error['message'])
 
         # Allow testing fees from a locked wallet - if address isn't in a locked wallet
         ro = nodes[2].smsgsend(address2_3, address1, msg, True, 6, True, sendoptions, coincontrol)
-        assert(ro['result'] == 'Not Sent.')
-        assert(ro['fee'] > 0.00137)
+        assert (ro['result'] == 'Not Sent.')
+        assert (ro['fee'] > 0.00137)
 
         # Check funding fails if coincontrol inputs are too low
-        coincontrol = {'inputs': [{'tx': cantspend['txid'], 'n': cantspend['vout']}]}
+        coincontrol = {'inputs': [{'tx': cantspend['txid'], 'n': cantspend['vout']}], 'allow_other_inputs': False}
         ro = nodes[2].smsgsend(address2_3, address1, msg, True, 6, True, sendoptions, coincontrol)
-        assert('Insufficient funds' in ro['error'])
+        assert ('Insufficient funds' in ro['error'])
 
         # Pass if allowed to pick extra outputs
         ro = nodes[2].smsgsend(address2_3, address1, msg, True, 6, True, sendoptions)
-        assert(ro['fee'] > 0.00137)
+        assert (ro['fee'] > 0.00137)
 
         # Should send if unlocked
         w2.walletpassphrase('qwerty234', 30)
         coincontrol = {'inputs': [{'tx': spend['txid'], 'n': spend['vout']}]}
         send_receipt = nodes[2].smsgsend(address2_2, address1, msg, True, 6, False, sendoptions, coincontrol)
-        assert(send_receipt['result'] == 'Sent.')
-        assert(send_receipt['fee'] > 0.00137)
+        assert (send_receipt['result'] == 'Sent.')
+        assert (send_receipt['fee'] > 0.00137)
 
         fund_tx = nodes[2].getrawtransaction(send_receipt['txid'], True)
-        assert(len(fund_tx['vin']) == 1)
-        assert(fund_tx['vin'][0]['txid'] == spend['txid'])
-        assert(fund_tx['vin'][0]['vout'] == spend['vout'])
+        assert (len(fund_tx['vin']) == 1)
+        assert (fund_tx['vin'][0]['txid'] == spend['txid'])
+        assert (fund_tx['vin'][0]['vout'] == spend['vout'])
 
         self.sync_all()
         self.stakeBlocks(1)
@@ -158,10 +158,10 @@ class SmsgMultiWalletTest(GhostTestFramework):
             if len(ro['messages']) > 0:
                 break
             time.sleep(1)
-        assert(i < 19)
+        assert (i < 19)
 
-        assert(len(ro['messages']) == 1)
-        assert(ro['messages'][0]['text'] == msg)
+        assert (len(ro['messages']) == 1)
+        assert (ro['messages'][0]['text'] == msg)
 
         self.log.info('Done.')
 

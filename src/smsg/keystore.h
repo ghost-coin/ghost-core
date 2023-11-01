@@ -58,4 +58,4 @@ public:
 
 } // namespace smsg
 
-#endif //PARTICL_SMSG_KEYSTORE_H
+#endif // PARTICL_SMSG_KEYSTORE_H

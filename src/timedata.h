@@ -1,13 +1,16 @@
-// Copyright (c) 2014-2018 The Bitcoin Core developers
+// Copyright (c) 2014-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_TIMEDATA_H
 #define BITCOIN_TIMEDATA_H
 
+#include <util/time.h>
+
 #include <algorithm>
-#include <assert.h>
-#include <stdint.h>
+#include <cassert>
+#include <chrono>
+#include <cstdint>
 #include <vector>
 
 static const int64_t DEFAULT_MAX_TIME_ADJUSTMENT = 70 * 60;
@@ -33,11 +36,11 @@ public:
         vValues.push_back(initial_value);
         vSorted = vValues;
     }
-    
+
     CMedianFilter() : nSize(0)
     {
     }
-    
+
     void set(unsigned int size, T initial_value)
     {
         nSize = size;
@@ -84,7 +87,13 @@ public:
 
 /** Functions to keep track of adjusted P2P time */
 int64_t GetTimeOffset();
-int64_t GetAdjustedTime();
+NodeClock::time_point GetAdjustedTime();
+int64_t GetAdjustedTimeInt();
 void AddTimeData(const CNetAddr& ip, int64_t nTime);
+
+/**
+ * Reset the internal state of GetTimeOffset(), GetAdjustedTime() and AddTimeData().
+ */
+void TestOnlyResetTimeData();
 
 #endif // BITCOIN_TIMEDATA_H

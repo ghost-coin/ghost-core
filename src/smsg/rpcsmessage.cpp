@@ -10,29 +10,40 @@
 
 #include <smsg/smessage.h>
 #include <smsg/db.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 #include <util/strencodings.h>
+#include <util/system.h>
+#include <util/fs_helpers.h>
+#include <node/blockstorage.h>
 #include <consensus/consensus.h>
 #include <core_io.h>
 #include <base58.h>
 #include <rpc/util.h>
+#include <rpc/server_util.h>
+#include <rpc/blockchain.h>
 #include <validation.h>
 #include <timedata.h>
 #include <anon.h>
 #include <validationinterface.h>
-#include <util/string.h>
+#include <node/context.h>
+#include <interfaces/wallet.h>
 #include <util/time.h>
+#include <util/string.h>
+#include <util/syserror.h>
+#include <util/moneystr.h>
 
 #include <leveldb/db.h>
 
 #ifdef ENABLE_WALLET
 #include <wallet/hdwallet.h>
 #include <wallet/coincontrol.h>
-extern void EnsureWalletIsUnlocked(CHDWallet *pwallet);
-extern void ParseCoinControlOptions(const UniValue &obj, CHDWallet *pwallet, CCoinControl &coin_control);
+extern void EnsureWalletIsUnlocked(const CHDWallet *pwallet);
+extern void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoinControl &coin_control);
 #endif
 
 #include <univalue.h>
+#include <fstream>
+
 
 static void EnsureSMSGIsEnabled()
 {
@@ -41,32 +52,37 @@ static void EnsureSMSGIsEnabled()
     }
 };
 
-static UniValue smsgenable(const JSONRPCRequest &request)
+static RPCHelpMan smsgenable()
 {
-            RPCHelpMan{"smsgenable",
+    return RPCHelpMan{"smsgenable",
                 "Enable secure messaging with the specified wallet as the active wallet.\n"
                 "Uses the first smsg-enabled wallet as the active wallet if none specified.\n",
                 {
-                    {"walletname", RPCArg::Type::STR, /* default */ "wallet.dat", "Active smsg wallet."},
+                    {"walletname", RPCArg::Type::STR, RPCArg::Default{"wallet.dat"}, "Active smsg wallet."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "result", "Result."},
+                        {RPCResult::Type::STR, "wallet", "The active wallet."}
+                    }
+                },
                 RPCExamples{
             HelpExampleCli("smsgenable", "\"wallet_name\"") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsgenable", "\"wallet_name\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (smsg::fSecMsgEnabled) {
         throw JSONRPCError(RPC_MISC_ERROR, "Secure messaging is already enabled.");
     }
 
     UniValue result(UniValue::VOBJ);
 
-    std::shared_ptr<CWallet> pwallet;
+    std::shared_ptr<wallet::CWallet> pwallet;
     std::string sFindWallet, wallet_name = "Not set.";
 #ifdef ENABLE_WALLET
-    auto vpwallets = GetWallets();
+    auto vpwallets = GetWallets(*smsgModule.m_node->wallet_loader->context());
 
     if (!request.params[0].isNull()) {
         sFindWallet = request.params[0].get_str();
@@ -93,66 +109,77 @@ static UniValue smsgenable(const JSONRPCRequest &request)
     }
     result.pushKV("result", (smsgModule.Enable(pwallet, vpwallets) ? "Enabled secure messaging." : "Failed."));
 #else
-    std::vector<std::shared_ptr<CWallet>> empty;
+    std::vector<std::shared_ptr<wallet::CWallet>> empty;
     result.pushKV("result", (smsgModule.Enable(pwallet, empty) ? "Enabled secure messaging." : "Failed."));
- #endif
+#endif
 
     result.pushKV("wallet", wallet_name);
 
     return result;
+},
+    };
 }
 
-static UniValue smsgdisable(const JSONRPCRequest &request)
+static RPCHelpMan smsgdisable()
 {
-            RPCHelpMan{"smsgdisable",
+    return RPCHelpMan{"smsgdisable",
                 "\nDisable secure messaging.\n",
                 {
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::STR, "result", "Result."}
+                    }
+                },
                 RPCExamples{
                     HelpExampleCli("smsgdisable", "")
                     + HelpExampleRpc("smsgdisable", "")
                 },
-            }.Check(request);
-
-    if (!smsg::fSecMsgEnabled)
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    if (!smsg::fSecMsgEnabled) {
         throw JSONRPCError(RPC_MISC_ERROR, "Secure messaging is already disabled.");
+    }
 
     UniValue result(UniValue::VOBJ);
 
     result.pushKV("result", (smsgModule.Disable() ? "Disabled secure messaging." : "Failed."));
 
     return result;
+},
+    };
 }
 
-static UniValue smsgsetwallet(const JSONRPCRequest &request)
+static RPCHelpMan smsgsetwallet()
 {
-            RPCHelpMan{"smsgsetwallet",
+    return RPCHelpMan{"smsgsetwallet",
                 "Set secure messaging to use the specified wallet.\n"
                 "SMSG can only be enabled on one wallet.\n"
                 "Call with no parameters to unset the active wallet.\n",
                 {
-                    {"walletname", RPCArg::Type::STR, /* default */ "wallet.dat", "Enable smsg on a specific wallet."},
+                    {"walletname", RPCArg::Type::STR, RPCArg::Default{"wallet.dat"}, "Enable smsg on a specific wallet."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgsetwallet", "\"wallet_name\"")
                     + HelpExampleRpc("smsgsetwallet", "\"wallet_name\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     if (!smsg::fSecMsgEnabled) {
         throw JSONRPCError(RPC_MISC_ERROR, "Secure messaging must be enabled.");
     }
 
     UniValue result(UniValue::VOBJ);
 
-    std::shared_ptr<CWallet> pwallet;
+    std::shared_ptr<wallet::CWallet> pwallet;
     std::string wallet_name = "Not set.";
 #ifndef ENABLE_WALLET
     throw JSONRPCError(RPC_MISC_ERROR, "Wallet is disabled.");
 #else
-    auto vpwallets = GetWallets();
+    auto vpwallets = GetWallets(*smsgModule.m_node->wallet_loader->context());
 
     if (!request.params[0].isNull()) {
         std::string sFindWallet = request.params[0].get_str();
@@ -177,25 +204,29 @@ static UniValue smsgsetwallet(const JSONRPCRequest &request)
     result.pushKV("wallet", wallet_name);
 
     return result;
+},
+    };
 }
 
-static UniValue smsgoptions(const JSONRPCRequest &request)
+static RPCHelpMan smsgoptions()
 {
-            RPCHelpMan{"smsgoptions",
+    return RPCHelpMan{"smsgoptions",
                 "\nList and manage options.\n",
                 {
-                    {"list with_description|set \"optname\" \"value\"", RPCArg::Type::STR, /* default */ "list", "Command input."},
-                    {"optname", RPCArg::Type::STR, /* default */ "", "Option name."},
-                    {"value", RPCArg::Type::STR, /* default */ "", "New option value."},
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"list"}, "Mode: list or set, 2nd arg is with_description in list mode."},
+                    {"optname", RPCArg::Type::STR, RPCArg::Default{""}, "Option name.", RPCArgOptions{.skip_type_check = true}},
+                    {"value", RPCArg::Type::STR, RPCArg::Default{""}, "New option value.", RPCArgOptions{.skip_type_check = true}},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
             "\nList possible options with descriptions.\n"
             + HelpExampleCli("smsgoptions", "list 1")
             + HelpExampleRpc("smsgoptions", "\"list\", 1")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::string mode = "list";
     if (request.params.size() > 0) {
         mode = request.params[0].get_str();
@@ -248,7 +279,7 @@ static UniValue smsgoptions(const JSONRPCRequest &request)
         std::string optname = request.params[1].get_str();
         bool fValue = GetBool(request.params[2]);
 
-        std::transform(optname.begin(), optname.end(), optname.begin(), ::tolower);
+        optname = ToLower(optname);
         if (optname == "newaddressrecv") {
             smsgModule.options.fNewAddressRecv = fValue;
             result.pushKV("set option", std::string("newAddressRecv = ") + (smsgModule.options.fNewAddressRecv ? "true" : "false"));
@@ -270,25 +301,29 @@ static UniValue smsgoptions(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsglocalkeys(const JSONRPCRequest &request)
+static RPCHelpMan smsglocalkeys()
 {
-            RPCHelpMan{"smsglocalkeys",
+    return RPCHelpMan{"smsglocalkeys",
                 "\nList and manage keys messages can be received with.\n",
                 {
-                    {"whitelist|all|wallet|recv +/- \"address\"|anon +/- \"address\"", RPCArg::Type::STR, /* default */ "whitelist", "Command input."},
-                    {"optype", RPCArg::Type::STR, /* default */ "", "Add or remove +/-."},
-                    {"address", RPCArg::Type::STR, /* default */ "", "Address to affect."},
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"whitelist"}, "whitelist|all|wallet|recv +/- \"address\"|anon +/- \"address\""},
+                    {"optype", RPCArg::Type::STR, RPCArg::Default{""}, "Add or remove +/-."},
+                    {"address", RPCArg::Type::STR, RPCArg::Default{""}, "Address to affect."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     "\nList local keys.\n"
                     + HelpExampleCli("smsglocalkeys", "")
                     + HelpExampleRpc("smsglocalkeys", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     UniValue result(UniValue::VOBJ);
@@ -478,20 +513,24 @@ static UniValue smsglocalkeys(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
-static UniValue smsgscanchain(const JSONRPCRequest &request)
+static RPCHelpMan smsgscanchain()
 {
-            RPCHelpMan{"smsgscanchain",
+    return RPCHelpMan{"smsgscanchain",
                 "\nLook for public keys in the block chain.\n",
                 {},
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgscanchain", "")
                     + HelpExampleRpc("smsgscanchain", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     UniValue result(UniValue::VOBJ);
@@ -502,27 +541,31 @@ static UniValue smsgscanchain(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsgscanbuckets(const JSONRPCRequest &request)
+static RPCHelpMan smsgscanbuckets()
 {
-            RPCHelpMan{"smsgscanbuckets",
+    return RPCHelpMan{"smsgscanbuckets",
                 "\nForce rescan of all messages in the bucket store.\n"
                 "Wallet must be unlocked if any receiving keys are stored in the wallet.\n",
                 {
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"scanexpired", RPCArg::Type::BOOL, /* default */ "false", "Scan all messages."},
+                            {"scanexpired", RPCArg::Type::BOOL, RPCArg::Default{false}, "Scan all messages."},
                         },
-                        "options"},
+                    },
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgscanbuckets", "")
                     + HelpExampleRpc("smsgscanbuckets", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     bool scan_all = false;
@@ -545,23 +588,27 @@ static UniValue smsgscanbuckets(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsgaddaddress(const JSONRPCRequest &request)
+static RPCHelpMan smsgaddaddress()
 {
-            RPCHelpMan{"smsgaddaddress",
+    return RPCHelpMan{"smsgaddaddress",
                 "\nAdd address and matching public key to database.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to add."},
                     {"pubkey", RPCArg::Type::STR, RPCArg::Optional::NO, "Public key for \"address\"."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgaddaddress", "\"address\" \"public_key\"")
                     + HelpExampleRpc("smsgaddaddress", "\"address\", \"public_key\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     std::string addr = request.params[0].get_str();
@@ -577,23 +624,27 @@ static UniValue smsgaddaddress(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsgaddlocaladdress(const JSONRPCRequest &request)
+static RPCHelpMan smsgaddlocaladdress()
 {
-            RPCHelpMan{"smsgaddlocaladdress",
+    return RPCHelpMan{"smsgaddlocaladdress",
                 "\nEnable receiving messages on <address>.\n"
                 "Key for \"address\" must exist in the wallet.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to add."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgaddlocaladdress", "\"address\"")
                     + HelpExampleRpc("smsgaddlocaladdress", "\"address\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     std::string addr = request.params[0].get_str();
@@ -608,18 +659,21 @@ static UniValue smsgaddlocaladdress(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsgimportprivkey(const JSONRPCRequest &request)
+static RPCHelpMan smsgimportprivkey()
 {
-            RPCHelpMan{"smsgimportprivkey",
+    return RPCHelpMan{"smsgimportprivkey",
                 "\nAdds a private key (as returned by dumpprivkey) to the SMSG database.\n"
                 "Keys imported into SMSG will be stored unencrypted and can receive messages even if the wallet is locked.\n",
                 {
                     {"privkey", RPCArg::Type::STR, RPCArg::Optional::NO, "The private key to import (see dumpprivkey)."},
-                    {"label", RPCArg::Type::STR, /* default */ "", "An optional label."},
+                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "An optional label."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::NONE, "", "None"},
                 RPCExamples{
             "\nDump a private key\n"
             + HelpExampleCli("dumpprivkey", "\"myaddress\"") +
@@ -628,8 +682,8 @@ static UniValue smsgimportprivkey(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsgimportprivkey", "\"mykey\", \"testing\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     CBitcoinSecret vchSecret;
@@ -638,7 +692,7 @@ static UniValue smsgimportprivkey(const JSONRPCRequest &request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
     }
 
-    std::string strLabel = "";
+    std::string strLabel;
     if (!request.params[1].isNull()) {
         strLabel = request.params[1].get_str();
     }
@@ -648,12 +702,14 @@ static UniValue smsgimportprivkey(const JSONRPCRequest &request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Import failed.");
     }
 
-    return NullUniValue;
+    return UniValue::VNULL;
+},
+    };
 }
 
-static UniValue smsgdumpprivkey(const JSONRPCRequest &request)
+static RPCHelpMan smsgdumpprivkey()
 {
-    RPCHelpMan{"smsgdumpprivkey",
+    return RPCHelpMan{"smsgdumpprivkey",
         "\nReveals the private key corresponding to 'address'.\n",
         {
             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The ghost address for the private key"},
@@ -666,18 +722,18 @@ static UniValue smsgdumpprivkey(const JSONRPCRequest &request)
     + HelpExampleCli("smsgimportprivkey", "\"mykey\"")
     + HelpExampleRpc("smsgdumpprivkey", "\"myaddress\"")
         },
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     std::string strAddress = request.params[0].get_str();
     CTxDestination dest = DecodeDestination(strAddress);
     if (!IsValidDestination(dest)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ghost address");
     }
 
-    if (dest.type() != typeid(PKHash)) {
+    if (dest.index() != DI::_PKHash) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address not a key id");
     }
-    const CKeyID &idk = ToKeyID(boost::get<PKHash>(dest));
+    const CKeyID &idk = ToKeyID(std::get<PKHash>(dest));
 
     CKey key_out;
     int rv = smsgModule.DumpPrivkey(idk, key_out);
@@ -686,11 +742,13 @@ static UniValue smsgdumpprivkey(const JSONRPCRequest &request)
     }
 
     return EncodeSecret(key_out);
+},
+    };
 }
 
-static UniValue smsggetpubkey(const JSONRPCRequest &request)
+static RPCHelpMan smsggetpubkey()
 {
-            RPCHelpMan{"smsggetpubkey",
+    return RPCHelpMan{"smsggetpubkey",
                 "\nReturn the base58 encoded compressed public key for an address.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Return the pubkey matching \"address\"."},
@@ -706,8 +764,8 @@ static UniValue smsggetpubkey(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsggetpubkey", "\"myaddress\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     std::string address = request.params[0].get_str();
@@ -755,37 +813,39 @@ static UniValue smsggetpubkey(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsgsend(const JSONRPCRequest &request)
+static RPCHelpMan smsgsend()
 {
-            RPCHelpMan{"smsgsend",
+    return RPCHelpMan{"smsgsend",
                 "\nSend an encrypted message from \"address_from\" to \"address_to\".\n",
                 {
                     {"address_from", RPCArg::Type::STR, RPCArg::Optional::NO, "The address of the sender."},
                     {"address_to", RPCArg::Type::STR, RPCArg::Optional::NO, "The address of the recipient."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "The message to send."},
-                    {"paid_msg", RPCArg::Type::BOOL, /* default */ "false", "Send as paid message."},
-                    {"days_retention", RPCArg::Type::NUM, /* default */ "1", "No. of days for which the message will be retained by network."},
-                    {"testfee", RPCArg::Type::BOOL, /* default */ "false", "Don't send the message, only estimate the fee."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"paid_msg", RPCArg::Type::BOOL, RPCArg::Default{false}, "Send as paid message."},
+                    {"days_retention", RPCArg::Type::NUM, RPCArg::Default{1}, "No. of days for which the message will be retained by network."},
+                    {"testfee", RPCArg::Type::BOOL, RPCArg::Default{false}, "Don't send the message, only estimate the fee."},
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"fromfile", RPCArg::Type::BOOL, /* default */ "false", "Send file as message, path specified in \"message\"."},
-                            {"decodehex", RPCArg::Type::BOOL, /* default */ "false", "Decode \"message\" from hex before sending."},
-                            {"submitmsg", RPCArg::Type::BOOL, /* default */ "true", "Submit smsg to network, if false POW is not set and hex encoded smsg returned."},
-                            {"savemsg", RPCArg::Type::BOOL, /* default */ "true", "Save smsg to outbox."},
-                            {"ttl_is_seconds", RPCArg::Type::BOOL, /* default */ "false", "If true days_retention parameter is interpreted as seconds to live."},
-                            {"fund_from_rct", RPCArg::Type::BOOL, /* default */ "false", "Fund message from anon balance."},
-                            {"rct_ring_size", RPCArg::Type::NUM, /* default */ strprintf("%d", DEFAULT_RING_SIZE), "Ring size to use with fund_from_rct."},
-                            {"fundmsg", RPCArg::Type::BOOL, /* default */ "true", "Fund paid message, if false message will be stashed for later funding."},
+                            {"fromfile", RPCArg::Type::BOOL, RPCArg::Default{false}, "Send file as message, path specified in \"message\"."},
+                            {"decodehex", RPCArg::Type::BOOL, RPCArg::Default{false}, "Decode \"message\" from hex before sending."},
+                            {"submitmsg", RPCArg::Type::BOOL, RPCArg::Default{true}, "Submit smsg to network, if false POW is not set and hex encoded smsg returned."},
+                            {"savemsg", RPCArg::Type::BOOL, RPCArg::Default{true}, "Save smsg to outbox."},
+                            {"ttl_is_seconds", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true days_retention parameter is interpreted as seconds to live."},
+                            {"fund_from_rct", RPCArg::Type::BOOL, RPCArg::Default{false}, "Fund message from anon balance."},
+                            {"rct_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size to use with fund_from_rct."},
+                            {"fundmsg", RPCArg::Type::BOOL, RPCArg::Default{true}, "Fund paid message, if false message will be stashed for later funding."},
                         },
-                        "options"},
-                    {"coin_control", RPCArg::Type::OBJ, /* default */ "", "",
+                    },
+                    {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
                             {"changeaddress", RPCArg::Type::STR, /* default */ "", "The ghost address to receive the change"},
                             {"inputs", RPCArg::Type::ARR, /* default */ "", "A json array of json objects",
                                 {
-                                    {"", RPCArg::Type::OBJ, /* default */ "", "",
+                                    {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                                         {
                                             {"tx", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "txn id"},
                                             {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "txn vout"},
@@ -793,45 +853,48 @@ static UniValue smsgsend(const JSONRPCRequest &request)
                                     },
                                 },
                             },
-                            {"replaceable", RPCArg::Type::BOOL, /* default */ "", "Marks this transaction as BIP125 replaceable.\n"
+                            {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{""}, "Marks this transaction as BIP125 replaceable.\n"
                             "                              Allows this transaction to be replaced by a transaction with higher fees"},
-                            {"conf_target", RPCArg::Type::NUM, /* default */ "", "Confirmation target (in blocks)"},
-                            {"estimate_mode", RPCArg::Type::STR, /* default */ "UNSET", "The fee estimate mode, must be one of:\n"
+                            {"conf_target", RPCArg::Type::NUM, RPCArg::Default{""}, "Confirmation target (in blocks)"},
+                            {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"UNSET"}, "The fee estimate mode, must be one of:\n"
                             "         \"UNSET\"\n"
                             "         \"ECONOMICAL\"\n"
                             "         \"CONSERVATIVE\""},
-                            {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "true", "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
+                            {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
                             "                             dirty if they have previously been used in a transaction."},
-                            {"feeRate", RPCArg::Type::AMOUNT, /* default */ "not set: makes wallet determine the fee", "Set a specific fee rate in " + CURRENCY_UNIT + "/kB"},
+                            {"feeRate", RPCArg::Type::AMOUNT, RPCArg::Default{"not set: makes wallet determine the fee"}, "Set a specific fee rate in " + CURRENCY_UNIT + "/kB"},
+                            {"allow_other_inputs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow inputs to be added if any inputs already exist."},
+                            {"allow_change_output", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow change output to be added if needed (only for 'blind' input_type)."},
+                            {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
+                            {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO to select in " + CURRENCY_UNIT + ""},
                         },
                     },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR, "result", "\"Sent\"/\"Not Sent\""},
-                        {RPCResult::Type::STR_HEX, "msgid", "Message id, if sent"},
-                        {RPCResult::Type::STR_HEX, "txid", "txnid of the funding txn, if paid msg"},
-                        {RPCResult::Type::STR_AMOUNT, "fee", "fee paid, if paid msg"},
+                        {RPCResult::Type::STR_HEX, "msgid", /*optional=*/true, "Message id, if sent"},
+                        {RPCResult::Type::STR_HEX, "msg", /*optional=*/true, "Hex encoded message"},
+                        {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "txnid of the funding transaction, if paid msg"},
+                        {RPCResult::Type::NUM, "tx_vsize", /*optional=*/true, "Virtual size of funding transaction, if paid msg"},
+                        {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "fee paid, if paid msg"},
+                        {RPCResult::Type::STR, "error", /*optional=*/true, "Error if failed to send"},
                 }},
                 RPCExamples{
              HelpExampleCli("smsgsend", "\"myaddress\" \"toaddress\" \"message\"") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsgsend", "\"myaddress\", \"toaddress\", \"message\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
-
-    RPCTypeCheck(request.params,
-        {UniValue::VSTR, UniValue::VSTR, UniValue::VSTR,
-         UniValue::VBOOL, UniValue::VNUM, UniValue::VBOOL, UniValue::VOBJ}, true);
 
     std::string addrFrom  = request.params[0].get_str();
     std::string addrTo    = request.params[1].get_str();
     std::string msg       = request.params[2].get_str();
 
     bool fPaid = request.params[3].isNull() ? false : request.params[3].get_bool();
-    int nRetention = request.params[4].isNull() ? 1 : request.params[4].get_int();
+    int nRetention = request.params[4].isNull() ? 1 : request.params[4].getInt<int>();
     bool fTestFee = request.params[5].isNull() ? false : request.params[5].get_bool();
 
     bool fFromFile = false;
@@ -875,7 +938,10 @@ static UniValue smsgsend(const JSONRPCRequest &request)
             fund_from_rct = options["fund_from_rct"].get_bool();
         }
         if (!options["rct_ring_size"].isNull()) {
-            rct_ring_size = options["rct_ring_size"].get_int();
+            rct_ring_size = options["rct_ring_size"].getInt<int>();
+        }
+        if (!options["fundmsg"].isNull()) {
+            fund_paid_msg = options["fundmsg"].get_bool();
         }
         if (!options["fundmsg"].isNull()) {
             fund_paid_msg = options["fundmsg"].get_bool();
@@ -963,11 +1029,13 @@ static UniValue smsgsend(const JSONRPCRequest &request)
                 result.pushKV("txid", txid.ToString());
             }
             result.pushKV("fee", ValueFromAmount(nFee));
-            result.pushKV("tx_bytes", (int)nTxBytes);
+            result.pushKV("tx_vsize", (int)nTxBytes);
         }
     }
 
     return result;
+},
+    };
 }
 
 static OutputTypes WordToType(std::string &s)
@@ -984,29 +1052,29 @@ static OutputTypes WordToType(std::string &s)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid fund from type.");
 };
 
-static UniValue smsgfund(const JSONRPCRequest &request)
+static RPCHelpMan smsgfund()
 {
-    RPCHelpMan{"smsgfund",
+    return RPCHelpMan{"smsgfund",
         "\nFund and send stashed messages.\n",
         {
             {"msgids", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array of smsg ids to fund",
                 {
-                    {"msgid", RPCArg::Type::STR, /* default */ "", "smsg id"},
+                    {"msgid", RPCArg::Type::STR, RPCArg::Default{""}, "smsg id"},
                 },
             },
-            {"options", RPCArg::Type::OBJ, /* default */ "", "",
+            {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                 {
-                    {"fundtype", RPCArg::Type::STR, /* default */ "plain", "Fund from \"plain\" or \"anon\" balance."},
-                    {"testfee", RPCArg::Type::BOOL, /* default */ "false", "Test fee only."},
-                    {"rct_ring_size", RPCArg::Type::NUM, /* default */ strprintf("%d", DEFAULT_RING_SIZE), "Ring size to use with fund_from_rct."},
+                    {"fundtype", RPCArg::Type::STR, RPCArg::Default{"plain"}, "Fund from \"plain\" or \"anon\" balance."},
+                    {"testfee", RPCArg::Type::BOOL, RPCArg::Default{false}, "Test fee only."},
+                    {"rct_ring_size", RPCArg::Type::NUM, RPCArg::Default{(int)DEFAULT_RING_SIZE}, "Ring size to use with fund_from_rct."},
                 },
-                "options"},
-            {"coin_control", RPCArg::Type::OBJ, /* default */ "", "",
+            },
+            {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                 {
-                    {"changeaddress", RPCArg::Type::STR, /* default */ "", "The particl address to receive the change"},
-                    {"inputs", RPCArg::Type::ARR, /* default */ "", "A json array of json objects",
+                    {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change"},
+                    {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of json objects",
                         {
-                            {"", RPCArg::Type::OBJ, /* default */ "", "",
+                            {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                                 {
                                     {"tx", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "txn id"},
                                     {"n", RPCArg::Type::NUM, RPCArg::Optional::NO, "txn vout"},
@@ -1014,34 +1082,38 @@ static UniValue smsgfund(const JSONRPCRequest &request)
                             },
                         },
                     },
-                    {"replaceable", RPCArg::Type::BOOL, /* default */ "", "Marks this transaction as BIP125 replaceable.\n"
+                    {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{""}, "Marks this transaction as BIP125 replaceable.\n"
                     "                              Allows this transaction to be replaced by a transaction with higher fees"},
-                    {"conf_target", RPCArg::Type::NUM, /* default */ "", "Confirmation target (in blocks)"},
-                    {"estimate_mode", RPCArg::Type::STR, /* default */ "UNSET", "The fee estimate mode, must be one of:\n"
+                    {"conf_target", RPCArg::Type::NUM, RPCArg::Default{""}, "Confirmation target (in blocks)"},
+                    {"estimate_mode", RPCArg::Type::STR, RPCArg::Default{"UNSET"}, "The fee estimate mode, must be one of:\n"
                     "         \"UNSET\"\n"
                     "         \"ECONOMICAL\"\n"
                     "         \"CONSERVATIVE\""},
-                    {"avoid_reuse", RPCArg::Type::BOOL, /* default */ "true", "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
+                    {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{true}, "(only available if avoid_reuse wallet flag is set) Avoid spending from dirty addresses; addresses are considered\n"
                     "                             dirty if they have previously been used in a transaction."},
-                    {"feeRate", RPCArg::Type::AMOUNT, /* default */ "not set: makes wallet determine the fee", "Set a specific fee rate in " + CURRENCY_UNIT + "/kB"},
+                    {"feeRate", RPCArg::Type::AMOUNT, RPCArg::Default{"not set: makes wallet determine the fee"}, "Set a specific fee rate in " + CURRENCY_UNIT + "/kB"},
+                    {"allow_other_inputs", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow inputs to be added if any inputs already exist."},
+                    {"allow_change_output", RPCArg::Type::BOOL, RPCArg::Default{true}, "Allow change output to be added if needed (only for 'blind' input_type)."},
+                    {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO to select in " + CURRENCY_UNIT + ""},
+                    {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO to select in " + CURRENCY_UNIT + ""},
                 },
             },
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "", {
-                {RPCResult::Type::STR_HEX, "txid", "funding txid"},
+                {RPCResult::Type::STR_HEX, "txid", /*optional=*/true, "funding txid"},
+                {RPCResult::Type::NUM, "tx_vsize", "Virtual size of funding transaction"},
                 {RPCResult::Type::STR_AMOUNT, "fee", "tx fee paid"},
         }},
         RPCExamples{
-     HelpExampleCli("smsgfund", "[\"msgid\"]") +
+    HelpExampleCli("smsgfund", "[\"msgid\"]") +
     "\nAs a JSON-RPC call\n"
     + HelpExampleRpc("smsgfund", "[\"msgid\"]")
         },
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
-    RPCTypeCheckArgument(request.params[0], UniValue::VARR);
     UniValue uv_msgids = request.params[0].get_array();
     std::vector<smsg::SecureMessage> v_smsgs(uv_msgids.size());
     std::vector<smsg::SecureMessage*> v_psmsgs(uv_msgids.size());
@@ -1056,7 +1128,7 @@ static UniValue smsgfund(const JSONRPCRequest &request)
         for (unsigned int idx = 0; idx < uv_msgids.size(); idx++) {
             const UniValue &uv_msgid = uv_msgids[idx];
 
-            std::string sMsgId = uv_msgid.get_str();
+            const std::string &sMsgId = uv_msgid.get_str();
             if (!IsHex(sMsgId) || sMsgId.size() != 56) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "msgid must be 28 bytes in hex string.");
             }
@@ -1114,7 +1186,7 @@ static UniValue smsgfund(const JSONRPCRequest &request)
             test_fee = options["testfee"].get_bool();
         }
         if (!options["rct_ring_size"].isNull()) {
-            rct_ring_size = options["rct_ring_size"].get_int();
+            rct_ring_size = options["rct_ring_size"].getInt<int>();
         }
     }
 
@@ -1179,23 +1251,27 @@ static UniValue smsgfund(const JSONRPCRequest &request)
     }
 
     result.pushKV("fee", ValueFromAmount(nTxFee));
-    result.pushKV("tx_bytes", (int)nTxBytes);
+    result.pushKV("tx_vsize", (int)nTxBytes);
 
     return result;
-};
+},
+    };
+}
 
-static UniValue smsgsendanon(const JSONRPCRequest &request)
+static RPCHelpMan smsgsendanon()
 {
-            RPCHelpMan{"smsgsendanon",
+    return RPCHelpMan{"smsgsendanon",
                 "\nDEPRECATED. Send an anonymous encrypted message to addrTo.\n",
                 {
                     {"address_to", RPCArg::Type::STR, RPCArg::Optional::NO, "Address to send to."},
                     {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "Message to send."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{""},
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     std::string addrTo    = request.params[0].get_str();
@@ -1220,25 +1296,27 @@ static UniValue smsgsendanon(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsginbox(const JSONRPCRequest &request)
+static RPCHelpMan smsginbox()
 {
-            RPCHelpMan{"smsginbox",
+    return RPCHelpMan{"smsginbox",
                 "\nDecrypt and display received messages.\n"
                 "Warning: clear will delete all messages.\n",
                 {
-                    {"mode", RPCArg::Type::STR, /* default */ "unread", "\"all|unread|count|clear\" List all messages, unread messages, count or delete all messages."},
-                    {"filter", RPCArg::Type::STR, /* default */ "", "Filter messages when in list mode. Applied to from, to and text fields."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"unread"}, "\"all|unread|count|clear\" List all messages, unread messages, count or delete all messages."},
+                    {"filter", RPCArg::Type::STR, RPCArg::Default{""}, "Filter messages when in list mode. Applied to from, to and text fields."},
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"updatestatus", RPCArg::Type::BOOL, /* default */ "true", "Update read status if true."},
-                            {"encoding", RPCArg::Type::STR, /* default */ "text", "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
-                            {"offset", RPCArg::Type::NUM, /* default */ "", "Skip the first \"offset\" messages"},
-                            {"max_results", RPCArg::Type::NUM, /* default */ "", "Return only \"max_results\" messages"},
-                            {"unread_only", RPCArg::Type::BOOL, /* default */ "false", "Count only unread messages"},
+                            {"updatestatus", RPCArg::Type::BOOL, RPCArg::Default{true}, "Update read status if true."},
+                            {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
+                            {"offset", RPCArg::Type::NUM, RPCArg::Default{""}, "Skip the first \"offset\" messages"},
+                            {"max_results", RPCArg::Type::NUM, RPCArg::Default{""}, "Return only \"max_results\" messages"},
+                            {"unread_only", RPCArg::Type::BOOL, RPCArg::Default{false}, "Count only unread messages"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -1281,11 +1359,9 @@ static UniValue smsginbox(const JSONRPCRequest &request)
                     "Count unread messages:"
                     + HelpExampleCli("smsginbox", "\"count\" \"\" \"{\\\"unread_only\\\":true}\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
-
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VOBJ}, true);
 
     std::string mode = request.params[0].isStr() ? request.params[0].get_str() : "unread";
     std::string filter = request.params[1].isStr() ? request.params[1].get_str() : "";
@@ -1306,10 +1382,10 @@ static UniValue smsginbox(const JSONRPCRequest &request)
             unread_only = options["unread_only"].get_bool();
         }
         if (options["offset"].isNum()) {
-            offset = options["offset"].get_int();
+            offset = options["offset"].getInt<int>();
         }
         if (options["max_results"].isNum()) {
-            max_results = options["max_results"].get_int();
+            max_results = options["max_results"].getInt<int>();
         }
     }
 
@@ -1355,8 +1431,8 @@ static UniValue smsginbox(const JSONRPCRequest &request)
 
             result.pushKV("result", strprintf("Deleted %u messages.", nMessages));
         } else
-        if (mode == "all"
-            || mode == "unread") {
+        if (mode == "all" ||
+            mode == "unread") {
             int fCheckReadStatus = mode == "unread" ? 1 : 0;
 
             smsg::SecMsgStored smsgStored;
@@ -1454,25 +1530,27 @@ static UniValue smsginbox(const JSONRPCRequest &request)
     } // cs_smsgDB
 
     return result;
+},
+    };
 };
 
-static UniValue smsgoutbox(const JSONRPCRequest &request)
+static RPCHelpMan smsgoutbox()
 {
-            RPCHelpMan{"smsgoutbox",
+    return RPCHelpMan{"smsgoutbox",
                 "\nDecrypt and display all sent messages.\n"
                 "Warning: \"mode\"=\"clear\" will delete all sent messages.\n",
                 {
-                    {"mode", RPCArg::Type::STR, /* default */ "all", "\"all|count|clear\" List, count or clear messages."},
-                    {"filter", RPCArg::Type::STR, /* default */ "", "Filter messages when in list mode. Applied to from, to and text fields."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"all"}, "\"all|count|clear\" List, count or clear messages."},
+                    {"filter", RPCArg::Type::STR, RPCArg::Default{""}, "Filter messages when in list mode. Applied to from, to and text fields."},
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"encoding", RPCArg::Type::STR, /* default */ "text", "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
-                            {"sending", RPCArg::Type::BOOL, /* default */ "false", "Display messages in sending queue."},
-                            {"stashed", RPCArg::Type::BOOL, /* default */ "false", "Display stashed messages."},
-                            {"offset", RPCArg::Type::NUM, /* default */ "", "Skip the first \"offset\" messages"},
-                            {"max_results", RPCArg::Type::NUM, /* default */ "", "Return only \"max_results\" messages"},
+                            {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
+                            {"sending", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display messages in sending queue."},
+                            {"stashed", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display stashed messages."},
+                            {"offset", RPCArg::Type::NUM, RPCArg::Default{""}, "Skip the first \"offset\" messages"},
+                            {"max_results", RPCArg::Type::NUM, RPCArg::Default{""}, "Return only \"max_results\" messages"},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -1507,11 +1585,9 @@ static UniValue smsgoutbox(const JSONRPCRequest &request)
                     HelpExampleCli("smsgoutbox", "")
                     + HelpExampleRpc("smsgoutbox", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
-
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR}, true);
 
     std::string mode = request.params[0].isStr() ? request.params[0].get_str() : "all";
     std::string filter = request.params[1].isStr() ? request.params[1].get_str() : "";
@@ -1532,10 +1608,10 @@ static UniValue smsgoutbox(const JSONRPCRequest &request)
             show_stashed = options["stashed"].get_bool();
         }
         if (options["offset"].isNum()) {
-            offset = options["offset"].get_int();
+            offset = options["offset"].getInt<int>();
         }
         if (options["max_results"].isNum()) {
-            max_results = options["max_results"].get_int();
+            max_results = options["max_results"].getInt<int>();
         }
     }
 
@@ -1663,22 +1739,26 @@ static UniValue smsgoutbox(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
-static UniValue smsgbuckets(const JSONRPCRequest &request)
+static RPCHelpMan smsgbuckets()
 {
-            RPCHelpMan{"smsgbuckets",
+    return RPCHelpMan{"smsgbuckets",
                 "\nDisplay message bucket information.\n",
                 {
-                    {"mode", RPCArg::Type::STR, /* default */ "stats", "stats|total|dump. \"dump\" will remove all buckets."},
+                    {"mode", RPCArg::Type::STR, RPCArg::Default{"stats"}, "stats|total|dump. \"dump\" will remove all buckets."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgbuckets", "")
                     + HelpExampleRpc("smsgbuckets", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     std::string mode = "stats";
@@ -1720,7 +1800,7 @@ static UniValue smsgbuckets(const JSONRPCRequest &request)
                     objM.pushKV("last changed", part::GetTimeString(it->second.timeChanged, cbuf, sizeof(cbuf)));
                 }
 
-                fs::path fullPath = GetDataDir() / smsg::STORE_DIR / sFile;
+                fs::path fullPath = gArgs.GetDataDirNet() / fs::PathFromString(smsg::STORE_DIR) / fs::PathFromString(sFile);
                 if (!fs::exists(fullPath)) {
                     if (tokenSet.size() == 0) {
                         objM.pushKV("file size", "Empty bucket.");
@@ -1763,7 +1843,7 @@ static UniValue smsgbuckets(const JSONRPCRequest &request)
                 std::string sFile = ToString(it->first) + "_01.dat";
 
                 try {
-                    fs::path fullPath = GetDataDir() / smsg::STORE_DIR / sFile;
+                    fs::path fullPath = gArgs.GetDataDirNet() / fs::PathFromString(smsg::STORE_DIR) / fs::PathFromString(sFile);
                     fs::remove(fullPath);
                 } catch (const fs::filesystem_error& ex) {
                     //objM.push_back(Pair("file size, error", ex.what()));
@@ -1771,7 +1851,7 @@ static UniValue smsgbuckets(const JSONRPCRequest &request)
                 }
             }
             smsgModule.buckets.clear();
-            smsgModule.start_time = GetAdjustedTime();
+            smsgModule.start_time = GetAdjustedTimeInt();
         } // cs_smsg
 
         result.pushKV("result", "Removed all buckets.");
@@ -1781,6 +1861,8 @@ static UniValue smsgbuckets(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 };
 
 #ifdef ENABLE_WALLET
@@ -1795,9 +1877,9 @@ static bool sortMsgDesc(const std::pair<int64_t, UniValue> &a, const std::pair<i
 };
 #endif
 
-static UniValue smsgview(const JSONRPCRequest &request)
+static RPCHelpMan smsgview()
 {
-            RPCHelpMan{"smsgview",
+    return RPCHelpMan{"smsgview",
                 "\nView messages by address.\n"
                 "Setting address to '*' will match all addresses\n"
                 "'abc*' will match addresses with labels beginning 'abc'\n"
@@ -1805,18 +1887,20 @@ static UniValue smsgview(const JSONRPCRequest &request)
                 "Full date/time format for from and to is yyyy-mm-ddThh:mm:ss\n"
                 "From and to will accept incomplete inputs like: -from 2016\n",
                 {
-                    {"address/label", RPCArg::Type::STR, /* default */ "*", ""},
-                    {"asc/desc", RPCArg::Type::STR, /* default */ "asc", ""},
-                    {"-from yyyy-mm-dd", RPCArg::Type::STR, /* default */ "", ""},
-                    {"-to yyyy-mm-dd", RPCArg::Type::STR, /* default */ "", ""},
+                    {"arg1", RPCArg::Type::STR, RPCArg::Default{"*"}, "address/label"},
+                    {"arg2", RPCArg::Type::STR, RPCArg::Default{"asc"}, "asc/desc"},
+                    {"arg3", RPCArg::Type::STR, RPCArg::Default{""}, "-from yyyy-mm-dd"},
+                    {"arg4", RPCArg::Type::STR, RPCArg::Default{""}, "-to yyyy-mm-dd"},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::ANY, "", ""
+                },
                 RPCExamples{
                     HelpExampleCli("smsgview", "")
                     + HelpExampleRpc("smsgview", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
 #ifdef ENABLE_WALLET
@@ -1894,7 +1978,7 @@ static UniValue smsgview(const JSONRPCRequest &request)
             sTemp = request.params[i].get_str();
             tFrom = part::strToEpoch(sTemp.c_str());
             if (tFrom < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "from format error: " + std::string(strerror(errno)));
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "from format error: " + SysErrorString(errno));
             }
         } else
         if (sTemp == "-to") {
@@ -1905,7 +1989,7 @@ static UniValue smsgview(const JSONRPCRequest &request)
             sTemp = request.params[i].get_str();
             tTo = part::strToEpoch(sTemp.c_str());
             if (tTo < 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "to format error: " + std::string(strerror(errno)));
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "to format error: " + SysErrorString(errno));
             }
         } else
         if (sTemp == "asc") {
@@ -2051,7 +2135,7 @@ static UniValue smsgview(const JSONRPCRequest &request)
 
     result.pushKV("messages", messageList);
 
-    if (LogAcceptCategory(BCLog::SMSG)) {
+    if (LogAcceptCategory(BCLog::SMSG, BCLog::Level::Debug)) {
         result.pushKV("debug empty sent", (int)debugEmptySent);
     }
 
@@ -2067,31 +2151,37 @@ static UniValue smsgview(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_MISC_ERROR, "No wallet.");
 #endif
     return result;
+},
+    };
 }
 
-static UniValue smsgone(const JSONRPCRequest &request)
+static RPCHelpMan smsgone()
 {
-        RPCHelpMan{"smsg",
+    return RPCHelpMan{"smsg",
                 "\nView smsg by msgid.\n",
                 {
                     {"msgid", RPCArg::Type::STR, RPCArg::Optional::NO, "Id of the message to view."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"delete", RPCArg::Type::BOOL, /* default */ "false", "Delete msg if true."},
-                            {"setread", RPCArg::Type::BOOL, /* default */ "false", "Set read status to value."},
-                            {"encoding", RPCArg::Type::STR, /* default */ "text", "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
-                            {"export", RPCArg::Type::BOOL, /* default */ "false", "Display the full smsg as a hex encoded string."},
+                            {"delete", RPCArg::Type::BOOL, RPCArg::Default{false}, "Delete msg if true."},
+                            {"setread", RPCArg::Type::BOOL, RPCArg::Default{false}, "Set read status to value."},
+                            {"encoding", RPCArg::Type::STR, RPCArg::Default{"text"}, "Display message data in encoding, values: \"text\", \"hex\", \"none\"."},
+                            {"export", RPCArg::Type::BOOL, RPCArg::Default{false}, "Display the full smsg as a hex encoded string."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::STR_HEX, "msgid", "Message id"},
                         {RPCResult::Type::STR, "version", "The message version"},
                         {RPCResult::Type::STR, "location", "inbox|outbox|sending"},
-                        {RPCResult::Type::STR, "received", "Time the message was received"},
+                        {RPCResult::Type::NUM_TIME, "received", "Time the message was received"},
+                        {RPCResult::Type::STR, "received_local", /*optional=*/true, "Time the message was received"},
+                        {RPCResult::Type::STR, "received_utc", /*optional=*/true, "Time the message was received"},
                         {RPCResult::Type::BOOL, "read", "Read status"},
-                        {RPCResult::Type::STR, "sent", "Time the message was created"},
+                        {RPCResult::Type::NUM_TIME, "sent", "Time the message was created"},
+                        {RPCResult::Type::STR, "sent_local", /*optional=*/true, "Time the message was created"},
+                        {RPCResult::Type::STR, "sent_utc", /*optional=*/true, "Time the message was created"},
                         {RPCResult::Type::BOOL, "paid", "Paid or free message"},
                         {RPCResult::Type::NUM, "daysretention", "DEPRECATED Number of days message will stay in the network for"},
                         {RPCResult::Type::NUM, "ttl", "Seconds message will stay in the network for"},
@@ -2100,14 +2190,20 @@ static UniValue smsgone(const JSONRPCRequest &request)
                         {RPCResult::Type::STR, "expiration_utc", /*optional=*/true, "Time Expired"},
                         {RPCResult::Type::NUM, "payloadsize", "Size of user message"},
                         {RPCResult::Type::STR, "from", "Address the message was sent from"},
+                        {RPCResult::Type::STR, "to", "Address the message was sent to"},
+                        {RPCResult::Type::STR, "text", /*optional=*/true, "Message text"},
+                        {RPCResult::Type::STR, "hex", /*optional=*/true, "Message text"},
+                        {RPCResult::Type::STR, "unknown_encoding", /*optional=*/true, "Message text"},
+                        {RPCResult::Type::STR, "raw", /*optional=*/true, "Complete message hex encoded"},
+                        {RPCResult::Type::STR, "operation", /*optional=*/true, "Operation performed"},
                 }},
                 RPCExamples{
             HelpExampleCli("smsg", "\"msgid\"") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsg", "\"msgid\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     RPCTypeCheckObj(request.params,
@@ -2243,20 +2339,22 @@ static UniValue smsgone(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static UniValue smsgimport(const JSONRPCRequest &request)
+static RPCHelpMan smsgimport()
 {
-        RPCHelpMan{"smsgimport",
+    return RPCHelpMan{"smsgimport",
                 "\nImport smsg from hex string.\n",
                 {
                     {"msg", RPCArg::Type::STR, RPCArg::Optional::NO, "Hex encoded smsg."},
-                    {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"submitmsg", RPCArg::Type::BOOL, /* default */ "false", "Submit msg to network if true."},
-                            {"setread", RPCArg::Type::BOOL, /* default */ "false", "Set read status to value."},
+                            {"submitmsg", RPCArg::Type::BOOL, RPCArg::Default{false}, "Submit msg to network if true."},
+                            {"setread", RPCArg::Type::BOOL, RPCArg::Default{false}, "Set read status to value."},
                         },
-                        "options"},
+                    },
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
@@ -2267,8 +2365,8 @@ static UniValue smsgimport(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsgimport", "\"msg\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     RPCTypeCheckObj(request.params,
@@ -2308,23 +2406,26 @@ static UniValue smsgimport(const JSONRPCRequest &request)
     smsg.pPayload = nullptr;
 
     return result;
+},
+    };
 }
 
-static UniValue smsgpurge(const JSONRPCRequest &request)
+static RPCHelpMan smsgpurge()
 {
-            RPCHelpMan{"smsgpurge",
+    return RPCHelpMan{"smsgpurge",
                 "\nPurge smsg by msgid.\n",
                 {
-                    {"msgid", RPCArg::Type::STR_HEX, /* default */ "", "Id of the message to purge."},
+                    {"msgid", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "Id of the message to purge."},
                 },
-                RPCResults{},
+                RPCResult{
+                    RPCResult::Type::NONE, "", "None"},
                 RPCExamples{
             HelpExampleCli("smsgpurge", "\"msgid\"") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsgpurge", "\"msgid\"")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     if (!request.params[0].isStr()) {
@@ -2343,35 +2444,47 @@ static UniValue smsgpurge(const JSONRPCRequest &request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Error: " + sError);
     }
 
-    return NullUniValue;
+    return UniValue::VNULL;
+},
+    };
 }
 
-static UniValue smsggetfeerate(const JSONRPCRequest &request)
+static RPCHelpMan smsggetfeerate()
 {
-            RPCHelpMan{"smsggetfeerate",
-                "\nReturn paid SMSG fee.\n",
+    return RPCHelpMan{"smsggetfeerate",
+                "\nReturn paid SMSG fee rate.\n"
+                "The fee is set per thousand message bytes per day.\n",
                 {
-                    {"height", RPCArg::Type::NUM, /* default */ "", "Chain height to get fee rate for, pass a negative number for more detailed output."},
+                    {"height", RPCArg::Type::NUM, RPCArg::DefaultHint{"current height"}, "Chain height to get fee rate for, pass a negative number for more detailed output."},
                 },
-                RPCResult{
-                    RPCResult::Type::NUM, "fee_rate", "Fee rate in satoshis"
+                {
+                    RPCResult{"Default", RPCResult::Type::NUM, "", "Fee rate in satoshis"},
+                    RPCResult{"With height", RPCResult::Type::OBJ, "", "", {
+                        {RPCResult::Type::NUM, "currentrate", "Fee rate in satoshis"},
+                        {RPCResult::Type::NUM, "inactiveuntil", /*optional=*/true, "Time smsg fees activates on the chain"},
+                        {RPCResult::Type::NUM, "currentrateblockheight", "Block height the current rate was sampled from"},
+                        {RPCResult::Type::NUM, "targetrate", "Rate at chain tip"},
+                        {RPCResult::Type::NUM, "targetblockheight", "Block tip height"},
+                        {RPCResult::Type::NUM, "nextratechangeheight", "Height next fee rate will activate"},
+                    }}
                 },
                 RPCExamples{
             HelpExampleCli("smsggetfeerate", "1000") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsggetfeerate", "1000")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     LOCK(cs_main);
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
     CBlockIndex *pblockindex = nullptr;
     if (!request.params[0].isNull()) {
-        int nHeight = request.params[0].get_int();
+        int nHeight = request.params[0].getInt<int>();
 
         if (nHeight < 0) {
             UniValue result(UniValue::VOBJ);
-            const CBlockIndex *pTip = ::ChainActive().Tip();
+            const CBlockIndex *pTip = chainman.ActiveChain().Tip();
             const Consensus::Params &consensusParams = Params().GetConsensus();
             int chain_height = pTip->nHeight;
 
@@ -2380,13 +2493,13 @@ static UniValue smsggetfeerate(const JSONRPCRequest &request)
                 return result;
             }
 
-            result.pushKV("currentrate", GetSmsgFeeRate(nullptr));
+            result.pushKV("currentrate", particl::GetSmsgFeeRate(chainman, nullptr));
             int fee_height = (chain_height / consensusParams.smsg_fee_period) * consensusParams.smsg_fee_period;
             result.pushKV("currentrateblockheight", fee_height);
 
             int64_t smsg_fee_rate_target;
             CBlock block;
-            if (!ReadBlockFromDisk(block, pTip, Params().GetConsensus())) {
+            if (!node::ReadBlockFromDisk(block, pTip, Params().GetConsensus())) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
             }
             block.vtx[0]->GetSmsgFeeRate(smsg_fee_rate_target);
@@ -2395,56 +2508,66 @@ static UniValue smsggetfeerate(const JSONRPCRequest &request)
             result.pushKV("nextratechangeheight", int(fee_height + consensusParams.smsg_fee_period));
             return result;
         }
-        if (nHeight > ::ChainActive().Height()) {
+        if (nHeight > chainman.ActiveChain().Height()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
         }
-        pblockindex = ::ChainActive()[nHeight];
+        pblockindex = chainman.ActiveChain()[nHeight];
     }
 
-    return GetSmsgFeeRate(pblockindex);
+    return particl::GetSmsgFeeRate(chainman, pblockindex);
+},
+    };
 }
 
-static UniValue smsggetdifficulty(const JSONRPCRequest &request)
+static RPCHelpMan smsggetdifficulty()
 {
-            RPCHelpMan{"smsggetdifficulty",
+    return RPCHelpMan{"smsggetdifficulty",
                 "\nReturn free SMSG difficulty.\n",
                 {
-                    {"time", RPCArg::Type::NUM, /* default */ "", "Chain time to get smsg difficulty for."},
+                    {"time", RPCArg::Type::NUM, RPCArg::DefaultHint{"Current time"}, "Chain time to get smsg difficulty for."},
                 },
                 RPCResult{
-                    RPCResult::Type::STR, "difficulty", "Current smsg difficulty"
+                    RPCResult::Type::NUM, "difficulty", "smsg difficulty"
                 },
                 RPCExamples{
             HelpExampleCli("smsggetdifficulty", "1552688834") +
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsggetdifficulty", "1552688834")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     LOCK(cs_main);
 
-    int64_t chain_time = ::ChainActive().Tip()->nTime;
+    ChainstateManager &chainman = EnsureAnyChainman(request.context);
+
+    int64_t chain_time = chainman.ActiveChain().Tip()->nTime;
     if (!request.params[0].isNull()) {
-        chain_time = request.params[0].get_int64();
-        if (chain_time > ::ChainActive().Tip()->nTime) {
+        chain_time = request.params[0].getInt<int64_t>();
+        if (chain_time > chainman.ActiveChain().Tip()->nTime) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Time out of range");
         }
     }
 
-    uint32_t target_compact = GetSmsgDifficulty(chain_time);
+    uint32_t target_compact = particl::GetSmsgDifficulty(chainman, chain_time);
     return smsg::GetDifficulty(target_compact);
+},
+    };
 }
 
-static UniValue smsggetinfo(const JSONRPCRequest &request)
+static RPCHelpMan smsggetinfo()
 {
-            RPCHelpMan{"smsggetinfo",
+    return RPCHelpMan{"smsggetinfo",
                 "\nReturns an object containing SMSG-related information.\n",
                 {
                 },
                 RPCResult{
                     RPCResult::Type::OBJ, "", "", {
                         {RPCResult::Type::BOOL, "enabled", "True if SMSG is enabled"},
-                        {RPCResult::Type::STR, "wallet", "name of the currently active wallet or \"None set\""},
+                        {RPCResult::Type::STR, "active_wallet", /*optional=*/true, "name of the currently active wallet or \"None set\""},
+                        {RPCResult::Type::ARR, "enabled_wallets", /*optional=*/true, "Names of enabled wallets",
+                        {
+                            {RPCResult::Type::STR_HEX, "", "wallet_name"},
+                        }}
                     },
                 },
                 RPCExamples{
@@ -2452,11 +2575,11 @@ static UniValue smsggetinfo(const JSONRPCRequest &request)
             "\nAs a JSON-RPC call\n"
             + HelpExampleRpc("smsggetinfo", "")
                 },
-            }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     UniValue obj(UniValue::VOBJ);
 
-    obj.pushKV("enabled", smsg::fSecMsgEnabled);
+    obj.pushKV("enabled", smsg::fSecMsgEnabled.load());
     if (smsg::fSecMsgEnabled) {
         obj.pushKV("active_wallet", smsgModule.GetWalletName());
 #ifdef ENABLE_WALLET
@@ -2469,14 +2592,16 @@ static UniValue smsggetinfo(const JSONRPCRequest &request)
     }
 
     return obj;
+},
+    };
 }
 
-static UniValue smsgpeers(const JSONRPCRequest &request)
+static RPCHelpMan smsgpeers()
 {
-    RPCHelpMan{"smsgpeers",
+    return RPCHelpMan{"smsgpeers",
         "\nReturns data about each connected SMSG node as a json array of objects.\n",
         {
-            {"index", RPCArg::Type::NUM, /* default */ "", "Peer index, omit for list."},
+            {"index", RPCArg::Type::NUM, RPCArg::DefaultHint{"All"}, "Peer index, omit for list."},
         },
         RPCResult{
             RPCResult::Type::ARR, "", "",
@@ -2484,12 +2609,23 @@ static UniValue smsgpeers(const JSONRPCRequest &request)
                 {RPCResult::Type::OBJ, "", "",
                 {
                     {RPCResult::Type::NUM, "id", "Peer index"},
+                    {RPCResult::Type::STR, "address", "Node address"},
                     {RPCResult::Type::NUM, "version", "Peer version"},
                     {RPCResult::Type::NUM, "ignoreuntil", "Peer ignored until time"},
                     {RPCResult::Type::NUM, "misbehaving", "Misbehaviour counter"},
                     {RPCResult::Type::NUM, "numwantsent", "Number of smsges requested from peer"},
                     {RPCResult::Type::NUM, "receivecounter", "Messages received from peer in window"},
                     {RPCResult::Type::NUM, "ignoredcounter", "Number of times peer has been ignored"},
+                    {RPCResult::Type::NUM, "num_pending_inv", "Number of buckets peer has to show"},
+                    {RPCResult::Type::NUM, "num_shown_buckets", "Number of buckets peer showed last"},
+                    {RPCResult::Type::OBJ, "pending_inv_buckets", /*optional=*/true, "", {
+                        {RPCResult::Type::NUM, "active", "Active messages in bucket"},
+                        {RPCResult::Type::STR, "hash", "Bucket hash"},
+                    }},
+                    {RPCResult::Type::OBJ, "shown_buckets", /*optional=*/true, "", {
+                        {RPCResult::Type::NUM, "time", "Entry time"},
+                        {RPCResult::Type::NUM, "last_shown", "Number of buckets peer showed"},
+                    }},
                 }},
             }
         },
@@ -2498,31 +2634,33 @@ static UniValue smsgpeers(const JSONRPCRequest &request)
     "\nAs a JSON-RPC call\n"
     + HelpExampleRpc("smsgpeers", "")
         },
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
-    int index = request.params[0].isNull() ? -1 : request.params[0].get_int();
+    int index = request.params[0].isNull() ? -1 : request.params[0].getInt<int>();
 
     UniValue result(UniValue::VARR);
 
     smsgModule.GetNodesStats(index, result);
 
     return result;
+},
+    };
 }
 
-static UniValue smsgzmqpush(const JSONRPCRequest &request)
+static RPCHelpMan smsgzmqpush()
 {
-    RPCHelpMan{"smsgzmqpush",
+    return RPCHelpMan{"smsgzmqpush",
             "\nResend ZMQ notifications.\n",
             {
-                {"options", RPCArg::Type::OBJ, /* default */ "", "",
+                {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                     {
-                        {"timefrom", RPCArg::Type::NUM, /* default */ "0", "Skip messages received before timestamp."},
-                        {"timeto", RPCArg::Type::NUM, /* default */ "max_int", "Skip messages received after timestamp."},
-                        {"unreadonly", RPCArg::Type::BOOL, /* default */ "true", "Resend only unread messages."},
+                        {"timefrom", RPCArg::Type::NUM, RPCArg::Default{0}, "Skip messages received before timestamp."},
+                        {"timeto", RPCArg::Type::NUM, RPCArg::Default{"max_int"}, "Skip messages received after timestamp."},
+                        {"unreadonly", RPCArg::Type::BOOL, RPCArg::Default{true}, "Resend only unread messages."},
                     },
-                    "options"},
+                },
             },
             RPCResult{
                 RPCResult::Type::OBJ, "", "", {
@@ -2533,11 +2671,9 @@ static UniValue smsgzmqpush(const JSONRPCRequest &request)
         "\nAs a JSON-RPC call\n"
         + HelpExampleRpc("smsgzmqpush", "{ \"unreadonly\": false }")
             },
-        }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
-
-    RPCTypeCheck(request.params, {UniValue::VOBJ}, true);
 
     bool unreadonly = true;
     int64_t timefrom = 0;
@@ -2553,10 +2689,10 @@ static UniValue smsgzmqpush(const JSONRPCRequest &request)
             {"unreadonly",      UniValueType(UniValue::VBOOL)},
         }, true, true);
         if (options["timefrom"].isNum()) {
-            timefrom = options["timefrom"].get_int64();
+            timefrom = options["timefrom"].getInt<int64_t>();
         }
         if (options["timeto"].isNum()) {
-            timeto = options["timeto"].get_int64();
+            timeto = options["timeto"].getInt<int64_t>();
         }
         if (options["unreadonly"].isBool()) {
             unreadonly = options["unreadonly"].get_bool();
@@ -2603,25 +2739,28 @@ static UniValue smsgzmqpush(const JSONRPCRequest &request)
     result.pushKV("numsent", num_sent);
 
     return result;
+},
+    };
 };
 
-static UniValue smsgdebug(const JSONRPCRequest &request)
+static RPCHelpMan smsgdebug()
 {
-    RPCHelpMan{"smsgdebug",
+    return RPCHelpMan{"smsgdebug",
         "\nCommands useful for debugging.\n",
         {
-            {"command", RPCArg::Type::STR, /* default */ "", "\"clearbanned\",\"dumpids\",\"dumpfundingtxids\"."},
-            {"arg1", RPCArg::Type::STR, /* default */ "", ""},
+            {"command", RPCArg::Type::STR, RPCArg::Default{""}, "\"clearbanned\",\"dumpids\",\"dumpfundingtxids\"."},
+            {"arg1", RPCArg::Type::STR, RPCArg::Default{""}, ""},
         },
-        RPCResults{
+        RPCResult{
+            RPCResult::Type::ANY, "", ""
         },
         RPCExamples{
     HelpExampleCli("smsgdebug", "") +
     "\nAs a JSON-RPC call\n"
     + HelpExampleRpc("smsgdebug", "")
         },
-    }.Check(request);
-
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     EnsureSMSGIsEnabled();
 
     std::string mode = "none";
@@ -2636,15 +2775,15 @@ static UniValue smsgdebug(const JSONRPCRequest &request)
         smsgModule.ClearBanned();
     } else
     if (mode == "dumpids") {
-        fs::path filepath = GetDataDir() / "smsg_ids.txt";
+        fs::path filepath = gArgs.GetDataDirNet() / "smsg_ids.txt";
         if (fs::exists(filepath)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "smsg_ids.txt already exists in the datadir. Please move it out of the way first");
         }
 
         bool active_only = request.params.size() > 1 ? GetBool(request.params[1]) : true;
-        int64_t now = GetAdjustedTime();
+        int64_t now = GetAdjustedTimeInt();
 
-        fsbridge::ofstream file;
+        std::ofstream file;
         file.open(filepath);
         if (!file.is_open()) {
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Cannot open dump file");
@@ -2691,7 +2830,8 @@ static UniValue smsgdebug(const JSONRPCRequest &request)
         const CBlockIndex *tip;
         {
         LOCK(cs_main);
-        tip = ::ChainActive().Tip();
+        ChainstateManager &chainman = EnsureAnyChainman(request.context);
+        tip = chainman.ActiveChain().Tip();
         }
         int height = 0;
         if (request.params.size() > 1) {
@@ -2725,43 +2865,43 @@ static UniValue smsgdebug(const JSONRPCRequest &request)
     }
 
     return result;
+},
+    };
 }
 
-static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "smsg",               "smsgenable",             &smsgenable,             {"walletname"} },
-    { "smsg",               "smsgsetwallet",          &smsgsetwallet,          {"walletname"} },
-    { "smsg",               "smsgdisable",            &smsgdisable,            {} },
-    { "smsg",               "smsgoptions",            &smsgoptions,            {"mode","optname","value"} },
-    { "smsg",               "smsglocalkeys",          &smsglocalkeys,          {"mode","optype","address"} },
-    { "smsg",               "smsgscanchain",          &smsgscanchain,          {} },
-    { "smsg",               "smsgscanbuckets",        &smsgscanbuckets,        {"options"} },
-    { "smsg",               "smsgaddaddress",         &smsgaddaddress,         {"address","pubkey"} },
-    { "smsg",               "smsgaddlocaladdress",    &smsgaddlocaladdress,    {"address"} },
-    { "smsg",               "smsgimportprivkey",      &smsgimportprivkey,      {"privkey","label"} },
-    { "smsg",               "smsgdumpprivkey",        &smsgdumpprivkey,        {"address"} },
-    { "smsg",               "smsggetpubkey",          &smsggetpubkey,          {"address"} },
-    { "smsg",               "smsgsend",               &smsgsend,               {"address_from","address_to","message","paid_msg","days_retention","testfee","options","coin_control"} },
-    { "smsg",               "smsgfund",               &smsgfund,               {"msgids","options","coin_control"} },
-    { "smsg",               "smsgsendanon",           &smsgsendanon,           {"address_to","message"} },
-    { "smsg",               "smsginbox",              &smsginbox,              {"mode","filter","options"} },
-    { "smsg",               "smsgoutbox",             &smsgoutbox,             {"mode","filter","options"} },
-    { "smsg",               "smsgbuckets",            &smsgbuckets,            {"mode"} },
-    { "smsg",               "smsgview",               &smsgview,               {}},
-    { "smsg",               "smsg",                   &smsgone,                {"msgid","options"}},
-    { "smsg",               "smsgimport",             &smsgimport,             {"msg","options"}},
-    { "smsg",               "smsgpurge",              &smsgpurge,              {"msgid"}},
-    { "smsg",               "smsggetfeerate",         &smsggetfeerate,         {"height"}},
-    { "smsg",               "smsggetdifficulty",      &smsggetdifficulty,      {"time"}},
-    { "smsg",               "smsggetinfo",            &smsggetinfo,            {}},
-    { "smsg",               "smsgpeers",              &smsgpeers,              {"index"}},
-    { "smsg",               "smsgzmqpush",            &smsgzmqpush,            {"options"}},
-    { "smsg",               "smsgdebug",              &smsgdebug,              {"command","arg1"}},
-};
-
-void RegisterSmsgRPCCommands(CRPCTable &tableRPC)
+void RegisterSmsgRPCCommands(CRPCTable &t)
 {
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+    static const CRPCCommand commands[]{
+        {"smsg", &smsgenable},
+        {"smsg", &smsgsetwallet},
+        {"smsg", &smsgdisable},
+        {"smsg", &smsgoptions},
+        {"smsg", &smsglocalkeys},
+        {"smsg", &smsgscanchain},
+        {"smsg", &smsgscanbuckets},
+        {"smsg", &smsgaddaddress },
+        {"smsg", &smsgaddlocaladdress},
+        {"smsg", &smsgimportprivkey},
+        {"smsg", &smsgdumpprivkey},
+        {"smsg", &smsggetpubkey},
+        {"smsg", &smsgsend},
+        {"smsg", &smsgfund},
+        {"smsg", &smsgsendanon},
+        {"smsg", &smsginbox},
+        {"smsg", &smsgoutbox},
+        {"smsg", &smsgbuckets},
+        {"smsg", &smsgview},
+        {"smsg", &smsgone},
+        {"smsg", &smsgimport},
+        {"smsg", &smsgpurge},
+        {"smsg", &smsggetfeerate},
+        {"smsg", &smsggetdifficulty},
+        {"smsg", &smsggetinfo},
+        {"smsg", &smsgpeers},
+        {"smsg", &smsgzmqpush},
+        {"smsg", &smsgdebug},
+    };
+    for (const auto& c : commands) {
+        t.appendCommand(c.name, &c);
+    }
 }

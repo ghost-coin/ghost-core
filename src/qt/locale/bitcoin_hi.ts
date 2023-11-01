@@ -340,36 +340,8 @@ Signing is only possible with addresses of the type 'legacy'.</translation>
         <translation>Wallet:</translation>
     </message>
     <message>
-        <source>Click to disable network activity.</source>
-        <translation>Click to disable network activity.</translation>
-    </message>
-    <message>
-        <source>Network activity disabled.</source>
-        <translation>Network activity disabled.</translation>
-    </message>
-    <message>
-        <source>Click to enable network activity again.</source>
-        <translation>Click to enable network activity again.</translation>
-    </message>
-    <message>
-        <source>Syncing Headers (%1%)...</source>
-        <translation>Syncing Headers (%1%)...</translation>
-    </message>
-    <message>
-        <source>Reindexing blocks on disk...</source>
-        <translation>Reindexing blocks on disk...</translation>
-    </message>
-    <message>
-        <source>Proxy is &lt;b&gt;enabled&lt;/b&gt;: %1</source>
-        <translation>Proxy is &lt;b&gt;enabled&lt;/b&gt;: %1</translation>
-    </message>
-    <message>
         <source>Send coins to a Ghost address</source>
-        <translation>Send coins to a Ghost address</translation>
-    </message>
-    <message>
-        <source>Backup wallet to another location</source>
-        <translation>Backup wallet to another location</translation>
+        <translation>इस पते पर बिटकौइन भेजें</translation>
     </message>
     <message>
         <source>Change the passphrase used for wallet encryption</source>

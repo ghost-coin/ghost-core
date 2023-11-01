@@ -32,7 +32,7 @@ struct TxInUndoFormatter
         ::Serialize(s, Using<TxOutCompression>(txout.out));
         ::Serialize(s, txout.nType);
         if (txout.nType == OUTPUT_CT) {
-            s.write((char*)&txout.commitment.data[0], 33);
+            s.write(AsBytes(Span{(char*)&txout.commitment.data[0], 33}));
         }
     }
 
@@ -52,7 +52,7 @@ struct TxInUndoFormatter
         ::Unserialize(s, Using<TxOutCompression>(txout.out));
         ::Unserialize(s, txout.nType);
         if (txout.nType == OUTPUT_CT) {
-            s.read((char*)&txout.commitment.data[0], 33);
+            s.read(AsWritableBytes(Span{(char*)&txout.commitment.data[0], 33}));
         }
     }
 };

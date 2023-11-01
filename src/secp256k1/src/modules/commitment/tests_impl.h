@@ -9,10 +9,10 @@
 
 #include <string.h>
 
-#include "group.h"
-#include "scalar.h"
-#include "testrand.h"
-#include "util.h"
+#include "../../group.h"
+#include "../../scalar.h"
+#include "../../testrand.h"
+#include "../../util.h"
 
 #include "include/secp256k1_commitment.h"
 
@@ -41,56 +41,56 @@ static void test_commitment_api(void) {
     secp256k1_context_set_illegal_callback(both, counting_illegal_callback_fn, &ecount);
 
     secp256k1_testrand256(blind);
-    CHECK(secp256k1_pedersen_commit(none, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) == 0);
-    CHECK(ecount == 1);
-    CHECK(secp256k1_pedersen_commit(vrfy, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) == 0);
-    CHECK(ecount == 2);
+    CHECK(secp256k1_pedersen_commit(none, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) != 0);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_pedersen_commit(vrfy, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) != 0);
+    CHECK(ecount == 0);
     CHECK(secp256k1_pedersen_commit(sign, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) != 0);
-    CHECK(ecount == 2);
+    CHECK(ecount == 0);
 
     CHECK(secp256k1_pedersen_commit(sign, NULL, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) == 0);
-    CHECK(ecount == 3);
+    CHECK(ecount == 1);
     CHECK(secp256k1_pedersen_commit(sign, &commit, NULL, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) == 0);
-    CHECK(ecount == 4);
+    CHECK(ecount == 2);
     CHECK(secp256k1_pedersen_commit(sign, &commit, blind, val, NULL, &secp256k1_generator_const_g) == 0);
-    CHECK(ecount == 5);
+    CHECK(ecount == 3);
     CHECK(secp256k1_pedersen_commit(sign, &commit, blind, val, &secp256k1_generator_const_h, NULL) == 0);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
 
     CHECK(secp256k1_pedersen_blind_sum(none, blind_out, &blind_ptr, 1, 1) != 0);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
     CHECK(secp256k1_pedersen_blind_sum(none, NULL, &blind_ptr, 1, 1) == 0);
-    CHECK(ecount == 7);
+    CHECK(ecount == 5);
     CHECK(secp256k1_pedersen_blind_sum(none, blind_out, NULL, 1, 1) == 0);
-    CHECK(ecount == 8);
+    CHECK(ecount == 6);
     CHECK(secp256k1_pedersen_blind_sum(none, blind_out, &blind_ptr, 0, 1) == 0);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
     CHECK(secp256k1_pedersen_blind_sum(none, blind_out, &blind_ptr, 0, 0) != 0);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
 
     CHECK(secp256k1_pedersen_commit(sign, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g) != 0);
     CHECK(secp256k1_pedersen_verify_tally(none, &commit_ptr, 1, &commit_ptr, 1) != 0);
     CHECK(secp256k1_pedersen_verify_tally(none, NULL, 0, &commit_ptr, 1) == 0);
     CHECK(secp256k1_pedersen_verify_tally(none, &commit_ptr, 1, NULL, 0) == 0);
     CHECK(secp256k1_pedersen_verify_tally(none, NULL, 0, NULL, 0) != 0);
-    CHECK(ecount == 9);
+    CHECK(ecount == 7);
     CHECK(secp256k1_pedersen_verify_tally(none, NULL, 1, &commit_ptr, 1) == 0);
-    CHECK(ecount == 10);
+    CHECK(ecount == 8);
     CHECK(secp256k1_pedersen_verify_tally(none, &commit_ptr, 1, NULL, 1) == 0);
-    CHECK(ecount == 11);
+    CHECK(ecount == 9);
 
     CHECK(secp256k1_pedersen_blind_generator_blind_sum(none, &val, &blind_ptr, &blind_out_ptr, 1, 0) != 0);
-    CHECK(ecount == 11);
+    CHECK(ecount == 9);
     CHECK(secp256k1_pedersen_blind_generator_blind_sum(none, &val, &blind_ptr, &blind_out_ptr, 1, 1) == 0);
-    CHECK(ecount == 12);
+    CHECK(ecount == 10);
     CHECK(secp256k1_pedersen_blind_generator_blind_sum(none, &val, &blind_ptr, &blind_out_ptr, 0, 0) == 0);
-    CHECK(ecount == 13);
+    CHECK(ecount == 11);
     CHECK(secp256k1_pedersen_blind_generator_blind_sum(none, NULL, &blind_ptr, &blind_out_ptr, 1, 0) == 0);
-    CHECK(ecount == 14);
+    CHECK(ecount == 12);
     CHECK(secp256k1_pedersen_blind_generator_blind_sum(none, &val, NULL, &blind_out_ptr, 1, 0) == 0);
-    CHECK(ecount == 15);
+    CHECK(ecount == 13);
     CHECK(secp256k1_pedersen_blind_generator_blind_sum(none, &val, &blind_ptr, NULL, 1, 0) == 0);
-    CHECK(ecount == 16);
+    CHECK(ecount == 14);
 
     secp256k1_context_destroy(none);
     secp256k1_context_destroy(sign);
@@ -132,14 +132,14 @@ static void test_pedersen(void) {
         random_scalar_order(&s);
         secp256k1_scalar_get_b32(&blinds[i * 32], &s);
     }
-    CHECK(secp256k1_pedersen_blind_sum(ctx, &blinds[(total - 1) * 32], bptr, total - 1, inputs));
+    CHECK(secp256k1_pedersen_blind_sum(CTX, &blinds[(total - 1) * 32], bptr, total - 1, inputs));
     for (i = 0; i < total; i++) {
-        CHECK(secp256k1_pedersen_commit(ctx, &commits[i], &blinds[i * 32], values[i], &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+        CHECK(secp256k1_pedersen_commit(CTX, &commits[i], &blinds[i * 32], values[i], &secp256k1_generator_const_h, &secp256k1_generator_const_g));
     }
-    CHECK(secp256k1_pedersen_verify_tally(ctx, cptr, inputs, &cptr[inputs], outputs));
-    CHECK(secp256k1_pedersen_verify_tally(ctx, &cptr[inputs], outputs, cptr, inputs));
+    CHECK(secp256k1_pedersen_verify_tally(CTX, cptr, inputs, &cptr[inputs], outputs));
+    CHECK(secp256k1_pedersen_verify_tally(CTX, &cptr[inputs], outputs, cptr, inputs));
     if (inputs > 0 && values[0] > 0) {
-        CHECK(!secp256k1_pedersen_verify_tally(ctx, cptr, inputs - 1, &cptr[inputs], outputs));
+        CHECK(!secp256k1_pedersen_verify_tally(CTX, cptr, inputs - 1, &cptr[inputs], outputs));
     }
     random_scalar_order(&s);
     for (i = 0; i < 4; i++) {
@@ -149,13 +149,13 @@ static void test_pedersen(void) {
     values[1] = 0;
     values[2] = 1;
     for (i = 0; i < 3; i++) {
-        CHECK(secp256k1_pedersen_commit(ctx, &commits[i], &blinds[i * 32], values[i], &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+        CHECK(secp256k1_pedersen_commit(CTX, &commits[i], &blinds[i * 32], values[i], &secp256k1_generator_const_h, &secp256k1_generator_const_g));
     }
-    CHECK(secp256k1_pedersen_verify_tally(ctx, &cptr[0], 1, &cptr[0], 1));
-    CHECK(secp256k1_pedersen_verify_tally(ctx, &cptr[1], 1, &cptr[1], 1));
+    CHECK(secp256k1_pedersen_verify_tally(CTX, &cptr[0], 1, &cptr[0], 1));
+    CHECK(secp256k1_pedersen_verify_tally(CTX, &cptr[1], 1, &cptr[1], 1));
 }
 
-#define MAX_N_GENS	30
+#define MAX_N_GENS 30
 void test_multiple_generators(void) {
     const size_t n_inputs = (secp256k1_testrand32() % (MAX_N_GENS / 2)) + 1;
     const size_t n_outputs = (secp256k1_testrand32() % (MAX_N_GENS / 2)) + 1;
@@ -184,7 +184,7 @@ void test_multiple_generators(void) {
         random_scalar_order(&s);
         secp256k1_scalar_get_b32(pedersen_blind[i], &s);
 
-        CHECK(secp256k1_generator_generate_blinded(ctx, &generator[i], generator_seed, generator_blind[i]));
+        CHECK(secp256k1_generator_generate_blinded(CTX, &generator[i], generator_seed, generator_blind[i]));
 
         commit_ptr[i] = &commit[i];
     }
@@ -201,14 +201,24 @@ void test_multiple_generators(void) {
     }
     value[i] = total_value;
 
+    /* check total */
+    total_value = 0;
+    for (i = 0; i < n_outputs; i++) {
+        total_value += value[n_inputs + i];
+    }
+    for (i = 0; i < n_inputs; i++) {
+        total_value -= value[i];
+    }
+    CHECK(total_value == 0);
+
     /* Correct for blinding factors and do the commitments */
-    CHECK(secp256k1_pedersen_blind_generator_blind_sum(ctx, value, (const unsigned char * const *) generator_blind, pedersen_blind, n_generators, n_inputs));
+    CHECK(secp256k1_pedersen_blind_generator_blind_sum(CTX, value, (const unsigned char * const *) generator_blind, pedersen_blind, n_generators, n_inputs));
     for (i = 0; i < n_generators; i++) {
-        CHECK(secp256k1_pedersen_commit(ctx, &commit[i], pedersen_blind[i], value[i], &generator[i], &secp256k1_generator_const_h));
+        CHECK(secp256k1_pedersen_commit(CTX, &commit[i], pedersen_blind[i], value[i], &generator[i], &secp256k1_generator_const_g));
     }
 
     /* Verify */
-    CHECK(secp256k1_pedersen_verify_tally(ctx, &commit_ptr[0], n_inputs, &commit_ptr[n_inputs], n_outputs));
+    CHECK(secp256k1_pedersen_verify_tally(CTX, &commit_ptr[0], n_inputs, &commit_ptr[n_inputs], n_outputs));
 
     /* Cleanup */
     for (i = 0; i < n_generators; i++) {
@@ -221,7 +231,7 @@ void test_multiple_generators(void) {
 void run_commitment_tests(void) {
     int i;
     test_commitment_api();
-    for (i = 0; i < 10*count; i++) {
+    for (i = 0; i < 10 * COUNT; i++) {
         test_pedersen();
     }
     test_multiple_generators();

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 tecnovert
+// Copyright (c) 2021-2023 tecnovert
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -44,10 +44,10 @@ std::vector<COutputR> GetAvailable(CHDWallet *pwallet, OutputTypes output_type, 
     cctl.m_include_tainted_frozen = include_tainted_frozen;
     std::vector<COutputR> vAvailableCoins;
     if (output_type == OUTPUT_CT) {
-        pwallet->AvailableBlindedCoins(vAvailableCoins, true, &cctl);
+        pwallet->AvailableBlindedCoins(vAvailableCoins, &cctl);
     } else
     if (output_type == OUTPUT_RINGCT) {
-        pwallet->AvailableAnonCoins(vAvailableCoins, true, &cctl);
+        pwallet->AvailableAnonCoins(vAvailableCoins, &cctl);
     } else {
         // unknown type
         BOOST_REQUIRE(false);
@@ -127,13 +127,12 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     // Add some blinded txns
     uint256 txid_ct_plain_small = AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_CT, 11 * COIN);
     uint256 txid_ct_plain_large = AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_CT, 1100 * COIN);
-
     uint256 txid_ct_anon_small = AddTxn(pwallet, stealth_address, OUTPUT_RINGCT, OUTPUT_CT, 12 * COIN);
     uint256 txid_ct_anon_large = AddTxn(pwallet, stealth_address, OUTPUT_RINGCT, OUTPUT_CT, 1100 * COIN);
 
     uint256 txid_anon_large = AddTxn(pwallet, stealth_address, OUTPUT_RINGCT, OUTPUT_RINGCT, 1100 * COIN);
     BOOST_CHECK(!txid_anon_large.IsNull());
-    uint32_t nTime = ::ChainActive().Tip()->nTime;
+    uint32_t nTime = chain_active.Tip()->nTime;
 
     StakeNBlocks(pwallet, 2);
 
@@ -141,9 +140,9 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK(blockbalances.plain() == 0);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
-    uint256 tip_hash = ::ChainActive().Tip()->GetBlockHash();
-    BOOST_CHECK(GetBlockBalances(tip_hash, blockbalances));
-    BOOST_CHECK(blockbalances.plain() == GetUTXOSum());
+    uint256 tip_hash = chain_active.Tip()->GetBlockHash();
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, tip_hash, blockbalances));
+    BOOST_CHECK(blockbalances.plain() == particl::GetUTXOSum(chainstate_active));
     BOOST_CHECK(blockbalances.blind() == 1111 * COIN);
     BOOST_CHECK(blockbalances.anon() < -49770 * COIN);
 

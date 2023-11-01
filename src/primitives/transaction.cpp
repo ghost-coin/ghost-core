@@ -1,15 +1,22 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "transaction.h"
 #include <primitives/transaction.h>
 
+#include <consensus/amount.h>
 #include <hash.h>
+#include <script/script.h>
+#include <serialize.h>
 #include <tinyformat.h>
+#include <uint256.h>
 #include <util/strencodings.h>
-#include <assert.h>
+#include <version.h>
+
+#include <cassert>
+#include <stdexcept>
 
 bool ExtractCoinStakeInt64(const std::vector<uint8_t> &vData, DataOutputTypes get_type, CAmount &out)
 {
@@ -26,7 +33,7 @@ bool ExtractCoinStakeInt64(const std::vector<uint8_t> &vData, DataOutputTypes ge
         } else
         if (current_type == DO_TREASURY_FUND_CFWD || current_type == DO_SMSG_FEE || current_type == DO_GVR_FUND_CFWD) {
             ofs++;
-            if  (0 != part::GetVarInt(vData, ofs, nv, nb)) {
+            if (0 != part::GetVarInt(vData, ofs, nv, nb)) {
                 return false;
             }
             if (get_type == current_type) {
@@ -52,7 +59,7 @@ bool ExtractCoinStakeUint32(const std::vector<uint8_t> &vData, DataOutputTypes g
     while (ofs < vData.size()) {
         uint8_t current_type = vData[ofs];
         if (current_type == DO_VOTE || current_type == DO_SMSG_DIFFICULTY) {
-            if (vData.size() < ofs+5) {
+            if (vData.size() < ofs + 5) {
                 return false;
             }
             if (get_type == current_type) {
@@ -64,7 +71,7 @@ bool ExtractCoinStakeUint32(const std::vector<uint8_t> &vData, DataOutputTypes g
         } else
         if (current_type == DO_TREASURY_FUND_CFWD || current_type == DO_SMSG_FEE || current_type == DO_GVR_FUND_CFWD) {
             ofs++;
-            if  (0 != part::GetVarInt(vData, ofs, nv, nb)) {
+            if (0 != part::GetVarInt(vData, ofs, nv, nb)) {
                 return false;
             }
             ofs += nb;
@@ -240,10 +247,8 @@ uint256 CTransaction::ComputeWitnessHash() const
     return SerializeHash(*this, SER_GETHASH, 0);
 }
 
-/* For backward compatibility, the hash is initialized to 0. TODO: remove the need for this default constructor entirely. */
-CTransaction::CTransaction() : vin(), vout(), vpout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash{}, m_witness_hash{} {}
-CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vout(tx.vout), vpout{DeepCopy(tx.vpout)}, nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
-CTransaction::CTransaction(CMutableTransaction &&tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), vpout(std::move(tx.vpout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
+CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), vpout{DeepCopy(tx.vpout)}, nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
+CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), vpout(std::move(tx.vpout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 
 CAmount CTransaction::GetValueOut() const
 {

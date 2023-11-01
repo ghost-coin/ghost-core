@@ -201,7 +201,7 @@ CUSBDevice *SelectDevice(std::vector<std::unique_ptr<CUSBDevice> > &vDevices, st
 
 DeviceSignatureCreator::DeviceSignatureCreator(CUSBDevice *pDeviceIn, const CMutableTransaction *txToIn,
     unsigned int nInIn, const std::vector<uint8_t> &amountIn, int nHashTypeIn)
-    : BaseSignatureCreator(), txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn), pDevice(pDeviceIn)
+    : BaseSignatureCreator(), txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn, MissingDataBehavior::FAIL), pDevice(pDeviceIn)
 {
 };
 
@@ -276,6 +276,13 @@ bool DeviceSignatureCreator::CreateSig(const SigningProvider &provider, std::vec
     }
 
     return false;
-};
+}
+
+bool DeviceSignatureCreator::CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const
+{
+    assert(sigversion == SigVersion::TAPROOT || sigversion == SigVersion::TAPSCRIPT);
+
+    return error("%s: TODO.", __func__);
+}
 
 } // usb_device

@@ -7,9 +7,9 @@
 #ifndef SECP256K1_MODULE_COMMITMENT_MAIN
 #define SECP256K1_MODULE_COMMITMENT_MAIN
 
-#include "group.h"
+#include "../../group.h"
 
-#include "modules/commitment/pedersen_impl.h"
+#include "../../modules/commitment/pedersen_impl.h"
 
 /** Alternative generator for secp256k1.
  *  This is the sha256 of 'g' after DER encoding (without compression),

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,42 +20,65 @@
 #include <policy/policy.h>
 #include <script/script.h>
 #include <util/string.h>
+#include <util/system.h>
 #include <validation.h>
-#include <wallet/ismine.h>
+#include <wallet/types.h>
 
 #include <wallet/hdwallet.h>
-
 #include <univalue.h>
-#include <rpc/server.h>
-#include <rpc/client.h>
-#include <util/ref.h>
 
 #include <stdint.h>
 #include <string>
 
-#include <QUrl>
-extern UniValue gettransaction_inner(const JSONRPCRequest& request);
+#include <QLatin1String>
 
-QString TransactionDesc::FormatTxStatus(const interfaces::WalletTx& wtx, const interfaces::WalletTxStatus& status, bool inMempool, int numBlocks)
+#include <QUrl>
+
+using wallet::ISMINE_ALL;
+using wallet::ISMINE_SPENDABLE;
+using wallet::ISMINE_WATCH_ONLY;
+using wallet::isminetype;
+
+QString TransactionDesc::FormatTxStatus(const interfaces::WalletTxStatus& status, bool inMempool)
 {
-    if (!status.is_final)
-    {
-        if (wtx.tx->nLockTime < LOCKTIME_THRESHOLD)
-            return tr("Open for %n more block(s)", "", wtx.tx->nLockTime - numBlocks);
-        else
-            return tr("Open until %1").arg(GUIUtil::dateTimeStr(wtx.tx->nLockTime));
-    }
-    else
-    {
-        int nDepth = status.depth_in_main_chain;
-        if (nDepth < 0)
-            return tr("conflicted with a transaction with %1 confirmations").arg(-nDepth);
-        else if (nDepth == 0)
-            return tr("0/unconfirmed, %1").arg((inMempool ? tr("in memory pool") : tr("not in memory pool"))) + (status.is_abandoned ? ", "+tr("abandoned") : "");
-        else if (nDepth < 6)
-            return tr("%1/unconfirmed").arg(nDepth);
-        else
-            return tr("%1 confirmations").arg(nDepth);
+    int depth = status.depth_in_main_chain;
+    if (depth < 0) {
+        /*: Text explaining the current status of a transaction, shown in the
+            status field of the details window for this transaction. This status
+            represents an unconfirmed transaction that conflicts with a confirmed
+            transaction. */
+        return tr("conflicted with a transaction with %1 confirmations").arg(-depth);
+    } else if (depth == 0) {
+        QString s;
+        if (inMempool) {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This status
+                represents an unconfirmed transaction that is in the memory pool. */
+            s = tr("0/unconfirmed, in memory pool");
+        } else {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This status
+                represents an unconfirmed transaction that is not in the memory pool. */
+            s = tr("0/unconfirmed, not in memory pool");
+        }
+        if (status.is_abandoned) {
+            /*: Text explaining the current status of a transaction, shown in the
+                status field of the details window for this transaction. This
+                status represents an abandoned transaction. */
+            s += QLatin1String(", ") + tr("abandoned");
+        }
+        return s;
+    } else if (depth < 6) {
+        /*: Text explaining the current status of a transaction, shown in the
+            status field of the details window for this transaction. This
+            status represents a transaction confirmed in at least one block,
+            but less than 6 blocks. */
+        return tr("%1/unconfirmed").arg(depth);
+    } else {
+        /*: Text explaining the current status of a transaction, shown in the
+            status field of the details window for this transaction. This status
+            represents a transaction confirmed in 6 or more blocks. */
+        return tr("%1 confirmations").arg(depth);
     }
 }
 
@@ -87,7 +110,7 @@ bool GetPaymentRequestMerchant(const std::string& pr, QString& merchant)
     return false;
 }
 
-QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord *rec, int unit)
+QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wallet, TransactionRecord* rec, BitcoinUnit unit)
 {
     int numBlocks;
     interfaces::WalletTxStatus status;
@@ -105,7 +128,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     CAmount nDebit = wtx.debit;
     CAmount nNet = nCredit - nDebit;
 
-    strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(wtx, status, inMempool, numBlocks);
+    strHTML += "<b>" + tr("Status") + ":</b> " + FormatTxStatus(status, inMempool);
     strHTML += "<br>";
 
     strHTML += "<b>" + tr("Date") + ":</b> " + (nTime ? GUIUtil::dateTimeStr(nTime) : "") + "<br>";
@@ -113,39 +136,29 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     if (wtx.is_record) {
         strHTML += "<b>" + tr("Transaction ID") + ":</b> " + QString::fromStdString(wtx.irtx->first.ToString()) + "<br>";
 
-        util::Ref context{node};
-        JSONRPCRequest request(context);
-        QByteArray encodedName = QUrl::toPercentEncoding(QString::fromStdString(wallet.getWalletName()));
-        request.URI = "/wallet/" + std::string(encodedName.constData(), encodedName.length());
-        request.fHelp = false;
-        request.fSkipBlock = true;
-        UniValue params(UniValue::VARR);
-        params.push_back(wtx.irtx->first.ToString());
-        request.params = params;
-        UniValue rv = gettransaction_inner(request);
+        UniValue rv(UniValue::VOBJ);
+        if (!wallet.describeRecordTx(wtx.irtx->first, wtx.irtx->second, rv)) {
+            strHTML += "<b>" + tr("ERROR") + ":</b> Describe record tx failed.<br>";
+        }
 
         if (!rv["hex"].isNull()) {
             strHTML += "<b>" + tr("Transaction total size") + ":</b> " + QString::number(rv["hex"].get_str().length() / 2) + " bytes<br>";
         }
 
-        strHTML += "<b>" + tr("Confirmations") + ":</b> " + QString::number(rv["confirmations"].get_int()) + "<br>";
+        strHTML += "<b>" + tr("Confirmations") + ":</b> " + QString::number(rv["confirmations"].getInt<int>()) + "<br>";
 
         if (!rv["blockhash"].isNull()) {
             strHTML += "<b>" + tr("Block hash") + ":</b> " + QString::fromStdString(rv["blockhash"].get_str()) + "<br>";
-            strHTML += "<b>" + tr("Block index") + ":</b> " + QString::number(rv["blockindex"].get_int()) + "<br>";
-            strHTML += "<b>" + tr("Block time") + ":</b> " + GUIUtil::dateTimeStr(rv["blocktime"].get_int()) + "<br>";
+            strHTML += "<b>" + tr("Block index") + ":</b> " + QString::number(rv["blockindex"].getInt<int>()) + "<br>";
+            strHTML += "<b>" + tr("Block time") + ":</b> " + GUIUtil::dateTimeStr(rv["blocktime"].getInt<int>()) + "<br>";
         }
 
-        strHTML += "<b>Details:</b><br>";
-        strHTML += "<p>";
-
+        strHTML += "<b>Details:</b><br><p>";
         std::string sDetails = rv["details"].write(1);
         part::ReplaceStrInPlace(sDetails, "\n", "<br>");
         strHTML += QString::fromStdString(sDetails);
 
-        strHTML += "</p>";
-
-        strHTML += "</font></html>";
+        strHTML += "</p></font></html>";
         return strHTML;
     }
 
@@ -273,9 +286,9 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                             strHTML += GUIUtil::HtmlEscape(name) + " ";
                         strHTML += GUIUtil::HtmlEscape(EncodeDestination(address));
                         if(toSelf == ISMINE_SPENDABLE)
-                            strHTML += " (own address)";
+                            strHTML += " (" + tr("own address") + ")";
                         else if(toSelf & ISMINE_WATCH_ONLY)
-                            strHTML += " (watch-only)";
+                            strHTML += " (" + tr("watch-only") + ")";
                         strHTML += "<br>";
                     }
                 }

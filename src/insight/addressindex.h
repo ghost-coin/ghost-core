@@ -7,7 +7,7 @@
 #define BITCOIN_INSIGHT_ADDRESSINDEX_H
 
 #include <uint256.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <script/script.h>
 
 enum AddressIndexType {
@@ -18,6 +18,7 @@ enum AddressIndexType {
     ADDR_INDT_SCRIPT_ADDRESS_256     = 4,
     ADDR_INDT_WITNESS_V0_KEYHASH     = 5,
     ADDR_INDT_WITNESS_V0_SCRIPTHASH  = 6,
+    ADDR_INDT_WITNESS_V1_TAPROOT     = 7,
 };
 
 struct CAddressUnspentKey {
@@ -32,15 +33,15 @@ struct CAddressUnspentKey {
     template<typename Stream>
     void Serialize(Stream& s) const {
         ser_writedata8(s, type);
-        hashBytes.Serialize(s);
-        txhash.Serialize(s);
+        s << hashBytes;
+        s << txhash;
         ser_writedata32(s, index);
     }
     template<typename Stream>
     void Unserialize(Stream& s) {
         type = ser_readdata8(s);
-        hashBytes.Unserialize(s);
-        txhash.Unserialize(s);
+        s >> hashBytes;
+        s >> txhash;
         index = ser_readdata32(s);
     }
 
@@ -124,7 +125,7 @@ struct CAddressIndexKey {
     void Unserialize(Stream& s) {
         type = ser_readdata8(s);
         hashBytes.Unserialize(s);
-        blockHeight = (int)ser_readdata32be(s);
+        blockHeight = int(ser_readdata32be(s));
         txindex = ser_readdata32be(s);
         txhash.Unserialize(s);
         index = ser_readdata32(s);

@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -30,6 +30,7 @@ std::string EncodeExtPubKey(const CExtPubKey& extpubkey);
 
 std::string EncodeDestination(const CTxDestination& dest, bool fBech32=false, bool stake_only=false);
 CTxDestination DecodeDestination(const std::string& str, bool allow_stake_only=false);
+CTxDestination DecodeDestination(const std::string& str, std::string& error_msg, std::vector<int>* error_locations = nullptr, bool allow_stake_only=false);
 bool IsValidDestinationString(const std::string& str, bool allow_stake_only=false);
 bool IsValidDestinationString(const std::string& str, const CChainParams& params, bool allow_stake_only=false);
 
@@ -197,17 +198,17 @@ public:
     CExtKey58(const CExtKeyPair &key, CChainParams::Base58Type type)
     {
         SetKey(key, type);
-    };
+    }
 
     void SetKeyV(const CExtKeyPair &key)
     {
         SetKey(key, CChainParams::EXT_SECRET_KEY);
-    };
+    }
 
     void SetKeyP(const CExtKeyPair &key)
     {
         SetKey(key, CChainParams::EXT_PUBLIC_KEY);
-    };
+    }
 
     void SetKey(const CExtKeyPair &key, CChainParams::Base58Type type)
     {
@@ -225,41 +226,38 @@ public:
                 break;
         }
         SetData(Params().Base58Prefix(type), vch, vch+74);
-    };
+    }
 
     CExtKeyPair GetKey()
     {
         CExtKeyPair rv;
         if (vchVersion == Params().Base58Prefix(CChainParams::EXT_SECRET_KEY)
-            || vchVersion == Params().Base58Prefix(CChainParams::EXT_SECRET_KEY_BTC))
-        {
+            || vchVersion == Params().Base58Prefix(CChainParams::EXT_SECRET_KEY_BTC)) {
             rv.DecodeV(&vchData[0]);
             return rv;
-        };
+        }
         rv.DecodeP(&vchData[0]);
         return rv;
-    };
+    }
 
     bool GetPubKey(CExtPubKey &rv, const CChainParams *pparams)
     {
         if (vchVersion == pparams->Base58Prefix(CChainParams::EXT_SECRET_KEY)
-            || vchVersion == pparams->Base58Prefix(CChainParams::EXT_SECRET_KEY_BTC))
-        {
+            || vchVersion == pparams->Base58Prefix(CChainParams::EXT_SECRET_KEY_BTC)) {
             CExtKey ek;
             ek.Decode(&vchData[0]);
             rv = ek.Neutered();
             return true;
-        };
+        }
 
         if (vchVersion == pparams->Base58Prefix(CChainParams::EXT_PUBLIC_KEY)
-            || vchVersion == pparams->Base58Prefix(CChainParams::EXT_PUBLIC_KEY_BTC))
-        {
+            || vchVersion == pparams->Base58Prefix(CChainParams::EXT_PUBLIC_KEY_BTC)) {
             rv.Decode(&vchData[0]);
             return true;
         }
 
         return false;
-    };
+    }
 
     int Set58(const char *base58);
     int Set58(const char *base58, CChainParams::Base58Type type, const CChainParams *pparams);

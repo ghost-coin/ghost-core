@@ -1,6 +1,9 @@
-// Copyright (c) 2017-2018 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <test/util/setup_common.h>
+#include <test/util/random.h>
 
 #include <key/stealth.h>
 
@@ -8,7 +11,6 @@
 #include <pubkey.h>
 #include <key_io.h>
 #include <script/signingprovider.h>
-#include <test/util/setup_common.h>
 #include <util/strencodings.h>
 
 #include <serialize.h>
@@ -148,7 +150,6 @@ BOOST_AUTO_TEST_CASE(stealth_key_address)
 {
     SeedInsecureRand();
     FillableSigningProvider keystore;
-    ECC_Start_Stealth();
 
     for (size_t k = 0; k < 32; ++k) {
         CStealthAddress sxAddr;
@@ -162,8 +163,8 @@ BOOST_AUTO_TEST_CASE(stealth_key_address)
 
         CTxDestination dest = addrC.Get();
 
-        BOOST_CHECK(dest.type() == typeid(CStealthAddress));
-        CStealthAddress sxAddrOut = boost::get<CStealthAddress>(dest);
+        BOOST_CHECK(dest.index() == DI::_CStealthAddress);
+        CStealthAddress sxAddrOut = std::get<CStealthAddress>(dest);
 
         BOOST_CHECK(sxAddrOut == sxAddr);
         BOOST_CHECK(sxAddrOut.Encoded() == sxAddr.Encoded());
@@ -171,16 +172,12 @@ BOOST_AUTO_TEST_CASE(stealth_key_address)
         CBitcoinAddress addrC2(dest);
         BOOST_CHECK(addrC.ToString() == addrC2.ToString());
     }
-
-    ECC_Stop_Stealth();
 }
 
 BOOST_AUTO_TEST_CASE(stealth_key)
 {
     SeedInsecureRand();
     FillableSigningProvider keystore;
-
-    ECC_Start_Stealth();
 
     for (size_t i = 0; i < 16; ++i) {
         CStealthAddress sxAddr;
@@ -231,8 +228,6 @@ BOOST_AUTO_TEST_CASE(stealth_key)
         pkTemp = kSpendOut_test2.GetPubKey();
         BOOST_CHECK(CPubKey(pkSendTo) == pkTemp);
     }
-
-    ECC_Stop_Stealth();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -8,11 +8,16 @@ keys, and is trivially vulnerable to side channel attacks. Do not use for
 anything but tests."""
 import csv
 import hashlib
+import hmac
 import os
 import random
 import unittest
 
 from .util import modinv
+
+# Point with no known discrete log.
+H_POINT = "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0"
+
 
 def TaggedHash(tag, data):
     ss = hashlib.sha256(tag.encode('utf-8')).digest()
@@ -20,14 +25,10 @@ def TaggedHash(tag, data):
     ss += data
     return hashlib.sha256(ss).digest()
 
-def xor_bytes(b0, b1):
-    assert len(b0) == len(b1)
-    return bytes(x ^ y for (x, y) in zip(b0, b1))
-
 def jacobi_symbol(n, k):
     """Compute the Jacobi symbol of n modulo k
 
-    See http://en.wikipedia.org/wiki/Jacobi_symbol
+    See https://en.wikipedia.org/wiki/Jacobi_symbol
 
     For our application k is always prime, so this is the same as the Legendre symbol."""
     assert k > 0 and k & 1, "jacobi symbol is only defined for positive odd k"
@@ -138,7 +139,7 @@ class EllipticCurve:
         See https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Jacobian_Coordinates - Point Addition (with affine point)"""
         x1, y1, z1 = p1
         x2, y2, z2 = p2
-        assert(z2 == 1)
+        assert z2 == 1
         # Adding to the point at infinity is a no-op
         if z1 == 0:
             return p2
@@ -261,7 +262,7 @@ class ECPubKey():
         return self.valid
 
     def get_bytes(self):
-        assert(self.valid)
+        assert self.valid
         p = SECP256K1.affine(self.p)
         if p is None:
             return None
@@ -275,7 +276,7 @@ class ECPubKey():
 
         See https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm for the
         ECDSA verifier algorithm"""
-        assert(self.valid)
+        assert self.valid
 
         # Extract r and s from the DER formatted signature. Return false for
         # any DER encoding errors.
@@ -330,6 +331,16 @@ def generate_privkey():
     """Generate a valid random 32-byte private key."""
     return random.randrange(1, SECP256K1_ORDER).to_bytes(32, 'big')
 
+def rfc6979_nonce(key):
+    """Compute signing nonce using RFC6979."""
+    v = bytes([1] * 32)
+    k = bytes([0] * 32)
+    k = hmac.new(k, v + b"\x00" + key, 'sha256').digest()
+    v = hmac.new(k, v, 'sha256').digest()
+    k = hmac.new(k, v + b"\x01" + key, 'sha256').digest()
+    v = hmac.new(k, v, 'sha256').digest()
+    return hmac.new(k, v, 'sha256').digest()
+
 class ECKey():
     """A secp256k1 private key"""
 
@@ -338,7 +349,7 @@ class ECKey():
 
     def set(self, secret, compressed):
         """Construct a private key object with given 32-byte secret and compressed flag."""
-        assert(len(secret) == 32)
+        assert len(secret) == 32
         secret = int.from_bytes(secret, 'big')
         self.valid = (secret > 0 and secret < SECP256K1_ORDER)
         if self.valid:
@@ -351,7 +362,7 @@ class ECKey():
 
     def get_bytes(self):
         """Retrieve the 32-byte representation of this key."""
-        assert(self.valid)
+        assert self.valid
         return self.secret.to_bytes(32, 'big')
 
     @property
@@ -364,7 +375,7 @@ class ECKey():
 
     def get_pubkey(self):
         """Compute an ECPubKey object for this secret key."""
-        assert(self.valid)
+        assert self.valid
         ret = ECPubKey()
         p = SECP256K1.mul([(SECP256K1_G, self.secret)])
         ret.p = p
@@ -372,15 +383,18 @@ class ECKey():
         ret.compressed = self.compressed
         return ret
 
-    def sign_ecdsa(self, msg, low_s=True):
+    def sign_ecdsa(self, msg, low_s=True, rfc6979=False):
         """Construct a DER-encoded ECDSA signature with this key.
 
         See https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm for the
         ECDSA signer algorithm."""
-        assert(self.valid)
+        assert self.valid
         z = int.from_bytes(msg, 'big')
-        # Note: no RFC6979, but a simple random nonce (some tests rely on distinct transactions for the same operation)
-        k = random.randrange(1, SECP256K1_ORDER)
+        # Note: no RFC6979 by default, but a simple random nonce (some tests rely on distinct transactions for the same operation)
+        if rfc6979:
+            k = int.from_bytes(rfc6979_nonce(self.secret.to_bytes(32, 'big') + msg), 'big')
+        else:
+            k = random.randrange(1, SECP256K1_ORDER)
         R = SECP256K1.affine(SECP256K1.mul([(SECP256K1_G, k)]))
         r = R[0] % SECP256K1_ORDER
         s = (modinv(k, SECP256K1_ORDER) * (z + self.secret * r)) % SECP256K1_ORDER
@@ -510,7 +524,7 @@ class TestFrameworkKey(unittest.TestCase):
             if pubkey is not None:
                 keys[privkey] = pubkey
         for msg in byte_arrays:  # test every combination of message, signing key, verification key
-            for sign_privkey, sign_pubkey in keys.items():
+            for sign_privkey, _ in keys.items():
                 sig = sign_schnorr(sign_privkey, msg)
                 for verify_privkey, verify_pubkey in keys.items():
                     if verify_privkey == sign_privkey:

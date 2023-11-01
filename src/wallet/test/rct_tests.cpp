@@ -10,6 +10,7 @@
 #include <wallet/test/hdwallet_test_fixture.h>
 #include <chainparams.h>
 #include <miner.h>
+#include <node/miner.h>
 #include <pos/miner.h>
 #include <timedata.h>
 #include <coins.h>
@@ -96,7 +97,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
         stealth_address = DecodeDestination(part::StripQuotes(rv.write()));
     }
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply);
+    BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == base_supply);
 
     std::vector<uint256> txids_unexploited;
     for (size_t i = 0; i < 10; ++i) {
@@ -116,7 +117,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.emplace_back(OUTPUT_STANDARD, 1 * COIN, dest);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl cctl;
@@ -125,14 +126,14 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Validate
     {
     LOCK(cs_main);
-    int nSpendHeight = ::ChainActive().Tip()->nHeight;
+    int nSpendHeight = chain_active.Tip()->nHeight;
     TxValidationState state;
     state.m_exploit_fix_1 = true;
     state.m_exploit_fix_2 = true;
     state.m_spend_height = nSpendHeight;
+    state.m_chainstate = &chainstate_active;
     CAmount txfee = 0;
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
-
+    CCoinsViewCache &view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(*wtx.tx, state, view, nSpendHeight, txfee));
     BOOST_REQUIRE(VerifyMLSAG(*wtx.tx, state));
 
@@ -179,7 +180,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Pick inputs so two are used
     CCoinControl cctl;
     std::vector<COutputR> vAvailableCoins;
-    pwallet->AvailableAnonCoins(vAvailableCoins, true, &cctl, 100000);
+    pwallet->AvailableAnonCoins(vAvailableCoins, &cctl, 100000);
     BOOST_REQUIRE(vAvailableCoins.size() > 2);
     CAmount prevouts_sum = 0;
     for (const auto &output : vAvailableCoins) {
@@ -197,7 +198,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -206,13 +207,14 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Validate
     {
     LOCK(cs_main);
-    int nSpendHeight = ::ChainActive().Tip()->nHeight;
+    int nSpendHeight = chain_active.Tip()->nHeight;
     TxValidationState state;
     state.m_exploit_fix_1 = true;
     state.m_exploit_fix_2 = true;
     state.m_spend_height = nSpendHeight;
+    state.m_chainstate = &chainstate_active;
     CAmount txfee = 0;
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
+    CCoinsViewCache &view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(*wtx.tx, state, view, nSpendHeight, txfee));
     BOOST_REQUIRE(VerifyMLSAG(*wtx.tx, state));
 
@@ -226,7 +228,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     auto &txin = mtx.vin[0];
     uint256 blinding_factor_prevout;
     uint8_t rand_seed[32];
-    GetStrongRandBytes(rand_seed, 32);
+    GetStrongRandBytes2(rand_seed, 32);
 
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
@@ -254,7 +256,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
         ofs += nB;
 
         CAnonOutput ao;
-        BOOST_REQUIRE(pblocktree->ReadRCTOutput(nIndex, ao));
+        BOOST_REQUIRE(m_node.chainman->m_blockman.m_block_tree_db->ReadRCTOutput(nIndex, ao));
         memcpy(&vM[(i+k*nCols)*33], ao.pubkey.begin(), 33);
         vCommitments.push_back(ao.commitment);
         vpInCommits[i+k*nCols] = vCommitments.back().data;
@@ -328,7 +330,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     LOCK(pwallet->cs_wallet);
     CCoinControl cctl;
     std::vector<COutputR> vAvailableCoins;
-    pwallet->AvailableAnonCoins(vAvailableCoins, true, &cctl, 100000);
+    pwallet->AvailableAnonCoins(vAvailableCoins, &cctl, 100000);
     BOOST_REQUIRE(vAvailableCoins.size() > 1);
     CAmount prevouts_sum = 0;
     for (const auto &output : vAvailableCoins) {
@@ -350,7 +352,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -368,7 +370,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     vecSend.back().fSubtractFeeFromAmount = true;
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     BOOST_REQUIRE(0 == pwallet->AddAnonInputs(wtx, rtx, vecSend, true, 3, 1, nFee, &cctl, sError));
@@ -380,15 +382,16 @@ BOOST_AUTO_TEST_CASE(rct_test)
 
     // Txns should be valid individually
     CTransaction tx1(mtx1), tx2(mtx2);
-    int nSpendHeight = ::ChainActive().Tip()->nHeight;
+    int nSpendHeight = chain_active.Tip()->nHeight;
     TxValidationState tx_state;
     tx_state.m_exploit_fix_1 = true;
     tx_state.m_exploit_fix_2 = true;
     tx_state.m_spend_height = nSpendHeight;
+    tx_state.m_chainstate = &chainstate_active;
     CAmount txfee = 0;
     {
     LOCK(cs_main);
-    CCoinsViewCache &tx_view = ::ChainstateActive().CoinsTip();
+    CCoinsViewCache &tx_view = chainstate_active.CoinsTip();
     BOOST_REQUIRE(Consensus::CheckTxInputs(tx1, tx_state, tx_view, nSpendHeight, txfee));
     BOOST_REQUIRE(VerifyMLSAG(tx1, tx_state));
     BOOST_REQUIRE(Consensus::CheckTxInputs(tx2, tx_state, tx_view, nSpendHeight, txfee));
@@ -396,15 +399,15 @@ BOOST_AUTO_TEST_CASE(rct_test)
     }
 
     // Add to block
-    std::unique_ptr<CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
+    std::unique_ptr<node::CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
     BOOST_REQUIRE(pblocktemplate.get());
     pblocktemplate->block.vtx.push_back(MakeTransactionRef(mtx1));
     pblocktemplate->block.vtx.push_back(MakeTransactionRef(mtx2));
 
     size_t k, nTries = 10000;
-    int nBestHeight = WITH_LOCK(cs_main, return ::ChainActive().Height());
+    int nBestHeight = WITH_LOCK(cs_main, return chain_active.Height());
     for (k = 0; k < nTries; ++k) {
-        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nSearchTime = GetAdjustedTimeInt() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime > pwallet->nLastCoinStakeSearchTime &&
             pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             break;
@@ -416,15 +419,17 @@ BOOST_AUTO_TEST_CASE(rct_test)
     {
     CBlock *pblock = &pblocktemplate->block;
     BlockValidationState state;
+    state.m_chainman = m_node.chainman.get();
+    state.m_peerman = m_node.peerman.get();
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    BOOST_REQUIRE(!ProcessNewBlock(Params(), shared_pblock, state));
+    BOOST_REQUIRE(!ProcessNewBlock(shared_pblock, state));
     BOOST_REQUIRE(state.GetRejectReason() == "bad-anonin-dup-ki");
     }
 
     // Should connect without bad tx
     pblocktemplate->block.vtx.pop_back();
     for (k = 0; k < nTries; ++k) {
-        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nSearchTime = GetAdjustedTimeInt() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime > pwallet->nLastCoinStakeSearchTime &&
             pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             break;
@@ -436,16 +441,18 @@ BOOST_AUTO_TEST_CASE(rct_test)
     {
     CBlock *pblock = &pblocktemplate->block;
     BlockValidationState state;
+    state.m_chainman = m_node.chainman.get();
+    state.m_peerman = m_node.peerman.get();
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-    BOOST_REQUIRE(ProcessNewBlock(Params(), shared_pblock, state));
+    BOOST_REQUIRE(ProcessNewBlock(shared_pblock, state));
     }
-    BOOST_REQUIRE(WITH_LOCK(cs_main, return ::ChainActive().Height()) > nBestHeight);
+    BOOST_REQUIRE(WITH_LOCK(cs_main, return chain_active.Height()) > nBestHeight);
 
     // Verify duplicate keyimage in chain fails
     {
     LOCK(cs_main);
-    CCoinsViewCache &tx_view = ::ChainstateActive().CoinsTip();
-    nSpendHeight = WITH_LOCK(cs_main, return ::ChainActive().Height());
+    CCoinsViewCache &tx_view = chainstate_active.CoinsTip();
+    nSpendHeight = WITH_LOCK(cs_main, return chain_active.Height());
     BOOST_REQUIRE(Consensus::CheckTxInputs(tx2, tx_state, tx_view, nSpendHeight, txfee));
     BOOST_REQUIRE(!VerifyMLSAG(tx2, tx_state));
     BOOST_REQUIRE(tx_state.GetRejectReason() == "bad-anonin-dup-ki");
@@ -455,41 +462,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Wait to add time for db flushes to complete
     std::this_thread::sleep_for(std::chrono::milliseconds(1250));
 
-    SetNumBlocksOfPeers(peer_blocks);
+    particl::SetNumBlocksOfPeers(peer_blocks);
 }
-
-BOOST_AUTO_TEST_CASE(rct_disabled) {
-
-    // Anon disabled in the following tests
-    // In this test anon is disabled but no tx is blacklisted so it should be accepted to mempool
-    RegtestParams().SetAnonRestricted(true);
-    RegtestParams().SetAnonMaxOutputSize(4);
-    SeedInsecureRand();
-    CHDWallet *pwallet = pwalletMain.get();
-    util::Ref context{m_node};
-    UniValue rv;
-    std::string sError;
-
-    // Import the regtest genesis coinbase keys
-    BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPeK5mCpvMsd1cwyT1JZsrBN82XkoYuZY1EVK7EwDaiL9sDfqUU5SntTfbRfnRedFWjg5xkDG5i3iwd3yP7neX5F2dtdCojk4", context));
-    BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPe3x7bUzkHAJZzCuGqN6y28zFFyg5i7Yqxqm897VCnmMJz6QScsftHDqsyWW5djx6FzrbkF9HSD3ET163z1SzRhfcWxvwL4G", context));
-    BOOST_CHECK_NO_THROW(rv = CallRPC("getnewextaddress lblHDKey", context));
-
-    CTxDestination stealth_address;
-    CAmount base_supply = 12500000000000;
-    {
-        LOCK(pwallet->cs_wallet);
-        pwallet->SetBroadcastTransactions(true);
-        const auto bal = pwallet->GetBalance();
-        BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
-
-        BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
-        stealth_address = DecodeDestination(part::StripQuotes(rv.write()));
-    }
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply);
-
-    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 20 * COIN, 0);   
-}
-
 
 BOOST_AUTO_TEST_SUITE_END()

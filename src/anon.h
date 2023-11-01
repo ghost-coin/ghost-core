@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,11 +7,10 @@
 
 #include <sync.h>
 #include <pubkey.h>
-#include <amount.h>
+#include <consensus/amount.h>
 #include <set>
+#include <kernel/cs_main.h>
 
-
-extern RecursiveMutex cs_main;
 
 class uint256;
 class CTxIn;
@@ -19,6 +18,8 @@ class CKey;
 class CTransaction;
 class CTxMemPool;
 class TxValidationState;
+class ChainstateManager;
+class Chainstate;
 
 const size_t MIN_RINGSIZE = 1;
 const size_t MAX_RINGSIZE = 32;
@@ -39,11 +40,11 @@ int GetKeyImage(CCmpPubKey &ki, const CCmpPubKey &pubkey, const CKey &key);
 bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool);
 bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPool &pool);
 
-bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state);
+bool AllAnonOutputsUnknown(Chainstate &active_chainstate, const CTransaction &tx, TxValidationState &state);
 
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool RollBackRCTIndex(ChainstateManager &chainman, int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 bool RewindRangeProof(const std::vector<uint8_t> &rangeproof, const std::vector<uint8_t> &commitment, const uint256 &nonce,
                       std::vector<uint8_t> &blind_out, CAmount &value_out);

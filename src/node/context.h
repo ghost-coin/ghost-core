@@ -1,9 +1,11 @@
-// Copyright (c) 2019-2020 The Bitcoin Core developers
+// Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_NODE_CONTEXT_H
 #define BITCOIN_NODE_CONTEXT_H
+
+#include <kernel/context.h>
 
 #include <cassert>
 #include <functional>
@@ -12,17 +14,23 @@
 
 class ArgsManager;
 class BanMan;
+class AddrMan;
+class CBlockPolicyEstimator;
 class CConnman;
 class CScheduler;
 class CTxMemPool;
 class ChainstateManager;
+class NetGroupManager;
 class PeerManager;
+class SmsgManager;
 namespace interfaces {
 class Chain;
 class ChainClient;
-class WalletClient;
+class Init;
+class WalletLoader;
 } // namespace interfaces
 
+namespace node {
 //! NodeContext struct containing references to chain state and connection
 //! state.
 //!
@@ -34,18 +42,26 @@ class WalletClient;
 //! any member functions. It should just be a collection of references that can
 //! be used without pulling in unwanted dependencies or functionality.
 struct NodeContext {
+    //! libbitcoin_kernel context
+    std::unique_ptr<kernel::Context> kernel;
+    //! Init interface for initializing current process and connecting to other processes.
+    interfaces::Init* init{nullptr};
+    std::unique_ptr<AddrMan> addrman;
     std::unique_ptr<CConnman> connman;
     std::unique_ptr<CTxMemPool> mempool;
+    std::unique_ptr<const NetGroupManager> netgroupman;
+    std::unique_ptr<CBlockPolicyEstimator> fee_estimator;
     std::unique_ptr<PeerManager> peerman;
-    ChainstateManager* chainman{nullptr}; // Currently a raw pointer because the memory is not managed by this struct
+    std::unique_ptr<ChainstateManager> chainman;
     std::unique_ptr<BanMan> banman;
+    std::unique_ptr<SmsgManager> smsgman;
     ArgsManager* args{nullptr}; // Currently a raw pointer because the memory is not managed by this struct
     std::unique_ptr<interfaces::Chain> chain;
     //! List of all chain clients (wallet processes or other client) connected to node.
     std::vector<std::unique_ptr<interfaces::ChainClient>> chain_clients;
     //! Reference to chain client that should used to load or create wallets
     //! opened by the gui.
-    interfaces::WalletClient* wallet_client{nullptr};
+    interfaces::WalletLoader* wallet_loader{nullptr};
     std::unique_ptr<CScheduler> scheduler;
     std::function<void()> rpc_interruption_point = [] {};
 
@@ -55,5 +71,6 @@ struct NodeContext {
     NodeContext();
     ~NodeContext();
 };
+} // namespace node
 
 #endif // BITCOIN_NODE_CONTEXT_H

@@ -17,7 +17,7 @@
 static void Blind(benchmark::Bench& bench)
 {
     ECC_Start();
-    ECC_Start_Blinding();
+    particl::ECC_Start_Blinding();
 
     secp256k1_pedersen_commitment commitment;
     std::vector<uint8_t> vchRangeproof;
@@ -31,7 +31,7 @@ static void Blind(benchmark::Bench& bench)
     CAmount nValue = 1 * COIN;
 
     std::vector<uint8_t> vBlind(32);
-    GetStrongRandBytes(&vBlind[0], 32);
+    GetStrongRandBytes2(&vBlind[0], 32);
 
     assert(secp256k1_pedersen_commit(secp256k1_ctx_blind, &commitment, &vBlind[0], (uint64_t)nValue, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
 
@@ -58,9 +58,9 @@ static void Blind(benchmark::Bench& bench)
             nullptr, 0, secp256k1_generator_h));
     });
 
-    ECC_Stop_Blinding();
+    particl::ECC_Stop_Blinding();
     ECC_Stop();
 }
 
-BENCHMARK(Blind);
+BENCHMARK(Blind, benchmark::PriorityLevel::HIGH);
 

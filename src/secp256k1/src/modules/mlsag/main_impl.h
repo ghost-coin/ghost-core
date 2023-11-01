@@ -165,7 +165,7 @@ static int hash_to_curve(secp256k1_ge *ge, const uint8_t *pd, size_t len)
     return 0;
 }
 
-int secp256k1_get_keyimage(const secp256k1_context *ctx, uint8_t *ki, const uint8_t *pk, const uint8_t *sk)
+int secp256k1_get_keyimage(uint8_t *ki, const uint8_t *pk, const uint8_t *sk)
 {
     secp256k1_ge ge1;
     secp256k1_scalar s, zero;
@@ -185,7 +185,7 @@ int secp256k1_get_keyimage(const secp256k1_context *ctx, uint8_t *ki, const uint
     }
 
     secp256k1_gej_set_ge(&gej1, &ge1);
-    secp256k1_ecmult(&ctx->ecmult_ctx, &gej2, &gej1, &s, &zero);  /* gej2 = H(pk) * sk */
+    secp256k1_ecmult(&gej2, &gej1, &s, &zero);  /* gej2 = H(pk) * sk */
     secp256k1_ge_set_gej(&ge1, &gej2);
     secp256k1_eckey_pubkey_serialize(&ge1, ki, &clen, 1);
 
@@ -260,7 +260,7 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
         }
 
         secp256k1_gej_set_ge(&gej1, &ge1);
-        secp256k1_ecmult(&ctx->ecmult_ctx, &gej2, &gej1, &alpha[k], &zero);  /* gej2 = H(pk_ind[col]) * alpha[col] */
+        secp256k1_ecmult(&gej2, &gej1, &alpha[k], &zero);  /* gej2 = H(pk_ind[col]) * alpha[col] */
 
         secp256k1_ge_set_gej(&ge1, &gej2);
         secp256k1_eckey_pubkey_serialize(&ge1, tmp, &clen, 1);
@@ -270,7 +270,7 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
         if (overflow || secp256k1_scalar_is_zero(&s)) {
             return 1;
         }
-        secp256k1_ecmult(&ctx->ecmult_ctx, &gej2, &gej1, &s, &zero);  /* gej2 = H(pk_ind[col]) * sk_ind[col] */
+        secp256k1_ecmult(&gej2, &gej1, &s, &zero);  /* gej2 = H(pk_ind[col]) * sk_ind[col] */
         secp256k1_ge_set_gej(&ge1, &gej2);
         secp256k1_eckey_pubkey_serialize(&ge1, &ki[k * 33], &clen, 1);
     }
@@ -302,7 +302,7 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
                 return 1;
             }
             secp256k1_gej_set_ge(&gej1, &ge1);
-            secp256k1_ecmult(&ctx->ecmult_ctx, &L, &gej1, &clast, &ss); /* L = G * ss + pk[k][i] * clast */
+            secp256k1_ecmult(&L, &gej1, &clast, &ss); /* L = G * ss + pk[k][i] * clast */
 
             secp256k1_sha256_write(&sha256_m, &pk[(i + k*nCols)*33], 33); /* pk[k][i] */
             secp256k1_ge_set_gej(&ge1, &L);
@@ -318,13 +318,13 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
                 return 1;
             }
             secp256k1_gej_set_ge(&gej1, &ge1);
-            secp256k1_ecmult(&ctx->ecmult_ctx, &gej1, &gej1, &ss, &zero); /* gej1 = H(pk[k][i]) * ss */
+            secp256k1_ecmult(&gej1, &gej1, &ss, &zero); /* gej1 = H(pk[k][i]) * ss */
 
             if (!secp256k1_eckey_pubkey_parse(&ge1, &ki[k * 33], 33)) {
                 return 1;
             }
             secp256k1_gej_set_ge(&gej2, &ge1);
-            secp256k1_ecmult(&ctx->ecmult_ctx, &gej2, &gej2, &clast, &zero); /* gej2 = ki[k] * clast */
+            secp256k1_ecmult(&gej2, &gej2, &clast, &zero); /* gej2 = ki[k] * clast */
             secp256k1_gej_add_var(&R, &gej1, &gej2, NULL);  /* R =  gej1 + gej2 */
 
             /* Hash R */
@@ -365,7 +365,7 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
     return 0;
 }
 
-int secp256k1_verify_mlsag(const secp256k1_context *ctx,
+int secp256k1_verify_mlsag(
     const uint8_t *preimage, size_t nCols, size_t nRows,
     const uint8_t *pk, const uint8_t *ki, const uint8_t *pc, const uint8_t *ps)
 {
@@ -405,7 +405,16 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
                 return 1;
             }
             secp256k1_gej_set_ge(&gej1, &ge1);
-            secp256k1_ecmult(&ctx->ecmult_ctx, &L, &gej1, &clast, &ss);
+            secp256k1_ecmult(&L, &gej1, &clast, &ss);
+
+            secp256k1_sha256_write(&sha256_m, &pk[(i + k*nCols)*33], 33); /* pk[k][i] */
+            secp256k1_ge_set_gej(&ge1, &L);
+            secp256k1_eckey_pubkey_serialize(&ge1, tmp, &clen, 1);
+            secp256k1_sha256_write(&sha256_m, tmp, 33); /* L */
+
+            if (k >= dsRows) {
+                continue;
+            }
 
             secp256k1_sha256_write(&sha256_m, &pk[(i + k*nCols)*33], 33); /* pk[k][i] */
             secp256k1_ge_set_gej(&ge1, &L);
@@ -421,14 +430,14 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
                 return 1;
             }
             secp256k1_gej_set_ge(&gej1, &ge1);
-            secp256k1_ecmult(&ctx->ecmult_ctx, &gej1, &gej1, &ss, &zero); /* gej1 = H(pk[k][i]) * ss */
+            secp256k1_ecmult(&gej1, &gej1, &ss, &zero); /* gej1 = H(pk[k][i]) * ss */
 
             if (!secp256k1_eckey_pubkey_parse(&ge1, &ki[k * 33], 33) ||
                 secp256k1_ge_is_infinity(&ge1)) {
                 return 1;
             }
             secp256k1_gej_set_ge(&gej2, &ge1);
-            secp256k1_ecmult(&ctx->ecmult_ctx, &gej2, &gej2, &clast, &zero); /* gej2 = ki[k] * clast */
+            secp256k1_ecmult(&gej2, &gej2, &clast, &zero); /* gej2 = ki[k] * clast */
             secp256k1_gej_add_var(&R, &gej1, &gej2, NULL);  /* R =  gej1 + gej2 */
 
             /* Hash R */

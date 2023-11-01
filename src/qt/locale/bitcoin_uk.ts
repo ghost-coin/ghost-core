@@ -488,16 +488,16 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>&amp;Load PSBT from file...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Ghost Transaction</source>
-        <translation>Load Partially Signed Ghost Transaction</translation>
+        <source>Load Partially Signed ghost Transaction</source>
+        <translation>Завантажте Частково Підписану Транзакцію Біткойн</translation>
     </message>
     <message>
         <source>Load PSBT from clipboard...</source>
         <translation>Load PSBT from clipboard...</translation>
     </message>
     <message>
-        <source>Load Partially Signed Ghost Transaction from clipboard</source>
-        <translation>Load Partially Signed Ghost Transaction from clipboard</translation>
+        <source>Load Partially Signed ghost Transaction from clipboard</source>
+        <translation>Завантажте Частково Підписану Біткойн Транзакцію з буфера обміну</translation>
     </message>
     <message>
         <source>Node window</source>
@@ -1369,8 +1369,8 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation>Показати або сховати керування входами.</translation>
     </message>
     <message>
-        <source>Connect to the Ghost network through a separate SOCKS5 proxy for Tor onion services.</source>
-        <translation>Підключитися до мережі Біткойн через окремий проксі-сервер SOCKS5 для сервісів Tor.</translation>
+        <source>Connect to the ghost network through a separate SOCKS5 proxy for Tor onion services.</source>
+        <translation>Підключіться до мережі Біткойн через окремий проксі-сервер SOCKS5 для сервісів Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS&amp;5 proxy to reach peers via Tor onion services:</source>
@@ -2582,7 +2582,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee of "100 satoshis p
         <translation>Ви можете збільшити комісію пізніше (сигналізує Заміна-Через-Комісію, BIP-125).</translation>
     </message>
     <message>
-        <source>Please, review your transaction proposal. This will produce a Partially Signed Ghost Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
+        <source>Please, review your transaction proposal. This will produce a Partially Signed ghost Transaction (PSBT) which you can save or copy and then sign with e.g. an offline %1 wallet, or a PSBT-compatible hardware wallet.</source>
         <translation>Перегляньте свою пропозицію щодо транзакції. Це призведе до частково Підписаної Транзакції Біткойна (PSBT), яку ви можете зберегти або скопіювати, а потім підписати, наприклад, офлайн-гаманцем %1 або апаратним гаманецем, сумісний з PSBT.</translation>
     </message>
     <message>

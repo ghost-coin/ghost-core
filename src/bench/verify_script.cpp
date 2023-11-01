@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 The Bitcoin Core developers
+// Copyright (c) 2016-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,13 +20,12 @@
 // modified to measure performance of other types of scripts.
 static void VerifyScriptBench(benchmark::Bench& bench)
 {
-    const ECCVerifyHandle verify_handle;
     ECC_Start();
 
-    const int flags = SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH;
+    const uint32_t flags{SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH};
     const int witnessversion = 0;
 
-    // Keypair.
+    // Key pair.
     CKey key;
     static const std::array<unsigned char, 32> vchKey = {
         {
@@ -60,7 +59,7 @@ static void VerifyScriptBench(benchmark::Bench& bench)
             txCredit.vout[0].scriptPubKey,
             &txSpend.vin[0].scriptWitness,
             flags,
-            MutableTransactionSignatureChecker(&txSpend, 0, vchAmount),
+            MutableTransactionSignatureChecker(&txSpend, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL),
             &err);
         assert(err == SCRIPT_ERR_OK);
         assert(success);
@@ -100,5 +99,5 @@ static void VerifyNestedIfScript(benchmark::Bench& bench)
     });
 }
 
-BENCHMARK(VerifyScriptBench);
-BENCHMARK(VerifyNestedIfScript);
+BENCHMARK(VerifyScriptBench, benchmark::PriorityLevel::HIGH);
+BENCHMARK(VerifyNestedIfScript, benchmark::PriorityLevel::HIGH);

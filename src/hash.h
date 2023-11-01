@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +12,7 @@
 #include <crypto/sha256.h>
 #include <prevector.h>
 #include <serialize.h>
+#include <span.h>
 #include <uint256.h>
 #include <version.h>
 
@@ -108,22 +109,15 @@ inline uint160 Hash160(const T1& in1)
 }
 
 /** A writer stream (for serialization) that computes a 256-bit hash. */
-class CHashWriter
+class HashWriter
 {
 private:
     CSHA256 ctx;
 
-    const int nType;
-    const int nVersion;
 public:
-
-    CHashWriter(int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn) {}
-
-    int GetType() const { return nType; }
-    int GetVersion() const { return nVersion; }
-
-    void write(const char *pch, size_t size) {
-        ctx.Write((const unsigned char*)pch, size);
+    void write(Span<const std::byte> src)
+    {
+        ctx.Write(UCharCast(src.data()), src.size());
     }
 
     /** Compute the double-SHA256 hash of all data written to this object.
@@ -155,6 +149,28 @@ public:
         return ReadLE64(result.begin());
     }
 
+    template <typename T>
+    HashWriter& operator<<(const T& obj)
+    {
+        ::Serialize(*this, obj);
+        return *this;
+    }
+
+    int GetVersion() const { return 0; } // Particl: Always hash with witness in ::GetOutputsSHA256()
+};
+
+class CHashWriter : public HashWriter
+{
+private:
+    const int nType;
+    const int nVersion;
+
+public:
+    CHashWriter(int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn) {}
+
+    int GetType() const { return nType; }
+    int GetVersion() const { return nVersion; }
+
     template<typename T>
     CHashWriter& operator<<(const T& obj) {
         // Serialize to this stream
@@ -164,6 +180,39 @@ public:
 };
 
 /** Reads data from an underlying stream, while hashing the read data. */
+template <typename Source>
+class HashVerifier : public HashWriter
+{
+private:
+    Source& m_source;
+
+public:
+    explicit HashVerifier(Source& source LIFETIMEBOUND) : m_source{source} {}
+
+    void read(Span<std::byte> dst)
+    {
+        m_source.read(dst);
+        this->write(dst);
+    }
+
+    void ignore(size_t num_bytes)
+    {
+        std::byte data[1024];
+        while (num_bytes > 0) {
+            size_t now = std::min<size_t>(num_bytes, 1024);
+            read({data, now});
+            num_bytes -= now;
+        }
+    }
+
+    template <typename T>
+    HashVerifier<Source>& operator>>(T&& obj)
+    {
+        ::Unserialize(*this, obj);
+        return *this;
+    }
+};
+
 template<typename Source>
 class CHashVerifier : public CHashWriter
 {
@@ -173,18 +222,18 @@ private:
 public:
     explicit CHashVerifier(Source* source_) : CHashWriter(source_->GetType(), source_->GetVersion()), source(source_) {}
 
-    void read(char* pch, size_t nSize)
+    void read(Span<std::byte> dst)
     {
-        source->read(pch, nSize);
-        this->write(pch, nSize);
+        source->read(dst);
+        this->write(dst);
     }
 
     void ignore(size_t nSize)
     {
-        char data[1024];
+        std::byte data[1024];
         while (nSize > 0) {
             size_t now = std::min<size_t>(nSize, 1024);
-            read(data, now);
+            read({data, now});
             nSize -= now;
         }
     }
@@ -198,6 +247,30 @@ public:
     }
 };
 
+/** Writes data to an underlying source stream, while hashing the written data. */
+template <typename Source>
+class HashedSourceWriter : public CHashWriter
+{
+private:
+    Source& m_source;
+
+public:
+    explicit HashedSourceWriter(Source& source LIFETIMEBOUND) : CHashWriter{source.GetType(), source.GetVersion()}, m_source{source} {}
+
+    void write(Span<const std::byte> src)
+    {
+        m_source.write(src);
+        CHashWriter::write(src);
+    }
+
+    template <typename T>
+    HashedSourceWriter& operator<<(const T& obj)
+    {
+        ::Serialize(*this, obj);
+        return *this;
+    }
+};
+
 /** Compute the 256-bit hash of an object's serialization. */
 template<typename T>
 uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL_VERSION)
@@ -208,19 +281,27 @@ uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL
 }
 
 /** Single-SHA256 a 32-byte input (represented as uint256). */
-NODISCARD uint256 SHA256Uint256(const uint256& input);
+[[nodiscard]] uint256 SHA256Uint256(const uint256& input);
 
 unsigned int MurmurHash3(unsigned int nHashSeed, Span<const unsigned char> vDataToHash);
 
 void BIP32Hash(const ChainCode &chainCode, unsigned int nChild, unsigned char header, const unsigned char data[32], unsigned char output[64]);
 void BIP32Hash(const unsigned char chainCode[32], unsigned int nChild, unsigned char header, const unsigned char data[32], unsigned char output[64]);
 
-/** Return a CHashWriter primed for tagged hashes (as specified in BIP 340).
+/** Return a HashWriter primed for tagged hashes (as specified in BIP 340).
  *
  * The returned object will have SHA256(tag) written to it twice (= 64 bytes).
  * A tagged hash can be computed by feeding the message into this object, and
- * then calling CHashWriter::GetSHA256().
+ * then calling HashWriter::GetSHA256().
  */
-CHashWriter TaggedHash(const std::string& tag);
+HashWriter TaggedHash(const std::string& tag);
+
+/** Compute the 160-bit RIPEMD-160 hash of an array. */
+inline uint160 RIPEMD160(Span<const unsigned char> data)
+{
+    uint160 result;
+    CRIPEMD160().Write(data.data(), data.size()).Finalize(result.begin());
+    return result;
+}
 
 #endif // BITCOIN_HASH_H

@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +12,11 @@
 #include <primitives/transaction.h>
 #include <primitives/block.h>
 #include <consensus/params.h>
+
+class PeerManager;
+class ChainstateManager;
+class Chainstate;
+class SmsgManager;
 
 /** Index marker for when no witness commitment is present in a coinbase transaction. */
 static constexpr int NO_WITNESS_COMMITMENT{-1};
@@ -54,6 +59,7 @@ enum class TxValidationResult {
      */
     TX_CONFLICT,
     TX_MEMPOOL_POLICY,        //!< violated mempool's fee/size/descendant/RBF/etc limits
+    TX_NO_MEMPOOL,            //!< this node does not have a mempool so can't validate the transaction
 
     DOS_100,
     DOS_50,
@@ -85,6 +91,7 @@ enum class BlockValidationResult {
     BLOCK_INVALID_PREV,      //!< A block this one builds on is invalid
     BLOCK_TIME_FUTURE,       //!< block timestamp was > 2 hours in the future (or our clock is bad)
     BLOCK_CHECKPOINT,        //!< the block failed to meet one of our checkpoints
+    BLOCK_HEADER_LOW_WORK,   //!< the block header may be on a too-little-work chain
 
     DOS_100,
     DOS_50,
@@ -148,6 +155,10 @@ public:
         return m_reject_reason;
     }
 
+    PeerManager *m_peerman{nullptr};
+    SmsgManager *m_smsgman{nullptr};
+    ChainstateManager *m_chainman{nullptr};
+    Chainstate *m_chainstate{nullptr};
     int nodeId = -1;
     int nFlags = 0;
     bool fEnforceSmsgFees = false;
@@ -198,6 +209,10 @@ public:
 
     void CopyStateInfo(const ValidationState &state_from)
     {
+        m_peerman = state_from.m_peerman;
+        m_chainman = state_from.m_chainman;
+        m_chainstate = state_from.m_chainstate;
+
         m_time = state_from.m_time;
         m_in_block = state_from.m_in_block;
         m_consensus_params = state_from.m_consensus_params;

@@ -1,13 +1,25 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef PARTICL_POS_KERNEL_H
 #define PARTICL_POS_KERNEL_H
 
-#include <validation.h>
+#include <consensus/amount.h>
+#include <sync.h>
+#include <kernel/cs_main.h>
+
+class CScript;
+class uint256;
+class COutPoint;
+class CBlockIndex;
+class Chainstate;
+class CChainParams;
+class CTransaction;
+class BlockValidationState;
+
 
 static const int MAX_REORG_DEPTH = 1024;
 
@@ -37,7 +49,7 @@ bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint25
  * Check kernel hash target and coinstake signature
  * Sets hashProofOfStake on success return
  */
-bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+bool CheckProofOfStake(Chainstate &chain_state, BlockValidationState &state, const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /**
  * Check whether the coinstake timestamp meets protocol
@@ -49,6 +61,8 @@ bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock);
  * Also checks existence of kernel input and min age
  * Convenient for searching a kernel
  */
-bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t* pBlockTime = nullptr);
+bool CheckKernel(Chainstate &chain_state, const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t* pBlockTime = nullptr);
+
+int64_t GetProofOfStakeReward(const CChainParams &chainparams, const CBlockIndex *pindexPrev, int64_t nFees);
 
 #endif // PARTICL_POS_KERNEL_H

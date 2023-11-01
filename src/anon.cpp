@@ -21,6 +21,7 @@
 #include <chainparams.h>
 #include <txmempool.h>
 #include "adapter.h"
+#include <node/blockstorage.h>
 
 
 bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTxMemPool *pmempool, TxValidationState &state)
@@ -47,7 +48,7 @@ bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTx
 
         if (pmempool->HaveKeyImage(ki, txhashKI)
             && txhashKI != txhash) {
-            if (LogAcceptCategory(BCLog::RINGCT)) {
+            if (LogAcceptCategory(BCLog::VALIDATION, BCLog::Level::Debug)) {
                 LogPrintf("%s: Duplicate keyimage detected in mempool %s, used in %s.\n", __func__,
                     HexStr(ki), txhashKI.ToString());
             }
@@ -59,6 +60,8 @@ bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTx
 
 bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
 {
+    assert(state.m_chainstate);
+    auto &pblocktree{state.m_chainstate->m_blockman.m_block_tree_db};
     const Consensus::Params &consensus = Params().GetConsensus();
     bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX; // TODO: Remove after fork, set DEFAULT_ACCEPT_ANON_TX to true
     if (!ignoreTx(tx) && state.m_exploit_fix_1 &&
@@ -180,7 +183,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             vpInCommits[i+k*nCols] = vCommitments.back().data;
 
             if (state.m_spend_height - ao.nBlockHeight + 1 < consensus.nMinRCTOutputDepth) {
-                LogPrint(BCLog::RINGCT, "%s: Low input depth %s\n", __func__, state.m_spend_height - ao.nBlockHeight);
+                LogPrint(BCLog::VALIDATION, "%s: Low input depth %s\n", __func__, state.m_spend_height - ao.nBlockHeight);
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-depth");
             }
         }
@@ -189,7 +192,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
             if (!setHaveKI.insert(ki).second) {
-                if (LogAcceptCategory(BCLog::RINGCT)) {
+                if (LogAcceptCategory(BCLog::VALIDATION, BCLog::Level::Debug)) {
                     LogPrintf("%s: Duplicate keyimage detected in txn %s.\n", __func__, HexStr(ki));
                 }
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-anonin-dup-ki");
@@ -217,7 +220,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
             LogPrintf("ERROR: %s: prepare-mlsag-failed %d\n", __func__, rv);
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "prepare-mlsag-failed");
         }
-        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind,
+        if (0 != (rv = secp256k1_verify_mlsag(
             txhash.begin(), nCols, nRows,
             &vM[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
             LogPrintf("ERROR: %s: verify-mlsag-failed %d\n", __func__, rv);
@@ -250,7 +253,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
 
 int GetKeyImage(CCmpPubKey &ki, const CCmpPubKey &pubkey, const CKey &key)
 {
-    return secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), pubkey.begin(), key.begin());
+    return secp256k1_get_keyimage(ki.ncbegin(), pubkey.begin(), key.begin());
 };
 
 bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool)
@@ -303,7 +306,7 @@ bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPo
 };
 
 
-bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
+bool AllAnonOutputsUnknown(Chainstate &active_chainstate, const CTransaction &tx, TxValidationState &state)
 {
     state.m_has_anon_output = false;
     for (unsigned int k = 0; k < tx.vpout.size(); k++) {
@@ -311,6 +314,7 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
             continue;
         }
         state.m_has_anon_output = true;
+        auto &pblocktree{active_chainstate.m_blockman.m_block_tree_db};
 
         CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
 
@@ -338,10 +342,12 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
     return true;
 };
 
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi)
+bool RollBackRCTIndex(ChainstateManager &chainman, int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi)
 {
     LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n", __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
     // This should hardly happen, if ever
+
+    auto &pblocktree{chainman.m_blockman.m_block_tree_db};
 
     AssertLockHeld(cs_main);
 
@@ -379,18 +385,22 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int cha
     return true;
 };
 
-bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::string &sError)
+bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHeight, int &nBlocks, std::string &sError)
 {
     LogPrintf("%s: height %d\n", __func__, nToHeight);
+
+    auto &pblocktree{chainman.m_blockman.m_block_tree_db};
     nBlocks = 0;
     int64_t nLastRCTOutput = 0;
 
-    const CChainParams& chainparams = Params();
-    CCoinsViewCache &view = ::ChainstateActive().CoinsTip();
+    const CChainParams &chainparams = Params();
+    CCoinsViewCache &view = chainman.ActiveChainstate().CoinsTip();
     view.fForceDisconnect = true;
     BlockValidationState state;
+    state.m_chainman = &chainman;
 
-    for (CBlockIndex *pindex = ::ChainActive().Tip(); pindex && pindex->pprev; pindex = pindex->pprev) {
+    CBlockIndex *pindex_tip = chainman.ActiveChain().Tip();
+    for (CBlockIndex *pindex = pindex_tip; pindex && pindex->pprev; pindex = pindex->pprev) {
         if (pindex->nHeight <= nToHeight) {
             break;
         }
@@ -399,24 +409,24 @@ bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::strin
 
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         CBlock& block = *pblock;
-        if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
+        if (!node::ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
             return errorN(false, sError, __func__, "ReadBlockFromDisk failed.");
         }
-        if (DISCONNECT_OK != DisconnectBlock(block, pindex, view)) {
+        if (DISCONNECT_OK != chainman.ActiveChainstate().DisconnectBlock(block, pindex, view)) {
             return errorN(false, sError, __func__, "DisconnectBlock failed.");
         }
-        if (!FlushView(&view, state, true)) {
+        if (!FlushView(&view, state, chainman.ActiveChainstate(), true)) {
             return errorN(false, sError, __func__, "FlushView failed.");
         }
-        if (!::ChainstateActive().FlushStateToDisk(Params(), state, FlushStateMode::IF_NEEDED)) {
+        if (!chainman.ActiveChainstate().FlushStateToDisk(state, FlushStateMode::IF_NEEDED)) {
             return errorN(false, sError, __func__, "FlushStateToDisk failed.");
         }
 
-        ::ChainActive().SetTip(pindex->pprev);
-        UpdateTip(mempool, pindex->pprev, chainparams);
+        chainman.ActiveChain().SetTip(*pindex->pprev);
+        chainman.ActiveChainstate().UpdateTip(pindex->pprev);
         GetMainSignals().BlockDisconnected(pblock, pindex);
     }
-    nLastRCTOutput = ::ChainActive().Tip()->nAnonOutputs;
+    nLastRCTOutput = pindex_tip ? pindex_tip->nAnonOutputs : 0;
 
     int nRemoveOutput = nLastRCTOutput + 1;
     CAnonOutput ao;

@@ -9,6 +9,12 @@
 
 namespace smsg {
 
+const int32_t ACCEPT_FUNDING_TX_DEPTH = 1;
+const int64_t KEEP_FUNDING_TX_DATA = 86400 * 31;
+const int64_t PRUNE_FUNDING_TX_DATA = 3600;
+
+static const int MIN_SMSG_PROTO_VERSION = 90010;
+
 class ChainSyncCache
 {
 public:

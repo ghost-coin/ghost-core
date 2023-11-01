@@ -127,7 +127,7 @@ public:
     virtual int GetPubKey(const std::vector<uint32_t> &vPath, CPubKey &pk, bool display, std::string &sError) { return 0; };
     virtual int GetXPub(const std::vector<uint32_t> &vPath, CExtPubKey &ekp, std::string &sError) { return 0; };
 
-    virtual int SignMessage(const std::vector<uint32_t> &vPath, const std::string &sMessage, std::vector<uint8_t> &vchSig, std::string &sError) { return 0; };
+    virtual int SignMessage(const std::vector<uint32_t> &vPath, const std::string &sMessage, const std::string &message_magic, std::vector<uint8_t> &vchSig, std::string &sError) { return 0; };
 
     virtual int PrepareTransaction(CMutableTransaction &tx, const CCoinsViewCache &view, const FillableSigningProvider &keystore, int nHashType,
                                    int change_pos, const std::vector<uint32_t> &change_path) { return 0; };
@@ -179,6 +179,7 @@ public:
     bool IsCoinStake() const override { return txTo && txTo->IsCoinStake(); }
 
     bool CreateSig(const SigningProvider& provider, std::vector<unsigned char> &vchSig, const CKeyID &keyid, const CScript &scriptCode, SigVersion sigversion) const override;
+    bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const override;
 };
 
 } // usb_device

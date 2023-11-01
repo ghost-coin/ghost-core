@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2010 ArtForz -- public domain half-a-node
 # Copyright (c) 2012 Jeff Garzik
-# Copyright (c) 2010-2020 The Bitcoin Core developers
+# Copyright (c) 2010-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Bitcoin test framework primitive and message structures
@@ -18,7 +18,7 @@ ser_*, deser_*: functions that handle serialization/deserialization.
 Classes use __slots__ to ensure extraneous attributes aren't accidentally added
 by tests, compromising their intended effect.
 """
-from codecs import encode
+from base64 import b32decode, b32encode
 import copy
 import hashlib
 from io import BytesIO
@@ -38,21 +38,21 @@ MY_SUBVERSION = b"/python-p2p-tester:0.0.3/"
 MY_RELAY = 1 # from version 70001 onwards, fRelay should be appended to version messages (BIP37)
 
 MAX_LOCATOR_SZ = 101
-MAX_BLOCK_BASE_SIZE = 1000000
+MAX_BLOCK_WEIGHT = 4000000
 MAX_BLOOM_FILTER_SIZE = 36000
 MAX_BLOOM_HASH_FUNCS = 50
 
 COIN = 100000000  # 1 btc in satoshis
 MAX_MONEY = 80000000 * COIN
 
-BIP125_SEQUENCE_NUMBER = 0xfffffffd  # Sequence number that is BIP 125 opt-in and BIP 68-opt-out
+MAX_BIP125_RBF_SEQUENCE = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
+SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set for every input of a tx
 
 MAX_PROTOCOL_MESSAGE_LENGTH = 4000000  # Maximum length of incoming protocol messages
 MAX_HEADERS_RESULTS = 2000  # Number of headers sent in one getheaders result
 MAX_INV_SIZE = 50000  # Maximum number of entries in an 'inv' protocol message
 
 NODE_NETWORK = (1 << 0)
-NODE_GETUTXO = (1 << 1)
 NODE_BLOOM = (1 << 2)
 NODE_WITNESS = (1 << 3)
 NODE_COMPACT_FILTERS = (1 << 6)
@@ -71,12 +71,31 @@ FILTER_TYPE_BASIC = 0
 
 WITNESS_SCALE_FACTOR = 4
 
-# Serialization/deserialization tools
+DEFAULT_ANCESTOR_LIMIT = 25    # default max number of in-mempool ancestors
+DEFAULT_DESCENDANT_LIMIT = 25  # default max number of in-mempool descendants
+
+# Default setting for -datacarriersize. 80 bytes of data, +1 for OP_RETURN, +2 for the pushdata opcodes.
+MAX_OP_RETURN_RELAY = 83
+
+DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
+
+
+PARTICL_BLOCK_VERSION = 0xa0
+PARTICL_TX_VERSION = 0xa0
+PARTICL_TX_ANON_MARKER = 0xffffffa0
+OUTPUT_TYPE_STANDARD = 1
+OUTPUT_TYPE_CT = 2
+OUTPUT_TYPE_RINGCT = 3
+OUTPUT_TYPE_DATA = 4
+
+
 def sha256(s):
-    return hashlib.new('sha256', s).digest()
+    return hashlib.sha256(s).digest()
+
 
 def hash256(s):
     return sha256(sha256(s))
+
 
 def ser_compact_size(l):
     r = b""
@@ -197,14 +216,34 @@ def ser_string_vector(l):
     return r
 
 
-# Deserialize from a hex string representation (eg from RPC)
-def FromHex(obj, hex_string):
-    obj.deserialize(BytesIO(hex_str_to_bytes(hex_string)))
+def from_hex(obj, hex_string):
+    """Deserialize from a hex string representation (e.g. from RPC)
+
+    Note that there is no complementary helper like e.g. `to_hex` for the
+    inverse operation. To serialize a message object to a hex string, simply
+    use obj.serialize().hex()"""
+    obj.deserialize(BytesIO(bytes.fromhex(hex_string)))
     return obj
 
-# Convert a binary-serializable object to hex (eg for submission via RPC)
-def ToHex(obj):
-    return obj.serialize().hex()
+
+def tx_from_hex(hex_string):
+    """Deserialize from hex string to a transaction object"""
+    return from_hex(CTransaction(), hex_string)
+
+
+# like from_hex, but without the hex part
+def from_binary(cls, stream):
+    """deserialize a binary stream (or bytes object) into an object"""
+    # handle bytes object by turning it into a stream
+    was_bytes = isinstance(stream, bytes)
+    if was_bytes:
+        stream = BytesIO(stream)
+    obj = cls()
+    obj.deserialize(stream)
+    if was_bytes:
+        assert len(stream.read()) == 0
+    return obj
+
 
 # Objects that map to bitcoind objects, which can be serialized/deserialized
 
@@ -214,14 +253,19 @@ class CAddress:
 
     # see https://github.com/bitcoin/bips/blob/master/bip-0155.mediawiki
     NET_IPV4 = 1
+    NET_I2P = 5
 
     ADDRV2_NET_NAME = {
-        NET_IPV4: "IPv4"
+        NET_IPV4: "IPv4",
+        NET_I2P: "I2P"
     }
 
     ADDRV2_ADDRESS_LENGTH = {
-        NET_IPV4: 4
+        NET_IPV4: 4,
+        NET_I2P: 32
     }
+
+    I2P_PAD = "===="
 
     def __init__(self):
         self.time = 0
@@ -229,6 +273,9 @@ class CAddress:
         self.net = self.NET_IPV4
         self.ip = "0.0.0.0"
         self.port = 0
+
+    def __eq__(self, other):
+        return self.net == other.net and self.ip == other.ip and self.nServices == other.nServices and self.port == other.port and self.time == other.time
 
     def deserialize(self, f, *, with_time=True):
         """Deserialize from addrv1 format (pre-BIP155)"""
@@ -262,24 +309,33 @@ class CAddress:
         self.nServices = deser_compact_size(f)
 
         self.net = struct.unpack("B", f.read(1))[0]
-        assert self.net == self.NET_IPV4
+        assert self.net in (self.NET_IPV4, self.NET_I2P)
 
         address_length = deser_compact_size(f)
         assert address_length == self.ADDRV2_ADDRESS_LENGTH[self.net]
 
-        self.ip = socket.inet_ntoa(f.read(4))
+        addr_bytes = f.read(address_length)
+        if self.net == self.NET_IPV4:
+            self.ip = socket.inet_ntoa(addr_bytes)
+        else:
+            self.ip = b32encode(addr_bytes)[0:-len(self.I2P_PAD)].decode("ascii").lower() + ".b32.i2p"
 
         self.port = struct.unpack(">H", f.read(2))[0]
 
     def serialize_v2(self):
         """Serialize in addrv2 format (BIP155)"""
-        assert self.net == self.NET_IPV4
+        assert self.net in (self.NET_IPV4, self.NET_I2P)
         r = b""
         r += struct.pack("<I", self.time)
         r += ser_compact_size(self.nServices)
         r += struct.pack("B", self.net)
         r += ser_compact_size(self.ADDRV2_ADDRESS_LENGTH[self.net])
-        r += socket.inet_aton(self.ip)
+        if self.net == self.NET_IPV4:
+            r += socket.inet_aton(self.ip)
+        else:
+            sfx = ".b32.i2p"
+            assert self.ip.endswith(sfx)
+            r += b32decode(self.ip[0:-len(sfx)] + self.I2P_PAD, True)
         r += struct.pack(">H", self.port)
         return r
 
@@ -328,22 +384,20 @@ class CBlockLocator:
     __slots__ = ("nVersion", "vHave")
 
     def __init__(self):
-        self.nVersion = MY_VERSION
         self.vHave = []
 
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        struct.unpack("<i", f.read(4))[0]  # Ignore version field.
         self.vHave = deser_uint256_vector(f)
 
     def serialize(self):
         r = b""
-        r += struct.pack("<i", self.nVersion)
+        r += struct.pack("<i", 0)  # Bitcoin Core ignores version field. Set it to 0.
         r += ser_uint256_vector(self.vHave)
         return r
 
     def __repr__(self):
-        return "CBlockLocator(nVersion=%i vHave=%s)" \
-            % (self.nVersion, repr(self.vHave))
+        return "CBlockLocator(vHave=%s)" % (repr(self.vHave))
 
 
 class COutPoint:
@@ -420,6 +474,54 @@ class CTxOut:
                self.scriptPubKey.hex())
 
 
+class CTxOutPart:
+    __slots__ = ("nVersion", "nValue", "scriptPubKey", "commitment", "data", "rangeproof")
+
+    def __init__(self, nValue=0, scriptPubKey=b""):
+        self.nVersion = OUTPUT_TYPE_STANDARD
+        self.nValue = nValue
+        self.scriptPubKey = scriptPubKey
+
+    def deserialize(self, f):
+        if self.nVersion == OUTPUT_TYPE_STANDARD:
+            self.nValue = struct.unpack("<q", f.read(8))[0]
+            self.scriptPubKey = deser_string(f)
+        elif self.nVersion == OUTPUT_TYPE_DATA:
+            self.data = deser_string(f)
+        elif self.nVersion == OUTPUT_TYPE_CT:
+            self.commitment = f.read(33)
+            self.data = deser_string(f)
+            self.scriptPubKey = deser_string(f)
+            self.rangeproof = deser_string(f)
+        else:
+            raise ValueError(f'Unknown output type {self.nVersion}')
+
+    def serialize(self, with_witness=True):
+        r = b""
+        if self.nVersion == OUTPUT_TYPE_STANDARD:
+            r += struct.pack("<q", self.nValue)
+            r += ser_string(self.scriptPubKey)
+        elif self.nVersion == OUTPUT_TYPE_DATA:
+            r += ser_string(self.data)
+        elif self.nVersion == OUTPUT_TYPE_CT:
+            assert (len(self.commitment) == 33)
+            r += self.commitment
+            r += ser_string(self.data)
+            r += ser_string(self.scriptPubKey)
+            if with_witness:
+                r += ser_string(self.rangeproof)
+            else:
+                r += ser_compact_size(0)  # rangeproof stub
+        else:
+            raise ValueError(f'Unknown output type {self.nVersion}')
+        return r
+
+    def __repr__(self):
+        return "CTxOutPart(nValue=%i.%08i scriptPubKey=%s)" \
+            % (self.nValue // COIN, self.nValue % COIN,
+               self.scriptPubKey.hex())
+
+
 class CScriptWitness:
     __slots__ = ("stack",)
 
@@ -492,7 +594,7 @@ class CTransaction:
 
     def __init__(self, tx=None):
         if tx is None:
-            self.nVersion = 1
+            self.nVersion = 2
             self.vin = []
             self.vout = []
             self.wit = CTxWitness()
@@ -509,7 +611,33 @@ class CTransaction:
             self.wit = copy.deepcopy(tx.wit)
 
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        self.nVersion = int(struct.unpack("<B", f.read(1))[0])
+        if self.nVersion == PARTICL_TX_VERSION:
+            self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 8
+
+            self.nLockTime = struct.unpack("<I", f.read(4))[0]
+
+            self.vin = deser_vector(f, CTxIn)
+
+            num_outputs = deser_compact_size(f)
+            self.vout.clear()
+            for i in range(num_outputs):
+                txo = CTxOutPart()
+                txo.nVersion = int(struct.unpack("<B", f.read(1))[0])
+                txo.deserialize(f)
+                self.vout.append(txo)
+
+            self.wit.vtxinwit = [CTxInWitness() for i in range(len(self.vin))]
+            self.wit.deserialize(f)
+
+            self.sha256 = None
+            self.hash = None
+            return
+
+        self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 8
+        self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 16
+        self.nVersion |= int(struct.unpack("<B", f.read(1))[0]) << 24
+        # self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.vin = deser_vector(f, CTxIn)
         flags = 0
         if len(self.vin) == 0:
@@ -530,7 +658,16 @@ class CTransaction:
         self.sha256 = None
         self.hash = None
 
-    def serialize_without_witness(self):
+    def serialize_without_witness(self, include_rangeproof=False):
+        if self.nVersion & 0xff == PARTICL_TX_VERSION:
+            r = struct.pack("<H", self.nVersion)
+            r += struct.pack("<I", self.nLockTime)
+            r += ser_vector(self.vin)
+            r += ser_compact_size(len(self.vout))
+            for txo in self.vout:
+                r += bytes((txo.nVersion,))
+                r += txo.serialize(with_witness=include_rangeproof)
+            return r
         r = b""
         r += struct.pack("<i", self.nVersion)
         r += ser_vector(self.vin)
@@ -540,6 +677,12 @@ class CTransaction:
 
     # Only serialize with witness when explicitly called for
     def serialize_with_witness(self):
+        if self.nVersion & 0xff == PARTICL_TX_VERSION:
+            r = self.serialize_without_witness(include_rangeproof=True)
+            while len(self.wit.vtxinwit) < len(self.vin):
+                self.wit.vtxinwit.append(CTxInWitness())
+            r += self.wit.serialize()
+            return r
         flags = 0
         if not self.wit.is_null():
             flags |= 1
@@ -566,6 +709,9 @@ class CTransaction:
     def serialize(self):
         return self.serialize_with_witness()
 
+    def getwtxid(self):
+        return hash256(self.serialize())[::-1].hex()
+
     # Recalculate the txid (transaction hash without witness)
     def rehash(self):
         self.sha256 = None
@@ -581,7 +727,7 @@ class CTransaction:
 
         if self.sha256 is None:
             self.sha256 = uint256_from_str(hash256(self.serialize_without_witness()))
-        self.hash = encode(hash256(self.serialize_without_witness())[::-1], 'hex_codec').decode('ascii')
+        self.hash = hash256(self.serialize_without_witness())[::-1].hex()
 
     def is_valid(self):
         self.calc_sha256()
@@ -590,12 +736,15 @@ class CTransaction:
                 return False
         return True
 
-    # Calculate the virtual transaction size using witness and non-witness
+    # Calculate the transaction weight using witness and non-witness
     # serialization size (does NOT use sigops).
-    def get_vsize(self):
+    def get_weight(self):
         with_witness_size = len(self.serialize_with_witness())
         without_witness_size = len(self.serialize_without_witness())
-        return math.ceil(((WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size) / WITNESS_SCALE_FACTOR)
+        return (WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size
+
+    def get_vsize(self):
+        return math.ceil(self.get_weight() / WITNESS_SCALE_FACTOR)
 
     def __repr__(self):
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
@@ -626,7 +775,7 @@ class CBlockHeader:
             self.calc_sha256()
 
     def set_null(self):
-        self.nVersion = 1
+        self.nVersion = 4
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         if self.is_part:
@@ -641,6 +790,7 @@ class CBlockHeader:
         self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
+        self.is_part = self.is_part or self.nVersion == PARTICL_BLOCK_VERSION
         if self.is_part:
             self.hashWitnessMerkleRoot = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
@@ -673,7 +823,7 @@ class CBlockHeader:
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
             self.sha256 = uint256_from_str(hash256(r))
-            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
+            self.hash = hash256(r)[::-1].hex()
 
     def rehash(self):
         self.sha256 = None
@@ -689,23 +839,31 @@ BLOCK_HEADER_SIZE = len(CBlockHeader().serialize())
 assert_equal(BLOCK_HEADER_SIZE, 80)
 
 class CBlock(CBlockHeader):
-    __slots__ = ("vtx",)
+    __slots__ = ("vtx", "blocksig")
 
     def __init__(self, header=None):
         super().__init__(header)
         self.vtx = []
+        self.blocksig = bytes()
 
     def deserialize(self, f):
         super().deserialize(f)
         self.vtx = deser_vector(f, CTransaction)
 
-    def serialize(self, with_witness=True):
+        if self.nVersion == PARTICL_BLOCK_VERSION:
+            self.blocksig = deser_string(f)
+
+    def serialize(self, with_witness=True, with_pos_sig=True):
         r = b""
         r += super().serialize()
         if with_witness:
             r += ser_vector(self.vtx, "serialize_with_witness")
         else:
             r += ser_vector(self.vtx, "serialize_without_witness")
+
+        # Block with no txns is likely being sent as a header
+        if len(self.vtx) > 0 and with_pos_sig and self.nVersion == PARTICL_BLOCK_VERSION:
+            r += ser_string(self.blocksig)
         return r
 
     # Calculate the merkle root given a vector of transaction hashes
@@ -755,6 +913,13 @@ class CBlock(CBlockHeader):
         while self.sha256 > target:
             self.nNonce += 1
             self.rehash()
+
+    # Calculate the block weight using witness and non-witness
+    # serialization size (does NOT use sigops).
+    def get_weight(self):
+        with_witness_size = len(self.serialize(with_witness=True))
+        without_witness_size = len(self.serialize(with_witness=False))
+        return (WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size
 
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
@@ -1035,20 +1200,20 @@ class CMerkleBlock:
 
 # Objects that correspond to messages on the wire
 class msg_version:
-    __slots__ = ("addrFrom", "addrTo", "nNonce", "nRelay", "nServices",
+    __slots__ = ("addrFrom", "addrTo", "nNonce", "relay", "nServices",
                  "nStartingHeight", "nTime", "nVersion", "strSubVer")
     msgtype = b"version"
 
     def __init__(self):
-        self.nVersion = MY_VERSION
-        self.nServices = NODE_NETWORK | NODE_WITNESS
+        self.nVersion = 0
+        self.nServices = 0
         self.nTime = int(time.time())
         self.addrTo = CAddress()
         self.addrFrom = CAddress()
         self.nNonce = random.getrandbits(64)
-        self.strSubVer = MY_SUBVERSION
+        self.strSubVer = ''
         self.nStartingHeight = -1
-        self.nRelay = MY_RELAY
+        self.relay = 0
 
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
@@ -1060,18 +1225,16 @@ class msg_version:
         self.addrFrom = CAddress()
         self.addrFrom.deserialize(f, with_time=False)
         self.nNonce = struct.unpack("<Q", f.read(8))[0]
-        self.strSubVer = deser_string(f)
+        self.strSubVer = deser_string(f).decode('utf-8')
 
         self.nStartingHeight = struct.unpack("<i", f.read(4))[0]
 
-        if self.nVersion >= 70001:
-            # Relay field is optional for version 70001 onwards
-            try:
-                self.nRelay = struct.unpack("<b", f.read(1))[0]
-            except:
-                self.nRelay = 0
-        else:
-            self.nRelay = 0
+        # Relay field is optional for version 70001 onwards
+        # But, unconditionally check it to match behaviour in bitcoind
+        try:
+            self.relay = struct.unpack("<b", f.read(1))[0]
+        except struct.error:
+            self.relay = 0
 
     def serialize(self):
         r = b""
@@ -1081,16 +1244,19 @@ class msg_version:
         r += self.addrTo.serialize(with_time=False)
         r += self.addrFrom.serialize(with_time=False)
         r += struct.pack("<Q", self.nNonce)
-        r += ser_string(self.strSubVer)
+        if isinstance(self.strSubVer, bytes):
+            r += ser_string(self.strSubVer)
+        else:
+            r += ser_string(self.strSubVer.encode('utf-8'))
         r += struct.pack("<i", self.nStartingHeight)
-        r += struct.pack("<b", self.nRelay)
+        r += struct.pack("<b", self.relay)
         return r
 
     def __repr__(self):
-        return 'msg_version(nVersion=%i nServices=%i nTime=%s addrTo=%s addrFrom=%s nNonce=0x%016X strSubVer=%s nStartingHeight=%i nRelay=%i)' \
+        return 'msg_version(nVersion=%i nServices=%i nTime=%s addrTo=%s addrFrom=%s nNonce=0x%016X strSubVer=%s nStartingHeight=%i relay=%i)' \
             % (self.nVersion, self.nServices, time.ctime(self.nTime),
                repr(self.addrTo), repr(self.addrFrom), self.nNonce,
-               self.strSubVer, self.nStartingHeight, self.nRelay)
+               self.strSubVer, self.nStartingHeight, self.relay)
 
 
 class msg_verack:
@@ -1285,7 +1451,7 @@ class msg_block:
 # for cases where a user needs tighter control over what is sent over the wire
 # note that the user must supply the name of the msgtype, and the data
 class msg_generic:
-    __slots__ = ("msgtype", "data")
+    __slots__ = ("data")
 
     def __init__(self, msgtype, data=None):
         self.msgtype = msgtype
@@ -1660,7 +1826,7 @@ class msg_getcfilters:
     __slots__ = ("filter_type", "start_height", "stop_hash")
     msgtype =  b"getcfilters"
 
-    def __init__(self, filter_type, start_height, stop_hash):
+    def __init__(self, filter_type=None, start_height=None, stop_hash=None):
         self.filter_type = filter_type
         self.start_height = start_height
         self.stop_hash = stop_hash
@@ -1710,7 +1876,7 @@ class msg_getcfheaders:
     __slots__ = ("filter_type", "start_height", "stop_hash")
     msgtype =  b"getcfheaders"
 
-    def __init__(self, filter_type, start_height, stop_hash):
+    def __init__(self, filter_type=None, start_height=None, stop_hash=None):
         self.filter_type = filter_type
         self.start_height = start_height
         self.stop_hash = stop_hash
@@ -1763,7 +1929,7 @@ class msg_getcfcheckpt:
     __slots__ = ("filter_type", "stop_hash")
     msgtype =  b"getcfcheckpt"
 
-    def __init__(self, filter_type, stop_hash):
+    def __init__(self, filter_type=None, stop_hash=None):
         self.filter_type = filter_type
         self.stop_hash = stop_hash
 
@@ -1805,3 +1971,25 @@ class msg_cfcheckpt:
     def __repr__(self):
         return "msg_cfcheckpt(filter_type={:#x}, stop_hash={:x})".format(
             self.filter_type, self.stop_hash)
+
+class msg_sendtxrcncl:
+    __slots__ = ("version", "salt")
+    msgtype = b"sendtxrcncl"
+
+    def __init__(self):
+        self.version = 0
+        self.salt = 0
+
+    def deserialize(self, f):
+        self.version = struct.unpack("<I", f.read(4))[0]
+        self.salt = struct.unpack("<Q", f.read(8))[0]
+
+    def serialize(self):
+        r = b""
+        r += struct.pack("<I", self.version)
+        r += struct.pack("<Q", self.salt)
+        return r
+
+    def __repr__(self):
+        return "msg_sendtxrcncl(version=%lu, salt=%lu)" %\
+            (self.version, self.salt)

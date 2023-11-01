@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2019 The Bitcoin Core developers
+# Copyright (c) 2019-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,14 +12,23 @@ address/netgroup since in the current framework, all peers are connecting from
 the same local address. See Issue #14210 for more info.
 Therefore, this test is limited to the remaining protection criteria.
 """
-
 import time
 
-from test_framework.blocktools import create_block, create_coinbase
-from test_framework.messages import CTransaction, FromHex, msg_pong, msg_tx
-from test_framework.p2p import P2PDataStore, P2PInterface
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+)
+from test_framework.messages import (
+    msg_pong,
+    msg_tx,
+)
+from test_framework.p2p import (
+    P2PDataStore,
+    P2PInterface,
+)
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
+from test_framework.wallet import MiniWallet
 
 
 class SlowP2PDataStore(P2PDataStore):
@@ -27,14 +36,15 @@ class SlowP2PDataStore(P2PDataStore):
         time.sleep(0.1)
         self.send_message(msg_pong(message.nonce))
 
+
 class SlowP2PInterface(P2PInterface):
     def on_ping(self, message):
         time.sleep(0.1)
         self.send_message(msg_pong(message.nonce))
 
+
 class P2PEvict(BitcoinTestFramework):
     def set_test_params(self):
-        self.setup_clean_chain = True
         self.num_nodes = 1
         # The choice of maxconnections=32 results in a maximum of 21 inbound connections
         # (32 - 10 outbound - 1 feeler). 20 inbound peers are protected from eviction:
@@ -45,7 +55,7 @@ class P2PEvict(BitcoinTestFramework):
         protected_peers = set()  # peers that we expect to be protected from eviction
         current_peer = -1
         node = self.nodes[0]
-        node.generatetoaddress(101, node.get_deterministic_priv_key().address)
+        self.wallet = MiniWallet(node)
 
         self.log.info("Create 4 peers and protect them from eviction by sending us a block")
         for _ in range(4):
@@ -71,21 +81,8 @@ class P2PEvict(BitcoinTestFramework):
             current_peer += 1
             txpeer.sync_with_ping()
 
-            prevtx = node.getblock(node.getblockhash(i + 1), 2)['tx'][0]
-            rawtx = node.createrawtransaction(
-                inputs=[{'txid': prevtx['txid'], 'vout': 0}],
-                outputs=[{node.get_deterministic_priv_key().address: 50 - 0.00125}],
-            )
-            sigtx = node.signrawtransactionwithkey(
-                hexstring=rawtx,
-                privkeys=[node.get_deterministic_priv_key().key],
-                prevtxs=[{
-                    'txid': prevtx['txid'],
-                    'vout': 0,
-                    'scriptPubKey': prevtx['vout'][0]['scriptPubKey']['hex'],
-                }],
-            )['hex']
-            txpeer.send_message(msg_tx(FromHex(CTransaction(), sigtx)))
+            tx = self.wallet.create_self_transfer()['tx']
+            txpeer.send_message(msg_tx(tx))
             protected_peers.add(current_peer)
 
         self.log.info("Create 8 peers and protect them from eviction by having faster pings")
@@ -124,6 +121,7 @@ class P2PEvict(BitcoinTestFramework):
         self.log.info("Test that no peer expected to be protected was evicted")
         self.log.debug("{} protected peers: {}".format(len(protected_peers), protected_peers))
         assert evicted_peers[0] not in protected_peers
+
 
 if __name__ == '__main__':
     P2PEvict().main()

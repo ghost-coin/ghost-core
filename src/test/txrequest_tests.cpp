@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,7 @@
 #include <txrequest.h>
 #include <uint256.h>
 
+#include <test/util/random.h>
 #include <test/util/setup_common.h>
 
 #include <algorithm>
@@ -221,7 +222,7 @@ public:
     /** Generate a random GenTxid; the txhash follows NewTxHash; the is_wtxid flag is random. */
     GenTxid NewGTxid(const std::vector<std::vector<NodeId>>& orders = {})
     {
-        return {InsecureRandBool(), NewTxHash(orders)};
+        return InsecureRandBool() ? GenTxid::Wtxid(NewTxHash(orders)) : GenTxid::Txid(NewTxHash(orders));
     }
 
     /** Generate a new random NodeId to use as peer. The same NodeId is never returned twice
@@ -385,6 +386,7 @@ void BuildBigPriorityTest(Scenario& scenario, int peers)
     }
     // Make a list of all peers, in order of intended request order (concatenation of pref_peers and npref_peers).
     std::vector<NodeId> request_order;
+    request_order.reserve(num_pref + num_npref);
     for (int i = 0; i < num_pref; ++i) request_order.push_back(pref_peers[i]);
     for (int i = 0; i < num_npref; ++i) request_order.push_back(npref_peers[i]);
 
@@ -494,8 +496,8 @@ void BuildWtxidTest(Scenario& scenario, int config)
     auto peerT = scenario.NewPeer();
     auto peerW = scenario.NewPeer();
     auto txhash = scenario.NewTxHash();
-    GenTxid txid{false, txhash};
-    GenTxid wtxid{true, txhash};
+    auto txid{GenTxid::Txid(txhash)};
+    auto wtxid{GenTxid::Wtxid(txhash)};
 
     auto reqtimeT = InsecureRandBool() ? MIN_TIME : scenario.Now() + RandomTime8s();
     auto reqtimeW = InsecureRandBool() ? MIN_TIME : scenario.Now() + RandomTime8s();

@@ -56,7 +56,10 @@ bool ExtractIndexInfo(const CScript *pScript, int &scriptType, std::vector<uint8
     } else
     if (pScript->IsWitnessProgram(witnessversion, witnessprogram)) {
         hashBytes.assign(witnessprogram.begin(), witnessprogram.begin() + witnessprogram.size());
-        scriptType = ADDR_INDT_WITNESS_V0_KEYHASH;
+        switch (witnessversion) {
+            case 0: scriptType = ADDR_INDT_WITNESS_V0_KEYHASH; break;
+            case 1: scriptType = ADDR_INDT_WITNESS_V1_TAPROOT; break;
+        }
     } else
     if (pScript->IsPayToTimeLockedScriptHash()) {
         hashBytes.assign(pScript->begin()+2+7, pScript->begin()+22+7);
@@ -79,20 +82,43 @@ bool ExtractIndexInfo(const CTxOutBase *out, int &scriptType, std::vector<uint8_
     return true;
 };
 
-bool GetTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes)
+static bool HashOnchainActive(ChainstateManager &chainman, const uint256 &hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
-    if (!fTimestampIndex) {
-        return error("Timestamp index not enabled");
-    }
-    if (!pblocktree->ReadTimestampIndex(high, low, fActiveOnly, hashes)) {
-        return error("Unable to get hashes for timestamps");
+    CBlockIndex* pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
+
+    if (!chainman.ActiveChain().Contains(pblockindex)) {
+        return false;
     }
 
     return true;
 };
 
-bool GetSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value, const CTxMemPool *pmempool)
+bool GetTimestampIndex(ChainstateManager &chainman, const unsigned int &high, const unsigned int &low, const bool fActiveOnly, std::vector<std::pair<uint256, unsigned int> > &hashes)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
+    if (!fTimestampIndex) {
+        return error("Timestamp index not enabled");
+    }
+    if (!pblocktree->ReadTimestampIndex(high, low, hashes)) {
+        return error("Unable to get hashes for timestamps");
+    }
+
+    if (fActiveOnly) {
+        for (auto it = hashes.begin(); it != hashes.end(); ) {
+            if (!HashOnchainActive(chainman, it->first)) {
+                it = hashes.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    return true;
+};
+
+bool GetSpentIndex(ChainstateManager &chainman, const CSpentIndexKey &key, CSpentIndexValue &value, const CTxMemPool *pmempool)
+{
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fSpentIndex) {
         return false;
     }
@@ -106,21 +132,11 @@ bool GetSpentIndex(const CSpentIndexKey &key, CSpentIndexValue &value, const CTx
     return true;
 };
 
+<<<<<<< HEAD
 bool HashOnchainActive(const uint256 &hash)
 {
     CBlockIndex* pblockindex = g_chainman.BlockIndex()[hash];
-
-    if (!::ChainActive().Contains(pblockindex)) {
-        return false;
-    }
-
-    return true;
-};
-
-bool GetAddressIndex(const uint256 &addressHash, int type,
-                     std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex, int start, int end)
-{
-    if (!fAddressIndex) {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
         return error("Address index not enabled");
     }
     if (!pblocktree->ReadAddressIndex(addressHash, type, addressIndex, start, end)) {
@@ -130,9 +146,14 @@ bool GetAddressIndex(const uint256 &addressHash, int type,
     return true;
 };
 
+<<<<<<< HEAD
 bool GetAddressUnspent(const uint256 &addressHash, int type,
+=======
+bool GetAddressUnspent(ChainstateManager &chainman, const uint256 &addressHash, int type,
+>>>>>>> particl/25.x
                        std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs)
 {
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
     if (!fAddressIndex) {
         return error("Address index not enabled");
     }
@@ -143,8 +164,14 @@ bool GetAddressUnspent(const uint256 &addressHash, int type,
     return true;
 };
 
+<<<<<<< HEAD
 bool GetBlockBalances(const uint256 &block_hash, BlockBalances &balances)
 {
+=======
+bool GetBlockBalances(ChainstateManager &chainman, const uint256 &block_hash, BlockBalances &balances)
+{
+    auto& pblocktree{chainman.m_blockman.m_block_tree_db};
+>>>>>>> particl/25.x
     if (!fBalancesIndex) {
         return error("Balances index not enabled");
     }
@@ -169,6 +196,8 @@ bool getAddressFromIndex(const int &type, const uint256 &hash, std::string &addr
         address = EncodeDestination(WitnessV0KeyHash(uint160(hash.begin(), 20)));
     } else if (type == ADDR_INDT_WITNESS_V0_SCRIPTHASH) {
         address = EncodeDestination(WitnessV0ScriptHash(hash));
+    } else if (type == ADDR_INDT_WITNESS_V1_TAPROOT) {
+        address = EncodeDestination(WitnessV1Taproot{XOnlyPubKey{hash}});
     } else {
         return false;
     }

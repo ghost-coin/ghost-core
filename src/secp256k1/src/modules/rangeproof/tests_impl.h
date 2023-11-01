@@ -9,10 +9,10 @@
 
 #include <string.h>
 
-#include "group.h"
-#include "scalar.h"
-#include "testrand.h"
-#include "util.h"
+#include "../../group.h"
+#include "../../scalar.h"
+#include "../../testrand.h"
+#include "../../util.h"
 
 #include "include/secp256k1_commitment.h"
 #include "include/secp256k1_rangeproof.h"
@@ -31,39 +31,45 @@ static void test_rangeproof_api(const secp256k1_context *none, const secp256k1_c
     size_t ext_commit_len = sizeof(ext_commit);
 
     secp256k1_testrand256(blind);
-    CHECK(secp256k1_pedersen_commit(ctx, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+    CHECK(secp256k1_pedersen_commit(CTX, &commit, blind, val, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
 
+    CHECK(secp256k1_ecmult_gen_context_is_built(&none->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&sign->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&vrfy->ecmult_gen_ctx));
+    CHECK(secp256k1_ecmult_gen_context_is_built(&both->ecmult_gen_ctx));
+    /*
     CHECK(secp256k1_rangeproof_sign(none, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
     CHECK(*ecount == 1);
     CHECK(secp256k1_rangeproof_sign(sign, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 2);
+    CHECK(*ecount == 1);
     CHECK(secp256k1_rangeproof_sign(vrfy, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 3);
+    CHECK(*ecount == 2);
+    */
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-    CHECK(*ecount == 3);
+    CHECK(*ecount == 0);
 
     CHECK(secp256k1_rangeproof_sign(both, NULL, &len, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 4);
+    CHECK(*ecount == 1);
     CHECK(secp256k1_rangeproof_sign(both, proof, NULL, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 5);
+    CHECK(*ecount == 2);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, NULL, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 6);
+    CHECK(*ecount == 3);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, NULL, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 7);
+    CHECK(*ecount == 4);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, NULL, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 8);
+    CHECK(*ecount == 5);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, vmin - 1, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 8);
+    CHECK(*ecount == 5);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, NULL, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 9);
+    CHECK(*ecount == 6);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, NULL, 0, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-    CHECK(*ecount == 9);
+    CHECK(*ecount == 6);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, NULL, 0, NULL, ext_commit_len, &secp256k1_generator_const_h) == 0);
-    CHECK(*ecount == 10);
+    CHECK(*ecount == 7);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, NULL, 0, NULL, 0, &secp256k1_generator_const_h) != 0);
-    CHECK(*ecount == 10);
+    CHECK(*ecount == 7);
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, NULL, 0, NULL, 0, NULL) == 0);
-    CHECK(*ecount == 11);
+    CHECK(*ecount == 8);
 
     CHECK(secp256k1_rangeproof_sign(both, proof, &len, vmin, &commit, blind, commit.data, 0, 0, val, message, mlen, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
     {
@@ -79,44 +85,46 @@ static void test_rangeproof_api(const secp256k1_context *none, const secp256k1_c
         CHECK(max_value >= val);
 
         CHECK(secp256k1_rangeproof_info(none, NULL, &mantissa, &min_value, &max_value, proof, len) == 0);
-        CHECK(*ecount == 12);
+        CHECK(*ecount == 9);
         CHECK(secp256k1_rangeproof_info(none, &exp, NULL, &min_value, &max_value, proof, len) == 0);
-        CHECK(*ecount == 13);
+        CHECK(*ecount == 10);
         CHECK(secp256k1_rangeproof_info(none, &exp, &mantissa, NULL, &max_value, proof, len) == 0);
-        CHECK(*ecount == 14);
+        CHECK(*ecount == 11);
         CHECK(secp256k1_rangeproof_info(none, &exp, &mantissa, &min_value, NULL, proof, len) == 0);
-        CHECK(*ecount == 15);
+        CHECK(*ecount == 12);
         CHECK(secp256k1_rangeproof_info(none, &exp, &mantissa, &min_value, &max_value, NULL, len) == 0);
-        CHECK(*ecount == 16);
+        CHECK(*ecount == 13);
         CHECK(secp256k1_rangeproof_info(none, &exp, &mantissa, &min_value, &max_value, proof, 0) == 0);
-        CHECK(*ecount == 16);
+        CHECK(*ecount == 13);
     }
     {
         uint64_t min_value;
         uint64_t max_value;
+        /*
         CHECK(secp256k1_rangeproof_verify(none, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 17);
+        CHECK(*ecount == 14);
         CHECK(secp256k1_rangeproof_verify(sign, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 18);
+        CHECK(*ecount == 13);
+        */
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-        CHECK(*ecount == 18);
+        CHECK(*ecount == 13);
 
         CHECK(secp256k1_rangeproof_verify(vrfy, NULL, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 19);
+        CHECK(*ecount == 14);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, NULL, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 20);
+        CHECK(*ecount == 15);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, NULL, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 21);
+        CHECK(*ecount == 16);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, &commit, NULL, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 22);
+        CHECK(*ecount == 17);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, &commit, proof, 0, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 22);
+        CHECK(*ecount == 17);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, &commit, proof, len, NULL, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 23);
+        CHECK(*ecount == 18);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 23);
+        CHECK(*ecount == 18);
         CHECK(secp256k1_rangeproof_verify(vrfy, &min_value, &max_value, &commit, proof, len, NULL, 0, NULL) == 0);
-        CHECK(*ecount == 24);
+        CHECK(*ecount == 19);
     }
     {
         unsigned char blind_out[32];
@@ -125,15 +133,16 @@ static void test_rangeproof_api(const secp256k1_context *none, const secp256k1_c
         uint64_t min_value;
         uint64_t max_value;
         size_t message_len = sizeof(message_out);
-
+        /*
         CHECK(secp256k1_rangeproof_rewind(none, blind_out, &value_out, message_out, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 25);
+        CHECK(*ecount == 20);
         CHECK(secp256k1_rangeproof_rewind(sign, blind_out, &value_out, message_out, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 26);
+        CHECK(*ecount == 21);
         CHECK(secp256k1_rangeproof_rewind(vrfy, blind_out, &value_out, message_out, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 27);
+        CHECK(*ecount == 22);
+        */
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, message_out, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-        CHECK(*ecount == 27);
+        CHECK(*ecount == 19);
 
         CHECK(min_value == vmin);
         CHECK(max_value >= val);
@@ -142,31 +151,31 @@ static void test_rangeproof_api(const secp256k1_context *none, const secp256k1_c
         CHECK(memcmp(message, message_out, sizeof(message_out)) == 0);
 
         CHECK(secp256k1_rangeproof_rewind(both, NULL, &value_out, message_out, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-        CHECK(*ecount == 27);  /* blindout may be NULL */
+        CHECK(*ecount == 19);  /* blindout may be NULL */
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, NULL, message_out, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-        CHECK(*ecount == 27);  /* valueout may be NULL */
+        CHECK(*ecount == 19);  /* valueout may be NULL */
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, &message_len, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 28);
+        CHECK(*ecount == 20);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) != 0);
-        CHECK(*ecount == 28);
+        CHECK(*ecount == 20);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, NULL, &min_value, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 29);
+        CHECK(*ecount == 21);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, NULL, &max_value, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 30);
+        CHECK(*ecount == 22);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, NULL, &commit, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 31);
+        CHECK(*ecount == 23);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, NULL, proof, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 32);
+        CHECK(*ecount == 24);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, &commit, NULL, len, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 33);
+        CHECK(*ecount == 25);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, &commit, proof, 0, ext_commit, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 33);
+        CHECK(*ecount == 25);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, &commit, proof, len, NULL, ext_commit_len, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 34);
+        CHECK(*ecount == 26);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h) == 0);
-        CHECK(*ecount == 34);
+        CHECK(*ecount == 26);
         CHECK(secp256k1_rangeproof_rewind(both, blind_out, &value_out, NULL, 0, commit.data, &min_value, &max_value, &commit, proof, len, NULL, 0, NULL) == 0);
-        CHECK(*ecount == 35);
+        CHECK(*ecount == 27);
     }
 }
 
@@ -187,7 +196,7 @@ static void test_api(void) {
     secp256k1_context_set_illegal_callback(vrfy, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(both, counting_illegal_callback_fn, &ecount);
 
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < COUNT; i++) {
         ecount = 0;
         test_rangeproof_api(none, sign, vrfy, both, &ecount);
     }
@@ -237,7 +246,7 @@ static void test_borromean(void) {
                 s[i] = one;
             }
             if (j == secidx[i]) {
-                secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubs[c + j], &sec[i]);
+                secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pubs[c + j], &sec[i]);
             } else {
                 random_group_element_test(&ge);
                 random_group_element_jacobian_test(&pubs[c + j],&ge);
@@ -245,11 +254,11 @@ static void test_borromean(void) {
         }
         c += rsizes[i];
     }
-    CHECK(secp256k1_borromean_sign(&ctx->ecmult_ctx, &ctx->ecmult_gen_ctx, e0, s, pubs, k, sec, rsizes, secidx, nrings, m, 32));
-    CHECK(secp256k1_borromean_verify(&ctx->ecmult_ctx, NULL, e0, s, pubs, rsizes, nrings, m, 32));
+    CHECK(secp256k1_borromean_sign(&CTX->ecmult_gen_ctx, e0, s, pubs, k, sec, rsizes, secidx, nrings, m, 32));
+    CHECK(secp256k1_borromean_verify(NULL, e0, s, pubs, rsizes, nrings, m, 32));
     i = secp256k1_testrand32() % c;
     secp256k1_scalar_negate(&s[i],&s[i]);
-    CHECK(!secp256k1_borromean_verify(&ctx->ecmult_ctx, NULL, e0, s, pubs, rsizes, nrings, m, 32));
+    CHECK(!secp256k1_borromean_verify(NULL, e0, s, pubs, rsizes, nrings, m, 32));
     secp256k1_scalar_negate(&s[i],&s[i]);
     secp256k1_scalar_set_int(&one, 1);
     for(j = 0; j < 4; j++) {
@@ -259,7 +268,7 @@ static void test_borromean(void) {
         } else {
             secp256k1_scalar_add(&s[i],&s[i],&one);
         }
-        CHECK(!secp256k1_borromean_verify(&ctx->ecmult_ctx, NULL, e0, s, pubs, rsizes, nrings, m, 32));
+        CHECK(!secp256k1_borromean_verify(NULL, e0, s, pubs, rsizes, nrings, m, 32));
     }
 }
 
@@ -293,7 +302,7 @@ static void test_rangeproof(void) {
     secp256k1_testrand256(blind);
     for (i = 0; i < 11; i++) {
         v = testvs[i];
-        CHECK(secp256k1_pedersen_commit(ctx, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+        CHECK(secp256k1_pedersen_commit(CTX, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
         for (vmin = 0; vmin < (i<9 && i > 0 ? 2 : 1); vmin++) {
             const unsigned char *input_message = NULL;
             size_t input_message_len = 0;
@@ -309,10 +318,10 @@ static void test_rangeproof(void) {
                 input_message_len = sizeof(message_long);
             }
             len = 5134;
-            CHECK(secp256k1_rangeproof_sign(ctx, proof, &len, vmin, &commit, blind, commit.data, 0, 0, v, input_message, input_message_len, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(secp256k1_rangeproof_sign(CTX, proof, &len, vmin, &commit, blind, commit.data, 0, 0, v, input_message, input_message_len, NULL, 0, &secp256k1_generator_const_h));
             CHECK(len <= 5134);
             mlen = 4096;
-            CHECK(secp256k1_rangeproof_rewind(ctx, blindout, &vout, message, &mlen, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(secp256k1_rangeproof_rewind(CTX, blindout, &vout, message, &mlen, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
             if (input_message != NULL) {
                 CHECK(memcmp(message, input_message, input_message_len) == 0);
             }
@@ -325,9 +334,9 @@ static void test_rangeproof(void) {
             CHECK(minv <= v);
             CHECK(maxv >= v);
             len = 5134;
-            CHECK(secp256k1_rangeproof_sign(ctx, proof, &len, v, &commit, blind, commit.data, -1, 64, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(secp256k1_rangeproof_sign(CTX, proof, &len, v, &commit, blind, commit.data, -1, 64, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
             CHECK(len <= 73);
-            CHECK(secp256k1_rangeproof_rewind(ctx, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(secp256k1_rangeproof_rewind(CTX, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
             CHECK(memcmp(blindout, blind, 32) == 0);
             CHECK(vout == v);
             CHECK(minv == v);
@@ -335,11 +344,11 @@ static void test_rangeproof(void) {
 
             /* Check with a committed message */
             len = 5134;
-            CHECK(secp256k1_rangeproof_sign(ctx, proof, &len, v, &commit, blind, commit.data, -1, 64, v, NULL, 0, message_short, sizeof(message_short), &secp256k1_generator_const_h));
+            CHECK(secp256k1_rangeproof_sign(CTX, proof, &len, v, &commit, blind, commit.data, -1, 64, v, NULL, 0, message_short, sizeof(message_short), &secp256k1_generator_const_h));
             CHECK(len <= 73);
-            CHECK(!secp256k1_rangeproof_rewind(ctx, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
-            CHECK(!secp256k1_rangeproof_rewind(ctx, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, message_long, sizeof(message_long), &secp256k1_generator_const_h));
-            CHECK(secp256k1_rangeproof_rewind(ctx, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, message_short, sizeof(message_short), &secp256k1_generator_const_h));
+            CHECK(!secp256k1_rangeproof_rewind(CTX, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(!secp256k1_rangeproof_rewind(CTX, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, message_long, sizeof(message_long), &secp256k1_generator_const_h));
+            CHECK(secp256k1_rangeproof_rewind(CTX, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, message_short, sizeof(message_short), &secp256k1_generator_const_h));
             CHECK(memcmp(blindout, blind, 32) == 0);
             CHECK(vout == v);
             CHECK(minv == v);
@@ -348,39 +357,39 @@ static void test_rangeproof(void) {
     }
     secp256k1_testrand256(blind);
     v = INT64_MAX - 1;
-    CHECK(secp256k1_pedersen_commit(ctx, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+    CHECK(secp256k1_pedersen_commit(CTX, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
     for (i = 0; i < 19; i++) {
         len = 5134;
-        CHECK(secp256k1_rangeproof_sign(ctx, proof, &len, 0, &commit, blind, commit.data, i, 0, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
-        CHECK(secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_sign(CTX, proof, &len, 0, &commit, blind, commit.data, i, 0, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
         CHECK(len <= 5134);
         CHECK(minv <= v);
         CHECK(maxv >= v);
         /* Make sure it fails when validating with a committed message */
-        CHECK(!secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit, proof, len, message_short, sizeof(message_short), &secp256k1_generator_const_h));
+        CHECK(!secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit, proof, len, message_short, sizeof(message_short), &secp256k1_generator_const_h));
     }
     secp256k1_testrand256(blind);
     {
         /*Malleability test.*/
         v = secp256k1_rands64(0, 255);
-        CHECK(secp256k1_pedersen_commit(ctx, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+        CHECK(secp256k1_pedersen_commit(CTX, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
         len = 5134;
-        CHECK(secp256k1_rangeproof_sign(ctx, proof, &len, 0, &commit, blind, commit.data, 0, 3, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_sign(CTX, proof, &len, 0, &commit, blind, commit.data, 0, 3, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
         CHECK(len <= 5134);
         /* Test if trailing bytes are rejected. */
         proof[len] = v;
-        CHECK(!secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit, proof, len + 1, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(!secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit, proof, len + 1, NULL, 0, &secp256k1_generator_const_h));
         for (i = 0; i < len*8; i++) {
             proof[i >> 3] ^= 1 << (i & 7);
-            CHECK(!secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(!secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
             proof[i >> 3] ^= 1 << (i & 7);
         }
-        CHECK(secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
         CHECK(minv <= v);
         CHECK(maxv >= v);
     }
     memcpy(&commit2, &commit, sizeof(commit));
-    for (i = 0; i < 10 * (size_t) count; i++) {
+    for (i = 0; i < 10 * (size_t) COUNT; i++) {
         int exp;
         int min_bits;
         v = secp256k1_rands64(0, UINT64_MAX >> (secp256k1_testrand32()&63));
@@ -389,7 +398,7 @@ static void test_rangeproof(void) {
             vmin = secp256k1_rands64(0, v);
         }
         secp256k1_testrand256(blind);
-        CHECK(secp256k1_pedersen_commit(ctx, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
+        CHECK(secp256k1_pedersen_commit(CTX, &commit, blind, v, &secp256k1_generator_const_h, &secp256k1_generator_const_g));
         len = 5134;
         exp = (int)secp256k1_rands64(0,18)-(int)secp256k1_rands64(0,18);
         if (exp < 0) {
@@ -399,10 +408,10 @@ static void test_rangeproof(void) {
         if (min_bits < 0) {
             min_bits = -min_bits;
         }
-        CHECK(secp256k1_rangeproof_sign(ctx, proof, &len, vmin, &commit, blind, commit.data, exp, min_bits, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_sign(CTX, proof, &len, vmin, &commit, blind, commit.data, exp, min_bits, v, NULL, 0, NULL, 0, &secp256k1_generator_const_h));
         CHECK(len <= 5134);
         mlen = 4096;
-        CHECK(secp256k1_rangeproof_rewind(ctx, blindout, &vout, message, &mlen, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_rewind(CTX, blindout, &vout, message, &mlen, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
         for (j = 0; j < mlen; j++) {
             CHECK(message[j] == 0);
         }
@@ -411,7 +420,7 @@ static void test_rangeproof(void) {
         CHECK(vout == v);
         CHECK(minv <= v);
         CHECK(maxv >= v);
-        CHECK(secp256k1_rangeproof_rewind(ctx, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(secp256k1_rangeproof_rewind(CTX, blindout, &vout, NULL, NULL, commit.data, &minv, &maxv, &commit, proof, len, NULL, 0, &secp256k1_generator_const_h));
         memcpy(&commit2, &commit, sizeof(commit));
     }
     for (j = 0; j < 10; j++) {
@@ -420,10 +429,10 @@ static void test_rangeproof(void) {
         }
         for (k = 0; k < 128; k++) {
             len = k;
-            CHECK(!secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit2, proof, len, NULL, 0, &secp256k1_generator_const_h));
+            CHECK(!secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit2, proof, len, NULL, 0, &secp256k1_generator_const_h));
         }
         len = secp256k1_rands64(0, 3072);
-        CHECK(!secp256k1_rangeproof_verify(ctx, &minv, &maxv, &commit2, proof, len, NULL, 0, &secp256k1_generator_const_h));
+        CHECK(!secp256k1_rangeproof_verify(CTX, &minv, &maxv, &commit2, proof, len, NULL, 0, &secp256k1_generator_const_h));
     }
 }
 
@@ -480,10 +489,10 @@ void test_rangeproof_fixed_vectors(void) {
     uint64_t max_value_1;
     secp256k1_pedersen_commitment pc;
 
-    CHECK(secp256k1_pedersen_commitment_parse(ctx, &pc, commit_1));
+    CHECK(secp256k1_pedersen_commitment_parse(CTX, &pc, commit_1));
 
     CHECK(secp256k1_rangeproof_verify(
-        ctx,
+        CTX,
         &min_value_1, &max_value_1,
         &pc,
         vector_1, sizeof(vector_1),
@@ -501,14 +510,14 @@ void test_pedersen_commitment_fixed_vector(void) {
     unsigned char result[33];
     secp256k1_pedersen_commitment parse;
 
-    CHECK(secp256k1_pedersen_commitment_parse(ctx, &parse, two_g));
-    CHECK(secp256k1_pedersen_commitment_serialize(ctx, result, &parse));
+    CHECK(secp256k1_pedersen_commitment_parse(CTX, &parse, two_g));
+    CHECK(secp256k1_pedersen_commitment_serialize(CTX, result, &parse));
     CHECK(memcmp(two_g, result, 33) == 0);
 
     result[0] = 0x08;
-    CHECK(secp256k1_pedersen_commitment_parse(ctx, &parse, result));
+    CHECK(secp256k1_pedersen_commitment_parse(CTX, &parse, result));
     result[0] = 0x0c;
-    CHECK(!secp256k1_pedersen_commitment_parse(ctx, &parse, result));
+    CHECK(!secp256k1_pedersen_commitment_parse(CTX, &parse, result));
 }
 
 void run_rangeproof_tests(void) {
@@ -516,7 +525,7 @@ void run_rangeproof_tests(void) {
     test_api();
     test_rangeproof_fixed_vectors();
     test_pedersen_commitment_fixed_vector();
-    for (i = 0; i < 2*count; i++) {
+    for (i = 0; i < 2 * COUNT; i++) {
         test_borromean();
     }
     test_rangeproof();

@@ -1,10 +1,11 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
 #include <chainparamsbase.h>
 #include <key.h>
+#include <psbt.h>
 #include <pubkey.h>
 #include <script/keyorigin.h>
 #include <script/sign.h>
@@ -13,6 +14,7 @@
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
+#include <util/translation.h>
 
 #include <cassert>
 #include <cstdint>
@@ -22,14 +24,13 @@
 #include <string>
 #include <vector>
 
-void initialize()
+void initialize_script_sign()
 {
-    static const ECCVerifyHandle ecc_verify_handle;
     ECC_Start();
     SelectParams(CBaseChainParams::REGTEST);
 }
 
-void test_one_input(const std::vector<uint8_t>& buffer)
+FUZZ_TARGET_INIT(script_sign, initialize_script_sign)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     const std::vector<uint8_t> key = ConsumeRandomLengthByteVector(fuzzed_data_provider, 128);
@@ -42,12 +43,12 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         } catch (const std::ios_base::failure&) {
         }
         CDataStream serialized{SER_NETWORK, PROTOCOL_VERSION};
-        SerializeHDKeypaths(serialized, hd_keypaths, fuzzed_data_provider.ConsumeIntegral<uint8_t>());
+        SerializeHDKeypaths(serialized, hd_keypaths, CompactSizeWriter(fuzzed_data_provider.ConsumeIntegral<uint8_t>()));
     }
 
     {
         std::map<CPubKey, KeyOriginInfo> hd_keypaths;
-        while (fuzzed_data_provider.ConsumeBool()) {
+        LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
             const std::optional<CPubKey> pub_key = ConsumeDeserializable<CPubKey>(fuzzed_data_provider);
             if (!pub_key) {
                 break;
@@ -60,7 +61,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
         }
         CDataStream serialized{SER_NETWORK, PROTOCOL_VERSION};
         try {
-            SerializeHDKeypaths(serialized, hd_keypaths, fuzzed_data_provider.ConsumeIntegral<uint8_t>());
+            SerializeHDKeypaths(serialized, hd_keypaths, CompactSizeWriter(fuzzed_data_provider.ConsumeIntegral<uint8_t>()));
         } catch (const std::ios_base::failure&) {
         }
         std::map<CPubKey, KeyOriginInfo> deserialized_hd_keypaths;
@@ -107,14 +108,16 @@ void test_one_input(const std::vector<uint8_t>& buffer)
             CMutableTransaction script_tx_to = tx_to;
             CMutableTransaction sign_transaction_tx_to = tx_to;
             if (n_in < tx_to.vin.size() && tx_to.vin[n_in].prevout.n < tx_from.vout.size()) {
-                (void)SignSignature(provider, tx_from, tx_to, n_in, fuzzed_data_provider.ConsumeIntegral<int>());
+                SignatureData empty;
+                (void)SignSignature(provider, tx_from, tx_to, n_in, fuzzed_data_provider.ConsumeIntegral<int>(), empty);
             }
             if (n_in < script_tx_to.vin.size()) {
-                (void)SignSignature(provider, ConsumeScript(fuzzed_data_provider), script_tx_to, n_in, ConsumeMoney(fuzzed_data_provider), fuzzed_data_provider.ConsumeIntegral<int>());
+                SignatureData empty;
+                (void)SignSignature(provider, ConsumeScript(fuzzed_data_provider), script_tx_to, n_in, ConsumeMoney(fuzzed_data_provider), fuzzed_data_provider.ConsumeIntegral<int>(), empty);
                 CAmount value = ConsumeMoney(fuzzed_data_provider);
                 std::vector<uint8_t> vchAmount(8);
                 part::SetAmount(vchAmount, value);
-                MutableTransactionSignatureCreator signature_creator{&tx_to, n_in, vchAmount, fuzzed_data_provider.ConsumeIntegral<int>()};
+                MutableTransactionSignatureCreator signature_creator{tx_to, n_in, vchAmount, fuzzed_data_provider.ConsumeIntegral<int>()};
                 std::vector<unsigned char> vch_sig;
                 CKeyID address;
                 if (fuzzed_data_provider.ConsumeBool()) {
@@ -127,7 +130,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
                 (void)signature_creator.CreateSig(provider, vch_sig, address, ConsumeScript(fuzzed_data_provider), fuzzed_data_provider.PickValueInArray({SigVersion::BASE, SigVersion::WITNESS_V0}));
             }
             std::map<COutPoint, Coin> coins;
-            while (fuzzed_data_provider.ConsumeBool()) {
+            LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
                 const std::optional<COutPoint> outpoint = ConsumeDeserializable<COutPoint>(fuzzed_data_provider);
                 if (!outpoint) {
                     break;
@@ -138,7 +141,7 @@ void test_one_input(const std::vector<uint8_t>& buffer)
                 }
                 coins[*outpoint] = *coin;
             }
-            std::map<int, std::string> input_errors;
+            std::map<int, bilingual_str> input_errors;
             (void)SignTransaction(sign_transaction_tx_to, &provider, coins, fuzzed_data_provider.ConsumeIntegral<int>(), input_errors);
         }
     }

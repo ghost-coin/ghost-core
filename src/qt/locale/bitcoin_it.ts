@@ -15,7 +15,7 @@
     </message>
     <message>
         <source>Copy the currently selected address to the system clipboard</source>
-        <translation>Copia negli appunti del sistema l'indirizzo attualmente selezionato</translation>
+        <translation>Copia =negli appunti del sistema l'indirizzo attualmente selezionato</translation>
     </message>
     <message>
         <source>&amp;Copy</source>

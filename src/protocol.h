@@ -1,11 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-#ifndef __cplusplus
-#error This header can only be compiled as C++.
-#endif
 
 #ifndef BITCOIN_PROTOCOL_H
 #define BITCOIN_PROTOCOL_H
@@ -13,10 +9,12 @@
 #include <netaddress.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
+#include <streams.h>
 #include <uint256.h>
-#include <version.h>
+#include <util/time.h>
 
-#include <stdint.h>
+#include <cstdint>
+#include <limits>
 #include <string>
 
 /** Message header.
@@ -37,7 +35,7 @@ public:
     static constexpr size_t HEADER_SIZE = MESSAGE_START_SIZE + COMMAND_SIZE + MESSAGE_SIZE_SIZE + CHECKSUM_SIZE;
     typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
-    explicit CMessageHeader();
+    explicit CMessageHeader() = default;
 
     /** Construct a P2P message header from message-start characters, a command and the size of the message.
      * @note Passing in a `pszCommand` longer than COMMAND_SIZE will result in a run-time assertion error.
@@ -49,10 +47,16 @@ public:
 
     SERIALIZE_METHODS(CMessageHeader, obj) { READWRITE(obj.pchMessageStart, obj.pchCommand, obj.nMessageSize, obj.pchChecksum); }
 
-    char pchMessageStart[MESSAGE_START_SIZE];
-    char pchCommand[COMMAND_SIZE];
-    uint32_t nMessageSize;
-    uint8_t pchChecksum[CHECKSUM_SIZE];
+    char pchMessageStart[MESSAGE_START_SIZE]{};
+    char pchCommand[COMMAND_SIZE]{};
+    uint32_t nMessageSize{std::numeric_limits<uint32_t>::max()};
+    uint8_t pchChecksum[CHECKSUM_SIZE]{};
+};
+
+class InvalidAddrManVersionError : public std::ios_base::failure
+{
+public:
+    InvalidAddrManVersionError(std::string msg) : std::ios_base::failure(msg) { }
 };
 
 /**
@@ -260,6 +264,12 @@ extern const char* CFCHECKPT;
  * @since protocol version 70016 as described by BIP 339.
  */
 extern const char* WTXIDRELAY;
+/**
+ * Contains a 4-byte version number and an 8-byte salt.
+ * The salt is used to compute short txids needed for efficient
+ * txreconciliation, as described by BIP 330.
+ */
+extern const char* SENDTXRCNCL;
 }; // namespace NetMsgType
 
 /* Get a vector of all valid message types (see above) */
@@ -273,10 +283,6 @@ enum ServiceFlags : uint64_t {
     // NODE_NETWORK means that the node is capable of serving the complete block chain. It is currently
     // set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light clients.
     NODE_NETWORK = (1 << 0),
-    // NODE_GETUTXO means the node is capable of responding to the getutxo protocol request.
-    // Bitcoin Core does not support this but a patch set called Bitcoin XT does.
-    // See BIP 64 for details on how this is implemented.
-    NODE_GETUTXO = (1 << 1),
     // NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
     // Bitcoin Core nodes used to support this by default, without advertising this bit,
     // but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
@@ -363,31 +369,72 @@ static inline bool MayHaveUsefulAddressDB(ServiceFlags services)
 /** A CService with information about it as peer */
 class CAddress : public CService
 {
-    static constexpr uint32_t TIME_INIT{100000000};
+    static constexpr std::chrono::seconds TIME_INIT{100000000};
+
+    /** Historically, CAddress disk serialization stored the CLIENT_VERSION, optionally OR'ed with
+     *  the ADDRV2_FORMAT flag to indicate V2 serialization. The first field has since been
+     *  disentangled from client versioning, and now instead:
+     *  - The low bits (masked by DISK_VERSION_IGNORE_MASK) store the fixed value DISK_VERSION_INIT,
+     *    (in case any code exists that treats it as a client version) but are ignored on
+     *    deserialization.
+     *  - The high bits (masked by ~DISK_VERSION_IGNORE_MASK) store actual serialization information.
+     *    Only 0 or DISK_VERSION_ADDRV2 (equal to the historical ADDRV2_FORMAT) are valid now, and
+     *    any other value triggers a deserialization failure. Other values can be added later if
+     *    needed.
+     *
+     *  For disk deserialization, ADDRV2_FORMAT in the stream version signals that ADDRV2
+     *  deserialization is permitted, but the actual format is determined by the high bits in the
+     *  stored version field. For network serialization, the stream version having ADDRV2_FORMAT or
+     *  not determines the actual format used (as it has no embedded version number).
+     */
+    static constexpr uint32_t DISK_VERSION_INIT{220000};
+    static constexpr uint32_t DISK_VERSION_IGNORE_MASK{0b00000000'00000111'11111111'11111111};
+    /** The version number written in disk serialized addresses to indicate V2 serializations.
+     * It must be exactly 1<<29, as that is the value that historical versions used for this
+     * (they used their internal ADDRV2_FORMAT flag here). */
+    static constexpr uint32_t DISK_VERSION_ADDRV2{1 << 29};
+    static_assert((DISK_VERSION_INIT & ~DISK_VERSION_IGNORE_MASK) == 0, "DISK_VERSION_INIT must be covered by DISK_VERSION_IGNORE_MASK");
+    static_assert((DISK_VERSION_ADDRV2 & DISK_VERSION_IGNORE_MASK) == 0, "DISK_VERSION_ADDRV2 must not be covered by DISK_VERSION_IGNORE_MASK");
 
 public:
     CAddress() : CService{} {};
     CAddress(CService ipIn, ServiceFlags nServicesIn) : CService{ipIn}, nServices{nServicesIn} {};
-    CAddress(CService ipIn, ServiceFlags nServicesIn, uint32_t nTimeIn) : CService{ipIn}, nTime{nTimeIn}, nServices{nServicesIn} {};
+    CAddress(CService ipIn, ServiceFlags nServicesIn, NodeSeconds time) : CService{ipIn}, nTime{time}, nServices{nServicesIn} {};
 
     SERIALIZE_METHODS(CAddress, obj)
     {
-        SER_READ(obj, obj.nTime = TIME_INIT);
-        int nVersion = s.GetVersion();
+        // CAddress has a distinct network serialization and a disk serialization, but it should never
+        // be hashed (except through CHashWriter in addrdb.cpp, which sets SER_DISK), and it's
+        // ambiguous what that would mean. Make sure no code relying on that is introduced:
+        assert(!(s.GetType() & SER_GETHASH));
+        bool use_v2;
         if (s.GetType() & SER_DISK) {
-            READWRITE(nVersion);
+            // In the disk serialization format, the encoding (v1 or v2) is determined by a flag version
+            // that's part of the serialization itself. ADDRV2_FORMAT in the stream version only determines
+            // whether V2 is chosen/permitted at all.
+            uint32_t stored_format_version = DISK_VERSION_INIT;
+            if (s.GetVersion() & ADDRV2_FORMAT) stored_format_version |= DISK_VERSION_ADDRV2;
+            READWRITE(stored_format_version);
+            stored_format_version &= ~DISK_VERSION_IGNORE_MASK; // ignore low bits
+            if (stored_format_version == 0) {
+                use_v2 = false;
+            } else if (stored_format_version == DISK_VERSION_ADDRV2 && (s.GetVersion() & ADDRV2_FORMAT)) {
+                // Only support v2 deserialization if ADDRV2_FORMAT is set.
+                use_v2 = true;
+            } else {
+                throw InvalidAddrManVersionError("Unsupported CAddress disk format version");
+            }
+        } else {
+            // In the network serialization format, the encoding (v1 or v2) is determined directly by
+            // the value of ADDRV2_FORMAT in the stream version, as no explicitly encoded version
+            // exists in the stream.
+            assert(s.GetType() & SER_NETWORK);
+            use_v2 = s.GetVersion() & ADDRV2_FORMAT;
         }
-        if ((s.GetType() & SER_DISK) ||
-            (nVersion != INIT_PROTO_VERSION && !(s.GetType() & SER_GETHASH))) {
-            // The only time we serialize a CAddress object without nTime is in
-            // the initial VERSION messages which contain two CAddress records.
-            // At that point, the serialization version is INIT_PROTO_VERSION.
-            // After the version handshake, serialization version is >=
-            // MIN_PEER_PROTO_VERSION and all ADDR messages are serialized with
-            // nTime.
-            READWRITE(obj.nTime);
-        }
-        if (nVersion & ADDRV2_FORMAT) {
+
+        READWRITE(Using<LossyChronoFormatter<uint32_t>>(obj.nTime));
+        // nServices is serialized as CompactSize in V2; as uint64_t in V1.
+        if (use_v2) {
             uint64_t services_tmp;
             SER_WRITE(obj, services_tmp = obj.nServices);
             READWRITE(Using<CompactSizeFormatter<false>>(services_tmp));
@@ -395,13 +442,22 @@ public:
         } else {
             READWRITE(Using<CustomUintFormatter<8>>(obj.nServices));
         }
-        READWRITEAS(CService, obj);
+        // Invoke V1/V2 serializer for CService parent object.
+        OverrideStream<Stream> os(&s, s.GetType(), use_v2 ? ADDRV2_FORMAT : 0);
+        SerReadWriteMany(os, ser_action, ReadWriteAsHelper<CService>(obj));
     }
 
-    // disk and network only
-    uint32_t nTime{TIME_INIT};
-
+    //! Always included in serialization. The behavior is unspecified if the value is not representable as uint32_t.
+    NodeSeconds nTime{TIME_INIT};
+    //! Serialized as uint64_t in V1, and as CompactSize in V2.
     ServiceFlags nServices{NODE_NONE};
+
+    friend bool operator==(const CAddress& a, const CAddress& b)
+    {
+        return a.nTime == b.nTime &&
+               a.nServices == b.nServices &&
+               static_cast<const CService&>(a) == static_cast<const CService&>(b);
+    }
 };
 
 /** getdata message type flags */

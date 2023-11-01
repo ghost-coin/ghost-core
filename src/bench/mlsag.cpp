@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,16 +11,14 @@
 #include <blind.h>
 #include <random.h>
 #include <key.h>
-#include <amount.h>
+#include <consensus/amount.h>
 
 #include <secp256k1_rangeproof.h>
 #include <secp256k1_mlsag.h>
 
 static void Mlsag(benchmark::Bench& bench)
 {
-    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
-
-    ECC_Start_Blinding();
+    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true, true, true /* fParticlMode */};
 
     const size_t nInputs = 2;
     const size_t nCols = 4;
@@ -97,8 +95,8 @@ static void Mlsag(benchmark::Bench& bench)
         nOutputs, nBlinded, nCols, nRows,
         pcm_in, pcm_out, pblinds));
 
-    GetRandBytes(tmp32, 32);
-    GetRandBytes(preimage, 32);
+    GetRandBytes(Span<unsigned char>(tmp32, 32));
+    GetRandBytes(Span<unsigned char>(preimage, 32));
 
     assert(0 == secp256k1_generate_mlsag(secp256k1_ctx_blind, ki, pc, ss,
         tmp32, preimage, nCols, nRows, nRealCol,
@@ -106,12 +104,10 @@ static void Mlsag(benchmark::Bench& bench)
 
 
     bench.run([&] {
-        assert(0 == secp256k1_verify_mlsag(secp256k1_ctx_blind,
+        assert(0 == secp256k1_verify_mlsag(
             preimage, nCols, nRows,
             m, ki, pc, ss));
     });
-
-    ECC_Stop_Blinding();
 }
 
-BENCHMARK(Mlsag);
+BENCHMARK(Mlsag, benchmark::PriorityLevel::HIGH);

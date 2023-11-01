@@ -1,16 +1,29 @@
-// Copyright (c) 2015-2019 The Bitcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <zmq/zmqnotificationinterface.h>
+
+#include <logging.h>
+#include <primitives/block.h>
+#include <primitives/transaction.h>
+#include <util/system.h>
+#include <validationinterface.h>
+#include <zmq/zmqabstractnotifier.h>
 #include <zmq/zmqpublishnotifier.h>
 #include <zmq/zmqutil.h>
 
 #include <zmq.h>
 
-#include <validation.h>
-#include <util/system.h>
+#include <cassert>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+// Particl
 #include <netbase.h>
+#include <util/thread.h>
 
 
 bool CZMQNotificationInterface::IsWhitelistedRange(const CNetAddr &addr) {
@@ -73,15 +86,15 @@ void CZMQNotificationInterface::ThreadZAP()
         zmq_send(sock, buf[0], nb[0], ZMQ_SNDMORE);                 // version "1.0"
         zmq_send(sock, buf[1], nb[1], ZMQ_SNDMORE);                 // request id
         zmq_send(sock, fAccept ? "200" : "400", 3, ZMQ_SNDMORE);    // status code
-        zmq_send(sock, NULL, 0, ZMQ_SNDMORE);                       // status text
-        zmq_send(sock, NULL, 0, ZMQ_SNDMORE);                       // user id
-        zmq_send(sock, NULL, 0, 0);                                 // metadata
+        zmq_send(sock, nullptr, 0, ZMQ_SNDMORE);                    // status text
+        zmq_send(sock, nullptr, 0, ZMQ_SNDMORE);                    // user id
+        zmq_send(sock, nullptr, 0, 0);                              // metadata
     }
 
     zmq_close(sock);
 }
 
-CZMQNotificationInterface::CZMQNotificationInterface() : pcontext(nullptr)
+CZMQNotificationInterface::CZMQNotificationInterface()
 {
 }
 
@@ -120,7 +133,7 @@ CZMQNotificationInterface* CZMQNotificationInterface::Create()
             std::unique_ptr<CZMQAbstractNotifier> notifier = factory();
             notifier->SetType(entry.first);
             notifier->SetAddress(address);
-            notifier->SetOutboundMessageHighWaterMark(static_cast<int>(gArgs.GetArg(arg + "hwm", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM)));
+            notifier->SetOutboundMessageHighWaterMark(static_cast<int>(gArgs.GetIntArg(arg + "hwm", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM)));
             notifiers.push_back(std::move(notifier));
         }
     }
@@ -143,9 +156,9 @@ bool CZMQNotificationInterface::Initialize()
 {
     int major = 0, minor = 0, patch = 0;
     zmq_version(&major, &minor, &patch);
-    LogPrint(BCLog::ZMQ, "zmq: version %d.%d.%d\n", major, minor, patch);
+    LogPrint(BCLog::ZMQ, "version %d.%d.%d\n", major, minor, patch);
 
-    LogPrint(BCLog::ZMQ, "zmq: Initialize notification interface\n");
+    LogPrint(BCLog::ZMQ, "Initialize notification interface\n");
     assert(!pcontext);
 
     pcontext = zmq_ctx_new();
@@ -166,7 +179,7 @@ bool CZMQNotificationInterface::Initialize()
 
     if (vWhitelistedRange.size() > 0) {
         zapActive = false;
-        threadZAP = std::thread(&TraceThread<std::function<void()> >, "zap", std::function<void()>(std::bind(&CZMQNotificationInterface::ThreadZAP, this)));
+        threadZAP = std::thread(&util::TraceThread, "zap", std::function<void()>(std::bind(&CZMQNotificationInterface::ThreadZAP, this)));
 
         for (size_t nTries = 1000; nTries > 0; nTries--) {
             if (zapActive) {
@@ -182,9 +195,9 @@ bool CZMQNotificationInterface::Initialize()
 
     for (auto& notifier : notifiers) {
         if (notifier->Initialize(pcontext)) {
-            LogPrint(BCLog::ZMQ, "zmq: Notifier %s ready (address = %s)\n", notifier->GetType(), notifier->GetAddress());
+            LogPrint(BCLog::ZMQ, "Notifier %s ready (address = %s)\n", notifier->GetType(), notifier->GetAddress());
         } else {
-            LogPrint(BCLog::ZMQ, "zmq: Notifier %s failed (address = %s)\n", notifier->GetType(), notifier->GetAddress());
+            LogPrint(BCLog::ZMQ, "Notifier %s failed (address = %s)\n", notifier->GetType(), notifier->GetAddress());
             return false;
         }
     }
@@ -195,18 +208,17 @@ bool CZMQNotificationInterface::Initialize()
 // Called during shutdown sequence
 void CZMQNotificationInterface::Shutdown()
 {
-    LogPrint(BCLog::ZMQ, "zmq: Shutdown notification interface\n");
+    LogPrint(BCLog::ZMQ, "Shutdown notification interface\n");
 
-    if (threadZAP.joinable())
-    {
+    if (threadZAP.joinable()) {
         zapActive = false;
         threadZAP.join();
-    };
+    }
 
     if (pcontext)
     {
         for (auto& notifier : notifiers) {
-            LogPrint(BCLog::ZMQ, "zmq: Shutdown notifier %s at %s\n", notifier->GetType(), notifier->GetAddress());
+            LogPrint(BCLog::ZMQ, "Shutdown notifier %s at %s\n", notifier->GetType(), notifier->GetAddress());
             notifier->Shutdown();
         }
         zmq_ctx_term(pcontext);

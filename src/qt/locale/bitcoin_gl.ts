@@ -1,95 +1,101 @@
-<TS language="gl" version="2.1">
+<TS version="2.1" language="gl">
 <context>
     <name>AddressBookPage</name>
     <message>
+        <source>Right-click to edit address or label</source>
+        <translation type="unfinished">Fai click co botón dereito para editar o enderezo ou etiqueta</translation>
+    </message>
+    <message>
         <source>Create a new address</source>
-        <translation>Crear un novo enderezo</translation>
+        <translation type="unfinished">Crear un novo enderezo</translation>
     </message>
     <message>
         <source>&amp;New</source>
-        <translation>&amp;Novo</translation>
+        <translation type="unfinished">&amp;Novo</translation>
     </message>
     <message>
         <source>Copy the currently selected address to the system clipboard</source>
-        <translation>Copiar o enderezo seleccionado ao cartafol</translation>
+        <translation type="unfinished">Copiar o enderezo seleccionado ao cartafol</translation>
     </message>
     <message>
         <source>&amp;Copy</source>
-        <translation>&amp;Copiar</translation>
+        <translation type="unfinished">&amp;Copiar</translation>
     </message>
     <message>
         <source>C&amp;lose</source>
-        <translation>&amp;Pechar</translation>
+        <translation type="unfinished">&amp;Pechar</translation>
     </message>
     <message>
         <source>Delete the currently selected address from the list</source>
-        <translation>Borrar o enderezo actualmente seleccionado da listaxe</translation>
+        <translation type="unfinished">Borrar o enderezo actualmente seleccionado da listaxe</translation>
     </message>
     <message>
         <source>Enter address or label to search</source>
-        <translation>Introduce enderezo ou etiqueta para buscar</translation>
+        <translation type="unfinished">Introduce enderezo ou etiqueta para buscar</translation>
     </message>
     <message>
         <source>Export the data in the current tab to a file</source>
-        <translation>Exportar os datos da pestaña actual a un arquivo.</translation>
+        <translation type="unfinished">Exportar os datos da pestaña actual a un arquivo.</translation>
     </message>
     <message>
         <source>&amp;Export</source>
-        <translation>&amp;Exportar</translation>
+        <translation type="unfinished">&amp;Exportar</translation>
     </message>
     <message>
         <source>&amp;Delete</source>
-        <translation>&amp;Borrar</translation>
+        <translation type="unfinished">&amp;Borrar</translation>
     </message>
     <message>
         <source>Choose the address to send coins to</source>
-        <translation>Escolle a dirección á que enviar moedas</translation>
+        <translation type="unfinished">Escolle a dirección á que enviar moedas</translation>
     </message>
     <message>
         <source>Choose the address to receive coins with</source>
-        <translation>Escolle a dirección da que recibir moedas</translation>
+        <translation type="unfinished">Escolle a dirección da que recibir moedas</translation>
     </message>
     <message>
         <source>C&amp;hoose</source>
-        <translation>&amp;Escoller</translation>
+        <translation type="unfinished">&amp;Escoller</translation>
     </message>
     <message>
         <source>Sending addresses</source>
-        <translation>Enviando enderezos</translation>
+        <translation type="unfinished">Enviando enderezos</translation>
     </message>
     <message>
         <source>Receiving addresses</source>
-        <translation>Recibindo enderezos</translation>
+        <translation type="unfinished">Recibindo enderezos</translation>
     </message>
     <message>
         <source>These are your Particl addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Estas son as túas direccións Particl para enviar pagos. Revisa sempre a cantidade e a dirección receptora antes de enviar moedas.</translation>
+        <translation type="unfinished">Estas son as túas direccións Particl para enviar pagos. Revisa sempre a cantidade e a dirección receptora antes de enviar moedas.</translation>
+    </message>
+    <message>
+        <source>These are your Particl addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.
+Signing is only possible with addresses of the type 'legacy'.</source>
+        <translation type="unfinished">Estes son os teus enderezos de Particl para recibir pagamentos. Emprega o botón 'Crear novo enderezo para recibir pagamentos' na solapa de recibir para crear novos enderezos.
+Firmar é posible unicamente con enderezos de tipo 'legacy'.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
-        <translation>&amp;Copiar Enderezo</translation>
+        <translation type="unfinished">&amp;Copiar Enderezo</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
-        <translation>Copiar &amp;Etiqueta</translation>
+        <translation type="unfinished">Copiar &amp;Etiqueta</translation>
     </message>
     <message>
         <source>&amp;Edit</source>
-        <translation>&amp;Editar</translation>
+        <translation type="unfinished">&amp;Editar</translation>
     </message>
     <message>
         <source>Export Address List</source>
-        <translation>Exportar Lista de Enderezos</translation>
-    </message>
-    <message>
-        <source>Comma separated file (*.csv)</source>
-        <translation>Arquivo separado por comas (*.csv)</translation>
+        <translation type="unfinished">Exportar Lista de Enderezos</translation>
     </message>
     <message>
         <source>Exporting Failed</source>
-        <translation>Exportación falida</translation>
+        <translation type="unfinished">Exportación falida</translation>
     </message>
-    </context>
+</context>
 <context>
     <name>AddressTableModel</name>
     <message>

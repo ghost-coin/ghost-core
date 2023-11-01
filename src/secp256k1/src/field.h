@@ -1,8 +1,8 @@
-/**********************************************************************
- * Copyright (c) 2013, 2014 Pieter Wuille                             *
- * Distributed under the MIT software license, see the accompanying   *
- * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
- **********************************************************************/
+/***********************************************************************
+ * Copyright (c) 2013, 2014 Pieter Wuille                              *
+ * Distributed under the MIT software license, see the accompanying    *
+ * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
+ ***********************************************************************/
 
 #ifndef SECP256K1_FIELD_H
 #define SECP256K1_FIELD_H
@@ -14,13 +14,9 @@
  *  - Each field element can be normalized or not.
  *  - Each field element has a magnitude, which represents how far away
  *    its representation is away from normalization. Normalized elements
- *    always have a magnitude of 1, but a magnitude of 1 doesn't imply
- *    normality.
+ *    always have a magnitude of 0 or 1, but a magnitude of 1 doesn't
+ *    imply normality.
  */
-
-#if defined HAVE_CONFIG_H
-#include "libsecp256k1-config.h"
-#endif
 
 #include "util.h"
 
@@ -31,6 +27,12 @@
 #else
 #error "Please select wide multiplication implementation"
 #endif
+
+static const secp256k1_fe secp256k1_fe_one = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1);
+static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
+    0x7ae96a2bul, 0x657c0710ul, 0x6e64479eul, 0xac3434e9ul,
+    0x9cf04975ul, 0x12f58995ul, 0xc1396c28ul, 0x719501eeul
+);
 
 /** Normalize a field element. This brings the field element to a canonical representation, reduces
  *  its magnitude to 1, and reduces it modulo field size `p`.
@@ -43,15 +45,16 @@ static void secp256k1_fe_normalize_weak(secp256k1_fe *r);
 /** Normalize a field element, without constant-time guarantee. */
 static void secp256k1_fe_normalize_var(secp256k1_fe *r);
 
-/** Verify whether a field element represents zero i.e. would normalize to a zero value. The field
- *  implementation may optionally normalize the input, but this should not be relied upon. */
-static int secp256k1_fe_normalizes_to_zero(secp256k1_fe *r);
+/** Verify whether a field element represents zero i.e. would normalize to a zero value. */
+static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r);
 
-/** Verify whether a field element represents zero i.e. would normalize to a zero value. The field
- *  implementation may optionally normalize the input, but this should not be relied upon. */
-static int secp256k1_fe_normalizes_to_zero_var(secp256k1_fe *r);
+/** Verify whether a field element represents zero i.e. would normalize to a zero value,
+ *  without constant-time guarantee. */
+static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r);
 
-/** Set a field element equal to a small integer. Resulting field element is normalized. */
+/** Set a field element equal to a small (not greater than 0x7FFF), non-negative integer.
+ *  Resulting field element is normalized; it has magnitude 0 if a == 0, and magnitude 1 otherwise.
+ */
 static void secp256k1_fe_set_int(secp256k1_fe *r, int a);
 
 /** Sets a field element equal to zero, initializing all fields. */
@@ -81,6 +84,9 @@ static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
 /** Set a field element equal to the additive inverse of another. Takes a maximum magnitude of the input
  *  as an argument. The magnitude of the output is one higher. */
 static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
+
+/** Adds a small integer (up to 0x7FFF) to r. The resulting magnitude increases by one. */
+static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
 
 /** Multiplies the passed field element with a small integer constant. Multiplies the magnitude by that
  *  small integer. */
@@ -114,11 +120,6 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a);
 /** Potentially faster version of secp256k1_fe_inv, without constant-time guarantee. */
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a);
 
-/** Calculate the (modular) inverses of a batch of field elements. Requires the inputs' magnitudes to be
- *  at most 8. The output magnitudes are 1 (but not guaranteed to be normalized). The inputs and
- *  outputs must not overlap in memory. */
-static void secp256k1_fe_inv_all_var(secp256k1_fe *r, const secp256k1_fe *a, size_t len);
-
 /** Convert a field element to the storage type. */
 static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a);
 
@@ -130,5 +131,17 @@ static void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_f
 
 /** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
 static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
+
+/** Halves the value of a field element modulo the field prime. Constant-time.
+ *  For an input magnitude 'm', the output magnitude is set to 'floor(m/2) + 1'.
+ *  The output is not guaranteed to be normalized, regardless of the input. */
+static void secp256k1_fe_half(secp256k1_fe *r);
+
+/** Sets each limb of 'r' to its upper bound at magnitude 'm'. The output will also have its
+ *  magnitude set to 'm' and is normalized if (and only if) 'm' is zero. */
+static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
+
+/** Determine whether a is a square (modulo p). */
+static int secp256k1_fe_is_square_var(const secp256k1_fe *a);
 
 #endif /* SECP256K1_FIELD_H */

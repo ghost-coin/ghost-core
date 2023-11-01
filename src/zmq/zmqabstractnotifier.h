@@ -1,12 +1,11 @@
-// Copyright (c) 2015-2018 The Bitcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_ZMQ_ZMQABSTRACTNOTIFIER_H
 #define BITCOIN_ZMQ_ZMQABSTRACTNOTIFIER_H
 
-#include <util/memory.h>
-
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -25,13 +24,13 @@ class CZMQAbstractNotifier
 public:
     static const int DEFAULT_ZMQ_SNDHWM {1000};
 
-    CZMQAbstractNotifier() : psocket(nullptr), outbound_message_high_water_mark(DEFAULT_ZMQ_SNDHWM) { }
+    CZMQAbstractNotifier() : outbound_message_high_water_mark(DEFAULT_ZMQ_SNDHWM) {}
     virtual ~CZMQAbstractNotifier();
 
     template <typename T>
     static std::unique_ptr<CZMQAbstractNotifier> Create()
     {
-        return MakeUnique<T>();
+        return std::make_unique<T>();
     }
 
     std::string GetType() const { return type; }
@@ -65,7 +64,7 @@ public:
     virtual bool NotifySecureMessage(const smsg::SecureMessage *psmsg, const uint160 &hash);
 
 protected:
-    void *psocket;
+    void* psocket{nullptr};
     std::string type;
     std::string address;
     int outbound_message_high_water_mark; // aka SNDHWM

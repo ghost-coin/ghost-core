@@ -44,8 +44,6 @@ src/obj
 share/setup.nsi
 share/qt/Info.plist
 
-src/univalue/gen
-
 src/qt/*.moc
 src/qt/moc_*.cpp
 src/qt/forms/ui_*.h
@@ -68,7 +66,7 @@ src/qt/ghost-qt.includes
 .dirstamp
 .libs
 .*.swp
-*.*~*
+*~
 *.bak
 *.rej
 *.orig
@@ -89,6 +87,7 @@ src/qt/ghost-qt.includes
 
 # Only ignore unexpected patches
 *.patch
+!contrib/guix/patches/*.patch
 !depends/patches/**/*.patch
 
 #libtool object files
@@ -156,11 +155,15 @@ db4/
 
 osx_volname
 dist/
-*.background.tiff
 
+/guix-build-*
+
+/ci/scratch/
 sanitizer-output
 ci/scratch
 *~
 build/*
 .cache/*
 .idea/*
+*~
+src/secp256k1-zkp/

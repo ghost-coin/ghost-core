@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2019 The Bitcoin Core developers
+# Copyright (c) 2017-2021 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test deprecation of RPC calls."""
 from test_framework.test_framework import BitcoinTestFramework
-from test_framework.util import assert_raises_rpc_error, find_vout_for_address
 
 class DeprecatedRpcTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -22,7 +21,7 @@ class DeprecatedRpcTest(BitcoinTestFramework):
         # In run_test:
         # self.log.info("Test generate RPC")
         # assert_raises_rpc_error(-32, 'The wallet generate rpc method is deprecated', self.nodes[0].rpc.generate, 1)
-        # self.nodes[1].generate(1)
+        # self.generate(self.nodes[1], 1)
 
         if self.is_wallet_compiled():
             self.log.info("Test bumpfee RPC")

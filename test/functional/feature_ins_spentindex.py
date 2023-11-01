@@ -17,11 +17,11 @@ class SpentIndexTest(GhostTestFramework):
         self.num_nodes = 4
         self.extra_args = [
             # Nodes 0/1 are "wallet" nodes
-            ['-debug',],
-            ['-debug','-spentindex'],
+            ['-debug', ],
+            ['-debug', '-spentindex'],
             # Nodes 2/3 are used for testing
-            ['-debug','-spentindex'],
-            ['-debug','-spentindex', '-txindex'],]
+            ['-debug', '-spentindex', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug', '-spentindex', '-txindex', '-dbcompression', '-dbmaxopenfiles=1000',],]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -54,25 +54,16 @@ class SpentIndexTest(GhostTestFramework):
         addrs.append(nodes[1].getnewaddress())
         addrs.append(nodes[1].getnewaddress())
 
-
-        # Check that
-        print('Testing spent index...')
-
         unspent = nodes[0].listunspent()
 
-
-        #{\"txid\":\"id\",\"vout\":n}
         inputs = [{'txid':unspent[0]['txid'],'vout':unspent[0]['vout']},]
         outputs = {addrs[0]:1}
         tx = nodes[0].createrawtransaction(inputs,outputs)
 
         # Add change output
         txfunded = nodes[0].fundrawtransaction(tx)
-
         txsigned = nodes[0].signrawtransactionwithwallet(txfunded['hex'])
-
         sent_txid = nodes[0].sendrawtransaction(txsigned['hex'], 0)
-
 
         self.stakeBlocks(1)
 
@@ -87,25 +78,25 @@ class SpentIndexTest(GhostTestFramework):
         print("Testing getrawtransaction method...")
 
         # Check that verbose raw transaction includes spent info
-        txVerbose = self.nodes[3].getrawtransaction(unspent[0]["txid"], 1)
+        txVerbose = self.nodes[3].getrawtransaction(unspent[0]["txid"], 2)
         assert_equal(txVerbose["vout"][unspent[0]["vout"]]["spentTxId"], sent_txid)
         assert_equal(txVerbose["vout"][unspent[0]["vout"]]["spentIndex"], 0)
         assert_equal(txVerbose["vout"][unspent[0]["vout"]]["spentHeight"], 1)
 
         # Check that verbose raw transaction includes address values and input values
-        txVerbose2 = self.nodes[3].getrawtransaction(sent_txid, 1)
+        txVerbose2 = self.nodes[3].getrawtransaction(sent_txid, 2)
         assert_equal(txVerbose2["vin"][0]["address"], 'pcwP4hTtaMb7n4urszBTsgxWLdNLU4yNGz')
-        assert(float(txVerbose2["vin"][0]["value"]) > 0)
-        assert(txVerbose2["vin"][0]["valueSat"] > 0)
+        assert (float(txVerbose2["vin"][0]["value"]) > 0)
+        assert (txVerbose2["vin"][0]["valueSat"] > 0)
 
 
         # Check the mempool index
         txid2 = nodes[0].sendtoaddress(addrs[1], 5)
         self.sync_all()
-        txVerbose3 = self.nodes[1].getrawtransaction(txid2, 1)
-        assert(len(txVerbose3["vin"][0]["address"]) > 0)
-        assert(float(txVerbose3["vin"][0]["value"]) > 0)
-        assert(txVerbose3["vin"][0]["valueSat"] > 0)
+        txVerbose3 = self.nodes[1].getrawtransaction(txid2, 2)
+        assert (len(txVerbose3["vin"][0]["address"]) > 0)
+        assert (float(txVerbose3["vin"][0]["value"]) > 0)
+        assert (txVerbose3["vin"][0]["valueSat"] > 0)
 
 
         # Check the database index
@@ -113,13 +104,13 @@ class SpentIndexTest(GhostTestFramework):
 
         block1_hash = nodes[1].getblockhash(nodes[1].getblockcount())
         ro = nodes[1].getblock(block1_hash)
-        assert(txid2 in ro['tx'])
+        assert (txid2 in ro['tx'])
 
 
-        txVerbose4 = self.nodes[3].getrawtransaction(txid2, 1)
-        assert(len(txVerbose4["vin"][0]["address"]) > 0)
-        assert(float(txVerbose4["vin"][0]["value"]) > 0)
-        assert(txVerbose4["vin"][0]["valueSat"] > 0)
+        txVerbose4 = self.nodes[3].getrawtransaction(txid2, 2)
+        assert (len(txVerbose4["vin"][0]["address"]) > 0)
+        assert (float(txVerbose4["vin"][0]["value"]) > 0)
+        assert (txVerbose4["vin"][0]["valueSat"] > 0)
 
 
         # Check block deltas
@@ -142,7 +133,7 @@ class SpentIndexTest(GhostTestFramework):
             if out["satoshis"] == 500000000 and out["address"] == addrs[1]:
                 fFound = True
                 break
-        assert(fFound)
+        assert (fFound)
 
         print("Passed\n")
 

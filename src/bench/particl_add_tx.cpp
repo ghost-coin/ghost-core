@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2021 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,13 +7,14 @@
 #include <wallet/hdwallet.h>
 #include <wallet/coincontrol.h>
 #include <interfaces/chain.h>
+#include <interfaces/wallet.h>
 
 #include <validation.h>
 #include <blind.h>
 #include <rpc/rpcutil.h>
 #include <rpc/blockchain.h>
 #include <timedata.h>
-#include <miner.h>
+#include <node/miner.h>
 #include <pos/miner.h>
 #include <util/string.h>
 #include <util/translation.h>
@@ -34,7 +35,7 @@ CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount 
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
@@ -67,37 +68,46 @@ static void AddAnonTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amo
     vecSend.push_back(r);
 
     CTransactionRef tx_new;
-    CWalletTx wtx(pwallet, tx_new);
+    CWalletTx wtx(tx_new, TxStateInactive{});
     CTransactionRecord rtx;
     CAmount nFee;
     CCoinControl coinControl;
     assert(0 == pwallet->AddStandardInputs(wtx, rtx, vecSend, true, nFee, &coinControl, sError));
-    assert(wtx.SubmitMemoryPoolAndRelay(sError, true));
+    assert(pwallet->SubmitTxMemoryPoolAndRelay(wtx, sError, true));
     }
     SyncWithValidationInterfaceQueue();
 }
 
 void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
 {
+    ChainstateManager *pchainman{nullptr};
+    if (pwallet->HaveChain()) {
+        pchainman = pwallet->chain().getChainman();
+    }
+    if (!pchainman) {
+        LogPrintf("Error: Chainstate manager not found.\n");
+        return;
+    }
+
     int nBestHeight;
     size_t nStaked = 0;
     size_t k, nTries = 10000;
     for (k = 0; k < nTries; ++k) {
         nBestHeight = pwallet->chain().getHeightInt();
 
-        int64_t nSearchTime = GetAdjustedTime() & ~Params().GetStakeTimestampMask(nBestHeight+1);
+        int64_t nSearchTime = GetAdjustedTimeInt() & ~Params().GetStakeTimestampMask(nBestHeight+1);
         if (nSearchTime <= pwallet->nLastCoinStakeSearchTime) {
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
             continue;
         }
 
-        std::unique_ptr<CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
+        std::unique_ptr<node::CBlockTemplate> pblocktemplate = pwallet->CreateNewBlock();
         assert(pblocktemplate.get());
 
         if (pwallet->SignBlock(pblocktemplate.get(), nBestHeight+1, nSearchTime)) {
             CBlock *pblock = &pblocktemplate->block;
 
-            if (CheckStake(pblock)) {
+            if (CheckStake(*pchainman, pblock)) {
                 nStaked++;
             }
         }
@@ -111,7 +121,7 @@ void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)
     SyncWithValidationInterfaceQueue();
 };
 
-static std::shared_ptr<CHDWallet> CreateTestWallet(interfaces::Chain& chain, std::string wallet_name)
+static std::shared_ptr<CHDWallet> CreateTestWallet(wallet::WalletContext& wallet_context, std::string wallet_name)
 {
     DatabaseOptions options;
     DatabaseStatus status;
@@ -119,38 +129,40 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(interfaces::Chain& chain, std
     std::vector<bilingual_str> warnings;
     options.create_flags = WALLET_FLAG_BLANK_WALLET;
     auto database = MakeWalletDatabase(wallet_name, options, status, error);
-    auto wallet = CWallet::Create(chain, wallet_name, std::move(database), options.create_flags, error, warnings);
+    auto wallet = CWallet::Create(wallet_context, wallet_name, std::move(database), options.create_flags, error, warnings);
 
     return std::static_pointer_cast<CHDWallet>(wallet);
 }
 
 static void AddTx(benchmark::Bench& bench, const std::string from, const std::string to, const bool owned)
 {
-    gArgs.ForceSetArg("-acceptanontxn", "1"); // TODO: remove
-    gArgs.ForceSetArg("-acceptblindtxn", "1"); // TODO: remove
     gArgs.ForceSetArg("-anonrestricted", "0");
 
     TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
     util::Ref context{test_setup.m_node};
+    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true, true, true /* fParticlMode */};
+    const auto context = util::AnyPtr<node::NodeContext>(&test_setup.m_node);
 
-    ECC_Start_Stealth();
-    ECC_Start_Blinding();
+    std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain(test_setup.m_node);
+    std::unique_ptr<interfaces::WalletLoader> wallet_loader = interfaces::MakeWalletLoader(*chain, *Assert(test_setup.m_node.args));
+    wallet_loader->registerRpcs();
+    WalletContext& wallet_context = *wallet_loader->context();
 
     std::unique_ptr<interfaces::Chain> m_chain = interfaces::MakeChain(test_setup.m_node);
-    std::unique_ptr<interfaces::ChainClient> m_chain_client = interfaces::MakeWalletClient(*m_chain, *Assert(test_setup.m_node.args));
+    std::unique_ptr<interfaces::ChainClient> m_chain_client = interfaces::MakeWalletLoader(*m_chain, *Assert(test_setup.m_node.args));
     m_chain_client->registerRpcs();
 
-    std::shared_ptr<CHDWallet> pwallet_a = CreateTestWallet(*m_chain.get(), "a");
+    std::shared_ptr<CHDWallet> pwallet_a = CreateTestWallet(wallet_context, "a");
     assert(pwallet_a.get());
-    AddWallet(pwallet_a);
+    AddWallet(wallet_context, pwallet_a);
 
-    std::shared_ptr<CHDWallet> pwallet_b = CreateTestWallet(*m_chain.get(), "b");
+    std::shared_ptr<CHDWallet> pwallet_b = CreateTestWallet(wallet_context, "b");
     assert(pwallet_b.get());
-    AddWallet(pwallet_b);
+    AddWallet(wallet_context, pwallet_b);
 
     {
-        int last_height = ::ChainActive().Height();
-        uint256 last_hash = ::ChainActive().Tip()->GetBlockHash();
+        int last_height = context->chainman->ActiveChain().Height();
+        uint256 last_hash = context->chainman->ActiveChain().Tip()->GetBlockHash();
         {
             LOCK(pwallet_a->cs_wallet);
             pwallet_a->SetLastBlockProcessed(last_height, last_hash);
@@ -213,20 +225,16 @@ static void AddTx(benchmark::Bench& bench, const std::string from, const std::st
 
     CTransactionRef tx = CreateTxn(pwallet_a.get(), owned ? addr_b : addr_a, 1000, from_tx_type, to_tx_type);
 
-    CWalletTx::Confirmation confirm;
     bench.run([&] {
         LOCK(pwallet_b.get()->cs_wallet);
-        pwallet_b.get()->AddToWalletIfInvolvingMe(tx, confirm, true);
+        pwallet_b.get()->AddToWalletIfInvolvingMe(tx, TxStateInMempool{}, true, false);
     });
 
-    RemoveWallet(pwallet_a, nullopt);
+    RemoveWallet(wallet_context, pwallet_a, std::nullopt);
     pwallet_a.reset();
 
-    RemoveWallet(pwallet_b, nullopt);
+    RemoveWallet(wallet_context, pwallet_b, std::nullopt);
     pwallet_b.reset();
-
-    ECC_Stop_Stealth();
-    ECC_Stop_Blinding();
 }
 
 static void ParticlAddTxPlainPlainNotOwned(benchmark::Bench& bench) { AddTx(bench, "plain", "plain", false); }
@@ -250,23 +258,23 @@ static void ParticlAddTxAnonBlindOwned(benchmark::Bench& bench) { AddTx(bench, "
 static void ParticlAddTxAnonAnonNotOwned(benchmark::Bench& bench) { AddTx(bench, "anon", "anon", false); }
 static void ParticlAddTxAnonAnonOwned(benchmark::Bench& bench) { AddTx(bench, "anon", "anon", true); }
 
-BENCHMARK(ParticlAddTxPlainPlainNotOwned);
-BENCHMARK(ParticlAddTxPlainPlainOwned);
-BENCHMARK(ParticlAddTxPlainBlindNotOwned);
-BENCHMARK(ParticlAddTxPlainBlindOwned);
-// BENCHMARK(ParticlAddTxPlainAnonNotOwned);
-// BENCHMARK(ParticlAddTxPlainAnonOwned);
+BENCHMARK(ParticlAddTxPlainPlainNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxPlainPlainOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxPlainBlindNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxPlainBlindOwned, benchmark::PriorityLevel::HIGH);
+// BENCHMARK(ParticlAddTxPlainAnonNotOwned, benchmark::PriorityLevel::HIGH);
+// BENCHMARK(ParticlAddTxPlainAnonOwned, benchmark::PriorityLevel::HIGH);
 
-BENCHMARK(ParticlAddTxBlindPlainNotOwned);
-BENCHMARK(ParticlAddTxBlindPlainOwned);
-BENCHMARK(ParticlAddTxBlindBlindNotOwned);
-BENCHMARK(ParticlAddTxBlindBlindOwned);
-BENCHMARK(ParticlAddTxBlindAnonNotOwned);
-BENCHMARK(ParticlAddTxBlindAnonOwned);
+BENCHMARK(ParticlAddTxBlindPlainNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindPlainOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindBlindNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindBlindOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindAnonNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxBlindAnonOwned, benchmark::PriorityLevel::HIGH);
 
-BENCHMARK(ParticlAddTxAnonPlainNotOwned);
-BENCHMARK(ParticlAddTxAnonPlainOwned);
-BENCHMARK(ParticlAddTxAnonBlindNotOwned);
-BENCHMARK(ParticlAddTxAnonBlindOwned);
-BENCHMARK(ParticlAddTxAnonAnonNotOwned);
-BENCHMARK(ParticlAddTxAnonAnonOwned);
+BENCHMARK(ParticlAddTxAnonPlainNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonPlainOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonBlindNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonBlindOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonAnonNotOwned, benchmark::PriorityLevel::HIGH);
+BENCHMARK(ParticlAddTxAnonAnonOwned, benchmark::PriorityLevel::HIGH);

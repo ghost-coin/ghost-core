@@ -1,0 +1,21 @@
+# ==============================================================================
+#                          Particl Core CODEOWNERS
+# ==============================================================================
+
+# Configuration of code ownership and review approvals for the particl/particl-core
+# repo.
+
+# Order is not important; if a modified file or directory matches a fnmatch,
+# the reviewer will be mentioned in a PR comment requesting a review.
+
+# Regular contributors are free to add their names to specific directories or
+# files provided that they are willing to provide a review.
+
+# Absence from this list should not be interpreted as a discouragement to
+# review a pull request. Peer review is always welcome and is a critical
+# component of the progress of the codebase. Information on peer review
+# guidelines can be found in the CONTRIBUTING.md doc.
+
+
+# Maintainers
+#   @tecnovert

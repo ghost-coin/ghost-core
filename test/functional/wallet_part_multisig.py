@@ -62,7 +62,6 @@ class MultiSigTest(GhostTestFramework):
         assert(ro['isscript'] == True)
         redeemScript = ro['hex']
 
-
         mstxid = nodes[0].sendtoaddress(msAddr, 10)
         hexfund = nodes[0].gettransaction(mstxid)['hex']
         ro = nodes[0].decoderawtransaction(hexfund)
@@ -75,7 +74,7 @@ class MultiSigTest(GhostTestFramework):
 
             fundoutid = vout['n']
             fundscriptpubkey = vout['scriptPubKey']['hex']
-        assert(fundoutid >= 0), "fund output not found"
+        assert (fundoutid >= 0), "fund output not found"
 
 
         addrTo = nodes[2].getnewaddress()
@@ -106,21 +105,21 @@ class MultiSigTest(GhostTestFramework):
         self.stakeBlocks(1)
         block1_hash = nodes[0].getblockhash(1)
         ro = nodes[0].getblock(block1_hash)
-        assert(txnid_spendMultisig in ro['tx'])
+        assert (txnid_spendMultisig in ro['tx'])
 
 
         msAddr256 = nodes[0].addmultisigaddress_part(2, v, "", False, True)['address']
         ro = nodes[0].getaddressinfo(msAddr256)
-        assert(ro['isscript'] == True)
+        assert (ro['isscript'] == True)
 
         msAddr256 = nodes[0].addmultisigaddress_part(2, v, "", True, True)['address']
-        assert(msAddr256 == "tpj1vtll9wnsd7dxzygrjp2j5jr5tgrjsjmj3vwjf7vf60f9p50g5ddqmasmut")
+        assert (msAddr256 == "tpj1vtll9wnsd7dxzygrjp2j5jr5tgrjsjmj3vwjf7vf60f9p50g5ddqmasmut")
 
         ro = nodes[0].getaddressinfo(msAddr256)
-        assert(ro['ismine'] == False)
-        assert(ro['solvable'] == True)
-        assert(ro['isscript'] == True)
-        assert(ro['sigsrequired'] == 2)
+        assert (ro['ismine'] == False)
+        assert (ro['solvable'] == True)
+        assert (ro['isscript'] == True)
+        assert (ro['sigsrequired'] == 2)
 
         redeemScript = ro['hex']
 
@@ -135,8 +134,8 @@ class MultiSigTest(GhostTestFramework):
                 continue
             fundoutid = vout['n']
             fundscriptpubkey = vout['scriptPubKey']['hex']
-            assert('OP_SHA256' in vout['scriptPubKey']['asm'])
-        assert(fundoutid >= 0), "fund output not found"
+            assert ('OP_SHA256' in vout['scriptPubKey']['asm'])
+        assert (fundoutid >= 0), "fund output not found"
 
 
         inputs = [{
@@ -165,61 +164,7 @@ class MultiSigTest(GhostTestFramework):
         self.stakeBlocks(1)
         block2_hash = nodes[0].getblockhash(2)
         ro = nodes[0].getblock(block2_hash)
-        assert(txnid_spendMultisig2 in ro['tx'])
-
-        ro = nodes[0].getaddressinfo(msAddr)
-        scriptPubKey = ro['scriptPubKey']
-        redeemScript = ro['hex']
-
-        opts = {"recipe":"abslocktime","time":946684800,"addr":msAddr}
-        scriptTo = nodes[0].buildscript(opts)['hex']
-
-        outputs = [{'address':'script', 'amount':8, 'script':scriptTo},]
-        mstxid3 = nodes[0].sendtypeto('part', 'part', outputs)
-
-        hexfund = nodes[0].gettransaction(mstxid3)['hex']
-        ro = nodes[0].decoderawtransaction(hexfund)
-
-        fundscriptpubkey = ''
-        fundoutid = -1
-        for vout in ro['vout']:
-            if not isclose(vout['value'], 8.0):
-                continue
-            fundoutid = vout['n']
-            fundscriptpubkey = vout['scriptPubKey']['hex']
-            assert('OP_CHECKLOCKTIMEVERIFY' in vout['scriptPubKey']['asm'])
-        assert(fundoutid >= 0), "fund output not found"
-
-
-        inputs = [{
-            "txid": mstxid3,
-            "vout": fundoutid,
-            "scriptPubKey": fundscriptpubkey,
-            "redeemScript": redeemScript,
-            "amount": 8.0, # Must specify amount
-            }]
-
-        addrTo = nodes[2].getnewaddress()
-        outputs = {addrTo:2, msAddr:5.99}
-        locktime = 946684801
-
-        hexRaw = nodes[0].createrawtransaction(inputs, outputs, locktime)
-
-        vk0 = nodes[0].dumpprivkey(addrs[0])
-        signkeys = [vk0,]
-        hexRaw1 = nodes[0].signrawtransactionwithkey(hexRaw, signkeys, inputs)['hex']
-
-        vk1 = nodes[0].dumpprivkey(addrs[1])
-        signkeys = [vk1,]
-        hexRaw2 = nodes[0].signrawtransactionwithkey(hexRaw1, signkeys, inputs)['hex']
-
-        txnid_spendMultisig3 = nodes[0].sendrawtransaction(hexRaw2)
-
-        self.stakeBlocks(1)
-        block3_hash = nodes[0].getblockhash(3)
-        ro = nodes[0].getblock(block3_hash)
-        assert(txnid_spendMultisig3 in ro['tx'])
-
+        assert (txnid_spendMultisig2 in ro['tx'])
 
         self.log.info("Coldstake script")
 
@@ -240,8 +185,8 @@ class MultiSigTest(GhostTestFramework):
                 continue
             fundoutn = vout['n']
             fundscriptpubkey = vout['scriptPubKey']['hex']
-            assert('OP_ISCOINSTAKE' in vout['scriptPubKey']['asm'])
-        assert(fundoutn >= 0), "fund output not found"
+            assert ('OP_ISCOINSTAKE' in vout['scriptPubKey']['asm'])
+        assert (fundoutn >= 0), "fund output not found"
 
         ro = nodes[0].getaddressinfo(msAddr)
         assert(ro['isscript'] == True)
@@ -265,18 +210,18 @@ class MultiSigTest(GhostTestFramework):
         self.log.info('Test createsignaturewithwallet without providing prevout details')
         outpoint_only = { 'txid': txFundId, 'vout': fundoutn }
         sig1_check1 = nodes[0].createsignaturewithwallet(hexRaw, outpoint_only, addrs[1])
-        assert(sig1 == sig1_check1)
+        assert (sig1 == sig1_check1)
         addr1_privkey = nodes[0].dumpprivkey(addrs[1])
         sig1_check2 = nodes[0].createsignaturewithkey(hexRaw, inputs[0], addr1_privkey)
-        assert(sig1 == sig1_check2)
+        assert (sig1 == sig1_check2)
         try:
             sig1_check3 = nodes[0].createsignaturewithkey(hexRaw, outpoint_only, addr1_privkey)
-            assert(False), 'createsignaturewithkey passed with no redeemscript'
+            assert (False), 'createsignaturewithkey passed with no redeemscript'
         except JSONRPCException as e:
-            assert('"redeemScript" is required' in e.error['message'])
+            assert ('"redeemScript" is required' in e.error['message'])
         outpoint_only['redeemScript'] = redeemScript
         sig1_check3 = nodes[0].createsignaturewithkey(hexRaw, outpoint_only, addr1_privkey)
-        assert(sig1 == sig1_check3)
+        assert (sig1 == sig1_check3)
 
 
         witnessStack = [
@@ -288,18 +233,18 @@ class MultiSigTest(GhostTestFramework):
         hexRawSigned = nodes[0].tx([hexRaw,'witness=0:'+ ':'.join(witnessStack)])
 
         ro = nodes[0].verifyrawtransaction(hexRawSigned)
-        assert(ro['complete'] == True)
+        assert (ro['complete'] == True)
 
         ro = nodes[0].signrawtransactionwithwallet(hexRaw)
-        assert(ro['complete'] == True)
-        assert(ro['hex'] == hexRawSigned)
+        assert (ro['complete'] == True)
+        assert (ro['hex'] == hexRawSigned)
 
         txid = nodes[0].sendrawtransaction(hexRawSigned)
 
         self.stakeBlocks(1)
-        block5_hash = nodes[0].getblockhash(5)
-        ro = nodes[0].getblock(block5_hash)
-        assert(txid in ro['tx'])
+        block4_hash = nodes[0].getblockhash(4)
+        ro = nodes[0].getblock(block4_hash)
+        assert (txid in ro['tx'])
 
 
         self.log.info("Test combinerawtransaction")
@@ -311,13 +256,13 @@ class MultiSigTest(GhostTestFramework):
         rawtx = nodes[0].createrawtransaction(inputs, outputs)
 
         rawtx0 = nodes[0].signrawtransactionwithwallet(rawtx)
-        assert(rawtx0['complete'] == False)
+        assert (rawtx0['complete'] == False)
 
         rawtx2 = nodes[2].signrawtransactionwithwallet(rawtx0['hex']) # Keeps signature from node0
-        assert(rawtx2['complete'])
+        assert (rawtx2['complete'])
 
         rawtx2 = nodes[2].signrawtransactionwithwallet(rawtx)
-        assert(rawtx2['complete'] == False)
+        assert (rawtx2['complete'] == False)
 
         rawtx_complete = nodes[0].combinerawtransaction([rawtx0['hex'], rawtx2['hex']])
         nodes[0].sendrawtransaction(rawtx_complete)

@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2014 The BlackCoin developers
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,6 +18,68 @@
 #include <coins.h>
 #include <insight/insight.h>
 #include <txmempool.h>
+#include <node/transaction.h>
+#include <validation.h>
+
+/* Calculate the difficulty for a given block index.
+ * Duplicated from rpc/blockchain.cpp for linking
+ */
+static double GetDifficulty(const CBlockIndex* blockindex)
+{
+    CHECK_NONFATAL(blockindex);
+
+    int nShift = (blockindex->nBits >> 24) & 0xff;
+    double dDiff =
+        (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+
+    while (nShift < 29)
+    {
+        dDiff *= 256.0;
+        nShift++;
+    }
+    while (nShift > 29)
+    {
+        dDiff /= 256.0;
+        nShift--;
+    }
+
+    return dDiff;
+}
+
+double GetPoSKernelPS(CBlockIndex *pindex)
+{
+    LOCK(cs_main);
+
+    CBlockIndex *pindexPrevStake = nullptr;
+
+    int nBestHeight = pindex->nHeight;
+
+    int nPoSInterval = 72; // blocks sampled
+    double dStakeKernelsTriedAvg = 0;
+    int nStakesHandled = 0, nStakesTime = 0;
+
+    while (pindex && nStakesHandled < nPoSInterval) {
+        if (pindex->IsProofOfStake()) {
+            if (pindexPrevStake) {
+                dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake) * 4294967296.0;
+                nStakesTime += pindexPrevStake->nTime - pindex->nTime;
+                nStakesHandled++;
+            }
+            pindexPrevStake = pindex;
+        }
+        pindex = pindex->pprev;
+    }
+
+    double result = 0;
+
+    if (nStakesTime) {
+        result = dStakeKernelsTriedAvg / nStakesTime;
+    }
+
+    result *= Params().GetStakeTimestampMask(nBestHeight) + 1;
+
+    return result;
+}
 
 extern double GetDifficulty(const CBlockIndex* blockindex);
 
@@ -148,7 +210,7 @@ bool CheckStakeKernelHash(const CBlockIndex *pindexPrev,
         return false;
     }
 
-    if (LogAcceptCategory(BCLog::POS) && !fPrintProofOfStake) {
+    if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug) && !fPrintProofOfStake) {
         LogPrintf("%s: using modifier=%s at height=%d timestamp=%s\n",
             __func__, bnStakeModifier.ToString(), nStakeModifierHeight,
             FormatISO8601DateTime(nStakeModifierTime));
@@ -172,7 +234,7 @@ bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint25
     const COutPoint &prevout = tx.vin[0].prevout;
     CTransactionRef txPrev;
     CBlock blockKernel; // block containing stake kernel, GetTransaction should only fill the header.
-    if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel)
+    if (!node::GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel)
         || prevout.n >= txPrev->vpout.size()) {
         return false;
     }
@@ -196,13 +258,15 @@ bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint25
 };
 
 // Check kernel hash target and coinstake signature
-bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake)
+bool CheckProofOfStake(Chainstate &chain_state, BlockValidationState &state, const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake)
 {
     // pindexPrev is the current tip, the block the new block will connect on to
     // nTime is the time of the new/next block
 
-    if (!tx.IsCoinStake()
-        || tx.vin.size() < 1) {
+    auto &pblocktree{chain_state.m_blockman.m_block_tree_db};
+
+    if (!tx.IsCoinStake() ||
+        tx.vin.size() < 1) {
         LogPrintf("ERROR: %s: malformed-txn %s\n", __func__, tx.GetHash().ToString());
         return state.Invalid(BlockValidationResult::DOS_100, "malformed-txn");
     }
@@ -218,7 +282,7 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
     CAmount amount;
 
     Coin coin;
-    if (!::ChainstateActive().CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
+    if (!chain_state.CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
         // Read from spent cache
         SpentCoin spent_coin;
         if (!pblocktree->ReadSpentCache(txin.prevout, spent_coin)) {
@@ -239,7 +303,7 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
         return state.Invalid(BlockValidationResult::DOS_100, "invalid-prevout");
     }
 
-    CBlockIndex *pindex = ::ChainActive()[coin.nHeight];
+    CBlockIndex *pindex = chain_state.m_chain[coin.nHeight];
     if (!pindex) {
         LogPrintf("ERROR: %s: invalid-prevout\n", __func__);
         return state.Invalid(BlockValidationResult::DOS_100, "invalid-prevout");
@@ -262,13 +326,13 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
     std::vector<uint8_t> vchAmount(8);
     part::SetAmount(vchAmount, amount);
     // Redundant: all inputs are checked later during CheckInputs
-    if (!VerifyScript(scriptSig, kernelPubKey, witness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&tx, 0, vchAmount), &serror)) {
+    if (!VerifyScript(scriptSig, kernelPubKey, witness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&tx, 0, vchAmount, MissingDataBehavior::FAIL), &serror)) {
         LogPrintf("ERROR: %s: verify-script-failed, txn %s, reason %s\n", __func__, tx.GetHash().ToString(), ScriptErrorString(serror));
         return state.Invalid(BlockValidationResult::DOS_100, "verify-cs-script-failed");
     }
 
     if (!CheckStakeKernelHash(pindexPrev, nBits, nBlockFromTime,
-        amount, txin.prevout, nTime, hashProofOfStake, targetProofOfStake, LogAcceptCategory(BCLog::POS))) {
+        amount, txin.prevout, nTime, hashProofOfStake, targetProofOfStake, LogAcceptCategory(BCLog::POS, BCLog::Level::Debug))) {
         LogPrintf("WARNING: %s: Check kernel failed on coinstake %s, hashProof=%s\n", __func__, tx.GetHash().ToString(), hashProofOfStake.ToString());
         return state.Invalid(BlockValidationResult::DOS_1, "check-kernel-failed");
     }
@@ -282,7 +346,7 @@ bool CheckProofOfStake(BlockValidationState &state, const CBlockIndex *pindexPre
         for (size_t k = 1; k < tx.vin.size(); ++k) {
             const CTxIn &txin = tx.vin[k];
             Coin coin;
-            if (!::ChainstateActive().CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
+            if (!chain_state.CoinsTip().GetCoin(txin.prevout, coin) || coin.IsSpent()) {
                 SpentCoin spent_coin;
                 if (!pblocktree->ReadSpentCache(txin.prevout, spent_coin)) {
                     LogPrintf("ERROR: %s: prevout-not-found\n", __func__);
@@ -335,14 +399,14 @@ bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock)
 }
 
 // Used only when staking, not during validation
-bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t *pBlockTime)
+bool CheckKernel(Chainstate &chain_state, const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t *pBlockTime)
 {
     uint256 hashProofOfStake, targetProofOfStake;
 
     Coin coin;
     {
         LOCK(::cs_main);
-        if (!::ChainstateActive().CoinsTip().GetCoin(prevout, coin)) {
+        if (!chain_state.CoinsTip().GetCoin(prevout, coin)) {
             return error("%s: prevout not found", __func__);
         }
     }
@@ -353,7 +417,7 @@ bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTim
         return error("%s: prevout is spent", __func__);
     }
 
-    CBlockIndex *pindex = ::ChainActive()[coin.nHeight];
+    CBlockIndex *pindex = chain_state.m_chain[coin.nHeight];
     if (!pindex) {
         return false;
     }
@@ -373,3 +437,8 @@ bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTim
         amount, prevout, nTime, hashProofOfStake, targetProofOfStake);
 }
 
+int64_t GetProofOfStakeReward(const CChainParams &chainparams, const CBlockIndex *pindexPrev, int64_t nFees)
+{
+    int64_t nSubsidy = (pindexPrev->nMoneySupply / COIN) * chainparams.GetCoinYearReward(pindexPrev->nTime) / (365 * 24 * (60 * 60 / chainparams.GetTargetSpacing()));
+    return nSubsidy + nFees;
+};

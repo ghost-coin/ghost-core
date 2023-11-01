@@ -86,24 +86,3 @@ when macOS "dark mode" is activated.
 
 
 Credits
-=======
-
-Thanks to everyone who directly contributed to this release:
-
-- Andrew Chow
-- Andrew Poelstra
-- fanquake
-- Hennadii Stepanov
-- Jon Atack
-- Kittywhiskers Van Gogh
-- Luke Dashjr
-- MarcoFalke
-- Pavol Rusnak
-- Pieter Wuille
-- prayank23
-- Rafael Sadowski
-- W. J. van der Laan
-
-
-As well as to everyone that helped with translations on
-[Transifex](https://www.transifex.com/bitcoin/bitcoin/).

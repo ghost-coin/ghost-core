@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -43,6 +43,24 @@ std::string GetLanguage(int nLanguage);
 std::string ListEnabledLanguages(std::string separator);
 bool HaveLanguage(int nLanguage);
 
+}
+
+namespace shamir39 {
+
+class StrongRandomIssuer
+{
+public:
+    const static size_t m_max_bytes{256};
+    unsigned char m_cached_bytes[m_max_bytes];
+    size_t m_bits_used{0};
+    size_t m_bytes_used{m_max_bytes}; // initialise to empty
+
+    void RefillCache();
+    int GetBits(size_t num_bits, int &output);
+};
+
+int splitmnemonic(const std::string mnemonic_in, int language_ind, size_t num_shares, size_t required_shares, std::vector<std::string> &output, std::string &sError);
+int combinemnemonic(const std::vector<std::string> &mnemonics_in, int language_ind, std::string &mnemonic_out, std::string &sError);
 }
 
 #endif // PARTICL_KEY_MNEMONIC_H

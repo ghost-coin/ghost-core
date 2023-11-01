@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,8 +11,8 @@
 #include <streams.h>
 #include <univalue.h>
 #include <util/strencodings.h>
+#include <util/string.h>
 
-#include <boost/algorithm/string.hpp>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -28,12 +28,12 @@
 //
 // (normal build)
 // $ mkdir dump
-// $ for N in $(seq 1 10); do TEST_DUMP_DIR=dump test/functional/feature_taproot --dumptests; done
+// $ for N in $(seq 1 10); do TEST_DUMP_DIR=dump test/functional/feature_taproot.py --dumptests; done
 // $ ...
 //
-// (fuzz test build)
+// (libFuzzer build)
 // $ mkdir dump-min
-// $ ./src/test/fuzz/script_assets_test_minimizer -merge=1 dump-min/ dump/
+// $ FUZZ=script_assets_test_minimizer ./src/test/fuzz/fuzz -merge=1 -use_value_profile=1 dump-min/ dump/
 // $ (echo -en '[\n'; cat dump-min/* | head -c -2; echo -en '\n]') >script_assets_test.json
 
 namespace {
@@ -54,7 +54,7 @@ CMutableTransaction TxFromHex(const std::string& str)
 {
     CMutableTransaction tx;
     try {
-        VectorReader(SER_DISK, SERIALIZE_TRANSACTION_NO_WITNESS, CheckedParseHex(str), 0) >> tx;
+        SpanReader{SER_DISK, SERIALIZE_TRANSACTION_NO_WITNESS, CheckedParseHex(str)} >> tx;
     } catch (const std::ios_base::failure&) {
         throw std::runtime_error("Tx deserialization failure");
     }
@@ -68,7 +68,7 @@ std::vector<CTxOutSign> TxOutsFromJSON(const UniValue& univalue)
     for (size_t i = 0; i < univalue.size(); ++i) {
         CTxOut txout;
         try {
-            VectorReader(SER_DISK, 0, CheckedParseHex(univalue[i].get_str()), 0) >> txout;
+            SpanReader{SER_DISK, 0, CheckedParseHex(univalue[i].get_str())} >> txout;
         } catch (const std::ios_base::failure&) {
             throw std::runtime_error("Prevout invalid format");
         }
@@ -133,11 +133,9 @@ unsigned int ParseScriptFlags(const std::string& str)
     if (str.empty()) return 0;
 
     unsigned int flags = 0;
-    std::vector<std::string> words;
-    boost::algorithm::split(words, str, boost::algorithm::is_any_of(","));
+    std::vector<std::string> words = SplitString(str, ',');
 
-    for (const std::string& word : words)
-    {
+    for (const std::string& word : words) {
         auto it = FLAG_NAMES.find(word);
         if (it == FLAG_NAMES.end()) throw std::runtime_error("Unknown verification flag " + word);
         flags |= it->second;
@@ -154,7 +152,7 @@ void Test(const std::string& str)
     CMutableTransaction tx = TxFromHex(test["tx"].get_str());
     const std::vector<CTxOutSign> prevouts = TxOutsFromJSON(test["prevouts"]);
     if (prevouts.size() != tx.vin.size()) throw std::runtime_error("Incorrect number of prevouts");
-    size_t idx = test["index"].get_int64();
+    size_t idx = test["index"].getInt<int64_t>();
     if (idx >= tx.vin.size()) throw std::runtime_error("Invalid index");
     unsigned int test_flags = ParseScriptFlags(test["flags"].get_str());
     bool final = test.exists("final") && test["final"].get_bool();
@@ -163,8 +161,8 @@ void Test(const std::string& str)
         tx.vin[idx].scriptSig = ScriptFromHex(test["success"]["scriptSig"].get_str());
         tx.vin[idx].scriptWitness = ScriptWitnessFromJSON(test["success"]["witness"]);
         PrecomputedTransactionData txdata;
-        txdata.Init(tx, std::vector<CTxOutSign>(prevouts));
-        MutableTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].amount, txdata);
+        txdata.Init_vec(tx, std::vector<CTxOutSign>(prevouts));
+        MutableTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].amount, txdata, MissingDataBehavior::ASSERT_FAIL);
         for (const auto flags : ALL_FLAGS) {
             // "final": true tests are valid for all flags. Others are only valid with flags that are
             // a subset of test_flags.
@@ -178,8 +176,8 @@ void Test(const std::string& str)
         tx.vin[idx].scriptSig = ScriptFromHex(test["failure"]["scriptSig"].get_str());
         tx.vin[idx].scriptWitness = ScriptWitnessFromJSON(test["failure"]["witness"]);
         PrecomputedTransactionData txdata;
-        txdata.Init(tx, std::vector<CTxOutSign>(prevouts));
-        MutableTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].amount, txdata);
+        txdata.Init_vec(tx, std::vector<CTxOutSign>(prevouts));
+        MutableTransactionSignatureChecker txcheck(&tx, idx, prevouts[idx].amount, txdata, MissingDataBehavior::ASSERT_FAIL);
         for (const auto flags : ALL_FLAGS) {
             // If a test is supposed to fail with test_flags, it should also fail with any superset thereof.
             if ((flags & test_flags) == test_flags) {
@@ -189,15 +187,16 @@ void Test(const std::string& str)
     }
 }
 
-ECCVerifyHandle handle;
+void test_init() {}
 
-}
-
-void test_one_input(const std::vector<uint8_t>& buffer)
+FUZZ_TARGET_INIT_HIDDEN(script_assets_test_minimizer, test_init, /*hidden=*/true)
 {
     if (buffer.size() < 2 || buffer.back() != '\n' || buffer[buffer.size() - 2] != ',') return;
     const std::string str((const char*)buffer.data(), buffer.size() - 2);
     try {
         Test(str);
-    } catch (const std::runtime_error&) {}
+    } catch (const std::runtime_error&) {
+    }
 }
+
+} // namespace

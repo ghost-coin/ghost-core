@@ -7,7 +7,7 @@
 #define BITCOIN_INSIGHT_SPENTINDEX_H
 
 #include <uint256.h>
-#include <amount.h>
+#include <consensus/amount.h>
 
 struct CSpentIndexKey {
     uint256 txid;

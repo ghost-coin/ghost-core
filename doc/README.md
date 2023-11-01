@@ -44,7 +44,7 @@ The following are developer notes on how to build Particl Core on your native pl
 - [FreeBSD Build Notes](build-freebsd.md)
 - [OpenBSD Build Notes](build-openbsd.md)
 - [NetBSD Build Notes](build-netbsd.md)
-- [Gitian Building Guide (External Link)](https://github.com/bitcoin-core/docs/blob/master/gitian-building.md)
+- [Android Build Notes](build-android.md)
 
 Development
 ---------------------
@@ -52,7 +52,6 @@ The Particl repo's [root README](/README.md) contains relevant information on th
 
 - [Developer Notes](developer-notes.md)
 - [Productivity Notes](productivity.md)
-- [Release Notes](release-notes.md)
 - [Release Process](release-process.md)
 - [Source Code Documentation (External Link)](https://doxygen.bitcoincore.org/)
 - [Translation Process](translation_process.md)
@@ -64,6 +63,7 @@ The Particl repo's [root README](/README.md) contains relevant information on th
 - [BIPS](bips.md)
 - [Dnsseed Policy](dnsseed-policy.md)
 - [Benchmarking](benchmarking.md)
+- [Internal Design Docs](design/)
 
 ### Resources
 * Discuss on [BitcoinTalk](https://bitcointalk.org/index.php?topic=1835782.0) forums.
@@ -72,14 +72,20 @@ The Particl repo's [root README](/README.md) contains relevant information on th
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
 - [bitcoin.conf Configuration File](bitcoin-conf.md)
+- [CJDNS Support](cjdns.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
+- [I2P Support](i2p.md)
+- [Init Scripts (systemd/upstart/openrc)](init.md)
+- [Managing Wallets](managing-wallets.md)
+- [Multisig Tutorial](multisig-tutorial.md)
+- [P2P bad ports definition and list](p2p-bad-ports.md)
+- [PSBT support](psbt.md)
 - [Reduce Memory](reduce-memory.md)
 - [Reduce Traffic](reduce-traffic.md)
 - [Tor Support](tor.md)
-- [Init Scripts (systemd/upstart/openrc)](init.md)
+- [Transaction Relay Policy](policy/README.md)
 - [ZMQ](zmq.md)
-- [PSBT support](psbt.md)
 
 License
 ---------------------

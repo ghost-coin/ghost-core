@@ -20,8 +20,8 @@ class TxIndexTest(GhostTestFramework):
             ['-debug',],
             ['-debug','-txindex'],
             # Nodes 2/3 are used for testing
-            ['-debug','-txindex'],
-            ['-debug','-txindex'],]
+            ['-debug','-txindex', '-dbcompression', '-dbmaxopenfiles=1000',],
+            ['-debug','-txindex', '-dbcompression', '-dbmaxopenfiles=1000',],]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -55,7 +55,7 @@ class TxIndexTest(GhostTestFramework):
 
         # Check verbose raw transaction results
         verbose = self.nodes[0].getrawtransaction(txid, 1)
-        assert(len(verbose['vout']) == 2)
+        assert (len(verbose['vout']) == 2)
 
         str0 = self.dumpj(verbose['vout'][0])
         str1 = self.dumpj(verbose['vout'][1])
@@ -66,11 +66,11 @@ class TxIndexTest(GhostTestFramework):
             assert_equal(verbose['vout'][1]['valueSat'], 500000000)
             assert_equal(verbose['vout'][1]['value'], 5)
         else:
-            assert(False)
+            assert (False)
 
         ro = nodes[0].gettxoutsetinfobyscript()
-        assert(ro['height'] == 0)
-        assert(ro['paytopubkeyhash']['num_plain'] == 15)
+        assert (ro['height'] == 0)
+        assert (ro['paytopubkeyhash']['num_plain'] == 15)
 
         print('Passed\n')
 

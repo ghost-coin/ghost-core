@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 The Bitcoin Core developers
+// Copyright (c) 2019-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,12 +31,15 @@ static void CHACHA20_POLY1305_AEAD(benchmark::Bench& bench, size_t buffersize, b
     uint32_t len = 0;
     bench.batch(buffersize).unit("byte").run([&] {
         // encrypt or decrypt the buffer with a static key
-        assert(aead.Crypt(seqnr_payload, seqnr_aad, aad_pos, out.data(), out.size(), in.data(), buffersize, true));
+        const bool crypt_ok_1 = aead.Crypt(seqnr_payload, seqnr_aad, aad_pos, out.data(), out.size(), in.data(), buffersize, true);
+        assert(crypt_ok_1);
 
         if (include_decryption) {
             // if we decrypt, include the GetLength
-            assert(aead.GetLength(&len, seqnr_aad, aad_pos, in.data()));
-            assert(aead.Crypt(seqnr_payload, seqnr_aad, aad_pos, out.data(), out.size(), in.data(), buffersize, true));
+            const bool get_length_ok = aead.GetLength(&len, seqnr_aad, aad_pos, in.data());
+            assert(get_length_ok);
+            const bool crypt_ok_2 = aead.Crypt(seqnr_payload, seqnr_aad, aad_pos, out.data(), out.size(), in.data(), buffersize, true);
+            assert(crypt_ok_2);
         }
 
         // increase main sequence number
@@ -112,12 +115,12 @@ static void HASH_1MB(benchmark::Bench& bench)
     HASH(bench, BUFFER_SIZE_LARGE);
 }
 
-BENCHMARK(CHACHA20_POLY1305_AEAD_64BYTES_ONLY_ENCRYPT);
-BENCHMARK(CHACHA20_POLY1305_AEAD_256BYTES_ONLY_ENCRYPT);
-BENCHMARK(CHACHA20_POLY1305_AEAD_1MB_ONLY_ENCRYPT);
-BENCHMARK(CHACHA20_POLY1305_AEAD_64BYTES_ENCRYPT_DECRYPT);
-BENCHMARK(CHACHA20_POLY1305_AEAD_256BYTES_ENCRYPT_DECRYPT);
-BENCHMARK(CHACHA20_POLY1305_AEAD_1MB_ENCRYPT_DECRYPT);
-BENCHMARK(HASH_64BYTES);
-BENCHMARK(HASH_256BYTES);
-BENCHMARK(HASH_1MB);
+BENCHMARK(CHACHA20_POLY1305_AEAD_64BYTES_ONLY_ENCRYPT, benchmark::PriorityLevel::HIGH);
+BENCHMARK(CHACHA20_POLY1305_AEAD_256BYTES_ONLY_ENCRYPT, benchmark::PriorityLevel::HIGH);
+BENCHMARK(CHACHA20_POLY1305_AEAD_1MB_ONLY_ENCRYPT, benchmark::PriorityLevel::HIGH);
+BENCHMARK(CHACHA20_POLY1305_AEAD_64BYTES_ENCRYPT_DECRYPT, benchmark::PriorityLevel::HIGH);
+BENCHMARK(CHACHA20_POLY1305_AEAD_256BYTES_ENCRYPT_DECRYPT, benchmark::PriorityLevel::HIGH);
+BENCHMARK(CHACHA20_POLY1305_AEAD_1MB_ENCRYPT_DECRYPT, benchmark::PriorityLevel::HIGH);
+BENCHMARK(HASH_64BYTES, benchmark::PriorityLevel::HIGH);
+BENCHMARK(HASH_256BYTES, benchmark::PriorityLevel::HIGH);
+BENCHMARK(HASH_1MB, benchmark::PriorityLevel::HIGH);

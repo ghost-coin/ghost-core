@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2020 The Bitcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,8 +9,6 @@
 #include <pubkey.h>
 #include <random.h>
 #include <util/system.h>
-
-#include <boost/thread/thread.hpp>
 
 #include <vector>
 
@@ -27,13 +25,10 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::Bench& bench)
     // We shouldn't ever be running with the checkqueue on a single core machine.
     if (GetNumCores() <= 1) return;
 
-    const ECCVerifyHandle verify_handle;
     ECC_Start();
 
     struct PrevectorJob {
         prevector<PREVECTOR_SIZE, uint8_t> p;
-        PrevectorJob(){
-        }
         explicit PrevectorJob(FastRandomContext& insecure_rand){
             p.resize(insecure_rand.randrange(PREVECTOR_SIZE*2));
         }
@@ -41,15 +36,11 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::Bench& bench)
         {
             return true;
         }
-        void swap(PrevectorJob& x){p.swap(x.p);};
     };
     CCheckQueue<PrevectorJob> queue {QUEUE_BATCH_SIZE};
-    boost::thread_group tg;
     // The main thread should be counted to prevent thread oversubscription, and
     // to decrease the variance of benchmark results.
-    for (auto x = 0; x < GetNumCores() - 1; ++x) {
-       tg.create_thread([&]{queue.Thread();});
-    }
+    queue.StartWorkerThreads(GetNumCores() - 1);
 
     // create all the data once, then submit copies in the benchmark.
     FastRandomContext insecure_rand(true);
@@ -64,14 +55,13 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::Bench& bench)
         // Make insecure_rand here so that each iteration is identical.
         CCheckQueueControl<PrevectorJob> control(&queue);
         for (auto vChecks : vBatches) {
-            control.Add(vChecks);
+            control.Add(std::move(vChecks));
         }
         // control waits for completion by RAII, but
         // it is done explicitly here for clarity
         control.Wait();
     });
-    tg.interrupt_all();
-    tg.join_all();
+    queue.StopWorkerThreads();
     ECC_Stop();
 }
-BENCHMARK(CCheckQueueSpeedPrevectorJob);
+BENCHMARK(CCheckQueueSpeedPrevectorJob, benchmark::PriorityLevel::HIGH);

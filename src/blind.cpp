@@ -15,6 +15,7 @@
 #include <version.h>
 
 #include <bloom.h>
+#include <common/bloom.h>
 #include <chain/ct_tainted.h>
 #include <chain/tx_blacklist.h>
 #include <chain/tx_whitelist.h>
@@ -87,9 +88,9 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
     // TODO: drop low value bits to fee
 
     if (nValueIn == 0) {
-        exponent = GetRandInt(5);
-        if (GetRandInt(10) == 0) { // sometimes raise the exponent
-            nBits += GetRandInt(5);
+        exponent = GetRand<int>(5);
+        if (GetRand<int>(10) == 0) { // sometimes raise the exponent
+            nBits += GetRand<int>(5);
         }
         return 0;
     }
@@ -105,7 +106,7 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
     int eMin = nDiv10 / 2;
     exponent = eMin;
     if (nDiv10-eMin > 0) {
-        exponent += GetRandInt(nDiv10-eMin);
+        exponent += GetRand<int>(nDiv10-eMin);
     }
 
     nTest = nValueIn / ipow(10, exponent);
@@ -178,8 +179,17 @@ void LoadCTWhitelist(const unsigned char *data, size_t data_length)
 
 void LoadCTTaintedFilter(const unsigned char *data, size_t data_length)
 {
-    CDataStream stream((const char*)data, (const char*)(data + data_length), SER_NETWORK, PROTOCOL_VERSION);
+    CDataStream stream(Span<const unsigned char>(data, data_length), SER_NETWORK, PROTOCOL_VERSION);
     stream >> ct_tainted_filter;
+}
+
+void LoadBlindedOutputFilters()
+{
+    LoadCTTaintedFilter(ct_tainted_filter_data, ct_tainted_filter_data_len);
+    LoadCTWhitelist(tx_whitelist_data, tx_whitelist_data_len);
+    LoadRCTWhitelist(anon_index_whitelist, anon_index_whitelist_size, 1);
+    LoadRCTBlacklist(anon_index_blacklist, anon_index_blacklist_size);
+    LoadRCTWhitelist(anon_index_whitelist2, anon_index_whitelist2_size, 2);
 }
 
 bool IsFrozenBlindOutput(const uint256 &txid)
@@ -204,6 +214,7 @@ bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::
     return rct_whitelist.count(anon_index);
 }
 
+namespace particl {
 void ECC_Start_Blinding()
 {
     assert(secp256k1_ctx_blind == nullptr);
@@ -214,7 +225,7 @@ void ECC_Start_Blinding()
     {
         // Pass in a random blinding seed to the secp256k1 context.
         std::vector<unsigned char, secure_allocator<unsigned char> > vseed(32);
-        GetRandBytes(vseed.data(), 32);
+        GetRandBytes(vseed);
         bool ret = secp256k1_context_randomize(ctx, vseed.data());
         assert(ret);
     }
@@ -238,4 +249,5 @@ void ECC_Stop_Blinding()
     if (ctx) {
         secp256k1_context_destroy(ctx);
     }
+}
 }

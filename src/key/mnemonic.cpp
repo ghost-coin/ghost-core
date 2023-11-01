@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2020 The Particl Core developers
+// Copyright (c) 2017-2022 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,11 +18,16 @@
 
 #include <util/system.h>
 #include <util/string.h>
+#include <util/strencodings.h>
 #include <crypto/hmac_sha512.h>
 #include <crypto/sha256.h>
+#include <random.h>
 
 #include <unilib/uninorms.h>
 #include <unilib/utf8.h>
+
+#include <atomic>
+#include <cmath>
 
 #ifdef ENABLE_BIP39_ENGLISH
 #include <key/wordlists/english.h>
@@ -146,13 +151,13 @@ static void NormaliseUnicode(std::string &str)
     ufal::unilib::utf8::decode(str, u32);
     ufal::unilib::uninorms::nfkd(u32);
     ufal::unilib::utf8::encode(u32, str);
-};
+}
 
 static void NormaliseInput(std::string &str)
 {
     part::TrimWhitespace(str);
     NormaliseUnicode(str);
-};
+}
 
 int GetWord(int o, const char *pwl, int max, std::string &sWord)
 {
@@ -163,13 +168,12 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
             o--;
         }
         pt++;
-
-        if (pt >= pwl+max) {
+        if (pt >= pwl + max) {
             return 1;
         }
     }
 
-    while (pt < (pwl+max)) {
+    while (pt < (pwl + max)) {
         if (*pt == '\n') {
             return 0;
         }
@@ -178,17 +182,17 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
     }
 
     return 1;
-};
+}
 
 int GetWordOffset(const char *p, const char *pwl, int max, int &o)
 {
     // List must end with \n
-    char *pt = (char*)pwl;
+    const char *pt = pwl;
     int l = strlen(p);
     int i = 0;
     int c = 0;
     int f = 1;
-    while (pt < (pwl+max)) {
+    while (pt < (pwl + max)) {
         if (*pt == '\n') {
             if (f && c == l) { // found
                 o = i;
@@ -201,7 +205,7 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
             if (c >= l) {
                 f = 0;
             } else
-            if (f && *(p+c) != *pt) {
+            if (f && *(p + c) != *pt) {
                 f = 0;
             }
             c++;
@@ -209,12 +213,54 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
         pt++;
     }
     return 1;
-};
+}
+
+int GetWordOffsets(int nLanguage, const std::string &sWordList, std::vector<int> &vWordInts, std::string &sError)
+{
+    if (nLanguage < 1 || nLanguage >= WLL_MAX || !HaveLanguage(nLanguage)) {
+        return errorN(1, sError, __func__, "Unknown language");
+    }
+    const char *pwl = (const char*) mnLanguages[nLanguage];
+    int m = mnLanguageLens[nLanguage];
+    char tmp[4096]; // msan
+    memset(tmp, 0, sizeof(tmp));
+    if (sWordList.size() >= 4096) {
+        return errorN(1, sError, __func__, "Word string is too long.");
+    }
+    strcpy(tmp, sWordList.c_str());
+
+    char *p, *token;
+    p = strtok_r(tmp, " ", &token);
+    while (p != nullptr) {
+        int ofs;
+        if (0 != GetWordOffset(p, pwl, m, ofs)) {
+            sError = strprintf("Unknown word: %s", p);
+            return errorN(3, "%s: %s", __func__, sError.c_str());
+        }
+
+        vWordInts.push_back(ofs);
+        p = strtok_r(nullptr, " ", &token);
+    }
+    return 0;
+}
+
+int CountLanguageWords(const char *pwl, int max) {
+    // List must end with \n
+    int num_words = 0;
+    const char *pt = pwl;
+    while (pt < (pwl + max)) {
+        if (*pt == '\n') {
+            num_words++;
+        }
+        pt++;
+    }
+    return num_words;
+}
 
 int GetLanguageOffset(std::string sIn)
 {
     int nLanguage = -1;
-    std::transform(sIn.begin(), sIn.end(), sIn.begin(), ::tolower);
+    sIn = ToLower(sIn);
 
     for (size_t k = 1; k < WLL_MAX; ++k) {
         if (sIn != mnLanguagesTag[k]) {
@@ -229,7 +275,7 @@ int GetLanguageOffset(std::string sIn)
     }
 
     return nLanguage;
-};
+}
 
 int DetectLanguage(const std::string &sWordList)
 {
@@ -242,7 +288,7 @@ int DetectLanguage(const std::string &sWordList)
     }
 
     for (int l = 1; l < WLL_MAX; ++l) {
-        char *pwl = (char*) mnLanguages[l];
+        const char *pwl = (const char*) mnLanguages[l];
         if (!pwl) {
             continue;
         }
@@ -271,8 +317,8 @@ int DetectLanguage(const std::string &sWordList)
         }
 
         // Chinese dialects overlap too much to tolerate failures
-        if ((l == WLL_CHINESE_S || l == WLL_CHINESE_T)
-            && nMiss > 0) {
+        if ((l == WLL_CHINESE_S || l == WLL_CHINESE_T) &&
+            nMiss > 0) {
             continue;
         }
 
@@ -282,7 +328,7 @@ int DetectLanguage(const std::string &sWordList)
     }
 
     return 0;
-};
+}
 
 int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
 {
@@ -339,7 +385,7 @@ int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWo
             o |= (b2 << (r-5));
             o |= (b3 >> (8-(r-5)));
         } else {
-            o |= ((int)b2) >> ((8 - (11 - 8))-r);
+            o |= (int(b2)) >> ((8 - (11 - 8))-r);
         }
 
         o = o & 0x7FF;
@@ -348,7 +394,7 @@ int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWo
         i += 11;
     }
 
-    char *pwl = (char*) mnLanguages[nLanguage];
+    const char *pwl = (const char*) mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
     for (size_t k = 0; k < vWord.size(); ++k) {
@@ -371,7 +417,7 @@ int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWo
     }
 
     return 0;
-};
+}
 
 int Decode(int &nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError, bool fIgnoreChecksum)
 {
@@ -391,40 +437,24 @@ int Decode(int &nLanguage, const std::string &sWordListIn, std::vector<uint8_t> 
 
     LogPrint(BCLog::HDWALLET, "%s: Detected language %d.\n", __func__, nLanguage);
 
-    char tmp[2048]; // msan
-    memset(tmp, 0, sizeof(tmp));
     if (sWordList.size() >= 2048) {
         sError = "Word List too long.";
         return errorN(2, "%s: %s", __func__, sError.c_str());
     }
 
-    if (strstr(sWordList.c_str(), "  ") != NULL) {
+    if (strstr(sWordList.c_str(), "  ") != nullptr) {
         sError = "Multiple spaces between words";
         return errorN(4, "%s: %s", __func__, sError.c_str());
     }
 
-    strcpy(tmp, sWordList.c_str());
-
-    char *pwl = (char*) mnLanguages[nLanguage];
-    int m = mnLanguageLens[nLanguage];
-
     std::vector<int> vWordInts;
-
-    char *p, *token;
-    p = strtok_r(tmp, " ", &token);
-    while (p != nullptr) {
-        int ofs;
-        if (0 != GetWordOffset(p, pwl, m, ofs)) {
-            sError = strprintf("Unknown word: %s", p);
-            return errorN(3, "%s: %s", __func__, sError.c_str());
-        }
-
-        vWordInts.push_back(ofs);
-        p = strtok_r(nullptr, " ", &token);
+    int rv = GetWordOffsets(nLanguage, sWordList, vWordInts, sError);
+    if (0 != rv) {
+        return rv;
     }
 
-    if (!fIgnoreChecksum
-        && vWordInts.size() % 3 != 0) {
+    if (!fIgnoreChecksum &&
+        vWordInts.size() % 3 != 0) {
         sError = "No. of words must be divisible by 3";
         return errorN(4, "%s: %s", __func__, sError.c_str());
     }
@@ -446,10 +476,10 @@ int Decode(int &nLanguage, const std::string &sWordListIn, std::vector<uint8_t> 
 
         vEntropy[s] |= (o >> (r+3)) & 0x7FF;
 
-        if (s < (int)el-1) {
+        if (s < int(el)-1) {
             if (r > 5) {
                 vEntropy[s+1] |= (uint8_t) ((o >> (r-5))) & 0x7FF;
-                if (s < (int)el-2) {
+                if (s < int(el)-2) {
                     vEntropy[s+2] |= (uint8_t) (o << (8-(r-5))) & 0x7FF;
                 }
             } else {
@@ -490,7 +520,6 @@ int Decode(int &nLanguage, const std::string &sWordListIn, std::vector<uint8_t> 
     if (r > 0) {
         vCSTest[nBytesChecksum-1] &= (((1<<r)-1) << (8-r));
     }
-
     if (vCSTest != vCS) {
         sError = "Checksum mismatch.";
         return errorN(5, "%s: %s", __func__, sError.c_str());
@@ -549,13 +578,11 @@ int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::ve
 
     vSeed.resize(64);
 
-    std::string sWordList = sMnemonic;
+    std::string sWordList = sMnemonic, sPassword = sPasswordIn;
     NormaliseInput(sWordList);
-
-    std::string sPassword = sPasswordIn;
     NormaliseInput(sPassword);
 
-    if (strstr(sWordList.c_str(), "  ") != NULL) {
+    if (strstr(sWordList.c_str(), "  ") != nullptr) {
         return errorN(1, "%s: Multiple spaces between words.", __func__);
     }
 
@@ -571,13 +598,12 @@ int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::ve
     return 0;
 };
 
-int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
+int AddChecksum(int nLanguage, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
 {
     std::string sWordList = sWordListIn;
     NormaliseInput(sWordList);
 
     sWordListOut = "";
-    int nLanguage = nLanguageIn;
     if (nLanguage == -1) {
         nLanguage = DetectLanguage(sWordList); // Needed here for MnemonicEncode, MnemonicDecode will complain if in error
     }
@@ -587,11 +613,9 @@ int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sW
     if (0 != (rv = Decode(nLanguage, sWordList, vEntropy, sError, true))) {
         return rv;
     }
-
     if (0 != (rv = Encode(nLanguage, vEntropy, sWordListOut, sError))) {
         return rv;
     }
-
     if (0 != (rv = Decode(nLanguage, sWordListOut, vEntropy, sError))) {
         return rv;
     }
@@ -606,7 +630,7 @@ int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
         return errorN(1, "%s: %s", __func__, sError.c_str());
     }
 
-    char *pwl = (char*) mnLanguages[nLanguage];
+    const char *pwl = (const char*) mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
     if (0 != GetWord(nWord, pwl, m, sWord)) {
@@ -645,4 +669,352 @@ bool HaveLanguage(int nLanguage){
     return mnLanguages[nLanguage];
 }
 
+} // namespace mnemonic
+
+
+namespace shamir39 {
+
+const int num_bits = 11;
+const int max_bits_value = (1 << num_bits) - 1;
+int exp_table[2048]; // 2 ^ num_bits
+int log_table[2048];
+
+std::atomic<bool> built_tables{false};
+std::atomic<bool> building_tables{false};
+
+/** Return the smallest number n such that (x >> n) == 0 (or 64 if the highest bit in x is set. */
+int static inline CountBits(int x)
+{
+    // TODO: Use __builtin_clz
+    int ret = 0;
+    while (x) {
+        x >>= 1;
+        ++ret;
+    }
+    return ret;
 }
+
+void StrongRandomIssuer::RefillCache()
+{
+    GetStrongRandBytes2(m_cached_bytes, m_max_bytes);
+    m_bytes_used = 0;
+    m_bits_used = 0;
+}
+
+int StrongRandomIssuer::GetBits(size_t num_bits, int &output)
+{
+    output = 0;
+    if (num_bits > 32) {
+        return 1;
+    }
+    for (size_t k = 0; k < num_bits; ++k) {
+        if (m_bytes_used >= m_max_bytes) {
+            RefillCache();
+        }
+        if (m_cached_bytes[m_bytes_used] & (1 << m_bits_used)) {
+            output |= 1 << k;
+        }
+        m_bits_used++;
+        if (m_bits_used >= 8) {
+            m_bytes_used++;
+            m_bits_used = 0;
+        }
+    }
+    return 0;
+}
+
+static int build_tables()
+{
+    if (built_tables) {
+        return 0;
+    }
+    if (building_tables) {
+        LogPrintf("Error: Shamir39 tables are being initialised.\n");
+        return 1;
+    }
+    building_tables = true;
+
+    // https://github.com/iancoleman/shamir39/blob/cfc89c4fd24d360ee57e2158e6572d7042de580c/src/js/shamir39.js#L291
+    int size = 1 << num_bits;
+    int x = 1;
+    int primitive = 5;
+    for (int i = 0; i < size; ++i) {
+        exp_table[i] = x;
+        log_table[x] = i;
+        x <<= 1;
+        if (x >= size) {
+            x ^= primitive;
+            x &= size - 1;
+        }
+    }
+
+    built_tables = true;
+    return 0;
+}
+
+static int horner(int x, std::vector<int> &coeffs)
+{
+    // https://github.com/iancoleman/shamir39/blob/cfc89c4fd24d360ee57e2158e6572d7042de580c/src/js/shamir39.js#L521
+    // Polynomial evaluation at `x` using Horner's Method
+    // TODO: this can possibly be sped up using other methods
+    // NOTE: fx=fx * x + coeff[i] ->  exp(log(fx) + log(x)) + coeff[i],
+    //       so if fx===0, just set fx to coeff[i] because
+    //       using the exp/log form will result in incorrect value
+    int logx = log_table[x];
+    int fx = 0;
+    int max = (1 << num_bits) - 1;
+    for (int i = coeffs.size() - 1; i >= 0; i--) {
+        if (fx == 0) {
+            fx = coeffs[i];
+            continue;
+        }
+        fx = exp_table[ (logx + log_table[fx]) % max ] ^ coeffs[i];
+    }
+    return fx;
+}
+
+int splitmnemonic(const std::string mnemonic_in, int language_ind, size_t num_shares, size_t threshold, std::vector<std::string> &output, std::string &sError)
+{
+    output.clear();
+    if (num_shares < 2 || num_shares > max_bits_value) {
+        return errorN(1, sError, __func__, "Number of shares must be at least 2 and at most 4095");
+    }
+    if (threshold < 2 || threshold > num_shares) {
+        return errorN(1, sError, __func__, "Required shares must be at least 2 and at most num_shares");
+    }
+
+    std::string word_list = mnemonic_in;
+    mnemonic::NormaliseInput(word_list);
+
+    // Detect language if not specified
+    if (language_ind < 0) {
+        language_ind = mnemonic::DetectLanguage(word_list);
+        if (language_ind < 0) {
+            return errorN(2, sError, __func__, "Language detection failed");
+        }
+    }
+    if (language_ind < 1 || language_ind >= mnemonic::WLL_MAX || !mnemonic::HaveLanguage(language_ind)) {
+        return errorN(2, sError, __func__, "Unknown language");
+    }
+
+    LogPrint(BCLog::HDWALLET, "%s: Using language %d.\n", __func__, language_ind);
+    const char *pwl = (const char*) mnemonic::mnLanguages[language_ind];
+    int language_data_length = mnemonic::mnLanguageLens[language_ind];
+    int num_words = mnemonic::CountLanguageWords(pwl, language_data_length);
+
+    if (num_words != 2048) {
+        return errorN(2, sError, __func__, "Wordlist must have exactly 2048 words");
+    }
+
+    std::vector<int> word_offsets;
+    if (0 != mnemonic::GetWordOffsets(language_ind, word_list, word_offsets, sError)) {
+        return 1;
+    }
+    // convert bip39 mnemonic into bits
+
+    if (0 != build_tables()) {
+        return errorN(4, sError, __func__, "build_tables failed");
+    }
+
+    // Add padding word for compatibility with
+    // https://iancoleman.io/shamir39/
+    int bits_length = word_offsets.size() * num_bits;
+    int zero_pad = (std::ceil((float)bits_length / 4.0) * 4) - bits_length;
+    int pad_word = 1 << zero_pad;
+    word_offsets.insert(word_offsets.begin(), pad_word);
+
+    StrongRandomIssuer random_issuer;
+    std::vector<std::vector<int> > shares(num_shares);
+    for (int i = word_offsets.size() - 1; i >= 0; i--) {
+        std::vector<int> coeffs(threshold + 1);
+        coeffs[0] = word_offsets[i];
+        for (int k = 1; k < int(threshold); ++k) {
+            if (0 != random_issuer.GetBits(11, coeffs[k])) {
+                return errorN(5, sError, __func__, "Get random bits failed");
+            }
+        }
+
+        for (int k = 1; k < int(num_shares) + 1; k++) {
+            int y = horner(k, coeffs);
+            shares[k - 1].push_back(y);
+        }
+    }
+
+    for (int i = 0; i < int(num_shares); i++) {
+        std::string sWord, sWordList = "shamir39-p1";
+
+        // Pack parameters in prefix words, 5 bytes each in each word + run-on indicator bit
+        int params_words = std::ceil((float)std::max(CountBits(threshold), CountBits(i)) / 5.0);
+
+        for (int k = 0; k < params_words; k++) {
+            int shifted_m = (threshold >> (5 * k)) & 0x1F;
+            int shifted_i = (i >> (5 * k)) & 0x1F;
+            int params_word = (shifted_m << 5) + (shifted_i & 0x1F);
+            if (k > 0) {
+                params_word |= 1 << 10;
+            }
+            shares[i].push_back(params_word);
+        }
+
+        for (int k = shares[i].size() - 1; k >= 0 ; k--) {
+            int o = shares[i][k];
+            if (0 != mnemonic::GetWord(o, pwl, language_data_length, sWord)) {
+                return errorN(3, sError, __func__, strprintf("Word extract failed %d, language %d.", o, language_ind).c_str());
+            }
+            if (sWordList != "") {
+                sWordList += " ";
+            }
+            sWordList += sWord;
+        }
+        if (language_ind == mnemonic::WLL_JAPANESE) {
+            part::ReplaceStrInPlace(sWordList, " ", "\u3000");
+        }
+        output.push_back(sWordList);
+    }
+
+    return 0;
+}
+
+int lagrange(int word_index, const std::vector<int> &share_indices, const std::map<int, std::vector<int> > &shamir_shares)
+{
+    int at = 0; // always 0?
+    int sum = 0;
+    for (size_t i = 0; i < share_indices.size(); i++) {
+        const auto it = shamir_shares.find(share_indices[i]);
+        assert(it != shamir_shares.end());
+
+        int share_word_index = it->second[word_index];
+        if (share_word_index == 0) {
+            continue;
+        }
+        int product = log_table[share_word_index];
+
+        for (size_t j = 0; j < share_indices.size(); j++) {
+            if (i == j) {
+                continue;
+            }
+            int xi = share_indices[i] + 1;
+            int xj = share_indices[j] + 1;
+            product = (product + log_table[at ^ xj] - log_table[xi ^ xj] + max_bits_value /* to make sure it's not negative */ ) % max_bits_value;
+        }
+        sum = sum ^ exp_table[product];
+    }
+
+    return sum;
+}
+
+int combinemnemonic(const std::vector<std::string> &mnemonics_in, int language_ind, std::string &mnemonic_out, std::string &sError)
+{
+    mnemonic_out.clear();
+    if (mnemonics_in.size() < 2) {
+        return errorN(1, sError, __func__, "Too few mnemonics provided");
+    }
+
+    if (0 != build_tables()) {
+        return errorN(4, sError, __func__, "build_tables failed");
+    }
+
+    std::map<int, std::vector<int> > shamir_shares;
+    int group_threshold = 0;
+    for (size_t i = 0; i < mnemonics_in.size(); i++) {
+        std::string words = mnemonics_in[i];
+
+        const char *version_word = "shamir39-p1";
+        if (words.size() < strlen(version_word) ||
+            strncmp(words.data(), version_word, strlen(version_word)) != 0) {
+            return errorN(1, sError, __func__, "Invalid version word");
+        }
+        words = words.substr(strlen(version_word));
+        mnemonic::NormaliseInput(words);
+
+        if (language_ind < 0) {
+            language_ind = mnemonic::DetectLanguage(words);
+            if (language_ind < 0) {
+                return errorN(2, sError, __func__, "Language detection failed");
+            }
+        }
+        if (language_ind < 1 || language_ind >= mnemonic::WLL_MAX || !mnemonic::HaveLanguage(language_ind)) {
+            return errorN(2, sError, __func__, "Unknown language");
+        }
+
+        std::vector<int> word_offsets;
+        if (0 != mnemonic::GetWordOffsets(language_ind, words, word_offsets, sError)) {
+            return 1;
+        }
+
+        // Extract parameters
+        int threshold = 0;
+        int mnemonic_index = 0;
+        int last_param_word = 0;
+        for (size_t k = 0; k < word_offsets.size(); ++k) {
+            if (!(word_offsets[k] & (1 << 10))) {
+                last_param_word = k;
+                break;
+            }
+        }
+        for (int k = 0; k <= last_param_word; ++k) {
+            int word_index = word_offsets[k] & 0x3FF; // Strip run-on bit
+            int shift_bits = (5 * (last_param_word-k));
+            threshold += ((word_index >> 5) & 0x1F) << shift_bits;
+            mnemonic_index += (word_index & 0x1F) << shift_bits;
+        }
+        if (threshold < 2 || threshold > max_bits_value) {
+            return errorN(2, sError, __func__, "Threshold out of valid range");
+        }
+        if (mnemonic_index < 0 || mnemonic_index > max_bits_value) {
+            return errorN(2, sError, __func__, "Mnemonic index out of valid range");
+        }
+        if (group_threshold == 0) {
+            group_threshold = threshold;
+        }
+        if (group_threshold != threshold) {
+            return errorN(2, sError, __func__, "Mixed thresholds in mnemonic group");
+        }
+
+        // Strip parameter word/s and padding word
+        word_offsets.erase(word_offsets.begin(), word_offsets.begin() + last_param_word + 2);
+        shamir_shares[mnemonic_index] = word_offsets;
+    }
+
+    if (shamir_shares.size() < 2 || int(shamir_shares.size()) < group_threshold) {
+        return errorN(2, sError, __func__, "Too few shares for threshold");
+    }
+
+    int num_share_words = 0;
+
+    std::vector<int> share_indices;
+    for (auto const &share : shamir_shares) {
+        int share_index = share.first;
+        const std::vector<int> &word_offsets = share.second;
+        if (num_share_words == 0) {
+            num_share_words = word_offsets.size();
+        }
+        if (num_share_words != int(word_offsets.size())) {
+            return errorN(2, sError, __func__, "Mismatched share length");
+        }
+        share_indices.push_back(share_index);
+    }
+
+    const char *pwl = (const char*) mnemonic::mnLanguages[language_ind];
+    int language_data_length = mnemonic::mnLanguageLens[language_ind];
+
+    std::string sWord;
+    for (int i = 0; i < num_share_words; i++) {
+        int word_offset = lagrange(i, share_indices, shamir_shares);
+        if (0 != mnemonic::GetWord(word_offset, pwl, language_data_length, sWord)) {
+            return errorN(3, sError, __func__, strprintf("Word extract failed %d, language %d.", word_offset, language_ind).c_str());
+        }
+        if (mnemonic_out != "") {
+            mnemonic_out += " ";
+        }
+        mnemonic_out += sWord;
+    }
+
+    if (language_ind == mnemonic::WLL_JAPANESE) {
+        part::ReplaceStrInPlace(mnemonic_out, " ", "\u3000");
+    }
+
+    return 0;
+}
+
+} // namespace shamir39

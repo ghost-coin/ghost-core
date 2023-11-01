@@ -10,6 +10,7 @@ import subprocess
 
 from .test_framework import BitcoinTestFramework
 from .util import assert_equal, coverage
+from .address import byte_to_base58
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
@@ -23,7 +24,7 @@ def getIndexAtProperty(arr, name, value):
         try:
             if o[name] == value:
                 return i
-        except:
+        except Exception:
             continue
     return -1
 
@@ -52,7 +53,7 @@ class GhostTestFramework(BitcoinTestFramework):
         assert_equal(len(extra_args), self.num_nodes)
         try:
             for i, node in enumerate(self.nodes):
-                if self.is_wallet_compiled() and '-disablewallet' not in extra_args[i] \
+                if self.is_wallet_compiled() and '-disablewallet' not in extra_args[i] and '-nowallet' not in extra_args[i] \
                    and len([a for a in extra_args[i] if a is not None and a.startswith('-wallet')]) == 0:
                     ea = ['-wallet=default_wallet',]
                     if extra_args[i] is not None:
@@ -68,7 +69,7 @@ class GhostTestFramework(BitcoinTestFramework):
                 node.start(ea, *args, **kwargs)
             for node in self.nodes:
                 node.wait_for_rpc_connection()
-        except:
+        except Exception:
             # If one node failed to start, stop the others
             self.stop_nodes()
             raise
@@ -93,7 +94,17 @@ class GhostTestFramework(BitcoinTestFramework):
 
                 if ro['vsize'] >= 100 and ro['height'] >= 0:
                     return True
-            except:
+            except Exception:
+                continue
+        return False
+
+    def wait_for_wtx(self, node, txid, nTries=20):
+        for i in range(50):
+            time.sleep(0.5)
+            try:
+                node.gettransaction(txid)
+                return True
+            except Exception:
                 continue
         return False
 
@@ -117,7 +128,7 @@ class GhostTestFramework(BitcoinTestFramework):
             if ro['total']['messages'] == nMessages:
                 fPass = True
                 break
-        assert(fPass)
+        assert (fPass)
 
         fPass = False
         for i in range(30):
@@ -126,17 +137,17 @@ class GhostTestFramework(BitcoinTestFramework):
             if ro['total']['messages'] == nMessages:
                 fPass = True
                 break
-        assert(fPass)
+        assert (fPass)
 
     def stakeToHeight(self, height, fSync=True, nStakeNode=0, nSyncCheckNode=1):
         self.nodes[nStakeNode].walletsettings('stakelimit', {'height': height})
         self.nodes[nStakeNode].reservebalance(False)
-        assert(self.wait_for_height(self.nodes[nStakeNode], height))
+        assert (self.wait_for_height(self.nodes[nStakeNode], height))
         self.nodes[nStakeNode].reservebalance(True, 10000000)
         if not fSync:
             return
         self.sync_all()
-        assert(self.nodes[nSyncCheckNode].getblockcount() == height)
+        assert (self.nodes[nSyncCheckNode].getblockcount() == height)
 
     def stakeBlocks(self, nBlocks, nStakeNode=0, fSync=True):
         height = self.nodes[nStakeNode].getblockcount()

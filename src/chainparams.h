@@ -1,19 +1,25 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_CHAINPARAMS_H
 #define BITCOIN_CHAINPARAMS_H
 
+#include <kernel/chainparams.h>
+
 #include <chainparamsbase.h>
 #include <consensus/params.h>
+#include <netaddress.h>
 #include <primitives/block.h>
 #include <chain.h>
 #include <protocol.h>
 #include <validation.h>
 
+#include <cstdint>
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 
@@ -271,6 +277,7 @@ std::unique_ptr<CChainParams> CreateChainParams(const ArgsManager& args, const s
  */
 const CChainParams &Params();
 const CChainParams *pParams();
+bool HaveParams();
 
 /**
  * Sets the params returned by Params() to those for the given chain name.

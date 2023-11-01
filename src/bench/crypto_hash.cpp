@@ -1,9 +1,10 @@
-// Copyright (c) 2016-2020 The Bitcoin Core developers
+// Copyright (c) 2016-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
 #include <bench/bench.h>
+#include <crypto/muhash.h>
 #include <crypto/ripemd160.h>
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
@@ -17,7 +18,7 @@
 /* Number of bytes to hash per iteration */
 static const uint64_t BUFFER_SIZE = 1000*1000;
 
-static void RIPEMD160(benchmark::Bench& bench)
+static void BenchRIPEMD160(benchmark::Bench& bench)
 {
     uint8_t hash[CRIPEMD160::OUTPUT_SIZE];
     std::vector<uint8_t> in(BUFFER_SIZE,0);
@@ -105,14 +106,63 @@ static void FastRandom_1bit(benchmark::Bench& bench)
     });
 }
 
-BENCHMARK(RIPEMD160);
-BENCHMARK(SHA1);
-BENCHMARK(SHA256);
-BENCHMARK(SHA512);
-BENCHMARK(SHA3_256_1M);
+static void MuHash(benchmark::Bench& bench)
+{
+    MuHash3072 acc;
+    unsigned char key[32] = {0};
+    uint32_t i = 0;
+    bench.run([&] {
+        key[0] = ++i & 0xFF;
+        acc *= MuHash3072(key);
+    });
+}
 
-BENCHMARK(SHA256_32b);
-BENCHMARK(SipHash_32b);
-BENCHMARK(SHA256D64_1024);
-BENCHMARK(FastRandom_32bit);
-BENCHMARK(FastRandom_1bit);
+static void MuHashMul(benchmark::Bench& bench)
+{
+    MuHash3072 acc;
+    FastRandomContext rng(true);
+    MuHash3072 muhash{rng.randbytes(32)};
+
+    bench.run([&] {
+        acc *= muhash;
+    });
+}
+
+static void MuHashDiv(benchmark::Bench& bench)
+{
+    MuHash3072 acc;
+    FastRandomContext rng(true);
+    MuHash3072 muhash{rng.randbytes(32)};
+
+    bench.run([&] {
+        acc /= muhash;
+    });
+}
+
+static void MuHashPrecompute(benchmark::Bench& bench)
+{
+    MuHash3072 acc;
+    FastRandomContext rng(true);
+    std::vector<unsigned char> key{rng.randbytes(32)};
+
+    bench.run([&] {
+        MuHash3072{key};
+    });
+}
+
+BENCHMARK(BenchRIPEMD160, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SHA1, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SHA256, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SHA512, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SHA3_256_1M, benchmark::PriorityLevel::HIGH);
+
+BENCHMARK(SHA256_32b, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SipHash_32b, benchmark::PriorityLevel::HIGH);
+BENCHMARK(SHA256D64_1024, benchmark::PriorityLevel::HIGH);
+BENCHMARK(FastRandom_32bit, benchmark::PriorityLevel::HIGH);
+BENCHMARK(FastRandom_1bit, benchmark::PriorityLevel::HIGH);
+
+BENCHMARK(MuHash, benchmark::PriorityLevel::HIGH);
+BENCHMARK(MuHashMul, benchmark::PriorityLevel::HIGH);
+BENCHMARK(MuHashDiv, benchmark::PriorityLevel::HIGH);
+BENCHMARK(MuHashPrecompute, benchmark::PriorityLevel::HIGH);
