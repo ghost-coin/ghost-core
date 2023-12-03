@@ -16,7 +16,7 @@ class CHDWallet;
 /** Testing setup and teardown for particl wallet.
  */
 struct HDWalletTestingSetup: public TestingSetup {
-    explicit HDWalletTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
+    explicit HDWalletTestingSetup(const ChainType chain_type = ChainType::MAIN);
     virtual ~HDWalletTestingSetup();
 
     std::unique_ptr<interfaces::WalletLoader> m_wallet_loader;
@@ -25,8 +25,8 @@ struct HDWalletTestingSetup: public TestingSetup {
 };
 
 struct StakeTestingSetup: public HDWalletTestingSetup {
-    StakeTestingSetup(const std::string& chainName = CBaseChainParams::REGTEST):
-        HDWalletTestingSetup(chainName)
+    StakeTestingSetup(const ChainType chain_type = ChainType::REGTEST):
+        HDWalletTestingSetup(chain_type)
     {
         SetMockTime(0);
     }

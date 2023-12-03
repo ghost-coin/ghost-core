@@ -13,10 +13,11 @@
 
 namespace wallet {
 struct WalletContext;
+class CWallet;
+} // namespace wallet
 class ChainstateManager;
 class CBlockIndex;
 class CBlock;
-class CWallet;
 
 class CHDWallet;
 

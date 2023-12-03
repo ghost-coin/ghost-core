@@ -6,6 +6,7 @@
 #include <hash.h>
 #include <key_io.h>
 #include <rpc/util.h>
+#include <script/script.h>
 #include <util/moneystr.h>
 #include <wallet/coincontrol.h>
 #include <wallet/receive.h>
@@ -200,8 +201,8 @@ RPCHelpMan getbalance()
 
     LOCK(pwallet->cs_wallet);
 
-    const UniValue& dummy_value = request.params[0];
-    if (!dummy_value.isNull() && dummy_value.get_str() != "*") {
+    const auto dummy_value{self.MaybeArg<std::string>(0)};
+    if (dummy_value && *dummy_value != "*") {
         throw JSONRPCError(RPC_METHOD_DEPRECATED, "dummy first argument must be excluded or set to \"*\".");
     }
 
@@ -327,7 +328,7 @@ RPCHelpMan lockunspent()
             });
 
         const uint256 txid(ParseHashO(o, "txid"));
-        const int nOutput = find_value(o, "vout").getInt<int>();
+        const int nOutput = o.find_value("vout").getInt<int>();
         if (nOutput < 0) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout cannot be negative");
         }
@@ -488,6 +489,7 @@ RPCHelpMan getbalances()
                     {RPCResult::Type::STR_AMOUNT, "anon_immature", /*optional=*/true, "immature anon balance (outputs created by the wallet or confirmed outputs below spendable depth)"},
                     {RPCResult::Type::STR_AMOUNT, "anon_untrusted_pending", /*optional=*/true, "untrusted pending anon balance (outputs created by others that are in the mempool)"},
                 }},
+                RESULT_LAST_PROCESSED_BLOCK,
             }
             },
         RPCExamples{
@@ -554,6 +556,7 @@ RPCHelpMan getbalances()
 
             balances.pushKV("watchonly", balances_watchonly);
         }
+        AppendLastProcessedBlock(balances, wallet);
         return balances;
     }
 
@@ -580,6 +583,8 @@ RPCHelpMan getbalances()
         balances_watchonly.pushKV("immature", ValueFromAmount(bal.m_watchonly_immature));
         balances.pushKV("watchonly", balances_watchonly);
     }
+
+    AppendLastProcessedBlock(balances, wallet);
     return balances;
 },
     };
@@ -602,7 +607,7 @@ RPCHelpMan listunspent()
                     },
                     {"include_unsafe", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include outputs that are not safe to spend\n"
                               "See description of \"safe\" attribute below."},
-                    {"query_options", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "JSON with query options",
+                    {"query_options", RPCArg::Type::OBJ_NAMED_PARAMS, RPCArg::Optional::OMITTED, "",
                         {
                             {"minimumAmount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)}, "Minimum value of each UTXO in " + CURRENCY_UNIT + ""},
                             {"maximumAmount", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"unlimited"}, "Maximum value of each UTXO in " + CURRENCY_UNIT + ""},
@@ -780,7 +785,7 @@ RPCHelpMan listunspent()
             std::unique_ptr<SigningProvider> provider = pwallet->GetSolvingProvider(scriptPubKey);
             if (provider) {
                 if (scriptPubKey.IsPayToScriptHash()) {
-                    const CScriptID& hash = CScriptID(std::get<ScriptHash>(address));
+                    const CScriptID hash = ToScriptID(std::get<ScriptHash>(address));
                     CScript redeemScript;
                     if (provider->GetCScript(hash, redeemScript)) {
                         entry.pushKV("redeemScript", HexStr(redeemScript));

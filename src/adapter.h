@@ -9,7 +9,6 @@
 #include <consensus/params.h>
 #include <common/system.h>
 #include <validation.h>
-#include <script/standard.h>
 #include <key_io.h>
 #include "chain/tx_whitelist.h"
 

@@ -15,6 +15,7 @@
 #include <consensus/validation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/types.h>
+#include <wallet/test/util.h>
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>
@@ -66,7 +67,7 @@ BOOST_AUTO_TEST_CASE(new_ext_key)
     }
 }
 
-static const std::string strSecret1C("RZszq9auoziFsuwYacTKAPctz31qEHsXDNLNYinVEGxzw4DWB6Xb");
+static const std::string strSecret1C("GzFRfngjf5aHMuAzWDZWzJ8eYqMzp29MmkCp6NgzkXFibrh45tTc");
 static const std::string strSecret2C("H5hDgLvFjLcZG9jyxkUTJ28P6N5T7iMBQ79boMuaPafxXuy8hb9n");
 
 BOOST_AUTO_TEST_CASE(stealth)
@@ -261,7 +262,7 @@ BOOST_AUTO_TEST_CASE(ext_key_index)
 BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
 {
     SetMockTime(1510000000);
-    SelectParams(CBaseChainParams::TESTNET);
+    SelectParams(ChainType::TESTNET);
     CHDWallet *wallet = pwalletMain.get();
 
     SeedInsecureRand();
@@ -351,7 +352,7 @@ BOOST_AUTO_TEST_CASE(test_TxOutRingCT)
     // ---------------- Serialize Transaction with No Segwit ---------------------
     CMutableTransaction tx;
     tx.vpout.emplace_back(txout);
-    tx.nVersion = 2|GHOST_TXN_VERSION;
+    tx.nVersion = 2|PARTICL_TXN_VERSION;
     BOOST_CHECK_MESSAGE(tx.IsParticlVersion(), "failed IsParticlVersion");
 
     //The peer that sends the block sets the version that the data stream will use!
@@ -384,9 +385,9 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
     // one key that would satisfy an (a|b) or 2-of-3 keys needed
     // to spend an escrow transaction.
     //
-    CHDWallet keystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
-    CHDWallet emptykeystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
-    CHDWallet partialkeystore(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet keystore(m_node.chain.get(), "", CreateMockableWalletDatabase());
+    CHDWallet emptykeystore(m_node.chain.get(), "", CreateMockableWalletDatabase());
+    CHDWallet partialkeystore(m_node.chain.get(), "", CreateMockableWalletDatabase());
     CKey key[3];
     std::vector<CTxDestination> keyaddr(3); // Wmaybe-uninitialized
     for (int i = 0; i < 3; i++) {
@@ -486,8 +487,8 @@ BOOST_AUTO_TEST_CASE(multisig_Solver1)
 BOOST_AUTO_TEST_CASE(opiscoinstake_test)
 {
     SeedInsecureRand();
-    CHDWallet keystoreA(m_node.chain.get(), "", CreateDummyWalletDatabase());
-    CHDWallet keystoreB(m_node.chain.get(), "", CreateDummyWalletDatabase());
+    CHDWallet keystoreA(m_node.chain.get(), "", CreateMockableWalletDatabase());
+    CHDWallet keystoreB(m_node.chain.get(), "", CreateMockableWalletDatabase());
 
     CKey kA, kB;
     InsecureNewKey(kA, true);
@@ -554,11 +555,12 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
         BOOST_CHECK(keystoreB.IsMine(script));
     }
 
+
     CAmount nValue = 100000;
     SignatureData sigdataA, sigdataB, sigdataC;
 
     CMutableTransaction txn;
-    txn.nVersion = GHOST_TXN_VERSION;
+    txn.nVersion = PARTICL_TXN_VERSION;
     txn.SetType(TXN_COINSTAKE);
     txn.nLockTime = 0;
 
@@ -591,7 +593,7 @@ BOOST_AUTO_TEST_CASE(opiscoinstake_test)
     BOOST_CHECK(VerifyScript(scriptSig, script, &sigdataA.scriptWitness, nFlags, MutableTransactionSignatureChecker(&txn, 0, vchAmount, MissingDataBehavior::ASSERT_FAIL), &serror));
 
 
-    txn.nVersion = GHOST_TXN_VERSION;
+    txn.nVersion = PARTICL_TXN_VERSION;
     txn.SetType(TXN_STANDARD);
     BOOST_CHECK(!txn.IsCoinStake());
 

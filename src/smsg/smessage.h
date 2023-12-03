@@ -17,7 +17,7 @@
 #include <util/ui_change_type.h>
 #include <smsg/db.h>
 #include <smsg/types.h>
-
+#include <smsg/securemessage.h>
 #include <kernel/cs_main.h>
 
 #include <atomic>
@@ -128,98 +128,12 @@ inline bool GetFundingTxid(const uint8_t *pPayload, size_t nPayload, uint256 &tx
     return true;
 };
 
-class SecureMessage
+inline bool GetFundingTxid(const SecureMessage &smsg, uint256 &txid)
 {
-public:
-    SecureMessage() {};
-    SecureMessage(const unsigned char *bytes) { set(bytes); };
-    SecureMessage(bool fPaid, uint32_t ttl)
-    {
-        if (fPaid) {
-            version[0] = 3;
-            version[1] = 0;
-        }
-        m_ttl = ttl;
-    };
-    ~SecureMessage()
-    {
-        if (pPayload) {
-            delete[] pPayload;
-        }
-        pPayload = nullptr;
-    };
-
-    void SetNull()
-    {
-        memset(iv, 0, 16);
-        memset(cpkR, 0, 33);
-        memset(mac, 0, 32);
-    };
-
-    bool IsPaidVersion() const
-    {
-        return version[0] == 3;
-    };
-
-    bool GetFundingTxid(uint256 &txid) const
-    {
-        if (version[0] != 3) {
-            return false;
-        }
-        return smsg::GetFundingTxid(pPayload, nPayload, txid);
-    };
-
-    void set(const uint8_t *data)
-    {
-        size_t ofs = 0;
-        uint64_t tmp64;
-        uint32_t tmp32;
-        memcpy(hash, data + ofs, 4); ofs += 4;
-        memcpy(nonce, data + ofs, 4); ofs += 4;
-        memcpy(version, data + ofs, 2); ofs += 2;
-        flags = *(data + ofs);  ofs += 1;
-        memcpy(&tmp64, data + ofs, 8); ofs += 8;
-        timestamp = le64toh(tmp64);
-        memcpy(&tmp32, data + ofs, 4); ofs += 4;
-        m_ttl = le32toh(tmp32);
-        memcpy(iv, data + ofs, 16); ofs += 16;
-        memcpy(cpkR, data + ofs, 33); ofs += 33;
-        memcpy(mac, data + ofs, 32); ofs += 32;
-        memcpy(&tmp32, data + ofs, 4); ofs += 4;
-        nPayload = le32toh(tmp32);
-        pPayload = nullptr;
-    };
-
-    void WriteHeader(uint8_t *data) const {
-        size_t ofs = 0;
-        uint64_t tmp64;
-        uint32_t tmp32;
-        memcpy(data + ofs, hash, 4); ofs += 4;
-        memcpy(data + ofs, nonce, 4); ofs += 4;
-        memcpy(data + ofs, version, 2); ofs += 2;
-        *(data + ofs) = flags;  ofs += 1;
-        tmp64 = htole64(timestamp);
-        memcpy(data + ofs, &tmp64, 8); ofs += 8;
-        tmp32 = htole32(m_ttl);
-        memcpy(data + ofs, &tmp32, 4); ofs += 4;
-        memcpy(data + ofs, iv, 16); ofs += 16;
-        memcpy(data + ofs, cpkR, 33); ofs += 33;
-        memcpy(data + ofs, mac, 32); ofs += 32;
-        tmp32 = htole32(nPayload);
-        memcpy(data + ofs, &tmp32, 4); ofs += 4;
+    if (smsg.version[0] != 3) {
+        return false;
     }
-
-    uint8_t hash[4] = {0, 0, 0, 0};
-    uint8_t nonce[4] = {0, 0, 0, 0};
-    uint8_t version[2] = {2, 1};
-    uint8_t flags = 0;
-    int64_t timestamp = 0;
-    uint32_t m_ttl = 0;
-    uint8_t iv[16];
-    uint8_t cpkR[33];
-    uint8_t mac[32];
-    uint32_t nPayload = 0;
-    uint8_t *pPayload = nullptr;
+    return GetFundingTxid(smsg.pPayload, smsg.nPayload, txid);
 };
 
 class MessageData
@@ -390,7 +304,7 @@ public:
     uint16_t             folderId;
     CKeyID               addrTo;         // when in owned addr, when sent remote addr
     CKeyID               addrOutbox;     // owned address this copy was encrypted with
-    std::vector<uint8_t> vchMessage;     // message header + encryped payload
+    std::vector<uint8_t> vchMessage;     // message header + encrypted payload
 
     size_t GetSerializeSize(int nType, int nVersion) const
     {
@@ -561,12 +475,15 @@ public:
     std::thread thread_smsg_pow;
 
     bool m_track_funding_txns{false};
-    leveldb::WriteBatch *m_connect_block_batch{nullptr};
     SecMsgDB m_chain_sync_db;
 
     node::NodeContext *m_node = nullptr;
 };
 
 double GetDifficulty(uint32_t compact);
+
+} // namespace smsg
+
 extern smsg::CSMSG smsgModule;
+
 #endif // PARTICL_SMSG_SMESSAGE_H

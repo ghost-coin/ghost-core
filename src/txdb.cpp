@@ -663,13 +663,13 @@ bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
         return true;
     }
     return WriteBatch(batch);
-};
+}
 
 bool CBlockTreeDB::ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin)
 {
     std::pair<uint8_t, COutPoint> key = std::make_pair(DB_SPENTCACHE, outpoint);
     return Read(key, coin);
-};
+}
 
 bool CBlockTreeDB::EraseSpentCache(const COutPoint &outpoint)
 {
@@ -677,4 +677,112 @@ bool CBlockTreeDB::EraseSpentCache(const COutPoint &outpoint)
     CDBBatch batch(*this);
     batch.Erase(key);
     return WriteBatch(batch);
-};
+}
+
+bool CBlockTreeDB::HaveBlindedFlag(const uint256 &txid) const {
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_HAS_BLINDED_TXIN, txid);
+    return Exists(key);
+}
+
+bool CBlockTreeDB::WriteBlindedFlag(const uint256 &txid)
+{
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_HAS_BLINDED_TXIN, txid);
+    CDBBatch batch(*this);
+    batch.Write(key, 1);
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::EraseBlindedFlag(const uint256 &txid)
+{
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_HAS_BLINDED_TXIN, txid);
+    CDBBatch batch(*this);
+    batch.Erase(key);
+    return WriteBatch(batch);
+}
+
+
+bool CBlockTreeDB::WriteLastTrackedHeight(std::int64_t lastHeight) {
+    CDBBatch batch(*this);
+    LogPrintf("%s Writting last tracked height %d\n", __func__, lastHeight);
+
+    batch.Write(std::make_pair(DB_LAST_TRACKED_HEIGHT, 0), lastHeight);
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::ReadLastTrackedHeight(std::int64_t& rv) {
+    return Read(std::make_pair(DB_LAST_TRACKED_HEIGHT, 0), rv);
+}
+
+bool CBlockTreeDB::EraseLastTrackedHeight() {
+    CDBBatch batch(*this);
+    LogPrintf("%s Erasing last tracked height\n", __func__);
+    batch.Erase(std::make_pair(DB_LAST_TRACKED_HEIGHT, 0));
+    return WriteBatch(batch);
+}
+
+
+bool CBlockTreeDB::EraseRewardTrackerUndo(int nHeight)
+{
+    CDBBatch batch(*this);
+    batch.Erase(std::make_pair(DB_TRACKER_INPUTS_UNDO, nHeight));
+    batch.Erase(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, nHeight));
+    return WriteBatch(batch);
+}
+
+bool CBlockTreeDB::ReadRewardTrackerUndo(ColdRewardUndo& rewardUndo, int nHeight)
+{
+
+    const std::unique_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(std::make_pair(DB_TRACKER_INPUTS_UNDO, std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>>()));
+
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) {
+            return false;
+        }
+        std::pair<char, int> key;
+        if (pcursor->GetKey(key) && key.first == DB_TRACKER_INPUTS_UNDO) {
+            std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> inputs;
+            if (pcursor->GetValue(inputs)) {
+                rewardUndo.inputs[key.second] = std::move(inputs);
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+
+    pcursor->Seek(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>>()));
+
+    while (pcursor->Valid()) {
+        if (ShutdownRequested()) {
+            return false;
+        }
+        std::pair<char, int> key;
+        if (pcursor->GetKey(key) && key.first == DB_TRACKER_OUTPUTS_UNDO) {
+            std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> outputs;
+            if (pcursor->GetValue(outputs)) {
+                rewardUndo.outputs[key.second] = std::move(outputs);
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+    return true;
+}
+
+bool CBlockTreeDB::WriteRewardTrackerUndo(const ColdRewardUndo& rewardUndo)
+{
+    CDBBatch batch(*this);
+
+    for (const auto& inputs: rewardUndo.inputs) {
+        batch.Write(std::make_pair(DB_TRACKER_INPUTS_UNDO, inputs.first), inputs.second);
+    }
+
+    for (const auto& outputs: rewardUndo.outputs) {
+        batch.Write(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, outputs.first), outputs.second);
+    }
+
+    return WriteBatch(batch);
+}

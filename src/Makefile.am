@@ -293,8 +293,8 @@ BITCOIN_CORE_H = \
   script/sigcache.h \
   script/sign.h \
   script/signingprovider.h \
-  script/standard.h \
   script/ismine.h \
+  script/solver.h \
   shutdown.h \
   signet.h \
   streams.h \
@@ -812,7 +812,7 @@ libghost_common_a_SOURCES = \
   script/miniscript.cpp \
   script/sign.cpp \
   script/signingprovider.cpp \
-  script/standard.cpp \
+  script/solver.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
 
@@ -1166,7 +1166,6 @@ libghostkernel_la_SOURCES = \
   script/script.cpp \
   script/script_error.cpp \
   script/sigcache.cpp \
-  script/standard.cpp \
   shutdown.cpp \
   signet.cpp \
   support/cleanse.cpp \

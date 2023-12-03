@@ -92,6 +92,7 @@ public:
     bool GetVote(int nHeight, uint32_t &token);
 
     bool LoadTxRecords(CHDWalletDB *pwdb);
+    bool LoadLockedUTXOs(CHDWalletDB *pwdb);
 
     bool IsLocked() const override;
     bool EncryptWallet(const SecureString &strWalletPassphrase) override;
@@ -229,6 +230,12 @@ public:
     bool LoadToWallet(const uint256& hash, const UpdateWalletTxFn& fill_wtx) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void LoadToWallet(const uint256 &hash, CTransactionRecord &rtx) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void leavingIBD() override;
+    void blockDisconnected(const interfaces::BlockInfo& block) override;
+
+    using TryUpdatingRTXStateFn = std::function<TxUpdate(CTransactionRecord &rtx)>;
+
+    /** Mark a transaction (and its in-wallet descendants) as a particular tx state. */
+    void RecursiveUpdateTxState(const uint256& tx_hash, const TryUpdatingStateFn& try_updating_state, const TryUpdatingRTXStateFn& try_updating_rtx_state) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /** Remove txn from mapwallet and TxSpends */
     void RemoveFromTxSpends(const uint256 &hash, const CTransactionRef pt) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -236,13 +243,13 @@ public:
 
     int GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&sea, CStoredExtKey *&pc);
 
-    int MakeDefaultAccount(bool fLegacy);
+    int MakeDefaultAccount();
 
     int ExtKeyNew32(CExtKey &out);
     int ExtKeyNew32(CExtKey &out, const char *sPassPhrase, int32_t nHash, const char *sSeed);
     int ExtKeyNew32(CExtKey &out, uint8_t *data, uint32_t lenData);
 
-    int ExtKeyImportLoose(CHDWalletDB *pwdb, CStoredExtKey &sekIn, CKeyID &idDerived, bool fBip44, bool fSaveBip44, bool fLegacy) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int ExtKeyImportLoose(CHDWalletDB *pwdb, CStoredExtKey &sekIn, CKeyID &idDerived, bool fBip44, bool fSaveBip44) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     int ExtKeyImportAccount(CHDWalletDB *pwdb, CStoredExtKey &sekIn, int64_t nCreatedAt, const std::string &sLabel) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /** Set master to existing key, remove master key tag from old key if exists */
@@ -325,7 +332,7 @@ public:
     int NewExtKeyFromAccount(std::string &sLabel, CStoredExtKey *sekOut, const char *plabel=nullptr, const uint32_t *childNo=nullptr, bool fHardened=false, bool fBech32=false); // wrapper - use default account
 
     int ExtKeyGetDestination(const CExtKeyPair &ek, CPubKey &pkDest, uint32_t &nKey) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    int ExtKeyUpdateLooseKey(const CExtKeyPair &ek, uint32_t nKey, bool fAddToAddressBook, bool fLegacy = false) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int ExtKeyUpdateLooseKey(const CExtKeyPair &ek, uint32_t nKey, bool fAddToAddressBook) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool GetFullChainPath(const CExtKeyAccount *pa, size_t nChain, std::vector<uint32_t> &vPath) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 

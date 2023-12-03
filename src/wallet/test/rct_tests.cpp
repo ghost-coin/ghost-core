@@ -1,4 +1,4 @@
-// Copyright (c) 2021 tecnovert
+// Copyright (c) 2021-2023 tecnovert
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +9,6 @@
 
 #include <wallet/test/hdwallet_test_fixture.h>
 #include <chainparams.h>
-#include <miner.h>
 #include <node/miner.h>
 #include <pos/miner.h>
 #include <timedata.h>
@@ -20,6 +19,7 @@
 #include <blind.h>
 #include <rpc/rpcutil.h>
 #include <rpc/util.h>
+#include <util/any.h>
 #include <util/string.h>
 #include <util/translation.h>
 #include <util/moneystr.h>
@@ -38,23 +38,23 @@
 BOOST_FIXTURE_TEST_SUITE(rct_tests, StakeTestingSetup)
 
 
-bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, BlockValidationState &state)
+bool ProcessNewBlock(const std::shared_ptr<const CBlock> pblock, BlockValidationState &state)
 {
     // Copy of ChainstateManager::ProcessNewBlock with state passthrough
     CBlockIndex *pindex = nullptr;
     bool fForceProcessing = true;
     {
         LOCK(cs_main);
-        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
+        bool ret = CheckBlock(*pblock, state, state.m_chainman->GetConsensus());
         if (ret) {
-            ret = ::ChainstateActive().AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, nullptr);
+            ret = state.m_chainman->AcceptBlock(pblock, state, &pindex, fForceProcessing, nullptr, nullptr, /*min_pow_checked=*/true);
         }
         if (!ret) {
             return error("%s: AcceptBlock FAILED (%s)", __func__, state.ToString());
         }
     }
     state.m_preserve_state = true; // else would be cleared
-    if (!::ChainstateActive().ActivateBestChain(state, chainparams, pblock) || !state.IsValid()) {
+    if (!state.m_chainman->ActiveChainstate().ActivateBestChain(state, pblock) || !state.IsValid()) {
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
     }
     return true;
@@ -63,27 +63,25 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 
 BOOST_AUTO_TEST_CASE(rct_test)
 {
-    // Enabling anon for testing
-    RegtestParams().SetAnonRestricted(false);
-    RegtestParams().SetAnonMaxOutputSize(4);
-
     SeedInsecureRand();
+    auto &chain_active = m_node.chainman->ActiveChain();
+    auto &chainstate_active = m_node.chainman->ActiveChainstate();
     CHDWallet *pwallet = pwalletMain.get();
-    util::Ref context{m_node};
+    const auto context = util::AnyPtr<node::NodeContext>(&m_node);
     {
-        int last_height = WITH_LOCK(cs_main, return ::ChainActive().Height());
-        uint256 last_hash = WITH_LOCK(cs_main, return ::ChainActive().Tip()->GetBlockHash());
+        int last_height = WITH_LOCK(cs_main, return chain_active.Height());
+        uint256 last_hash = WITH_LOCK(cs_main, return chain_active.Tip()->GetBlockHash());
         WITH_LOCK(pwallet->cs_wallet, pwallet->SetLastBlockProcessed(last_height, last_hash));
     }
     UniValue rv;
     std::string sError;
 
-    int peer_blocks = GetNumBlocksOfPeers();
-    SetNumBlocksOfPeers(0);
+    int peer_blocks = particl::GetNumBlocksOfPeers();
+    particl::SetNumBlocksOfPeers(0);
 
     // Import the regtest genesis coinbase keys
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPeK5mCpvMsd1cwyT1JZsrBN82XkoYuZY1EVK7EwDaiL9sDfqUU5SntTfbRfnRedFWjg5xkDG5i3iwd3yP7neX5F2dtdCojk4", context));
-    BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPe3x7bUzkHAJZzCuGqN6y28zFFyg5i7Yqxqm897VCnmMJz6QScsftHDqsyWW5djx6FzrbkF9HSD3ET163z1SzRhfcWxvwL4G", context));
+    BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPe3x7bUzkHAJZzCuGqN6y28zFFyg5i7Yqxqm897VCnmMJz6QScsftHDqsyWW5djx6FzrbkF9HSD3ET163z1SzRhfcWxvwL4G \"\" false \"\" \"\" 0 {\"replaceaccount\":true}", context));
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewextaddress lblHDKey", context));
 
     CTxDestination stealth_address;
@@ -91,7 +89,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     {
         LOCK(pwallet->cs_wallet);
         pwallet->SetBroadcastTransactions(true);
-        const auto bal = pwallet->GetBalance();
+        const auto bal = GetBalance(*pwallet);
         BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
 
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));

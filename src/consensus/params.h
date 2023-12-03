@@ -116,6 +116,10 @@ struct Params {
     uint32_t clamp_tx_version_time = 0xffffffff;
     /** Exploit fix 1 */
     uint32_t exploit_fix_1_time = 0xffffffff;
+    
+    uint32_t exploit_fix_2_time = 0xffffffff;
+    uint32_t exploit_fix_2_height = 0;
+
     /** Exploit fix 2 */
     /** Last prefork anonoutput index */
     int64_t m_frozen_anon_index = 0;

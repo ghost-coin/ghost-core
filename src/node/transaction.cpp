@@ -123,7 +123,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
     return TransactionError::OK;
 }
 
-CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, const Consensus::Params& consensusParams, uint256& hashBlock)
+CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, uint256& hashBlock, const BlockManager& blockman)
 {
     if (mempool && !block_index) {
         CTransactionRef ptx = mempool->get(hash);
@@ -144,7 +144,7 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
     }
     if (block_index) {
         CBlock block;
-        if (ReadBlockFromDisk(block, block_index, consensusParams)) {
+        if (blockman.ReadBlockFromDisk(block, *block_index)) {
             for (const auto& tx : block.vtx) {
                 if (tx->GetHash() == hash) {
                     hashBlock = block_index->GetBlockHash();
@@ -156,7 +156,7 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
     return nullptr;
 }
 
-bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus::Params &consensusParams, CBlock &block, CBlockIndex* blockIndex)
+bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, CBlock &block, CBlockIndex* blockIndex, const BlockManager& blockman)
 {
     CBlockIndex *pindexSlow = blockIndex;
 
@@ -171,7 +171,7 @@ bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus
 
     if (pindexSlow) {
         // read and return entire block
-        if (ReadBlockFromDisk(block, pindexSlow, consensusParams)) {
+        if (blockman.ReadBlockFromDisk(block, *pindexSlow)) {
             for (const auto& tx : block.vtx) {
                 if (tx->GetHash() == hash) {
                     txOut = tx;

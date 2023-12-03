@@ -4,18 +4,17 @@
 
 #include <interfaces/wallet.h>
 
+#include <common/args.h>
 #include <consensus/amount.h>
 #include <interfaces/chain.h>
 #include <interfaces/handler.h>
 #include <policy/fees.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
-#include <script/standard.h>
 #include <support/allocators/secure.h>
 #include <sync.h>
 #include <uint256.h>
 #include <util/check.h>
-#include <util/system.h>
 #include <util/translation.h>
 #include <util/ui_change_type.h>
 #include <wallet/coincontrol.h>
@@ -50,7 +49,7 @@ extern void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, cons
 
 void LockWallet(CWallet* pWallet)
 {
-    LOCK(pWallet->cs_wallet);
+    LOCK2(pWallet->m_relock_mutex, pWallet->cs_wallet);
     pWallet->nRelockTime = 0;
     pWallet->Lock();
 }
@@ -346,9 +345,22 @@ public:
         return m_wallet->GetAddressReceiveRequests();
     }
     bool setAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& value) override {
+        // Note: The setAddressReceiveRequest interface used by the GUI to store
+        // receive requests is a little awkward and could be improved in the
+        // future:
+        //
+        // - The same method is used to save requests and erase them, but
+        //   having separate methods could be clearer and prevent bugs.
+        //
+        // - Request ids are passed as strings even though they are generated as
+        //   integers.
+        //
+        // - Multiple requests can be stored for the same address, but it might
+        //   be better to only allow one request or only keep the current one.
         LOCK(m_wallet->cs_wallet);
         WalletBatch batch{m_wallet->GetDatabase()};
-        return m_wallet->SetAddressReceiveRequest(batch, dest, id, value);
+        return value.empty() ? m_wallet->EraseAddressReceiveRequest(batch, dest, id)
+                             : m_wallet->SetAddressReceiveRequest(batch, dest, id, value);
     }
     bool displayAddress(const CTxDestination& dest) override
     {
@@ -671,6 +683,11 @@ public:
                 const CWalletTx& wtx = it->second;
                 int depth = m_wallet->GetTxDepthInMainChain(wtx);
                 if (depth >= 0) {
+                    if (m_wallet_part) {
+                        COutput utxo(COutPoint(wtx.GetHash(), output.n), wtx.tx->vpout.at(output.n)->GetCTxOut(), depth, -1, true, true, true, wtx.GetTxTime(), false);
+                        result.back() = MakeWalletTxOut(*m_wallet, utxo);
+                        continue;
+                    }
                     COutput utxo(COutPoint(wtx.GetHash(), output.n), wtx.tx->vout.at(output.n), depth, -1, true, true, true, wtx.GetTxTime(), false);
                     result.back() = MakeWalletTxOut(*m_wallet, utxo);
                 }
@@ -917,6 +934,7 @@ public:
     void flush() override { return FlushWallets(m_context); }
     void stop() override { return StopWallets(m_context); }
     void setMockTime(int64_t time) override { return SetMockTime(time); }
+    void setMockTimeOffset(int64_t time) override { return SetMockTimeOffset(time); }
 
     //! WalletLoader methods
     util::Result<std::unique_ptr<Wallet>> createWallet(const std::string& name, const SecureString& passphrase, uint64_t wallet_creation_flags, std::vector<bilingual_str>& warnings) override
@@ -929,12 +947,16 @@ public:
         options.create_passphrase = passphrase;
         bilingual_str error;
         std::unique_ptr<Wallet> wallet{MakeWallet(m_context, CreateWallet(m_context, name, /*load_on_start=*/true, options, status, error, warnings))};
+        if (wallet) {
+            return {std::move(wallet)};
+        } else {
             return util::Error{error};
         }
     }
     util::Result<std::unique_ptr<Wallet>> loadWallet(const std::string& name, std::vector<bilingual_str>& warnings) override
     {
         DatabaseOptions options;
+        DatabaseStatus status;
         ReadDatabaseArgs(*m_context.args, options);
         options.require_existing = true;
         bilingual_str error;

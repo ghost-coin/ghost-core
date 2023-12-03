@@ -20,9 +20,11 @@
 #include <insight/insight.h>
 #include <rpc/rpcutil.h>
 #include <rpc/util.h>
+#include <util/any.h>
 #include <util/string.h>
 #include <util/translation.h>
 #include <util/moneystr.h>
+#include <pos/kernel.h>
 
 #include <consensus/validation.h>
 #include <consensus/tx_verify.h>
@@ -59,45 +61,41 @@ std::vector<COutputR> GetAvailable(CHDWallet *pwallet, OutputTypes output_type, 
 BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 {
     SeedInsecureRand();
+    auto &chain_active = m_node.chainman->ActiveChain();
+    auto &chainstate_active = m_node.chainman->ActiveChainstate();
     CHDWallet *pwallet = pwalletMain.get();
-    CTxDestination recovery_addr = DecodeDestination("pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it");
-
-    util::Ref context{m_node};
+    const auto context = util::AnyPtr<node::NodeContext>(&m_node);
     {
-        int last_height = WITH_LOCK(cs_main, return ::ChainActive().Height());
-        uint256 last_hash = WITH_LOCK(cs_main, return ::ChainActive().Tip()->GetBlockHash());
+        int last_height = WITH_LOCK(cs_main, return chain_active.Height());
+        uint256 last_hash = WITH_LOCK(cs_main, return chain_active.Tip()->GetBlockHash());
         WITH_LOCK(pwallet->cs_wallet, pwallet->SetLastBlockProcessed(last_height, last_hash));
     }
     UniValue rv;
 
-    int peer_blocks = GetNumBlocksOfPeers();
-    SetNumBlocksOfPeers(0);
+    int peer_blocks = particl::GetNumBlocksOfPeers();
+    particl::SetNumBlocksOfPeers(0);
 
     // Disable rct mint fix
     RegtestParams().GetConsensus_nc().exploit_fix_1_time = 0xffffffff;
-    BOOST_REQUIRE(RegtestParams().GenesisBlock().GetHash() == ::ChainActive().Tip()->GetBlockHash());
+    BOOST_REQUIRE(RegtestParams().GenesisBlock().GetHash() == chain_active.Tip()->GetBlockHash());
 
     // Import the regtest genesis coinbase keys
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPeK5mCpvMsd1cwyT1JZsrBN82XkoYuZY1EVK7EwDaiL9sDfqUU5SntTfbRfnRedFWjg5xkDG5i3iwd3yP7neX5F2dtdCojk4", context));
-    BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPe3x7bUzkHAJZzCuGqN6y28zFFyg5i7Yqxqm897VCnmMJz6QScsftHDqsyWW5djx6FzrbkF9HSD3ET163z1SzRhfcWxvwL4G", context));
+    BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPe3x7bUzkHAJZzCuGqN6y28zFFyg5i7Yqxqm897VCnmMJz6QScsftHDqsyWW5djx6FzrbkF9HSD3ET163z1SzRhfcWxvwL4G \"\" false \"\" \"\" 0 {\"replaceaccount\":true}", context));
     BOOST_CHECK_NO_THROW(rv = CallRPC("getnewextaddress lblHDKey", context));
 
     CTxDestination stealth_address;
-    CTxDestination non_recovery_addr;
     CAmount base_supply = 12500000000000;
     {
         LOCK(pwallet->cs_wallet);
         pwallet->SetBroadcastTransactions(true);
-        const auto bal = pwallet->GetBalance();
+        const auto bal = GetBalance(*pwallet);
         BOOST_REQUIRE(bal.m_mine_trusted == base_supply);
 
         BOOST_CHECK_NO_THROW(rv = CallRPC("getnewstealthaddress", context));
         stealth_address = DecodeDestination(part::StripQuotes(rv.write()));
-
-        BOOST_CHECK_NO_THROW(rv = CallRPC("getnewaddress", context));
-        non_recovery_addr = DecodeDestination(part::StripQuotes(rv.write()));
     }
-    BOOST_REQUIRE(::ChainActive().Tip()->nMoneySupply == base_supply);
+    BOOST_REQUIRE(chain_active.Tip()->nMoneySupply == base_supply);
 
     std::vector<uint256> txids_unexploited;
     for (size_t i = 0; i < 10; ++i) {
@@ -152,8 +150,6 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 
-    RegtestParams().SetAnonRestricted(true);
-    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = 0;
     BOOST_REQUIRE(gArgs.GetBoolArg("-acceptanontxn", false)); // Was set in AppInitParameterInteraction
 
     // Exploit should fail
@@ -165,8 +161,8 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_REQUIRE(!gArgs.GetBoolArg("-acceptblindtxn", false));
 
     // CT and RCT should fail
-    // AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 10 * COIN, 9000000 * COIN, "bad-txns-anon-disabled");
-    // AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_CT, 10 * COIN, 0, "bad-txns-blind-disabled");
+    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_RINGCT, 10 * COIN, 9000000 * COIN, "bad-txns-anon-disabled");
+    AddTxn(pwallet, stealth_address, OUTPUT_STANDARD, OUTPUT_CT, 10 * COIN, 0, "bad-txns-blind-disabled");
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("listunspentanon", context));
     BOOST_REQUIRE(rv.size() > 0);
@@ -178,31 +174,23 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
 
     // Set frozen blinded markers
-    const CBlockIndex *tip = ::ChainActive().Tip();
-    // @todo(Sonkeng): When back to normal restore normal tests
+    const CBlockIndex *tip = chain_active.Tip();
     RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
-    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = tip->nHeight;
-    std::set<std::uint64_t> aoi_blacklist{1, 2, 3, 4, 5};
-    RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
-
+    RegtestParams().GetConsensus_nc().m_frozen_blinded_height = tip->nHeight;
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    size_t num_spendable = rv["num_spendable"].get_int();
-    size_t num_unspendable = rv["num_unspendable"].get_int();
+    size_t num_spendable = rv["num_spendable"].getInt<int>();
+    size_t num_unspendable = rv["num_unspendable"].getInt<int>();
     BOOST_CHECK(num_spendable > 0);
     BOOST_CHECK(num_unspendable > 0);
     BOOST_CHECK(AmountFromValue(rv["frozen_outputs"][0]["amount"]) > AmountFromValue(rv["frozen_outputs"][num_spendable + num_unspendable - 1]["amount"]));
-    // RegtestParams().GetConsensus_nc().exploit_fix_2_time is set to true, we will restore this after the recovery process is complete
-    // BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
-    // BOOST_CHECK(rv["error"].get_str() == "Exploit repair fork is not active yet.");
+
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
+    BOOST_CHECK(rv["error"].get_str() == "Exploit repair fork is not active yet.");
 
     // Enable HF2
     RegtestParams().GetConsensus_nc().exploit_fix_2_time = tip->nTime + 1;
     RegtestParams().GetConsensus_nc().exploit_fix_2_height = tip->nHeight + 1;
-    
-    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = 0;
-    RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
-
     CAmount moneysupply_before_fork = tip->nMoneySupply;
 
     while (GetTime() < tip->nTime + 1) {
@@ -211,46 +199,40 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     // Test spend_frozen_output with num_spendable == 0
     RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 100;
-    auto r = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context);
-
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    BOOST_CHECK(rv["num_spendable"].get_int() == 0);
+    BOOST_CHECK(rv["num_spendable"].getInt<int>() == 0);
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
     BOOST_CHECK(rv["error"].get_str() == "No spendable outputs.");
-
     RegtestParams().GetConsensus_nc().m_max_tainted_value_out = 500 * COIN;
-    RegtestParams().GetConsensus_nc().anonRestrictionStartHeight = tip->nHeight;
-    RegtestParams().GetConsensus_nc().m_frozen_anon_index = tip->nAnonOutputs;
-
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    BOOST_CHECK(rv["num_spendable"].get_int() > 0);
+    BOOST_CHECK(rv["num_spendable"].getInt<int>() > 0);
     CAmount unspendable_value = AmountFromValue(rv["total_unspendable"]);
     // Find a spendable prevout
     COutPoint prevout_spendable;
     for (size_t i = 0; i < rv["frozen_outputs"].size(); ++i) {
         const UniValue &uvo = rv["frozen_outputs"][i];
         if (uvo["spendable"].get_bool() == true) {
-            prevout_spendable = COutPoint(ParseHashO(uvo, "txid"), uvo["n"].get_int());
+            prevout_spendable = COutPoint(ParseHashO(uvo, "txid"), uvo["n"].getInt<int>());
             break;
         }
     }
     BOOST_CHECK(!prevout_spendable.IsNull());
 
     // Test trace_frozen_outputs
-    // BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"trace_frozen_outputs\":true}", context));
-    // BOOST_CHECK(rv["total_traced"].get_int64() == unspendable_value);
-    // int last_num_traced = rv["num_traced"].get_int();
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"trace_frozen_outputs\":true}", context));
+    BOOST_CHECK(rv["total_traced"].getInt<int64_t>() == unspendable_value);
+    int last_num_traced = rv["num_traced"].getInt<int>();
 
-    // BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_extra\":[{\"tx\":\"%s\",\"n\":%d}]}",
-    //     prevout_spendable.hash.ToString(), prevout_spendable.n), context));
-    // BOOST_CHECK(rv["num_traced"].get_int() == last_num_traced + 1);
-    // std::string str_rv_check = rv.write();
-    // BOOST_CHECK(str_rv_check.find("anon_spend_key") == std::string::npos);
+    BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_extra\":[{\"tx\":\"%s\",\"n\":%d}]}",
+        prevout_spendable.hash.ToString(), prevout_spendable.n), context));
+    BOOST_CHECK(rv["num_traced"].getInt<int>() == last_num_traced + 1);
+    std::string str_rv_check = rv.write();
+    BOOST_CHECK(str_rv_check.find("anon_spend_key") == std::string::npos);
 
-    // BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_dump_privkeys\":true}", context));
-    // str_rv_check = rv.write();
-    // BOOST_CHECK(str_rv_check.find("anon_spend_key") != std::string::npos);
+    BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"trace_frozen_outputs\":true,\"trace_frozen_dump_privkeys\":true}", context));
+    str_rv_check = rv.write();
+    BOOST_CHECK(str_rv_check.find("anon_spend_key") != std::string::npos);
 
 
     // Build and install ct tainted bloom filter
@@ -259,7 +241,7 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     tainted_filter.insert(txid_ct_anon_large);
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
     stream << tainted_filter;
-    LoadCTTaintedFilter((const unsigned char*) stream.data(), stream.size());
+    LoadCTTaintedFilter(UCharCast(stream.data()), stream.size());
     BOOST_REQUIRE(IsFrozenBlindOutput(txid_ct_anon_small));
     BOOST_REQUIRE(IsFrozenBlindOutput(txid_ct_anon_large));
     BOOST_REQUIRE(!IsFrozenBlindOutput(txid_ct_plain_small));
@@ -283,23 +265,23 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     BOOST_CHECK_NO_THROW(rv = CallRPC("listunspentblind 1 9999999 [] true {\"frozen\":true,\"include_tainted_frozen\":true}", context));
     BOOST_REQUIRE(rv.size() == num_prefork_blind);
 
-    CAmount utxo_sum_before_fork = GetUTXOSum();
+    CAmount utxo_sum_before_fork = particl::GetUTXOSum(chainstate_active);
     BOOST_REQUIRE(utxo_sum_before_fork > moneysupply_before_fork + 48000 * COIN);
 
     // Test that moneysupply is updated
-    CAmount stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
+    CAmount stake_reward = GetProofOfStakeReward(Params(), chain_active.Tip(), 0);
     StakeNBlocks(pwallet, 1);
 
-    CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
+    CAmount moneysupply_post_fork = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
     pwallet->GetBalances(balances);
     CAmount balance_before = balances.nPart + balances.nPartStaked;
-    CAmount utxo_sum_after_fork = GetUTXOSum();
+    CAmount utxo_sum_after_fork = particl::GetUTXOSum(chainstate_active);
     BOOST_REQUIRE(moneysupply_post_fork == balance_before);
     BOOST_REQUIRE(moneysupply_post_fork == utxo_sum_after_fork);
     BOOST_REQUIRE(utxo_sum_before_fork + stake_reward == utxo_sum_after_fork);
 
     // Test that the balanceindex is reset
-    BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
     BOOST_CHECK(blockbalances.plain() == utxo_sum_after_fork);
     BOOST_CHECK(blockbalances.blind() == 0);
     BOOST_CHECK(blockbalances.anon() == 0);
@@ -325,12 +307,12 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         }
         BOOST_REQUIRE(output_n > -1);
 
-        str_cmd = strprintf("sendtypeto blind ghost [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"show_fee\":true,\"debug\":true}",
+        str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        // CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
-        // BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
+        BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
     }
 
@@ -355,13 +337,24 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         }
         BOOST_REQUIRE(output_n > -1);
 
-        RegtestParams().SetAnonRestricted(true);
-        RegtestParams().SetAnonMaxOutputSize(2);
-
         str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 5 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
                             EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-commitment-sum");
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-txns-frozen-blinded-too-large");
+
+        // Update whitelist
+        std::vector<uint8_t> vct_whitelist;
+        vct_whitelist.resize(32);
+        memcpy(vct_whitelist.data(), txid_ct_anon_large.data(), 32);
+        LoadCTWhitelist(vct_whitelist.data(), vct_whitelist.size());
+
+        // Txn should pass now
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
+        BOOST_REQUIRE(rv["txid"].isStr());
+        CAmount txFee = rv["fee"].getInt<int64_t>();
+        pwallet->GetBalances(balances);
+        BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
+        balance_before = balances.nPart + balances.nPartStaked;
     }
 
     // Spend a small rct output
@@ -386,26 +379,16 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
         // Check that ringsize > 1 fails, set mixin_selection_mode to avoid failure when setting ranges
         {
-            RegtestParams().SetAnonRestricted(true);
-            RegtestParams().SetAnonMaxOutputSize(2);
-
-            // Test blacklist, should override whitelist
-            std::set<std::uint64_t> aoi_blacklist{1, 2, 3, 4};
-            RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
-
             str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 2 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"mixin_selection_mode\":99,\"use_mixins\":[1,2,3,4]}",
                                 EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
             BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
             BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-frozen-ringsize");
         }
 
-        RegtestParams().SetAnonRestricted(true);
-        RegtestParams().SetAnonMaxOutputSize(2);
-
         str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
-                            EncodeDestination(recovery_addr), FormatMoney(extract_value), spend_txid.ToString(), output_n);
+                            EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
@@ -431,75 +414,39 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         }
         BOOST_REQUIRE(output_n > -1);
 
-        RegtestParams().SetAnonRestricted(true);
-        RegtestParams().SetAnonMaxOutputSize(2);
-
         str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
-                            EncodeDestination(non_recovery_addr), FormatMoney(extract_value), spend_txid.ToString(), output_n);
-        // Thi was normally expected to fail but since we changed the way re restrict speding
-        // it won't fail anymore and will cause "bad-anonin-dup-ki" to be thrown in subsequent tests
-        // BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-       // BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-anonin-extract-i");
+                            EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-txns-frozen-blinded-too-large");
 
         // Get prevout anon index
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("gettransaction %s true true", spend_txid.ToString()), context));
         std::string str_ao_pubkey = rv["decoded"]["vout"][output_n]["pubkey"].get_str();
         BOOST_CHECK_NO_THROW(rv = CallRPC(strprintf("anonoutput %s", str_ao_pubkey), context));
+        int64_t ao_index = rv["index"].getInt<int64_t>();
 
-        int64_t ao_index = rv["index"].get_int64();
-
-        // // Whitelist index
-        // int64_t aoi_whitelist[] = {
-        //     ao_index,
-        // };
-        // LoadRCTWhitelist(aoi_whitelist, 1, 1);
+        // Whitelist index
+        int64_t aoi_whitelist[] = {
+            ao_index,
+        };
+        LoadRCTWhitelist(aoi_whitelist, 1, 1);
 
         // Test blacklist, should override whitelist
-        std::set<std::uint64_t> aoi_blacklist{static_cast<std::uint64_t>(ao_index)};
-
-        RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
+        int64_t aoi_blacklist[] = {
+            ao_index,
+        };
+        LoadRCTBlacklist(aoi_blacklist, 1);
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        // The anon index is blacklisted but it's not spending to the recovery addr
-        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-frozen-spend-to-non-recovery");
-
-        RegtestParams().SetBlacklistedAnonOutput(aoi_blacklist);
-        std::string str_cmd2 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
-                            EncodeDestination(recovery_addr), FormatMoney(extract_value), spend_txid.ToString(), output_n);
-
-        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd2, context));
-        BOOST_REQUIRE(rv["txid"].isStr());
-        balance_before += extract_value - rv["fee"].get_int64();
-
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-txns-frozen-blinded-blacklisted");
         int64_t aoi_reset[] = {
             0,
         };
         LoadRCTBlacklist(aoi_reset, 1);
 
         // Transaction should send
-        RegtestParams().SetAnonRestricted(true);
-        RegtestParams().SetAnonMaxOutputSize(2);
-        RegtestParams().GetConsensus_nc().m_min_ringsize = 1;
-
-        // Extract new value for spending
-        {
-            std::vector<COutputR> vAvailableCoins = GetAvailable(pwallet, OUTPUT_RINGCT, true, true);
-            for (const auto &c : vAvailableCoins) {
-                const COutputRecord *oR = c.rtx->second.GetOutput(c.i);
-                if (oR && oR->nFlags & ORF_OWNED && oR->nFlags & ORF_OWNED && oR->nValue < 500 * COIN) {
-                    spend_txid = c.txhash;
-                    output_n = c.i;
-                    extract_value = oR->nValue;
-                    break;
-                }
-            }
-        }
-        // end extraction
-        std::string str_cmd3 = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true,\"debug\":true}",
-                            EncodeDestination(stealth_address), FormatMoney(extract_value), spend_txid.ToString(), output_n);
-
-        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd3, context));
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
         BOOST_REQUIRE(rv["txid"].isStr());
-        CAmount txFee = rv["fee"].get_int64();
+        CAmount txFee = rv["fee"].getInt<int64_t>();
         pwallet->GetBalances(balances);
         BOOST_CHECK(balance_before + extract_value - txFee == balances.nPart + balances.nPartStaked);
         balance_before = balances.nPart + balances.nPartStaked;
@@ -508,14 +455,14 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 1);
 
     pwallet->GetBalances(balances);
-    // CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    // BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
-    // BOOST_REQUIRE(GetUTXOSum() == moneysupply_before_post_fork_to_blinded);
+    CAmount moneysupply_before_post_fork_to_blinded = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
+    BOOST_REQUIRE(moneysupply_before_post_fork_to_blinded == balances.nPart + balances.nPartStaked);
+    BOOST_REQUIRE(particl::GetUTXOSum(chainstate_active) == moneysupply_before_post_fork_to_blinded);
 
-    // BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
-    // BOOST_CHECK(blockbalances.plain() == moneysupply_before_post_fork_to_blinded);
-    // BOOST_CHECK(blockbalances.blind() == 0);
-    // BOOST_CHECK(blockbalances.anon() == 0);
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(blockbalances.plain() == moneysupply_before_post_fork_to_blinded);
+    BOOST_CHECK(blockbalances.blind() == 0);
+    BOOST_CHECK(blockbalances.anon() == 0);
 
     // Send some post-fork blinded txns
     str_cmd = strprintf("sendtypeto part blind [{\"address\":\"%s\",\"amount\":1000}] \"\" \"\" 1 1 false {\"test_mempool_accept\":true,\"show_fee\":true}",
@@ -539,17 +486,15 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
 
     pwallet->GetBalances(balances);
-    // CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    // CAmount utxosum = GetUTXOSum();
-    // @todo(Sonkeng) : Take this back when we're removing anon restrictions
+    CAmount moneysupply_after_post_fork_to_blinded = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
+    CAmount utxosum = particl::GetUTXOSum(chainstate_active);
+    BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
+    BOOST_REQUIRE(balances.nPart + balances.nPartStaked + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
 
-    // BOOST_REQUIRE(utxosum + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
-    // BOOST_REQUIRE(balances.nPart + balances.nPartStaked + 2100 * COIN == moneysupply_after_post_fork_to_blinded);
-
-    // BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
-    // BOOST_CHECK(blockbalances.plain() == utxosum);
-    // BOOST_CHECK(blockbalances.blind() == 1000 * COIN);
-    // BOOST_CHECK(blockbalances.anon() == 1100 * COIN);
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(blockbalances.plain() == utxosum);
+    BOOST_CHECK(blockbalances.blind() == 1000 * COIN);
+    BOOST_CHECK(blockbalances.anon() == 1100 * COIN);
 
     // Check that mixing pre and post fork CT fails
     {
@@ -588,16 +533,16 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
         BOOST_REQUIRE(op_post.n < 5000);
 
         CAmount send_value = extract_value_pre + extract_value_post;
-        // str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d},{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true}",
-        //                     EncodeDestination(stealth_address), FormatMoney(send_value), op_pre.hash.ToString(), op_pre.n, op_post.hash.ToString(), op_post.n);
-        // BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        // BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "mixed-frozen-blinded");
+        str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d},{\"tx\":\"%s\",\"n\":%d}],\"spend_frozen_blinded\":true,\"test_mempool_accept\":true,\"show_fee\":true}",
+                            EncodeDestination(stealth_address), FormatMoney(send_value), op_pre.hash.ToString(), op_pre.n, op_post.hash.ToString(), op_post.n);
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "mixed-frozen-blinded");
 
-        // // Should fail without spend_frozen_blinded
-        // str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d},{\"tx\":\"%s\",\"n\":%d}],\"test_mempool_accept\":true,\"show_fee\":true}",
-        //                     EncodeDestination(stealth_address), FormatMoney(send_value), op_pre.hash.ToString(), op_pre.n, op_post.hash.ToString(), op_post.n);
-        // BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        // BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "mixed-frozen-blinded");
+        // Should fail without spend_frozen_blinded
+        str_cmd = strprintf("sendtypeto blind part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"inputs\":[{\"tx\":\"%s\",\"n\":%d},{\"tx\":\"%s\",\"n\":%d}],\"test_mempool_accept\":true,\"show_fee\":true}",
+                            EncodeDestination(stealth_address), FormatMoney(send_value), op_pre.hash.ToString(), op_pre.n, op_post.hash.ToString(), op_post.n);
+        BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "mixed-frozen-blinded");
 
 
         // Should pass without op_pre
@@ -624,15 +569,11 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
 
     {
         // Try send with small ringsize
-
-        RegtestParams().SetAnonRestricted(true);
-        RegtestParams().SetAnonMaxOutputSize(2);
         CAmount send_value = 1 * COIN;
-        // Nothing is blacklisted. We have no restrictions of ringsize
-        str_cmd = strprintf("sendtypeto anon anon [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 3 1 false {\"test_mempool_accept\":true,\"show_fee\":true}",
+        str_cmd = strprintf("sendtypeto anon anon [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 1 1 false {\"test_mempool_accept\":true,\"show_fee\":true}",
                             EncodeDestination(stealth_address), FormatMoney(send_value));
         BOOST_CHECK_NO_THROW(rv = CallRPC(str_cmd, context));
-        BOOST_REQUIRE(rv["mempool-allowed"].get_bool() == true);
+        BOOST_REQUIRE(rv["mempool-reject-reason"].get_str() == "bad-anon-ringsize");
 
         // Otherwise should work
         str_cmd = strprintf("sendtypeto anon part [{\"address\":\"%s\",\"amount\":%s,\"subfee\":true}] \"\" \"\" 3 1 false {\"test_mempool_accept\":true,\"show_fee\":true}",
@@ -656,34 +597,39 @@ BOOST_AUTO_TEST_CASE(frozen_blinded_test)
     StakeNBlocks(pwallet, 2);
 
     // Check moneysupply didn't climb more than stakes
-    stake_reward = Params().GetProofOfStakeReward(::ChainActive().Tip(), 0);
-    // CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return ::ChainActive().Tip()->nMoneySupply);
-    // BOOST_REQUIRE(moneysupply_after_post_fork_to_blinded + stake_reward * 2 ==  moneysupply_after_post_fork_blind_spends);
+    stake_reward = GetProofOfStakeReward(Params(), chain_active.Tip(), 0);
+    CAmount moneysupply_after_post_fork_blind_spends = WITH_LOCK(cs_main, return chain_active.Tip()->nMoneySupply);
+    BOOST_REQUIRE(moneysupply_after_post_fork_to_blinded + stake_reward * 2 ==  moneysupply_after_post_fork_blind_spends);
 
     // Test debugwallet spend_frozen_output
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    num_spendable = rv["num_spendable"].get_int();
+    num_spendable = rv["num_spendable"].getInt<int>();
     BOOST_CHECK(num_spendable > 0);
 
+    for (size_t i = 0; i < num_spendable; i++) {
+        BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"spend_frozen_output\":true}", context));
+        BOOST_REQUIRE(rv["txid"].isStr());
+    }
+
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    // BOOST_CHECK(rv["num_spendable"].get_int() == 0);
-    BOOST_CHECK(rv["num_unspendable"].get_int() > 0);
+    BOOST_CHECK(rv["num_spendable"].getInt<int>() == 0);
+    BOOST_CHECK(rv["num_unspendable"].getInt<int>() > 0);
 
     // balancesindex tracks the amount of plain coin sent to and from blind to anon.
     // Coins can move between anon and blind but the sums should match
-    BOOST_CHECK(GetBlockBalances(::ChainActive().Tip()->GetBlockHash(), blockbalances));
+    BOOST_CHECK(GetBlockBalances(*m_node.chainman, chain_active.Tip()->GetBlockHash(), blockbalances));
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("getbalances", context));
     CAmount blind_trusted = AmountFromValue(rv["mine"]["blind_trusted"]);
-    // CAmount anon_trusted = AmountFromValue(rv["mine"]["anon_trusted"]);
+    CAmount anon_trusted = AmountFromValue(rv["mine"]["anon_trusted"]);
     BOOST_CHECK(blind_trusted > blockbalances.blind()); // anon -> blind
 
     BOOST_CHECK_NO_THROW(rv = CallRPC("debugwallet {\"list_frozen_outputs\":true}", context));
-    // CAmount anon_spendable = anon_trusted - AmountFromValue(rv["total_unspendable"]);
-    // BOOST_CHECK(anon_spendable < blockbalances.anon()); // anon -> blind
-    // BOOST_CHECK(anon_spendable + blind_trusted == blockbalances.blind() + blockbalances.anon());
+    CAmount anon_spendable = anon_trusted - AmountFromValue(rv["total_unspendable"]);
+    BOOST_CHECK(anon_spendable < blockbalances.anon()); // anon -> blind
+    BOOST_CHECK(anon_spendable + blind_trusted == blockbalances.blind() + blockbalances.anon());
 
-    SetNumBlocksOfPeers(peer_blocks);
+    particl::SetNumBlocksOfPeers(peer_blocks);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -65,12 +65,12 @@ namespace BCLog {
         LOCK        = (1 << 24),
 #endif
         UTIL        = (1 << 25),
-        BLOCKSTORE  = (1 << 26),
-
+        BLOCKSTORAGE  = (1 << 26),
         TXRECONCILIATION = (1 << 27),
         SCAN        = (1 << 28),
+        TXPACKAGES  = (1 << 29),
 
-        SMSG        = (1 << 29),
+        SMSG        = (uint32_t)((1 << 30) | (1 << 11)),
         POS         = (1 << 30),
         HDWALLET    = (uint32_t)(1 << 31),
 

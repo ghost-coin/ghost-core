@@ -187,15 +187,15 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
             entry.pushKV("fromself", true);
         }
 
-        entry.pushKV("amount", ValueFromAmount(r.nValue * ((r.nFlags & ORF_OWN_ANY) ? 1 : -1)));
-
-        if (r.nFlags & ORF_FROM) {
-            entry.pushKV("fee", ValueFromAmount(-rtx.nFee));
-        }
+        CAmount amount = r.nValue * ((r.nFlags & ORF_OWN_ANY) ? 1 : -1);
+        entry.pushKV("amount", ValueFromAmount(amount));
 
         entry.pushKV("vout", r.n);
 
         if (with_tx_details) {
+            if (r.nFlags & ORF_FROM) {
+                entry.pushKV("fee", ValueFromAmount(-rtx.nFee));
+            }
             int confirms = phdw->GetDepthInMainChain(rtx);
             entry.pushKV("confirmations", confirms);
             if (confirms > 0) {
@@ -217,9 +217,7 @@ static void ListRecord(const CHDWallet *phdw, const uint256 &hash, const CTransa
             entry.pushKV("walletconflicts", conflicts);
 
             PushTime(entry, "time", rtx.GetTxTime());
-            if (r.nFlags & ORF_FROM) {
-                entry.pushKV("abandoned", rtx.IsAbandoned());
-            }
+            entry.pushKV("abandoned", rtx.IsAbandoned());
         }
 
         if (!r.sNarration.empty()) {
@@ -268,6 +266,16 @@ void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint2
         }
     }
 
+    entry.pushKV("amount", 0);  // Reserve position
+    if (rtx.nFlags & ORF_ANON_IN) {
+        entry.pushKV("type_in", "anon");
+    } else
+    if (rtx.nFlags & ORF_BLIND_IN) {
+        entry.pushKV("type_in", "blind");
+    } else {
+        entry.pushKV("type_in", "plain");
+    }
+
     /*
     // Add opt-in RBF status
     std::string rbfStatus = "no";
@@ -282,6 +290,43 @@ void RecordTxToJSON(interfaces::Chain& chain, const CHDWallet *phdw, const uint2
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
     */
 
+    size_t num_owned{0}, num_from{0};
+    CAmount sum_amounts{0};
+    for (const auto &r : rtx.vout) {
+        if (r.nFlags & ORF_CHANGE) {
+            continue;
+        }
+        if (r.nFlags & ORF_FROM) {
+            num_from++;
+        }
+        CAmount amount = r.nValue;
+        if (r.nFlags & ((filter & ISMINE_WATCH_ONLY) ? ORF_OWN_ANY : ORF_OWNED)) {
+            num_owned++;
+        } else {
+            amount *= -1;
+        }
+        sum_amounts += amount;
+    }
+    if (num_from > 0) {
+        entry.pushKV("fee", ValueFromAmount(-rtx.nFee));
+        sum_amounts -= rtx.nFee;
+    }
+    if (num_owned && num_from) {
+        // Must check against the owned input value
+        CAmount nInput = 0, nOutput = 0;
+        for (const auto &vin : rtx.vin) {
+            nInput += phdw->GetOwnedOutputValue(vin, filter);
+        }
+        for (const auto &r : rtx.vout) {
+            if ((r.nFlags & ORF_OWNED && filter & ISMINE_SPENDABLE) ||
+                (r.nFlags & ORF_OWN_WATCH && filter & ISMINE_WATCH_ONLY)) {
+                nOutput += r.nValue;
+            }
+        }
+        entry.pushKVEnd("amount", ValueFromAmount(nOutput - nInput));
+    } else {
+        entry.pushKVEnd("amount", ValueFromAmount(sum_amounts));
+    }
 
     UniValue details(UniValue::VARR);
     ListRecord(phdw, hash, rtx, "*", 0, false, details, filter);
@@ -690,6 +735,7 @@ static void ListTransactions(const CWallet& wallet, const CWalletTx& wtx, int nM
                 entry.pushKV("account", label); // For exchanges
             }
             entry.pushKV("vout", r.vout);
+            entry.pushKV("abandoned", wtx.isAbandoned());
             if (fLong) {
                 WalletTxToJSON(wallet, wtx, entry);
             }
@@ -769,6 +815,7 @@ static std::vector<RPCResult> TransactionDescriptionString()
            {RPCResult::Type::STR, "timereceived_local", /*optional=*/true, "Human readable timereceived with local offset."},
            {RPCResult::Type::STR, "timereceived_utc", /*optional=*/true, "Human readable timereceived in UTC."},
            {RPCResult::Type::STR, "comment", /*optional=*/true, "If a comment is associated with the transaction, only present if not empty."},
+           {RPCResult::Type::STR, "comment_to", /*optional=*/true, "If a comment_to is associated with the transaction, only present if not empty."},
            {RPCResult::Type::STR, "narration", /*optional=*/true, "If a narration is embedded in the transaction, only present if not empty."},
            {RPCResult::Type::BOOL, "fromself", /*optional=*/true, "True if this wallet owned an input of the transaction."},
            {RPCResult::Type::STR, "bip125-replaceable", /*optional=*/true, "(\"yes|no|unknown\") Whether this transaction signals BIP125 replaceability or has an unconfirmed ancestor signaling BIP125 replaceability.\n"
@@ -776,6 +823,7 @@ static std::vector<RPCResult> TransactionDescriptionString()
            {RPCResult::Type::ARR, "parent_descs", /*optional=*/true, "Only if 'category' is 'received'. List of parent descriptors for the scriptPubKey of this coin.", {
                {RPCResult::Type::STR, "desc", "The descriptor string."},
            }},
+           {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable)."},
            };
 }
 
@@ -818,8 +866,7 @@ RPCHelpMan listtransactions()
                         },
                         TransactionDescriptionString()),
                         {
-                            {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-                                 "'send' category of transactions."},
+                            {RPCResult::Type::BOOL, "abandoned", "'true' if the transaction has been abandoned (inputs are respendable)."},
                         })},
                     }
                 },
@@ -905,11 +952,11 @@ RPCHelpMan listtransactions()
 
         size_t nSearchStart = 0;
         for(int i = (int)retRecords.size() - 1; i >= 0; --i) {
-            int64_t nInsertTime = find_value(retRecords[i], "time").getInt<int64_t>();
+            int64_t nInsertTime = retRecords[i].find_value("time").getInt<int64_t>();
             bool fFound = false;
             for (size_t k = nSearchStart; k < result.size(); k++) {
                 nSearchStart = k;
-                int64_t nTime = find_value(result[k], "time").getInt<int64_t>();
+                int64_t nTime = result[k].find_value("time").getInt<int64_t>();
                 if (nTime > nInsertTime) {
                     result.insert(k, retRecords[i]);
                     fFound = true;
@@ -977,8 +1024,7 @@ RPCHelpMan listsinceblock()
                             },
                             TransactionDescriptionString()),
                             {
-                                {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-                                     "'send' category of transactions."},
+                                {RPCResult::Type::BOOL, "abandoned", "'true' if the transaction has been abandoned (inputs are respendable)."},
                                 {RPCResult::Type::STR, "label", /*optional=*/true, "A comment for the address/transaction, if any"},
                             })},
                         }},
@@ -1126,6 +1172,7 @@ RPCHelpMan gettransaction()
                         {RPCResult::Type::STR_AMOUNT, "amount", /*optional=*/true, "The amount in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the\n"
                                      "'send' category of transactions."},
+                        {RPCResult::Type::STR, "type_in", /*optional=*/true, "The balance type of the transaction inputs: plain/blind/anon/coinbase"},
                     },
                     TransactionDescriptionString()),
                     {
@@ -1149,8 +1196,8 @@ RPCHelpMan gettransaction()
                                 {RPCResult::Type::NUM, "vout", "the vout value"},
                                 {RPCResult::Type::STR_AMOUNT, "fee", /*optional=*/true, "The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
                                     "'send' category of transactions."},
-                                {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-                                     "'send' category of transactions."},
+                                {RPCResult::Type::STR_AMOUNT, "reward", /*optional=*/true, "The block reward in " + CURRENCY_UNIT},
+                                {RPCResult::Type::BOOL, "abandoned", /*optional=*/true, "'true' if the transaction has been abandoned (inputs are respendable)."},
                                 {RPCResult::Type::ARR, "parent_descs", /*optional=*/true, "Only if 'category' is 'received'. List of parent descriptors for the scriptPubKey of this coin.", {
                                     {RPCResult::Type::STR, "desc", "The descriptor string."},
                                 }},
@@ -1166,6 +1213,7 @@ RPCHelpMan gettransaction()
                         {
                             {RPCResult::Type::ELISION, "", "Equivalent to the RPC decoderawtransaction method, or the RPC getrawtransaction method when `verbose` is passed."},
                         }},
+                        RESULT_LAST_PROCESSED_BLOCK,
                         {RPCResult::Type::ARR, "smsgs_funded", /*optional=*/true, "", {
                             {RPCResult::Type::OBJ, "", "",
                             {
@@ -1215,6 +1263,8 @@ const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(reques
             if (mri != phdw->mapRecords.end()) {
                 const CTransactionRecord &rtx = mri->second;
                 RecordTxToJSON(pwallet->chain(), phdw, mri->first, rtx, entry, filter, verbose);
+                entry.pushKV("abandoned", rtx.IsAbandoned());
+                AppendLastProcessedBlock(entry, *pwallet);
                 return entry;
             }
         }
@@ -1227,8 +1277,10 @@ const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(reques
     CAmount nNet = nCredit - nDebit;
     CAmount nFee = (CachedTxIsFromMe(*pwallet, wtx, filter) ? wtx.tx->GetValueOut() - nDebit : 0);
 
-    entry.pushKV("amount", ValueFromAmount(nNet - nFee));
-    if (CachedTxIsFromMe(*pwallet, wtx, filter))
+    CAmount nAmount = wtx.IsCoinStake() ? nFee : nNet - nFee;
+    entry.pushKV("amount", ValueFromAmount(nAmount));
+    entry.pushKV("type_in", wtx.IsCoinBase() ? "coinbase" : "plain");
+    if (CachedTxIsFromMe(*pwallet, wtx, filter) && !wtx.IsCoinStake())
         entry.pushKV("fee", ValueFromAmount(nFee));
 
     WalletTxToJSON(*pwallet, wtx, entry);
@@ -1247,6 +1299,7 @@ const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(reques
     }
     AddSmsgFundingInfo(*wtx.tx, entry);
 
+    AppendLastProcessedBlock(entry, *pwallet);
     return entry;
 },
     };
