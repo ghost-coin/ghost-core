@@ -28,14 +28,12 @@ BENCHMARKS =
 BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) $(LEVELDB_CPPFLAGS)
 
 LIBGHOST_NODE=libghost_node.a
-LIBGHOST_SERVER=libghost_server.a
 LIBGHOST_COMMON=libghost_common.a
 LIBGHOST_CONSENSUS=libghost_consensus.a
 LIBGHOST_CLI=libghost_cli.a
 LIBGHOST_UTIL=libghost_util.a
-LIBGHOST_CRYPTO_BASE=crypto/libghost_crypto_base.a
+LIBGHOST_CRYPTO_BASE=crypto/libghost_crypto_base.la
 LIBGHOSTQT=qt/libghostqt.a
-
 LIBSECP256K1=secp256k1/libsecp256k1.la
 LIBGHOST_SMSG=libghost_smsg.a
 LIBGHOST_MNEMONIC=libghost_mnemonic.a
@@ -57,18 +55,18 @@ if ENABLE_USBDEVICE
 LIBGHOST_USBDEVICE=libghost_usbdevice.a
 endif
 
-LIBGHOST_CRYPTO= $(LIBGHOST_CRYPTO_BASE)
+LIBGHOST_CRYPTO = $(LIBGHOST_CRYPTO_BASE)
 if ENABLE_SSE41
-LIBGHOST_CRYPTO_SSE41 = crypto/libghost_crypto_sse41.a
+LIBGHOST_CRYPTO_SSE41 = crypto/libghost_crypto_sse41.la
 LIBGHOST_CRYPTO += $(LIBGHOST_CRYPTO_SSE41)
 endif
 if ENABLE_AVX2
-LIBGHOST_CRYPTO_AVX2 = crypto/libghost_crypto_avx2.a
+LIBGHOST_CRYPTO_AVX2 = crypto/libghost_crypto_avx2.la
 LIBGHOST_CRYPTO += $(LIBGHOST_CRYPTO_AVX2)
 endif
-if ENABLE_SHANI
-LIBGHOST_CRYPTO_SHANI = crypto/libghost_crypto_shani.a
-LIBGHOST_CRYPTO += $(LIBGHOST_CRYPTO_SHANI)
+if ENABLE_X86_SHANI
+LIBGHOST_CRYPTO_X86_SHANI = crypto/libghost_crypto_x86_shani.la
+LIBGHOST_CRYPTO += $(LIBGHOST_CRYPTO_X86_SHANI)
 endif
 if ENABLE_ARM_SHANI
 LIBGHOST_CRYPTO_ARM_SHANI = crypto/libghost_crypto_arm_shani.la
@@ -82,25 +80,18 @@ $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(w
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
 EXTRA_LIBRARIES += \
-  $(LIBGHOST_CRYPTO) \
   $(LIBGHOST_UTIL) \
   $(LIBGHOST_COMMON) \
   $(LIBGHOST_CONSENSUS) \
-  $(LIBGHOST_SERVER) \
+  $(LIBGHOST_NODE) \
   $(LIBGHOST_CLI) \
+  $(LIBGHOST_IPC) \
   $(LIBGHOST_WALLET) \
   $(LIBGHOST_WALLET_TOOL) \
   $(LIBGHOST_USBDEVICE) \
   $(LIBGHOST_SMSG) \
   $(LIBGHOST_MNEMONIC) \
   $(LIBGHOST_ZMQ)
-
-lib_LTLIBRARIES = $(LIBGHOSTCONSENSUS)
-
-bin_PROGRAMS =
-noinst_PROGRAMS =
-TESTS =
-BENCHMARKS =
 
 if BUILD_BITCOIND
   bin_PROGRAMS += ghostd
@@ -135,6 +126,7 @@ endif
 .PHONY: FORCE check-symbols check-security
 # bitcoin core #
 BITCOIN_CORE_H = \
+  addresstype.h \
   adapter.h \
   addrdb.h \
   rctindex.h \
@@ -144,6 +136,7 @@ BITCOIN_CORE_H = \
   banman.h \
   base58.h \
   bech32.h \
+  bip324.h \
   blockencodings.h \
   blockfilter.h \
   chain.h \
@@ -157,10 +150,14 @@ BITCOIN_CORE_H = \
   checkqueue.h \
   clientversion.h \
   coins.h \
+  common/args.h \
+  common/settings.h \
   common/bloom.h \
   common/init.h \
   common/run_command.h \
   common/url.h \
+  common/system.h \
+  common/globals.h \
   compat/assumptions.h \
   compat/byteswap.h \
   compat/compat.h \
@@ -213,6 +210,8 @@ BITCOIN_CORE_H = \
   kernel/mempool_limits.h \
   kernel/mempool_options.h \
   kernel/mempool_persist.h \
+  kernel/mempool_removal_reason.h \
+  kernel/notifications_interface.h \
   kernel/validation_cache_sizes.h \
   key.h \
   key/stealth.h \
@@ -234,9 +233,8 @@ BITCOIN_CORE_H = \
   netbase.h \
   netgroup.h \
   netmessagemaker.h \
-  pos/kernel.h \
-  pos/diffalgo.h \
-  pos/diffalgo.cpp \
+  node/abort.h \
+  node/kernel_notifications.h \
   node/blockmanager_args.h \
   node/blockstorage.h \
   node/caches.h \
@@ -300,6 +298,7 @@ BITCOIN_CORE_H = \
   shutdown.h \
   signet.h \
   streams.h \
+  support/allocators/pool.h \
   smsg/db.h \
   smsg/net.h \
   smsg/types.h \
@@ -337,6 +336,7 @@ BITCOIN_CORE_H = \
   util/golombrice.h \
   util/hash_type.h \
   util/hasher.h \
+  util/insert.h \
   util/macros.h \
   util/message.h \
   util/moneystr.h \
@@ -349,6 +349,7 @@ BITCOIN_CORE_H = \
   util/settings.h \
   util/sock.h \
   util/spanparsing.h \
+  util/signalinterrupt.h \
   util/string.h \
   util/syscall_sandbox.h \
   util/syserror.h \
@@ -363,6 +364,8 @@ BITCOIN_CORE_H = \
   util/types.h \
   util/ui_change_type.h \
   util/vector.h \
+  util/chaintype.cpp \
+  util/batchpriority.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
@@ -414,20 +417,9 @@ BITCOIN_CORE_H = \
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
-	@$(top_srcdir)/share/genbuild.sh $(abs_top_builddir)/src/obj/build.h \
-	  $(abs_top_srcdir)
-libghost_util_a-clientversion.$(OBJEXT): obj/build.h
-
-# server: shared between bitcoind and bitcoin-qt
-# Contains code accessing mempool and chain state that is meant to be separated
-# from wallet and gui code (see node/README.md). Shared code should go in
-# libbitcoin_common or libbitcoin_util libraries, instead.
-libghost_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
-libghost_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libghost_server_a_SOURCES = \
-  adapter.cpp \
 	@$(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
 	  "$(abs_top_srcdir)"
+libghost_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # node #
 libghost_node_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
@@ -460,10 +452,12 @@ libghost_node_a_SOURCES = \
   kernel/context.cpp \
   kernel/cs_main.cpp \
   kernel/mempool_persist.cpp \
+  kernel/mempool_removal_reason.cpp \
   mapport.cpp \
   net.cpp \
   net_processing.cpp \
   netgroup.cpp \
+  node/abort.cpp \
   node/blockmanager_args.cpp \
   node/blockstorage.cpp \
   node/caches.cpp \
@@ -476,7 +470,7 @@ libghost_node_a_SOURCES = \
   node/database_args.cpp \
   node/eviction.cpp \
   node/interface_ui.cpp \
-  node/interfaces.cpp \
+  node/kernel_notifications.cpp \
   node/mempool_args.cpp \
   node/mempool_persist_args.cpp \
   node/miner.cpp \
@@ -528,10 +522,11 @@ libghost_node_a_SOURCES = \
   $(BITCOIN_CORE_H)
 
 if ENABLE_WALLET
-libghost_server_a_SOURCES += wallet/init.cpp
+libghost_node_a_SOURCES += wallet/init.cpp
+libghost_node_a_CPPFLAGS += $(BDB_CPPFLAGS)
 endif
 if !ENABLE_WALLET
-libghost_server_a_SOURCES += dummywallet.cpp
+libghost_node_a_SOURCES += dummywallet.cpp
 endif
 #
 
@@ -586,12 +581,10 @@ BUILT_SOURCES = $(nodist_libghost_usbdevice_a_SOURCES)
 endif
 #
 
-# wallet: shared between bitcoind and bitcoin-qt, but only linked
-# when wallet enabled
-libghost_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(BDB_CPPFLAGS)  $(SQLITE_CFLAGS)
+# wallet #
+libghost_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(BDB_CPPFLAGS) $(SQLITE_CFLAGS)
 libghost_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_wallet_a_SOURCES = \
-  interfaces/wallet.cpp \
   wallet/rpchdwallet.cpp \
   wallet/hdwallet.cpp \
   wallet/hdwallettypes.cpp \
@@ -637,7 +630,8 @@ libghost_wallet_a_SOURCES += wallet/bdb.cpp wallet/salvage.cpp
 endif
 #
 
-libghost_wallet_tool_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+# wallet tool #
+libghost_wallet_tool_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 libghost_wallet_tool_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_wallet_tool_a_SOURCES = \
   wallet/wallettool.cpp \
@@ -768,16 +762,21 @@ libghost_consensus_a_SOURCES = \
 libghost_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
 libghost_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_common_a_SOURCES = \
+  addresstype.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
   coins.cpp \
   coldreward/coldrewardtracker.cpp \
   coldreward/blockheightrange.cpp \
+  common/args.cpp \
   common/bloom.cpp \
+  common/settings.cpp \
+  common/config.cpp \
   common/init.cpp \
   common/interfaces.cpp \
   common/run_command.cpp \
+  common/system.cpp \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
@@ -834,6 +833,8 @@ libghost_util_a_SOURCES = \
   randomenv.cpp \
   support/cleanse.cpp \
   sync.cpp \
+  util/chaintype.cpp \
+  util/batchpriority.cpp \
   util/asmap.cpp \
   util/bip32.cpp \
   util/bytevectorhash.cpp \
@@ -853,6 +854,7 @@ libghost_util_a_SOURCES = \
   util/rbf.cpp \
   util/readwritefile.cpp \
   util/settings.cpp \
+  util/signalinterrupt.cpp \
   util/thread.cpp \
   util/threadinterrupt.cpp \
   util/threadnames.cpp \
@@ -946,7 +948,7 @@ ghost_bin_ldadd = \
   $(LIBGHOST_MNEMONIC) \
   $(LIBGHOST_USBDEVICE)
 
-ghost_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
+ghost_bin_ldadd += $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(SQLITE_LIBS)
 if ENABLE_USBDEVICE
 ghost_bin_ldadd += $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
@@ -1107,6 +1109,8 @@ libghostkernel_la_SOURCES = \
   chainparams.cpp \
   clientversion.cpp \
   coins.cpp \
+  common/args.cpp \
+  common/config.cpp \
   compressor.cpp \
   consensus/merkle.cpp \
   consensus/tx_check.cpp \
@@ -1170,6 +1174,7 @@ libghostkernel_la_SOURCES = \
   txdb.cpp \
   txmempool.cpp \
   uint256.cpp \
+  util/batchpriority.cpp \
   util/check.cpp \
   util/exception.cpp \
   util/fs.cpp \

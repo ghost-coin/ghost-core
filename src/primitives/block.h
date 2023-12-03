@@ -63,11 +63,7 @@ public:
 
     NodeSeconds Time() const
     {
-<<<<<<< HEAD
-        return nVersion == GHOST_BLOCK_VERSION;
-=======
         return NodeSeconds{std::chrono::seconds{nTime}};
->>>>>>> particl/25.x
     }
 
     int64_t GetBlockTime() const
@@ -77,7 +73,7 @@ public:
 
     bool IsParticlVersion() const
     {
-        return nVersion == PARTICL_BLOCK_VERSION;
+        return nVersion == GHOST_BLOCK_VERSION;
     }
 };
 

@@ -7,7 +7,7 @@
 #include <map>
 #include <vector>
 
-#include "amount.h"
+#include "consensus/amount.h"
 #include "uint256.h"
 
 #include "serialize.h"

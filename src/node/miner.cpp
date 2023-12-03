@@ -153,7 +153,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
-    if (!fTestBlockValidity) {
+    if (!m_options.particl_mode) {
         pblock->nVersion = GHOST_BLOCK_VERSION;
         pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     } else {

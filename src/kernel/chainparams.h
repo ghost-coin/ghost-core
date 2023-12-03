@@ -11,6 +11,7 @@
 #include <primitives/block.h>
 #include <protocol.h>
 #include <uint256.h>
+#include <util/chaintype.h>
 #include <util/hash_type.h>
 
 #include <cstdint>
@@ -135,8 +136,6 @@ public:
     const CBlock& GenesisBlock() const { return genesis; }
     /** Default value for -checkmempool and -checkblockindex argument */
     bool DefaultConsistencyChecks() const { return fDefaultConsistencyChecks; }
-    /** Policy: Filter transactions that do not match well-defined patterns */
-    bool RequireStandard() const { return fRequireStandard; }
     /** If this chain is exclusively used for testing */
     bool IsTestChain() const { return m_is_test_chain; }
     /** If this chain allows time to be mocked */
@@ -148,8 +147,10 @@ public:
     uint64_t AssumedChainStateSize() const { return m_assumed_chain_state_size; }
     /** Whether it is possible to mine blocks on demand (no retargeting) */
     bool MineBlocksOnDemand() const { return consensus.fPowNoRetargeting; }
-    /** Return the network string */
-    std::string NetworkIDString() const { return strNetworkID; }
+    /** Return the chain type string */
+    std::string GetChainTypeString() const { return ChainTypeToString(m_chain_type); }
+    /** Return the chain type */
+    ChainType GetChainType() const { return m_chain_type; }
     /** Return the list of hostnames to look up for DNS seeds */
     const std::vector<std::string>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
@@ -195,10 +196,48 @@ public:
     static std::unique_ptr<CChainParams> TestNet();
 
     // Particl
-    const std::string &NetworkID() const { return strNetworkID; }
     int BIP44ID() const { return nBIP44ID; }
     void SetOld();
-    Consensus::Params& GetConsensus_nc() { assert(strNetworkID == "regtest"); return consensus; }
+    Consensus::Params& GetConsensus_nc() { assert(GetChainType() == ChainType::REGTEST); return consensus; }
+
+    void SetAnonRestricted(bool bFlag) {
+        anonRestricted = bFlag;
+    }
+
+    bool IsAnonRestricted() const {
+        return anonRestricted;
+    }
+
+    std::string GetRecoveryAddress() const {
+        return anonRecoveryAddress;
+    }
+
+    void SetRecoveryAddress(const std::string& addr) {
+        anonRecoveryAddress = addr;
+    }
+
+    void SetAnonMaxOutputSize(uint32_t size){
+        anonMaxOutputSize = size;
+    }
+
+    uint32_t GetAnonMaxOutputSize() const {
+        return anonMaxOutputSize;
+    }
+
+
+    bool IsBlacklistedAnonOutput(std::uint64_t index) const {
+        return blacklistedAnonTxs.count(index);
+    }
+
+    void SetBlacklistedAnonOutput(const std::set<std::uint64_t>& anonIndexes){
+        blacklistedAnonTxs = anonIndexes;
+    }
+    
+
+    MapCheckpoints GetGvrCheckpoints() const {
+        return gvrCheckpoints;
+    }
+
 
     uint32_t GetModifierInterval() const { return nModifierInterval; }
     uint32_t GetStakeMinConfirmations() const { return nStakeMinConfirmations; }
@@ -224,7 +263,7 @@ public:
 
     void SetCoinYearReward(int64_t nCoinYearReward_)
     {
-        assert(strNetworkID == "regtest");
+        assert(GetChainType() == ChainType::REGTEST);
         nCoinYearReward = nCoinYearReward_;
     }
 protected:
@@ -239,16 +278,20 @@ protected:
     std::vector<std::string> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::string bech32_hrp;
-    std::string strNetworkID;
+    ChainType m_chain_type;
     CBlock genesis;
     std::vector<uint8_t> vFixedSeeds;
     bool fDefaultConsistencyChecks;
-    bool fRequireStandard;
     bool m_is_test_chain;
     bool m_is_mockable_chain;
     CCheckpointData checkpointData;
     MapAssumeutxo m_assumeutxo_data;
     ChainTxData chainTxData;
+    std::string anonRecoveryAddress;
+    std::uint32_t anonMaxOutputSize = 2;
+    std::set<std::uint64_t> blacklistedAnonTxs;
+    bool anonRestricted = false;
+    MapCheckpoints gvrCheckpoints;
 
     // Particl
     void SetLastImportHeight()

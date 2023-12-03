@@ -19,6 +19,9 @@ class Chainstate;
 class CChainParams;
 class CTransaction;
 class BlockValidationState;
+namespace node {
+class BlockManager;
+}
 
 
 static const int MAX_REORG_DEPTH = 1024;
@@ -43,7 +46,7 @@ bool CheckStakeKernelHash(const CBlockIndex *pindexPrev,
 /**
  * Get kernel hash and value for blockindex and coinstake tx
  */
-bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint256 &hash, CAmount &value, CScript &script, uint256 &blockhash);
+bool GetKernelInfo(const node::BlockManager& blockman, const CBlockIndex *blockindex, const CTransaction &tx, uint256 &hash, CAmount &value, CScript &script, uint256 &blockhash);
 
 /**
  * Check kernel hash target and coinstake signature

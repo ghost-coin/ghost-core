@@ -23,13 +23,14 @@
 #include <adapter.h>
 
 // Particl dependencies
-#include <blind.h>
-#include <insight/balanceindex.h>
-#include <validation.h>
 #include <consensus/params.h>
+#include <consensus/params.h>
+#include <validation.h>
 #include <chainparams.h>
 #include <timedata.h>
-#include <util/system.h>
+#include <common/system.h>
+#include <common/args.h>
+
 
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
@@ -210,7 +211,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     state.m_spends_frozen_blinded = false;
     state.m_setHaveKI.clear();  // Pass keyimages through state to add to db
     bool spends_tainted_blinded = false;  // If true limit max plain output
-    bool spends_post_fork_blinded = false;
 
     if (!state.m_consensus_params) {
         state.m_consensus_params = &::Params().GetConsensus();
@@ -335,7 +335,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
     }
 
-    if (!txSpendingBlacklisted.count(tx.GetHash()) && state.m_spends_frozen_blinded && max_ring_size > 1) {
+    if (!txSpendingBlacklisted.count(tx.GetHash()) && state.m_spends_frozen_blinded && max_ring_size_count > 1) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-frozen-ringsize");
     }
 

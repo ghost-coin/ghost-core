@@ -10,6 +10,7 @@
 #include <kernel/cs_main.h>
 
 #include <utility>
+#include <memory>
 
 class CTransaction;
 class CBlockIndex;

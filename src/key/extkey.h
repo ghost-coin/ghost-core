@@ -1,12 +1,12 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef PARTICL_KEY_EXTKEY_H
 #define PARTICL_KEY_EXTKEY_H
 
-#include <util/system.h>
+#include <logging.h>
 #include <key.h>
 #include <key/stealth.h>
 #include <key/types.h>
@@ -935,6 +935,6 @@ int AppendPath(const CStoredExtKey *pc, std::vector<uint32_t> &vPath);
 std::string HDAccIDToString(const CKeyID &id);
 std::string HDKeyIDToString(const CKeyID &id);
 
-std::string GetDefaultAccountPath(bool fLegacy);
+std::string GetDefaultAccountPath();
 
 #endif // PARTICL_KEY_EXTKEY_H

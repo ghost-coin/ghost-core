@@ -67,11 +67,7 @@ struct Params;
 static const int MAX_SCRIPTCHECK_THREADS = 15;
 /** -par default (number of script-checking threads, 0 = auto) */
 static const int DEFAULT_SCRIPTCHECK_THREADS = 0;
-static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
-static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
-static const bool DEFAULT_TXINDEX = false;
 static const bool DEFAULT_GHOSTDEBUG = false;
-static const char* const DEFAULT_BLOCKFILTERINDEX = "0";
 /** Default for -persistmempool */
 static const bool DEFAULT_PERSIST_MEMPOOL = true;
 /** Default for using fee filter */
@@ -101,35 +97,6 @@ static constexpr int DEFAULT_CHECKLEVEL{3};
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
 
-// Particl
-static const bool DEFAULT_CSINDEX = false;
-static const bool DEFAULT_ADDRESSINDEX = false;
-static const bool DEFAULT_TIMESTAMPINDEX = false;
-static const bool DEFAULT_SPENTINDEX = false;
-static const bool DEFAULT_BALANCESINDEX = false;
-static const unsigned int DEFAULT_DB_MAX_OPEN_FILES = 64; // set to 1000 for insight
-static const bool DEFAULT_DB_COMPRESSION = false; // set to true for insight
-static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
-static const bool DEFAULT_ACCEPT_ANON_TX = true;
-static const bool DEFAULT_ACCEPT_BLIND_TX = true;
-static const bool DEFAULT_ANON_RESTRICTED = true;
-static const bool DEFAULT_ANON_RESTRICTION_START_HEIGHT = 0;
-static const unsigned int DEFAULT_LAST_ANON_INDEX = 0;
-static const unsigned int DEFAULT_FULL_RESTRICTION_HEIGHT = 0;
-static const CAmount DEFAULT_GVR_THRESHOLD = 20000 * COIN;
-static const int DEFAULT_MIN_REWARD_RANGE_SPAN = 30 * 24 * 30; // Which is 21600 blocks per month
-static const int DEFAULT_GVR_START_HEIGHT = 100000;
-
-
-
-struct BlockHasher
-{
-    // this used to call `GetCheapHash()` in uint256, which was later moved; the
-    // cheap hash function simply calls ReadLE64() however, so the end result is
-    // identical
-    size_t operator()(const uint256& hash) const { return ReadLE64(hash.begin()); }
-};
-
 /** Current sync state passed to tip changed callbacks. */
 enum class SynchronizationState {
     INIT_REINDEX,
@@ -155,7 +122,7 @@ void StartScriptCheckWorkerThreads(int threads_num);
 void StopScriptCheckWorkerThreads();
 
 typedef int64_t NodeId;
-namespace particl {
+namespace ghost {
 static constexpr size_t MAX_STAKE_SEEN_SIZE = 1000;
 inline int64_t FutureDrift(int64_t nTime) { return nTime + 15; } // FutureDriftV2
 
@@ -181,7 +148,7 @@ void UpdateNumBlocksOfPeers(ChainstateManager &chainman, NodeId id, int height);
 extern bool fVerifyingDB;
 extern std::atomic_bool fSkipRangeproof;
 extern std::atomic_bool fBusyImporting;
-} // namespace particl
+} // namespace ghost
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 

@@ -1279,9 +1279,9 @@ std::string HDKeyIDToString(const CKeyID &id)
     return addr.ToString();
 };
 
-std::string GetDefaultAccountPath(bool fLegacy)
+std::string GetDefaultAccountPath()
 {
-    // Return path of default account: 44'/44'/0',will not be 44 as bip44 coin id if legacy is false
+    // Return path of default account: 44'/44'/0'
     std::vector<uint32_t> vPath;
     vPath.push_back(WithHardenedBit(44)); // purpose
     if (HaveParams()) {

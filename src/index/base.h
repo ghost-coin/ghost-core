@@ -23,6 +23,7 @@ struct IndexSummary {
     std::string name;
     bool synced{false};
     int best_block_height{0};
+    uint256 best_block_hash;
 };
 
 CBlockLocator GetLocator(interfaces::Chain& chain, const uint256& block_hash);
@@ -56,6 +57,8 @@ protected:
     };
 
 //private:
+    /// Whether the index has been initialized or not.
+    std::atomic<bool> m_init{false};
     /// Whether the index is in sync with the main chain. The flag is flipped
     /// from false to true once, after which point this starts processing
     /// ValidationInterface notifications to stay in sync.
@@ -70,9 +73,6 @@ protected:
 
     std::thread m_thread_sync;
     CThreadInterrupt m_interrupt;
-
-    /// Read best block locator and check that data needed to sync has not been pruned.
-    virtual bool Init();
 
     /// Sync the index with the block index starting from the current best block.
     /// Intended to be run in its own thread, m_thread_sync, and can be
@@ -95,6 +95,9 @@ protected:
     bool Rewind(const CBlockIndex* current_tip, const CBlockIndex* new_tip);
 
     virtual bool AllowPrune() const = 0;
+
+    template <typename... Args>
+    void FatalErrorf(const char* fmt, const Args&... args);
 
 protected:
     std::unique_ptr<interfaces::Chain> m_chain;
@@ -146,9 +149,12 @@ public:
 
     void Interrupt();
 
-    /// Start initializes the sync state and registers the instance as a
-    /// ValidationInterface so that it stays in sync with blockchain updates.
-    [[nodiscard]] bool Start();
+    /// Initializes the sync state and registers the instance to the
+    /// validation interface so that it stays in sync with blockchain updates.
+    [[nodiscard]] virtual bool Init();
+
+    /// Starts the initial sync process.
+    [[nodiscard]] bool StartBackgroundSync();
 
     /// Stops the instance from staying in sync with blockchain updates.
     void Stop();

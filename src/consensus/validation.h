@@ -201,7 +201,6 @@ public:
 
         m_clamp_tx_version = time >= consensusParams.clamp_tx_version_time;
         m_exploit_fix_1 = time >= consensusParams.exploit_fix_1_time;
-        m_exploit_fix_2 = time >= consensusParams.exploit_fix_2_time;
         if (m_in_block && m_time < 1632177542) {
             m_check_equal_rct_txid = false;
         }

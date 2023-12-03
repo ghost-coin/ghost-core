@@ -4,10 +4,10 @@
 
 #include <index/txindex.h>
 
+#include <common/args.h>
 #include <index/disktxpos.h>
 #include <logging.h>
 #include <node/blockstorage.h>
-#include <util/system.h>
 #include <validation.h>
 
 // Particl
@@ -17,7 +17,6 @@
 #include <wallet/types.h>
 #include <key_io.h>
 
-using node::OpenBlockFile;
 
 constexpr uint8_t DB_TXINDEX{'t'};
 
@@ -279,7 +278,7 @@ bool TxIndex::FindTx(const uint256& tx_hash, uint256& block_hash, CTransactionRe
         return false;
     }
 
-    CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+    CAutoFile file(m_chainstate->m_blockman.OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
     if (file.IsNull()) {
         return error("%s: OpenBlockFile failed", __func__);
     }
@@ -307,7 +306,7 @@ bool TxIndex::FindTx(const uint256& tx_hash, CBlockHeader& header, CTransactionR
         return false;
     }
 
-    CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+    CAutoFile file(m_chainstate->m_blockman.OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
     if (file.IsNull()) {
         return error("%s: OpenBlockFile failed", __func__);
     }

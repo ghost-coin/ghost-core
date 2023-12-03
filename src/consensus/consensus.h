@@ -33,6 +33,4 @@ static constexpr unsigned int LOCKTIME_VERIFY_SEQUENCE = (1 << 0);
 
 static const size_t MAX_DATA_OUTPUT_SIZE = 512;
 
-static const size_t MAX_DATA_OUTPUT_SIZE = 512;
-
 #endif // BITCOIN_CONSENSUS_CONSENSUS_H

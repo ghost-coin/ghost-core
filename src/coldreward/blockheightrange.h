@@ -1,7 +1,7 @@
 #ifndef BLOCKHEIGHTRANGE_H
 #define BLOCKHEIGHTRANGE_H
 
-#include "amount.h"
+#include "consensus/amount.h"
 #include "serialize.h"
 
 class BlockHeightRange

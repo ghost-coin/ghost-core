@@ -26,10 +26,10 @@ TEST_QT_H = \
   qt/test/util.h \
   qt/test/wallettests.h
 
-qt_test_test_particl_qt_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
+qt_test_test_ghost_qt_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(QT_TEST_INCLUDES) $(BOOST_CPPFLAGS) $(PROTOBUF_CFLAGS)
 
-qt_test_test_particl_qt_SOURCES = \
+qt_test_test_ghost_qt_SOURCES = \
   init/bitcoin-qt.cpp \
   qt/test/apptests.cpp \
   qt/test/optiontests.cpp \
@@ -47,8 +47,8 @@ endif # ENABLE_WALLET
 
 nodist_qt_test_test_ghost_qt_SOURCES = $(TEST_QT_MOC_CPP)
 
-qt_test_test_particl_qt_DEPENDENCIES = $(LIBPARTICLQT) $(LIBPARTICL_NODE) $(LIBTEST_UTIL)
-qt_test_test_particl_qt_LDADD = $(LIBPARTICLQT) $(LIBPARTICL_NODE) $(LIBTEST_UTIL)
+qt_test_test_ghost_qt_DEPENDENCIES = $(LIBGHOSTQT) $(LIBGHOST_NODE) $(LIBTEST_UTIL)
+qt_test_test_ghost_qt_LDADD = $(LIBGHOSTQT) $(LIBGHOST_NODE) $(LIBTEST_UTIL)
 if ENABLE_WALLET
 qt_test_test_ghost_qt_LDADD += $(LIBGHOST_UTIL) $(LIBGHOST_WALLET)
 qt_test_test_ghost_qt_DEPENDENCIES += $(LIBGHOST_WALLET)
@@ -59,7 +59,7 @@ endif
 if ENABLE_USBDEVICE
 qt_test_test_ghost_qt_LDADD += $(LIBGHOST_USBDEVICE) $(USB_LIBS) $(HIDAPI_LIBS) $(PROTOBUF_LIBS)
 endif
-qt_test_test_particl_qt_LDADD += $(LIBPARTICL_CLI) $(LIBPARTICL_COMMON) $(LIBPARTICL_UTIL) $(LIBPARTICL_CONSENSUS) $(LIBPARTICL_CRYPTO) $(LIBPARTICL_SMSG) $(LIBPARTICL_MNEMONIC) $(LIBUNIVALUE) $(LIBLEVELDB) \
+qt_test_test_ghost_qt_LDADD += $(LIBGHOST_CLI) $(LIBGHOST_COMMON) $(LIBGHOST_UTIL) $(LIBGHOST_CONSENSUS) $(LIBGHOST_CRYPTO) $(LIBGHOST_SMSG) $(LIBGHOST_MNEMONIC) $(LIBUNIVALUE) $(LIBLEVELDB) \
   $(LIBMEMENV) $(QT_LIBS) $(QT_DBUS_LIBS) $(QT_TEST_LIBS) \
   $(QR_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(NATPMP_LIBS) $(LIBSECP256K1) \
   $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(SQLITE_LIBS)

@@ -7,7 +7,7 @@
 
 #include <chainparams.h>
 #include <consensus/params.h>
-#include <util/system.h>
+#include <common/system.h>
 #include <validation.h>
 #include <script/standard.h>
 #include <key_io.h>

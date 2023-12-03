@@ -10,7 +10,6 @@
 #include <serialize.h>
 #include <streams.h>
 #include <hash.h>
-#include <util/system.h>
 #include <script/interpreter.h>
 #include <script/script.h>
 #include <policy/policy.h>
@@ -45,43 +44,6 @@ static double GetDifficulty(const CBlockIndex* blockindex)
 
     return dDiff;
 }
-
-double GetPoSKernelPS(CBlockIndex *pindex)
-{
-    LOCK(cs_main);
-
-    CBlockIndex *pindexPrevStake = nullptr;
-
-    int nBestHeight = pindex->nHeight;
-
-    int nPoSInterval = 72; // blocks sampled
-    double dStakeKernelsTriedAvg = 0;
-    int nStakesHandled = 0, nStakesTime = 0;
-
-    while (pindex && nStakesHandled < nPoSInterval) {
-        if (pindex->IsProofOfStake()) {
-            if (pindexPrevStake) {
-                dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake) * 4294967296.0;
-                nStakesTime += pindexPrevStake->nTime - pindex->nTime;
-                nStakesHandled++;
-            }
-            pindexPrevStake = pindex;
-        }
-        pindex = pindex->pprev;
-    }
-
-    double result = 0;
-
-    if (nStakesTime) {
-        result = dStakeKernelsTriedAvg / nStakesTime;
-    }
-
-    result *= Params().GetStakeTimestampMask(nBestHeight) + 1;
-
-    return result;
-}
-
-extern double GetDifficulty(const CBlockIndex* blockindex);
 
 double GetPoSKernelPS(CBlockIndex *pindex)
 {
@@ -223,7 +185,7 @@ bool CheckStakeKernelHash(const CBlockIndex *pindexPrev,
     return true;
 }
 
-bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint256 &hash, CAmount &value, CScript &script, uint256 &blockhash)
+bool GetKernelInfo(const node::BlockManager& blockman, const CBlockIndex *blockindex, const CTransaction &tx, uint256 &hash, CAmount &value, CScript &script, uint256 &blockhash)
 {
     if (!blockindex->pprev) {
         return false;
@@ -234,8 +196,8 @@ bool GetKernelInfo(const CBlockIndex *blockindex, const CTransaction &tx, uint25
     const COutPoint &prevout = tx.vin[0].prevout;
     CTransactionRef txPrev;
     CBlock blockKernel; // block containing stake kernel, GetTransaction should only fill the header.
-    if (!node::GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), blockKernel)
-        || prevout.n >= txPrev->vpout.size()) {
+    if (!node::GetTransaction(prevout.hash, txPrev, blockKernel, /*blockIndex*/ nullptr, blockman) ||
+        prevout.n >= txPrev->vpout.size()) {
         return false;
     }
     const CTxOutBase *outPrev = txPrev->vpout[prevout.n].get();
@@ -289,7 +251,7 @@ bool CheckProofOfStake(Chainstate &chain_state, BlockValidationState &state, con
             LogPrintf("ERROR: %s: prevout-not-found\n", __func__);
             return state.Invalid(BlockValidationResult::DOS_20, "prevout-not-found");
         }
-        if (!fVerifyingDB &&
+        if (!particl::fVerifyingDB &&
             (unsigned int)pindexPrev->nHeight > spent_coin.spent_height &&
             pindexPrev->nHeight - spent_coin.spent_height > MAX_REORG_DEPTH) {
             LogPrintf("ERROR: %s: Tried to stake kernel spent at height %d\n", __func__, spent_coin.spent_height);
