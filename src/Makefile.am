@@ -304,6 +304,7 @@ BITCOIN_CORE_H = \
   smsg/types.h \
   smsg/crypter.h \
   smsg/smessage.h \
+  smsg/securemessage.h \
   smsg/manager.h \
   smsg/rpcsmessage.h \
   support/allocators/secure.h \

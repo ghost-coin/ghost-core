@@ -10,6 +10,8 @@
 #include <crypto/common.h>
 #include <prevector.h>
 #include <serialize.h>
+#include <uint256.h>
+#include <util/hash_type.h>
 
 #include <assert.h>
 #include <climits>
@@ -595,6 +597,26 @@ struct CScriptWitness
     void SetNull() { stack.clear(); stack.shrink_to_fit(); }
 
     std::string ToString() const;
+};
+
+/** A reference to a CScript: the Hash160 of its serialization */
+class CScriptID : public BaseHash<uint160>
+{
+public:
+    CScriptID() : BaseHash() {}
+    explicit CScriptID(const CScript& in);
+    explicit CScriptID(const uint160& in) : BaseHash(in) {}
+
+    bool Set(const uint256& in);
+};
+
+class CScriptID256 : public uint256
+{
+public:
+    CScriptID256() : uint256() {}
+    explicit CScriptID256(const uint256& in) : uint256(in) {}
+
+    bool Set(const CScript& in);
 };
 
 /** Test for OP_SUCCESSx opcodes as defined by BIP342. */

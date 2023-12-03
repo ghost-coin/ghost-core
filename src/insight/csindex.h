@@ -5,7 +5,7 @@
 #ifndef PARTICL_INSIGHT_CSINDEX_H
 #define PARTICL_INSIGHT_CSINDEX_H
 
-#include <script/standard.h>
+#include <script/solver.h>
 
 constexpr uint8_t DB_TXINDEX_CSOUTPUT{'O'};
 constexpr uint8_t DB_TXINDEX_CSLINK{'L'};

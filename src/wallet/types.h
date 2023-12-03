@@ -13,7 +13,7 @@
 #ifndef BITCOIN_WALLET_TYPES_H
 #define BITCOIN_WALLET_TYPES_H
 
-#include <script/standard.h>
+#include <script/solver.h>
 #include <script/ismine.h>
 
 #include <type_traits>
@@ -60,7 +60,7 @@ enum isminetype : unsigned int
 };
 */
 /** used for bitflags of isminetype */
-using isminefilter = std::underlying_type<wallet::isminetype>::type;
+using isminefilter = std::underlying_type<isminetype>::type;
 
 /**
  * Address purpose field that has been been stored with wallet sending and
