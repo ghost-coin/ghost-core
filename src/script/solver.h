@@ -78,10 +78,10 @@ std::optional<std::pair<int, std::vector<Span<const unsigned char>>>> MatchMulti
 /** Generate a multisig script. */
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys);
 
-namespace particl {
+namespace ghost {
 TxoutType ToTxoutType(uint8_t type_byte);
 uint8_t FromTxoutType(TxoutType type_class);
 bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
-} // namespace particl
+} // namespace ghost
 
 #endif // BITCOIN_SCRIPT_SOLVER_H

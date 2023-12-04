@@ -80,7 +80,7 @@ MAX_OP_RETURN_RELAY = 83
 DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
 
 
-PARTICL_BLOCK_VERSION = 0xa0
+GHOST_BLOCK_VERSION = 0xa0
 PARTICL_TX_VERSION = 0xa0
 PARTICL_TX_ANON_MARKER = 0xffffffa0
 OUTPUT_TYPE_STANDARD = 1
@@ -790,7 +790,7 @@ class CBlockHeader:
         self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
-        self.is_part = self.is_part or self.nVersion == PARTICL_BLOCK_VERSION
+        self.is_part = self.is_part or self.nVersion == GHOST_BLOCK_VERSION
         if self.is_part:
             self.hashWitnessMerkleRoot = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
@@ -850,7 +850,7 @@ class CBlock(CBlockHeader):
         super().deserialize(f)
         self.vtx = deser_vector(f, CTransaction)
 
-        if self.nVersion == PARTICL_BLOCK_VERSION:
+        if self.nVersion == GHOST_BLOCK_VERSION:
             self.blocksig = deser_string(f)
 
     def serialize(self, with_witness=True, with_pos_sig=True):
@@ -862,7 +862,7 @@ class CBlock(CBlockHeader):
             r += ser_vector(self.vtx, "serialize_without_witness")
 
         # Block with no txns is likely being sent as a header
-        if len(self.vtx) > 0 and with_pos_sig and self.nVersion == PARTICL_BLOCK_VERSION:
+        if len(self.vtx) > 0 and with_pos_sig and self.nVersion == GHOST_BLOCK_VERSION:
             r += ser_string(self.blocksig)
         return r
 

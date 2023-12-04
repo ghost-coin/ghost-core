@@ -105,6 +105,6 @@ void CallRPC(UniValue &rv, const JSONRPCRequest &request)
         rv = tableRPC.execute(request);
     }
     catch (const UniValue& objError) {
-        throw std::runtime_error(find_value(objError, "message").get_str());
+        throw std::runtime_error(objError.find_value("message").get_str());
     }
 }

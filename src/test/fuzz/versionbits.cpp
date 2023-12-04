@@ -6,7 +6,7 @@
 #include <chainparams.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <versionbits.h>
 
 #include <test/fuzz/FuzzedDataProvider.h>

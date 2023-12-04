@@ -4,20 +4,20 @@
 
 #include <core_io.h>
 
+#include <common/system.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <key_io.h>
 #include <script/descriptor.h>
 #include <script/script.h>
-#include <script/standard.h>
+#include <script/solver.h>
 #include <serialize.h>
 #include <streams.h>
 #include <undo.h>
 #include <univalue.h>
 #include <util/check.h>
 #include <util/strencodings.h>
-#include <util/system.h>
 
 #include <map>
 #include <string>
@@ -222,11 +222,6 @@ void OutputToJSON(uint256 &txid, int i,
             if (s->GetTreasuryFundCfwd(nValue)) {
                 entry.pushKV("treasury_fund_cfwd", ValueFromAmount(nValue));
             }
-
-            if (s->GetGvrFundCfwd(nValue)) {
-                entry.pushKV("gvr_fund_cfwd", ValueFromAmount(nValue));
-            }
-
             if (s->GetSmsgFeeRate(nValue)) {
                 entry.pushKV("smsgfeerate", ValueFromAmount(nValue));
             }

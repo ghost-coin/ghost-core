@@ -10,6 +10,7 @@
 #include <util/thread.h>
 #include <util/syserror.h>
 #include <util/moneystr.h>
+#include <common/args.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 
@@ -46,7 +47,7 @@ bool CheckStake(ChainstateManager &chainman, const CBlock *pblock)
         return error("%s: %s is not a proof-of-stake block.", __func__, hashBlock.GetHex());
     }
 
-    if (!particl::CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
+    if (!ghost::CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
         return error("%s: %s CheckStakeUnique failed.", __func__, hashBlock.GetHex());
     }
 
@@ -168,6 +169,12 @@ bool ImportOutputs(node::CBlockTemplate *pblocktemplate, int nHeight)
     }
 
     fclose(fp);
+
+    uint256 hash = txn.GetHash();
+    if (!Params().CheckImportCoinbase(nHeight, hash)) {
+        return error("%s - Incorrect outputs hash.", __func__);
+    }
+
     pblock->vtx.insert(pblock->vtx.begin()+1, MakeTransactionRef(txn));
 
     return true;
@@ -277,7 +284,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
     LogPrint(BCLog::POS, "Stake thread conditional delay set to %d.\n", stake_thread_cond_delay_ms);
 
     while (!fStopMinerProc) {
-        if (node::fReindex || chainman->m_blockman.m_importing || particl::fBusyImporting) {
+        if (node::fReindex || chainman->m_blockman.m_importing || ghost::fBusyImporting) {
             fIsStaking = false;
             LogPrint(BCLog::POS, "%s: Block import/reindex.\n", __func__);
             condWaitFor(nThreadID, 30000);
@@ -289,8 +296,8 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
             LOCK(cs_main);
             nBestHeight = chainman->ActiveChain().Height();
             nBestTime = chainman->ActiveChain().Tip()->nTime;
-            num_blocks_of_peers = particl::GetNumBlocksOfPeers();
-            num_nodes = particl::GetNumPeers();
+            num_blocks_of_peers = ghost::GetNumBlocksOfPeers();
+            num_nodes = ghost::GetNumPeers();
         }
 
         if (fTryToSync) {
@@ -303,7 +310,7 @@ void ThreadStakeMiner(size_t nThreadID, std::vector<std::shared_ptr<wallet::CWal
             }
         }
 
-        if (check_peer_height && (num_nodes == 0 || chainman->ActiveChainstate().IsInitialBlockDownload())) {
+        if (check_peer_height && (num_nodes == 0 || chainman->IsInitialBlockDownload())) {
             fIsStaking = false;
             fTryToSync = true;
             LogPrint(BCLog::POS, "%s: IsInitialBlockDownload\n", __func__);

@@ -17,7 +17,7 @@
 static void Blind(benchmark::Bench& bench)
 {
     ECC_Start();
-    particl::ECC_Start_Blinding();
+    ghost::ECC_Start_Blinding();
 
     secp256k1_pedersen_commitment commitment;
     std::vector<uint8_t> vchRangeproof;
@@ -58,7 +58,7 @@ static void Blind(benchmark::Bench& bench)
             nullptr, 0, secp256k1_generator_h));
     });
 
-    particl::ECC_Stop_Blinding();
+    ghost::ECC_Stop_Blinding();
     ECC_Stop();
 }
 

@@ -9,7 +9,7 @@
 #include <key/mnemonic.h>
 #include <key/extkey.h>
 #include <key_io.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <util/strencodings.h>
 #include <random.h>
 #include <univalue.h>

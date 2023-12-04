@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The ghost Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +12,6 @@
 #include <smsg/db.h>
 #include <wallet/types.h>
 #include <util/strencodings.h>
-#include <util/system.h>
 #include <util/fs_helpers.h>
 #include <node/blockstorage.h>
 #include <consensus/consensus.h>
@@ -31,8 +30,7 @@
 #include <util/string.h>
 #include <util/syserror.h>
 #include <util/moneystr.h>
-
-#include <leveldb/db.h>
+#include <common/args.h>
 
 #ifdef ENABLE_WALLET
 #include <wallet/hdwallet.h>
@@ -41,7 +39,9 @@ extern void EnsureWalletIsUnlocked(const CHDWallet *pwallet);
 extern void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoinControl &coin_control);
 #endif
 
+#include <leveldb/db.h>
 #include <univalue.h>
+
 #include <fstream>
 
 
@@ -727,7 +727,7 @@ static RPCHelpMan smsgdumpprivkey()
     std::string strAddress = request.params[0].get_str();
     CTxDestination dest = DecodeDestination(strAddress);
     if (!IsValidDestination(dest)) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Ghost address");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid ghost address");
     }
 
     if (dest.index() != DI::_PKHash) {
@@ -842,8 +842,8 @@ static RPCHelpMan smsgsend()
                     },
                     {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"changeaddress", RPCArg::Type::STR, /* default */ "", "The ghost address to receive the change"},
-                            {"inputs", RPCArg::Type::ARR, /* default */ "", "A json array of json objects",
+                            {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The ghost address to receive the change"},
+                            {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of json objects",
                                 {
                                     {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                                         {
@@ -943,9 +943,6 @@ static RPCHelpMan smsgsend()
         if (!options["fundmsg"].isNull()) {
             fund_paid_msg = options["fundmsg"].get_bool();
         }
-        if (!options["fundmsg"].isNull()) {
-            fund_paid_msg = options["fundmsg"].get_bool();
-        }
     }
 
     if (fFromFile && fDecodeHex) {
@@ -1025,7 +1022,7 @@ static RPCHelpMan smsgsend()
         if (fPaid) {
             if (!fTestFee && fund_paid_msg) {
                 uint256 txid;
-                smsgOut.GetFundingTxid(txid);
+                GetFundingTxid(smsgOut, txid);
                 result.pushKV("txid", txid.ToString());
             }
             result.pushKV("fee", ValueFromAmount(nFee));
@@ -1071,7 +1068,7 @@ static RPCHelpMan smsgfund()
             },
             {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                 {
-                    {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change"},
+                    {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The ghost address to receive the change"},
                     {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of json objects",
                         {
                             {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
@@ -1246,7 +1243,7 @@ static RPCHelpMan smsgfund()
     if (!test_fee) {
         uint256 txid;
         const smsg::SecureMessage &smsg = *v_psmsgs[0];
-        smsg.GetFundingTxid(txid);
+        GetFundingTxid(smsg, txid);
         result.pushKV("txid", txid.ToString());
     }
 
@@ -2493,13 +2490,13 @@ static RPCHelpMan smsggetfeerate()
                 return result;
             }
 
-            result.pushKV("currentrate", particl::GetSmsgFeeRate(chainman, nullptr));
+            result.pushKV("currentrate", ghost::GetSmsgFeeRate(chainman, nullptr));
             int fee_height = (chain_height / consensusParams.smsg_fee_period) * consensusParams.smsg_fee_period;
             result.pushKV("currentrateblockheight", fee_height);
 
             int64_t smsg_fee_rate_target;
             CBlock block;
-            if (!node::ReadBlockFromDisk(block, pTip, Params().GetConsensus())) {
+            if (!chainman.m_blockman.ReadBlockFromDisk(block, *pTip)) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
             }
             block.vtx[0]->GetSmsgFeeRate(smsg_fee_rate_target);
@@ -2514,7 +2511,7 @@ static RPCHelpMan smsggetfeerate()
         pblockindex = chainman.ActiveChain()[nHeight];
     }
 
-    return particl::GetSmsgFeeRate(chainman, pblockindex);
+    return ghost::GetSmsgFeeRate(chainman, pblockindex);
 },
     };
 }
@@ -2548,7 +2545,7 @@ static RPCHelpMan smsggetdifficulty()
         }
     }
 
-    uint32_t target_compact = particl::GetSmsgDifficulty(chainman, chain_time);
+    uint32_t target_compact = ghost::GetSmsgDifficulty(chainman, chain_time);
     return smsg::GetDifficulty(target_compact);
 },
     };
@@ -2711,8 +2708,8 @@ static RPCHelpMan smsgzmqpush()
         smsg::SecMsgStored smsgStored;
         leveldb::Iterator *it = dbInbox.pdb->NewIterator(leveldb::ReadOptions());
         while (dbInbox.NextSmesg(it, smsg::DBK_INBOX, chKey, smsgStored)) {
-            if (unreadonly
-                && !(smsgStored.status & SMSG_MASK_UNREAD)) {
+            if (unreadonly &&
+                !(smsgStored.status & SMSG_MASK_UNREAD)) {
                 continue;
             }
             if (smsgStored.timeReceived < timefrom ||

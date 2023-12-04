@@ -6,8 +6,11 @@
 #include <config/bitcoin-config.h>
 #endif
 
+#include <chainparamsbase.h>
 #include <clientversion.h>
 #include <coins.h>
+#include <common/args.h>
+#include <common/system.h>
 #include <compat/compat.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
@@ -25,7 +28,6 @@
 #include <util/rbf.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/system.h>
 #include <util/translation.h>
 
 #include <cstdio>
@@ -101,7 +103,7 @@ static int AppInitRawTx(int argc, char* argv[])
 
     // Check for chain settings (Params() calls are only valid after this clause)
     try {
-        SelectParams(gArgs.GetChainName());
+        SelectParams(gArgs.GetChainType());
     } catch (const std::exception& e) {
         tfm::format(std::cerr, "Error: %s\n", e.what());
         return EXIT_FAILURE;
@@ -112,11 +114,17 @@ static int AppInitRawTx(int argc, char* argv[])
 
     if (argc < 2 || HelpRequested(gArgs) || gArgs.IsArgSet("-version")) {
         // First part of help message is specific to this utility
-        std::string strUsage = PACKAGE_NAME " ghost-tx utility version " + FormatFullVersion() + "\n\n" +
-            "Usage:  ghost-tx [options] <hex-tx> [commands]  Update hex-encoded transaction\n" +
-            "or:     ghost-tx [options] -create [commands]   Create hex-encoded transaction\n" +
-            "\n";
-        strUsage += gArgs.GetHelpMessage();
+        std::string strUsage = PACKAGE_NAME " particl-tx utility version " + FormatFullVersion() + "\n";
+
+        if (gArgs.IsArgSet("-version")) {
+            strUsage += FormatParagraph(LicenseInfo());
+        } else {
+            strUsage += "\n"
+                "Usage:  particl-tx [options] <hex-tx> [commands]  Update hex-encoded transaction\n"
+                "or:     particl-tx [options] -create [commands]   Create hex-encoded transaction\n"
+                "\n";
+            strUsage += gArgs.GetHelpMessage();
+        }
 
         tfm::format(std::cout, "%s", strUsage);
 
@@ -701,6 +709,16 @@ static CAmount AmountFromValue(const UniValue& value)
     return amount;
 }
 
+static std::vector<unsigned char> ParseHexUV(const UniValue& v, const std::string& strName)
+{
+    std::string strHex;
+    if (v.isStr())
+        strHex = v.getValStr();
+    if (!IsHex(strHex))
+        throw std::runtime_error(strName + " must be hexadecimal string (not '" + strHex + "')");
+    return ParseHex(strHex);
+}
+
 static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
 {
     int nHashType = SIGHASH_ALL;
@@ -830,7 +848,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
 static void MutateTxAddOutBlind(CMutableTransaction& tx, const std::string& strInput)
 {
     if (!tx.IsParticlVersion())
-        throw std::runtime_error("tx not ghost version.");
+        throw std::runtime_error("tx not particl version.");
     // separate COMMITMENT:SCRIPT:RANGEPROOF[:DATA]
     std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
     if (vStrInputParts.size() < 3)
@@ -875,7 +893,7 @@ static void MutateTxAddOutBlind(CMutableTransaction& tx, const std::string& strI
 static void MutateTxAddOutDataType(CMutableTransaction& tx, const std::string& strInput)
 {
     if (!tx.IsParticlVersion())
-        throw std::runtime_error("tx not ghost version.");
+        throw std::runtime_error("tx not particl version.");
     if (!IsHex(strInput))
         throw std::runtime_error("invalid TX output data");
 

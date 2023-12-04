@@ -13,7 +13,7 @@
 #include <test/fuzz/util.h>
 #include <test/fuzz/util/net.h>
 #include <test/util/setup_common.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <util/translation.h>
 
 #include <cstdint>

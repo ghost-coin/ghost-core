@@ -10,12 +10,13 @@
 #include <xxhash/xxhash.h>
 #ifdef ENABLE_WALLET
 #include <wallet/hdwallet.h>
+#include <wallet/test/util.h>
 #endif
 
 #include <boost/test/unit_test.hpp>
 
 struct SmsgTestingSetup : public TestingSetup {
-    SmsgTestingSetup() : TestingSetup(CBaseChainParams::MAIN, {}, true, true, true /* fParticlMode */) {
+    SmsgTestingSetup() : TestingSetup(ChainType::MAIN, {}, true, true, true /* fParticlMode */) {
         smsgModule.m_node = &m_node;
     }
 };
@@ -65,13 +66,12 @@ BOOST_AUTO_TEST_CASE(smsg_test)
     int rv = 0;
     const int nKeys = 12;
     auto chain = interfaces::MakeChain(m_node);
-    std::shared_ptr<CHDWallet> wallet = std::make_shared<CHDWallet>(chain.get(), "", CreateDummyWalletDatabase());
+    std::shared_ptr<CHDWallet> wallet = std::make_shared<CHDWallet>(chain.get(), "", CreateMockableWalletDatabase());
     std::vector<CKey> keyOwn(nKeys);
     for (int i = 0; i < nKeys; i++) {
         InsecureNewKey(keyOwn[i], true);
         auto spk_man = wallet->GetOrCreateLegacyScriptPubKeyMan();
         assert(spk_man);
-        LOCK(spk_man->cs_KeyStore);
         spk_man->AddKey(keyOwn[i]);
     }
 

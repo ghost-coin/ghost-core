@@ -23,7 +23,7 @@
 #include <util/settings.h>
 #include <util/strencodings.h>
 #include <util/string.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <util/translation.h>
 
 #include <cassert>

@@ -326,7 +326,7 @@ Result CreateTotalBumpTransaction(const CWallet* wallet, const uint256& txid, co
 
         // If the output would become dust, discard it (converting the dust to fee)
         poutput->SetValue(poutput->GetValue() - nDelta);
-        if (poutput->GetValue() <= particl::GetDustThreshold((CTxOutStandard*)poutput, GetDiscardRate(*wallet))) {
+        if (poutput->GetValue() <= ghost::GetDustThreshold((CTxOutStandard*)poutput, GetDiscardRate(*wallet))) {
             LogPrint(BCLog::RPC, "Bumping fee and discarding dust output\n");
             new_fee += poutput->GetValue();
             mtx.vpout.erase(mtx.vpout.begin() + nOutput);

@@ -73,6 +73,20 @@ enum DataOutputTypes
     DO_GVR_FUND_CFWD        = 12,
 };
 
+inline const char* GetOutputTypeName(uint8_t type)
+{
+    switch (type) {
+        case OUTPUT_STANDARD:
+            return "plain";
+        case OUTPUT_RINGCT:
+            return "anon";
+        case OUTPUT_CT:
+            return "blind";
+        default:
+            return "unknown";
+    }
+}
+
 bool ExtractCoinStakeInt64(const std::vector<uint8_t> &vData, DataOutputTypes get_type, CAmount &out);
 bool ExtractCoinStakeUint32(const std::vector<uint8_t> &vData, DataOutputTypes get_type, uint32_t &out);
 
@@ -360,6 +374,12 @@ public:
         return (CTxOutStandard*)this;
     }
 
+    const CTxOut GetCTxOut() const
+    {
+        assert(nVersion == OUTPUT_STANDARD);
+        return CTxOut(GetValue(), *GetPScriptPubKey());
+    }
+
     bool setTxout(CTxOut &txout) const
     {
         if (nVersion != OUTPUT_STANDARD) {
@@ -390,9 +410,9 @@ public:
     virtual bool GetCTFee(CAmount &nFee) const { return false; };
     virtual bool SetCTFee(CAmount &nFee) { return false; };
     virtual bool GetTreasuryFundCfwd(CAmount &nCfwd) const { return false; };
-    virtual bool GetGvrFundCfwd(CAmount& nCfwd) const { return false; };
     virtual bool GetSmsgFeeRate(CAmount &fee_rate) const { return false; };
     virtual bool GetSmsgDifficulty(uint32_t &compact) const { return false; };
+    virtual bool GetGvrFundCfwd(CAmount& nCfwd) const { return false; };
 
     std::string ToString() const;
 };
@@ -639,6 +659,12 @@ public:
     bool GetTreasuryFundCfwd(CAmount &nCfwd) const override
     {
         return ExtractCoinStakeInt64(vData, DO_TREASURY_FUND_CFWD, nCfwd);
+    }
+
+
+    bool GetGvrFundCfwd(CAmount& nCfwd) const override
+    {
+        return ExtractCoinStakeInt64(vData, DO_GVR_FUND_CFWD, nCfwd);
     }
 
     bool GetSmsgFeeRate(CAmount &fee_rate) const override

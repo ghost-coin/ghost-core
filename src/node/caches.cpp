@@ -17,7 +17,7 @@ CacheSizes CalculateCacheSizes(const ArgsManager& args, size_t n_indexes)
     CacheSizes sizes;
 
     sizes.block_tree_db = std::min(nTotalCache / 8, nMaxBlockDBCache << 20);
-    if (args.GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX) || args.GetBoolArg("-spentindex", particl::DEFAULT_SPENTINDEX)) {
+    if (args.GetBoolArg("-addressindex", ghost::DEFAULT_ADDRESSINDEX) || args.GetBoolArg("-spentindex", ghost::DEFAULT_SPENTINDEX)) {
         // enable 3/4 of the cache if addressindex and/or spentindex is enabled
         sizes.block_tree_db = nTotalCache * 3 / 4;
     }

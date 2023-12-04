@@ -9,6 +9,9 @@
 #include <chainparams.h>
 #include <chainparamsbase.h>
 #include <clientversion.h>
+#include <common/args.h>
+#include <common/system.h>
+#include <common/globals.h>
 #include <common/url.h>
 #include <compat/compat.h>
 #include <interfaces/init.h>
@@ -17,7 +20,6 @@
 #include <pubkey.h>
 #include <tinyformat.h>
 #include <util/exception.h>
-#include <util/system.h>
 #include <util/translation.h>
 #include <wallet/wallettool.h>
 
@@ -53,8 +55,8 @@ static void SetupWalletToolArgs(ArgsManager& argsman)
     argsman.AddCommand("dump", "Print out all of the wallet key-value records");
     argsman.AddCommand("createfromdump", "Create new wallet file from dumped records");
 
-    // Ghost
-    argsman.AddArg("generatemnemonic", "Generate a new mnemonic: <language> <bytes_entropy>", ArgsManager::ALLOW_ANY, OptionsCategory::COMMANDS);
+    // Particl
+    argsman.AddCommand("generatemnemonic", "Generate a new mnemonic: <language> <bytes_entropy>");
     argsman.AddArg("-btcmode", "", ArgsManager::ALLOW_ANY, OptionsCategory::HIDDEN);
 }
 
@@ -66,14 +68,9 @@ static std::optional<int> WalletAppInit(ArgsManager& args, int argc, char* argv[
         tfm::format(std::cerr, "Error parsing command line arguments: %s\n", error_message);
         return EXIT_FAILURE;
     }
-    if (argc < 2 || HelpRequested(gArgs)) {
-        std::string usage = strprintf("%s ghost-wallet version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
-                                      "ghost-wallet is an offline tool for creating and interacting with " PACKAGE_NAME " wallet files.\n" +
-                                      "By default ghost-wallet will act on wallets in the default mainnet wallet directory in the datadir.\n" +
-                                      "To change the target wallet, use the -datadir, -wallet and -testnet/-regtest arguments.\n\n" +
-                                      "Usage:\n" +
-                                     "  ghost-wallet [options] <command>\n\n" +
-                                     gArgs.GetHelpMessage();
+    const bool missing_args{argc < 2};
+    if (missing_args || HelpRequested(args) || args.IsArgSet("-version")) {
+        std::string strUsage = strprintf("%s particl-wallet version", PACKAGE_NAME) + " " + FormatFullVersion() + "\n";
 
         if (args.IsArgSet("-version")) {
             strUsage += FormatParagraph(LicenseInfo());
@@ -104,11 +101,11 @@ static std::optional<int> WalletAppInit(ArgsManager& args, int argc, char* argv[
         return EXIT_FAILURE;
     }
     // Check for chain settings (Params() calls are only valid after this clause)
-    SelectParams(args.GetChainName());
+    SelectParams(args.GetChainType());
     if (!fParticlMode) {
         WITNESS_SCALE_FACTOR = WITNESS_SCALE_FACTOR_BTC;
-        if (args.GetChainName() == CBaseChainParams::REGTEST) {
-            ResetParams(CBaseChainParams::REGTEST, fParticlMode);
+        if (args.GetChainType() == ChainType::REGTEST) {
+            ResetParams(ChainType::REGTEST, fParticlMode);
         }
     }
 
@@ -119,7 +116,7 @@ MAIN_FUNCTION
 {
     ArgsManager& args = gArgs;
 #ifdef WIN32
-    util::WinCmdLineArgs winArgs;
+    common::WinCmdLineArgs winArgs;
     std::tie(argc, argv) = winArgs.get();
 #endif
 
@@ -194,19 +191,9 @@ MAIN_FUNCTION
         return EXIT_FAILURE;
     }
 
-    std::string method {};
-    for(int i = 1; i < argc; ++i) {
-        if (!IsSwitchChar(argv[i][0])) {
-            if (!method.empty()) {
-                tfm::format(std::cerr, "Error: two methods provided (%s and %s). Only one method should be provided.\n", method, argv[i]);
-                return EXIT_FAILURE;
-            }
-            method = argv[i];
-        }
-    }
-
-    if (method.empty()) {
-        tfm::format(std::cerr, "No method provided. Run `ghost-wallet -help` for valid methods.\n");
+    const auto command = args.GetCommand();
+    if (!command) {
+        tfm::format(std::cerr, "No method provided. Run `particl-wallet -help` for valid methods.\n");
         return EXIT_FAILURE;
     }
     if (command->args.size() != 0) {

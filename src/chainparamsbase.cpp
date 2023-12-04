@@ -5,15 +5,11 @@
 
 #include <chainparamsbase.h>
 
+#include <common/args.h>
 #include <tinyformat.h>
-#include <util/system.h>
+#include <util/chaintype.h>
 
 #include <assert.h>
-
-const std::string CBaseChainParams::MAIN = "main";
-const std::string CBaseChainParams::TESTNET = "test";
-// const std::string CBaseChainParams::SIGNET = "signet";
-const std::string CBaseChainParams::REGTEST = "regtest";
 
 void SetupChainParamsBaseOptions(ArgsManager& argsman)
 {
@@ -40,24 +36,23 @@ const CBaseChainParams& BaseParams()
  * Port numbers for incoming Tor connections (8334, 18334, 38334, 18445) have
  * been chosen arbitrarily to keep ranges of used ports tight.
  */
-std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain)
+std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain)
 {
-    if (chain == CBaseChainParams::MAIN) {
-        return MakeUnique<CBaseChainParams>("", 51725, 51734);
-    } else if (chain == CBaseChainParams::TESTNET) {
-        return MakeUnique<CBaseChainParams>("testnet", 51925, 51935);
-    } 
-    /*else if (chain == CBaseChainParams::SIGNET) {
-        return MakeUnique<CBaseChainParams>("signet", 31932, 31933);
-    }*/ else if (chain == CBaseChainParams::REGTEST) {
-        return MakeUnique<CBaseChainParams>("regtest", 51926, 51936);
-    } else {
-        throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
+    switch (chain) {
+    case ChainType::MAIN:
+        return std::make_unique<CBaseChainParams>("",  51735, 51734);
+    case ChainType::TESTNET:
+        return std::make_unique<CBaseChainParams>("testnet", 51935, 51934);
+    case ChainType::SIGNET:
+        return std::make_unique<CBaseChainParams>("signet", 31932, 31934);
+    case ChainType::REGTEST:
+        return std::make_unique<CBaseChainParams>("regtest", 51936, 51931);
     }
+    assert(false);
 }
 
-void SelectBaseParams(const std::string& chain)
+void SelectBaseParams(const ChainType chain)
 {
     globalChainBaseParams = CreateBaseChainParams(chain);
-    gArgs.SelectConfigNetwork(chain);
+    gArgs.SelectConfigNetwork(ChainTypeToString(chain));
 }

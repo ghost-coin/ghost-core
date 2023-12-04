@@ -56,7 +56,7 @@ static ChainstateLoadResult CompleteChainstateInitialization(
         pblocktree->WriteReindexing(true);
         //If we're reindexing in prune mode, wipe away unusable block files and all undo data files
         if (options.prune) {
-            CleanupBlockRevFiles();
+            chainman.m_blockman.CleanupBlockRevFiles();
         }
     }
 
@@ -101,7 +101,7 @@ static ChainstateLoadResult CompleteChainstateInitialization(
     // At this point blocktree args are consistent with what's on disk.
     // If we're not mid-reindex (based on disk + args), add a genesis block on disk
     // (otherwise we use the one already on disk).
-    // This is called again in ThreadImport after the reindex completes.
+    // This is called again in ImportBlocks after the reindex completes.
     if (!fReindex && !chainman.ActiveChainstate().LoadGenesisBlock()) {
         return {ChainstateLoadStatus::FAILURE, _("Error initializing block database")};
     }
@@ -227,7 +227,7 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
     } else if (snapshot_completion == SnapshotCompletionResult::SUCCESS) {
         LogPrintf("[snapshot] cleaning up unneeded background chainstate, then reinitializing\n");
         if (!chainman.ValidatedSnapshotCleanup()) {
-            AbortNode("Background chainstate cleanup failed unexpectedly.");
+            return {ChainstateLoadStatus::FAILURE_FATAL, Untranslated("Background chainstate cleanup failed unexpectedly.")};
         }
 
         // Because ValidatedSnapshotCleanup() has torn down chainstates with
@@ -241,7 +241,7 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
 
         // A reload of the block index is required to recompute setBlockIndexCandidates
         // for the fully validated chainstate.
-        chainman.ActiveChainstate().UnloadBlockIndex();
+        chainman.ActiveChainstate().ClearBlockIndexCandidates();
 
         auto [init_status, init_error] = CompleteChainstateInitialization(chainman, cache_sizes, options);
         if (init_status != ChainstateLoadStatus::SUCCESS) {
@@ -255,7 +255,7 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
 
     } // cs_main
     // Initialise temporary indices if required
-    if (!::particl::RebuildRollingIndices(chainman, options.mempool)) {
+    if (!::ghost::RebuildRollingIndices(chainman, options.mempool)) {
         return {ChainstateLoadStatus::FAILURE, _("Rebuilding rolling indices failed")};
     }
 
@@ -281,7 +281,7 @@ ChainstateLoadResult VerifyLoadedChainstate(ChainstateManager& chainman, const C
                                                          "Only rebuild the block database if you are sure that your computer's date and time are correct")};
             }
 
-            VerifyDBResult result = CVerifyDB().VerifyDB(
+            VerifyDBResult result = CVerifyDB(chainman.GetNotifications()).VerifyDB(
                 *chainstate, chainman.GetConsensus(), chainstate->CoinsDB(),
                 options.check_level,
                 options.check_blocks);
@@ -305,7 +305,7 @@ ChainstateLoadResult VerifyLoadedChainstate(ChainstateManager& chainman, const C
     return {ChainstateLoadStatus::SUCCESS, {}};
 }
 
-namespace particl {
+namespace ghost {
 bool ShouldAutoReindex(ChainstateManager &chainman, const CacheSizes& cache_sizes, const ChainstateLoadOptions& options)
 {
     LOCK(cs_main);
@@ -335,5 +335,5 @@ bool ShouldAutoReindex(ChainstateManager &chainman, const CacheSizes& cache_size
     pblocktree.reset();
     return false;
 };
-} // namespace particl
+} // namespace ghost
 } // namespace node

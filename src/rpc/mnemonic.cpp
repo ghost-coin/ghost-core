@@ -31,8 +31,7 @@ static RPCHelpMan mnemonicrpc()
         "    bip44, true|false, default true\n"
         "mnemonic decode \"password\" \"mnemonic\" ( bip44 )\n"
         "    Decode mnemonic\n"
-        "    bip44,  true|false, default true\n"
-        "    fLegacy,true|false, default false\n"
+        "    bip44, true|false, default true\n"
         "mnemonic addchecksum \"mnemonic\"\n"
         "    Add checksum words to mnemonic.\n"
         "    Final no of words in mnemonic must be divisible by three.\n"
@@ -158,9 +157,8 @@ static RPCHelpMan mnemonicrpc()
         }
 
         bool fBip44 = request.params.size() > 3 ? GetBool(request.params[3]) : true;
-        bool fLegacy = request.params.size() > 4 ? GetBool(request.params[4]) : false;
 
-        if (request.params.size() > 5) {
+        if (request.params.size() > 4) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Too many parameters");
         }
         if (sMnemonic.empty()) {

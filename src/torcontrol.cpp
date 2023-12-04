@@ -7,21 +7,33 @@
 
 #include <chainparams.h>
 #include <chainparamsbase.h>
+#include <common/args.h>
 #include <compat/compat.h>
 #include <crypto/hmac_sha256.h>
+#include <logging.h>
 #include <net.h>
 #include <netaddress.h>
 #include <netbase.h>
+#include <random.h>
+#include <tinyformat.h>
+#include <util/check.h>
+#include <util/fs.h>
 #include <util/readwritefile.h>
 #include <util/strencodings.h>
-#include <util/syscall_sandbox.h>
-#include <util/system.h>
+#include <util/string.h>
 #include <util/thread.h>
 #include <util/time.h>
 
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
 #include <deque>
 #include <functional>
+#include <map>
+#include <optional>
 #include <set>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #include <event2/buffer.h>
@@ -79,15 +91,15 @@ void TorControlConnection::readcb(struct bufferevent *bev, void *ctx)
         if (s.size() < 4) // Short line
             continue;
         // <status>(-|+| )<data><CRLF>
-        self->message.code = LocaleIndependentAtoi<int>(s.substr(0,3));
+        self->message.code = ToIntegral<int>(s.substr(0, 3)).value_or(0);
         self->message.lines.push_back(s.substr(4));
         char ch = s[3]; // '-','+' or ' '
         if (ch == ' ') {
             // Final line, dispatch reply and clean up
             if (self->message.code >= 600) {
+                // (currently unused)
                 // Dispatch async notifications to async handler
                 // Synchronous and asynchronous messages are never interleaved
-                self->async_handler(*self, self->message);
             } else {
                 if (!self->reply_handlers.empty()) {
                     // Invoke reply handler with message
@@ -132,65 +144,17 @@ bool TorControlConnection::Connect(const std::string& tor_control_center, const 
         Disconnect();
     }
 
-    // Parse tor_control_center address:port
+    const std::optional<CService> control_service{Lookup(tor_control_center, 9051, fNameLookup)};
+    if (!control_service.has_value()) {
+        LogPrintf("tor: Failed to look up control center %s\n", tor_control_center);
+        return false;
+    }
+
     struct sockaddr_storage control_address;
     socklen_t control_address_len = sizeof(control_address);
-
-    // Leaving lookuptorcontrolhost in for now as it has the ability to select which protocol to use.
-    if (gArgs.IsArgSet("-lookuptorcontrolhost")) {
-        std::string lookup_protocol = gArgs.GetArg("-lookuptorcontrolhost", "");
-        uint16_t port{0};
-        char str_port[6];
-        std::string host;
-        SplitHostPort(tor_control_center, port, host);
-        if (port == 0) {
-            LogPrintf("tor: Error parsing socket address %s.  Port must be specified.\n", tor_control_center);
-            return false;
-        }
-        evutil_snprintf(str_port, sizeof(str_port), "%d", (int) port);
-
-        struct addrinfo aiHint;
-        memset(&aiHint, 0, sizeof(struct addrinfo));
-        aiHint.ai_socktype = SOCK_STREAM;
-        aiHint.ai_protocol = IPPROTO_TCP;
-        if (lookup_protocol == "ipv4") {
-            aiHint.ai_family = AF_INET;
-        } else
-        if (lookup_protocol == "ipv6") {
-            aiHint.ai_family = AF_INET6;
-        } else
-        if (lookup_protocol == "any") {
-            aiHint.ai_family = AF_UNSPEC;
-        } else {
-            LogPrintf("tor: Error, unknown -lookuptorcontrolhost option: \"%s\"\n", lookup_protocol);
-            return false;
-        }
-        aiHint.ai_flags = fNameLookup ? AI_ADDRCONFIG : AI_NUMERICHOST;
-        struct addrinfo *aiRes = nullptr;
-
-        int err = evutil_getaddrinfo(host.c_str(), str_port, &aiHint, &aiRes);
-        if (err != 0 || !aiRes || aiRes->ai_addrlen > sizeof(control_address)) {
-            LogPrintf("tor: Error parsing socket address %s: %s\n", host, evutil_gai_strerror(err));
-            return false;
-        }
-
-        memcpy((char*)&control_address, (char*)aiRes->ai_addr, aiRes->ai_addrlen);
-        control_address_len = aiRes->ai_addrlen;
-
-        evutil_freeaddrinfo(aiRes);
-    } else {
-        CService control_service;
-        if (!Lookup(tor_control_center, control_service, 9051, fNameLookup)) {
-            LogPrintf("tor: Failed to look up control center %s\n", tor_control_center);
-            return false;
-        }
-
-        struct sockaddr_storage control_address;
-        socklen_t control_address_len = sizeof(control_address);
-        if (!control_service.GetSockAddr(reinterpret_cast<struct sockaddr*>(&control_address), &control_address_len)) {
-            LogPrintf("tor: Error parsing socket address %s\n", tor_control_center);
-            return false;
-        }
+    if (!control_service.value().GetSockAddr(reinterpret_cast<struct sockaddr*>(&control_address), &control_address_len)) {
+        LogPrintf("tor: Error parsing socket address %s\n", tor_control_center);
+        return false;
     }
 
     // Create a new socket, set up callbacks and enable notification bits
@@ -700,7 +664,6 @@ static std::thread torControlThread;
 
 static void TorControlThread(CService onion_service_target)
 {
-    SetSyscallSandboxPolicy(SyscallSandboxPolicy::TOR_CONTROL);
     TorController ctrl(gBase, gArgs.GetArg("-torcontrol", DEFAULT_TOR_CONTROL), onion_service_target);
 
     event_base_dispatch(gBase);

@@ -6,8 +6,8 @@
 #define BITCOIN_INTERFACES_CHAIN_H
 
 #include <blockfilter.h>
+#include <common/settings.h>
 #include <primitives/transaction.h> // For CTransactionRef
-#include <util/settings.h>          // For util::SettingsValue
 
 #include <functional>
 #include <memory>
@@ -95,6 +95,9 @@ struct BlockInfo {
     unsigned data_pos = 0;
     const CBlock* data = nullptr;
     const CBlockUndo* undo_data = nullptr;
+    // The maximum time in the chain up to and including this block.
+    // A timestamp that can only move forward.
+    unsigned int chain_time_max{0};
 
     BlockInfo(const uint256& hash LIFETIMEBOUND) : hash(hash) {}
 };
@@ -212,6 +215,9 @@ public:
     //! Check if transaction is in mempool.
     virtual bool isInMempool(const uint256& txid) = 0;
 
+    //! Check if transaction is marked as having blinded inputs in the mempool.
+    virtual bool isMempoolMarkedBlindIn(const uint256& txid) = 0;
+
     //! Check if transaction has descendants in mempool.
     virtual bool hasDescendantsInMempool(const uint256& txid) = 0;
 
@@ -311,17 +317,17 @@ public:
     virtual int rpcSerializationFlags() = 0;
 
     //! Get settings value.
-    virtual util::SettingsValue getSetting(const std::string& arg) = 0;
+    virtual common::SettingsValue getSetting(const std::string& arg) = 0;
 
     //! Get list of settings values.
-    virtual std::vector<util::SettingsValue> getSettingsList(const std::string& arg) = 0;
+    virtual std::vector<common::SettingsValue> getSettingsList(const std::string& arg) = 0;
 
     //! Return <datadir>/settings.json setting value.
-    virtual util::SettingsValue getRwSetting(const std::string& name) = 0;
+    virtual common::SettingsValue getRwSetting(const std::string& name) = 0;
 
     //! Write a setting to <datadir>/settings.json. Optionally just update the
     //! setting in memory and do not write the file.
-    virtual bool updateRwSetting(const std::string& name, const util::SettingsValue& value, bool write=true) = 0;
+    virtual bool updateRwSetting(const std::string& name, const common::SettingsValue& value, bool write=true) = 0;
 
     //! Synchronously send transactionAddedToMempool notifications about all
     //! current mempool transactions to the specified handler and return after
@@ -352,6 +358,7 @@ public:
     virtual bool readRCTOutput(int64_t i, CAnonOutput &ao) = 0;
     virtual bool readRCTOutputLink(const CCmpPubKey &pk, int64_t &i) = 0;
     virtual bool readRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &ki_data) = 0;
+    virtual bool haveBlindedFlag(const uint256 &txid) = 0;
 };
 
 //! Interface to let node manage chain clients (wallets, or maybe tools for
@@ -381,6 +388,7 @@ public:
 
     //! Set mock time.
     virtual void setMockTime(int64_t time) = 0;
+    virtual void setMockTimeOffset(int64_t time) = 0;
 };
 
 //! Return implementation of Chain interface.

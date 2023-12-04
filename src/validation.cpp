@@ -2187,7 +2187,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
             }
         }
 
-        bool is_coinbase = tx.IsCoinBase() || tx.IsCoinStake();
         bool is_bip30_exception = (is_coinbase && !fEnforceBIP30);
 
         for (int k = (int)tx.vpout.size(); k-- > 0;) {
@@ -2571,7 +2570,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         return true;
     }
 
-    bool fScriptChecks = true;
     bool fScriptChecks = true;
     if (!m_chainman.AssumedValidBlock().IsNull()) {
         // We've been configured with the hash of a block which has been externally verified to have a valid history.
@@ -8048,4 +8046,4 @@ uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool veri
     return consensusParams.smsg_min_difficulty - consensusParams.smsg_difficulty_max_delta;
 };
 
-} // namespace particl
+} // namespace ghost

@@ -11,12 +11,11 @@
 #include <txmempool.h>
 #include <uint256.h>
 #include <script/script.h>
-#include <script/standard.h>
+#include <script/solver.h>
 #include <key_io.h>
 
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
-#include <util/system.h>
 
 bool fAddressIndex = false;
 bool fTimestampIndex = false;
@@ -132,11 +131,11 @@ bool GetSpentIndex(ChainstateManager &chainman, const CSpentIndexKey &key, CSpen
     return true;
 };
 
-<<<<<<< HEAD
-bool HashOnchainActive(const uint256 &hash)
+bool GetAddressIndex(ChainstateManager &chainman, const uint256 &addressHash, int type,
+                     std::vector<std::pair<CAddressIndexKey, CAmount> > &addressIndex, int start, int end)
 {
-    CBlockIndex* pblockindex = g_chainman.BlockIndex()[hash];
     auto& pblocktree{chainman.m_blockman.m_block_tree_db};
+    if (!fAddressIndex) {
         return error("Address index not enabled");
     }
     if (!pblocktree->ReadAddressIndex(addressHash, type, addressIndex, start, end)) {
@@ -146,11 +145,7 @@ bool HashOnchainActive(const uint256 &hash)
     return true;
 };
 
-<<<<<<< HEAD
-bool GetAddressUnspent(const uint256 &addressHash, int type,
-=======
 bool GetAddressUnspent(ChainstateManager &chainman, const uint256 &addressHash, int type,
->>>>>>> particl/25.x
                        std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &unspentOutputs)
 {
     auto& pblocktree{chainman.m_blockman.m_block_tree_db};
@@ -164,14 +159,9 @@ bool GetAddressUnspent(ChainstateManager &chainman, const uint256 &addressHash, 
     return true;
 };
 
-<<<<<<< HEAD
-bool GetBlockBalances(const uint256 &block_hash, BlockBalances &balances)
-{
-=======
 bool GetBlockBalances(ChainstateManager &chainman, const uint256 &block_hash, BlockBalances &balances)
 {
     auto& pblocktree{chainman.m_blockman.m_block_tree_db};
->>>>>>> particl/25.x
     if (!fBalancesIndex) {
         return error("Balances index not enabled");
     }

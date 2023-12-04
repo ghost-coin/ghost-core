@@ -14,6 +14,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <tinyformat.h>
 
 static const std::string CHARS_ALPHA_NUM = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -547,13 +548,13 @@ namespace part
 static bool icompare_pred(unsigned char a, unsigned char b)
 {
     return ToLower(a) == ToLower(b);
-};
+}
 
 static bool icompare_str(const std::string &a, const std::string &b)
 {
     return a.length() == b.length() &&
            std::equal(b.begin(), b.end(), a.begin(), icompare_pred);
-};
+}
 
 void *memrchr(const void *s, int c, size_t n)
 {
@@ -568,7 +569,7 @@ void *memrchr(const void *s, int c, size_t n)
     } while (--n != 0);
 
     return nullptr;
-};
+}
 
 // memcmp_nta - memcmp that is secure against timing attacks
 // returns 0 if both areas are equal to each other, non-zero otherwise
@@ -582,7 +583,7 @@ int memcmp_nta(const void *cs, const void *ct, size_t count)
         res |= (*su1 ^ *su2);
 
     return res;
-};
+}
 
 void ReplaceStrInPlace(std::string &subject, const std::string search, const std::string replace)
 {
@@ -591,17 +592,17 @@ void ReplaceStrInPlace(std::string &subject, const std::string search, const std
          subject.replace(pos, search.length(), replace);
          pos += replace.length();
     }
-};
+}
 
 bool IsStringBoolPositive(const std::string &value)
 {
     return (value == "+" || value == "1" || icompare_str(value, "on")  || icompare_str(value, "true") || icompare_str(value, "yes") || icompare_str(value, "y"));
-};
+}
 
 bool IsStringBoolNegative(const std::string &value)
 {
     return (value == "-" || value == "0" || icompare_str(value, "off") || icompare_str(value, "false") || icompare_str(value, "no") || icompare_str(value, "n"));
-};
+}
 
 bool GetStringBool(const std::string &value, bool &fOut)
 {
@@ -614,12 +615,12 @@ bool GetStringBool(const std::string &value, bool &fOut)
         return true;
     }
     return false;
-};
+}
 
 bool IsStrOnlyDigits(const std::string &s)
 {
     return s.find_first_not_of("0123456789") == std::string::npos;
-};
+}
 
 bool stringsMatchI(const std::string &sString, const std::string &sFind, int type)
 {
@@ -640,12 +641,12 @@ bool stringsMatchI(const std::string &sString, const std::string &sFind, int typ
     }
 
     return 0; // unknown type
-};
+}
 
 std::string StripQuotes(std::string s)
 {
     return TrimQuotes(s);
-};
+}
 
 std::string &TrimQuotes(std::string &s)
 {
@@ -662,14 +663,14 @@ std::string &TrimQuotes(std::string &s)
     if (s.back() == '"')
         s.erase(n - 1);
     return s;
-};
+}
 
 std::string &TrimWhitespace(std::string &s)
 {
     LTrimWhitespace(s);
     RTrimWhitespace(s);
     return s;
-};
+}
 
 std::string &LTrimWhitespace(std::string &s)
 {
@@ -683,7 +684,7 @@ std::string &LTrimWhitespace(std::string &s)
         s.erase(s.begin(), i);
     }
     return s;
-};
+}
 
 std::string &RTrimWhitespace(std::string &s)
 {
@@ -697,12 +698,26 @@ std::string &RTrimWhitespace(std::string &s)
         s.erase(i.base(), s.end());
     }
     return s;
-};
+}
 
 bool endsWith(const std::string &str, const std::string &suffix)
 {
     return str.size() >= suffix.size() &&
            str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
-};
+}
+
+std::string BytesReadable(uint64_t nBytes)
+{
+    if (nBytes >= 1024ll*1024ll*1024ll*1024ll)
+        return strprintf("%.2f TB", nBytes/1024.0/1024.0/1024.0/1024.0);
+    if (nBytes >= 1024*1024*1024)
+        return strprintf("%.2f GB", nBytes/1024.0/1024.0/1024.0);
+    if (nBytes >= 1024*1024)
+        return strprintf("%.2f MB", nBytes/1024.0/1024.0);
+    if (nBytes >= 1024)
+        return strprintf("%.2f KB", nBytes/1024.0);
+
+    return strprintf("%d B", nBytes);
+}
 
 } // namespace part

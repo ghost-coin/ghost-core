@@ -9,7 +9,7 @@
 #include <interfaces/wallet.h>
 #include <node/context.h>
 #include <util/check.h>
-#include <util/system.h>
+#include <common/args.h>
 
 #include <memory>
 

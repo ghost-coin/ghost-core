@@ -204,7 +204,7 @@ bool TxIndex::IndexCSOutputs(const interfaces::BlockInfo& block)
             if (lk.m_stake_type == TxoutType::PUBKEYHASH256) {
                 lk.m_stake_id = CKeyID256(uint256(vSolutions[0]));
             } else {
-                LogPrint(BCLog::COINDB, "%s: Ignoring unexpected stakescript type=%d.\n", __func__, particl::FromTxoutType(lk.m_stake_type));
+                LogPrint(BCLog::COINDB, "%s: Ignoring unexpected stakescript type=%d.\n", __func__, ghost::FromTxoutType(lk.m_stake_type));
                 continue;
             }
 
@@ -217,7 +217,7 @@ bool TxIndex::IndexCSOutputs(const interfaces::BlockInfo& block)
             if (lk.m_spend_type == TxoutType::PUBKEYHASH256 || lk.m_spend_type == TxoutType::SCRIPTHASH256) {
                 lk.m_spend_id = CKeyID256(uint256(vSolutions[0]));
             } else {
-                LogPrint(BCLog::COINDB, "%s: Ignoring unexpected spendscript type=%d.\n", __func__, particl::FromTxoutType(lk.m_spend_type));
+                LogPrint(BCLog::COINDB, "%s: Ignoring unexpected spendscript type=%d.\n", __func__, ghost::FromTxoutType(lk.m_spend_type));
                 continue;
             }
 

@@ -4,7 +4,7 @@
 
 #ifndef PARTICL_CHAIN_CHAINPARAMSIMPORT_H
 #define PARTICL_CHAIN_CHAINPARAMSIMPORT_H
-
+namespace ghost {
 void AddImportHashesMain(std::vector<CImportedCoinbaseTxn> &vImportedCoinbaseTxns)
 {
 };
@@ -12,5 +12,5 @@ void AddImportHashesMain(std::vector<CImportedCoinbaseTxn> &vImportedCoinbaseTxn
 void AddImportHashesTest(std::vector<CImportedCoinbaseTxn> &vImportedCoinbaseTxns)
 {
 };
-
+} // namespace ghost 
 #endif // PARTICL_PARTICL_CHAINPARAMSIMPORT_H

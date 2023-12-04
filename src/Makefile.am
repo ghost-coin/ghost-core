@@ -321,6 +321,7 @@ BITCOIN_CORE_H = \
   txorphanage.h \
   txrequest.h \
   undo.h \
+  util/any.h \
   util/asmap.h \
   util/bip32.h \
   util/bitdeque.h \
@@ -354,7 +355,6 @@ BITCOIN_CORE_H = \
   util/string.h \
   util/syscall_sandbox.h \
   util/syserror.h \
-  util/system.h \
   util/thread.h \
   util/threadinterrupt.h \
   util/threadnames.h \
@@ -832,6 +832,7 @@ libghost_util_a_SOURCES = \
   logging.cpp \
   random.cpp \
   randomenv.cpp \
+  streams.cpp \
   support/cleanse.cpp \
   sync.cpp \
   util/chaintype.cpp \
@@ -849,12 +850,10 @@ libghost_util_a_SOURCES = \
   util/hasher.cpp \
   util/sock.cpp \
   util/syserror.cpp \
-  util/system.cpp \
   util/message.cpp \
   util/moneystr.cpp \
   util/rbf.cpp \
   util/readwritefile.cpp \
-  util/settings.cpp \
   util/signalinterrupt.cpp \
   util/thread.cpp \
   util/threadinterrupt.cpp \
@@ -1189,7 +1188,6 @@ libghostkernel_la_SOURCES = \
   util/string.cpp \
   util/syscall_sandbox.cpp \
   util/syserror.cpp \
-  util/system.cpp \
   util/thread.cpp \
   util/threadnames.cpp \
   util/time.cpp \

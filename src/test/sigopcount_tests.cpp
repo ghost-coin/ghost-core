@@ -8,7 +8,7 @@
 #include <key.h>
 #include <pubkey.h>
 #include <script/script.h>
-#include <script/standard.h>
+
 #include <test/util/setup_common.h>
 #include <uint256.h>
 
@@ -18,6 +18,9 @@
 
 #include <key/extkey.h>
 #include <key/stealth.h>
+#include "addresstype.h"
+#include "script/solver.h"
+#include "script/interpreter.h"
 
 // Helpers:
 static std::vector<unsigned char>

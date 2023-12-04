@@ -43,7 +43,7 @@
 #include <uint256.h>
 #include <univalue.h>
 #include <util/check.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
@@ -824,7 +824,7 @@ public:
     int64_t getSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, bool reduce_height) override
     {
         LOCK(::cs_main);
-        return particl::GetSmsgFeeRate(chainman, pindex, reduce_height);
+        return ghost::GetSmsgFeeRate(chainman, pindex, reduce_height);
     }
     CTransactionRef transactionFromMempool(const uint256 &txhash) override
     {

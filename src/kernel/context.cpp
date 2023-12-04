@@ -25,14 +25,14 @@ Context::Context()
     LogPrintf("Using the '%s' SHA256 implementation\n", sha256_algo);
     RandomInit();
     ECC_Start();
-    particl::ECC_Start_Stealth();
-    particl::ECC_Start_Blinding();
+    ghost::ECC_Start_Stealth();
+    ghost::ECC_Start_Blinding();
 }
 
 Context::~Context()
 {
-    particl::ECC_Stop_Blinding();
-    particl::ECC_Stop_Stealth();
+    ghost::ECC_Stop_Blinding();
+    ghost::ECC_Stop_Stealth();
     ECC_Stop();
 }
 

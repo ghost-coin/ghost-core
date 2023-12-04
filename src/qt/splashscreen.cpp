@@ -15,7 +15,7 @@
 #include <qt/guiutil.h>
 #include <qt/networkstyle.h>
 #include <qt/walletmodel.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <util/translation.h>
 
 #include <functional>

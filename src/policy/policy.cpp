@@ -15,7 +15,7 @@
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <script/script.h>
-#include <script/standard.h>
+#include <script/solver.h>
 #include <serialize.h>
 #include <span.h>
 
@@ -180,7 +180,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
         } else if ((whichType == TxoutType::MULTISIG) && (!permit_bare_multisig)) {
             reason = "bare-multisig";
             return false;
-        } else if (particl::IsDust(p, dust_relay_fee)) {
+        } else if (ghost::IsDust(p, dust_relay_fee)) {
             reason = "dust";
             return false;
         }
@@ -265,9 +265,6 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
                         return false;
                     }
                 }
-            } else if (whichType == TxoutType::WITNESS_V1_TAPROOT) {
-                // Don't allow Taproot spends unless Taproot is active.
-                if (!taproot_active) return false;
             }
         }
         return true;
@@ -425,7 +422,7 @@ int64_t GetVirtualTransactionInputSize(const CTxIn& txin, int64_t nSigOpCost, un
     return GetVirtualTransactionSize(GetTransactionInputWeight(txin), nSigOpCost, bytes_per_sigop);
 }
 
-namespace particl {
+namespace ghost {
 CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn)
 {
     // "Dust" is defined in terms of dustRelayFee,

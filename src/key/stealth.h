@@ -151,10 +151,10 @@ int MakeStealthData(const std::string &sNarration, stealth_prefix prefix, const 
 int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarration,
     CScript &scriptPubKey, std::vector<uint8_t> &vData, std::string &sError);
 
-namespace particl {
+namespace ghost {
 void ECC_Start_Stealth();
 void ECC_Stop_Stealth();
-} // namespace particl
+} // namespace ghost
 
 
 #endif // PARTICL_KEY_STEALTH_H

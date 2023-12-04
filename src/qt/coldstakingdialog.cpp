@@ -12,7 +12,7 @@
 #include <interfaces/wallet.h>
 
 #include <rpc/rpcutil.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <key/extkey.h>
 
 #include <QDebug>

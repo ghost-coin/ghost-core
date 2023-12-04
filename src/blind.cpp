@@ -9,13 +9,14 @@
 
 #include <support/allocators/secure.h>
 #include <random.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <serialize.h>
 #include <streams.h>
 #include <version.h>
+#include <logging.h>
 
-#include <bloom.h>
 #include <common/bloom.h>
+#include <common/args.h>
 #include <chain/ct_tainted.h>
 #include <chain/tx_blacklist.h>
 #include <chain/tx_whitelist.h>
@@ -183,15 +184,6 @@ void LoadCTTaintedFilter(const unsigned char *data, size_t data_length)
     stream >> ct_tainted_filter;
 }
 
-void LoadBlindedOutputFilters()
-{
-    LoadCTTaintedFilter(ct_tainted_filter_data, ct_tainted_filter_data_len);
-    LoadCTWhitelist(tx_whitelist_data, tx_whitelist_data_len);
-    LoadRCTWhitelist(anon_index_whitelist, anon_index_whitelist_size, 1);
-    LoadRCTBlacklist(anon_index_blacklist, anon_index_blacklist_size);
-    LoadRCTWhitelist(anon_index_whitelist2, anon_index_whitelist2_size, 2);
-}
-
 bool IsFrozenBlindOutput(const uint256 &txid)
 {
     if (ct_tainted_filter.contains(txid)) {
@@ -214,7 +206,7 @@ bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::
     return rct_whitelist.count(anon_index);
 }
 
-namespace particl {
+namespace ghost {
 void ECC_Start_Blinding()
 {
     assert(secp256k1_ctx_blind == nullptr);

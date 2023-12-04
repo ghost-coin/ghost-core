@@ -10,13 +10,13 @@
 static constexpr bool DEFAULT_TXINDEX{false};
 class CBlockHeader;
 
-namespace particl {
+namespace ghost {
 static constexpr bool DEFAULT_CSINDEX{false};
 static constexpr bool DEFAULT_ADDRESSINDEX{false};
 static constexpr bool DEFAULT_TIMESTAMPINDEX{false};
 static constexpr bool DEFAULT_SPENTINDEX{false};
 static constexpr bool DEFAULT_BALANCESINDEX{false};
-} // particl
+} // ghost
 
 
 /**

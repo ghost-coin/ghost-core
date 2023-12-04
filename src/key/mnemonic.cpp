@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2015 The ShadowCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,7 +16,7 @@
 
 #include <key/mnemonic.h>
 
-#include <util/system.h>
+#include <logging.h>
 #include <util/string.h>
 #include <util/strencodings.h>
 #include <crypto/hmac_sha512.h>
@@ -26,6 +26,7 @@
 #include <unilib/uninorms.h>
 #include <unilib/utf8.h>
 
+#include <map>
 #include <atomic>
 #include <cmath>
 

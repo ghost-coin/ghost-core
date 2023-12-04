@@ -10,7 +10,7 @@
 #include <logging.h>
 #include <tinyformat.h>
 #include <util/fs.h>
-#include <util/system.h>
+#include <common/args.h>
 
 #include <cstdio>
 #include <cstdlib>

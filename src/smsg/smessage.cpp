@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The ShadowCoin developers
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The ghost Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -43,13 +43,15 @@ Notes:
 #include <net.h>
 #include <net_processing.h>
 #include <streams.h>
+#include <dbwrapper.h>
 #include <univalue.h>
 #include <node/context.h>
 #include <node/blockstorage.h>
 #include <util/string.h>
-#include <util/system.h>
 #include <util/syserror.h>
 #include <timedata.h>
+#include <logging.h>
+#include <common/args.h>
 
 #ifdef ENABLE_WALLET
 #include <wallet/coincontrol.h>
@@ -58,6 +60,7 @@ Notes:
 #include <policy/policy.h>
 #endif
 
+#include <xxhash/xxhash.h>
 
 #include <stdint.h>
 #include <time.h>
@@ -66,7 +69,6 @@ Notes:
 #include <errno.h>
 #include <limits>
 
-#include <xxhash/xxhash.h>
 
 smsg::CSMSG smsgModule;
 
@@ -206,8 +208,8 @@ void ThreadSecureMsg(smsg::CSMSG *smsg_module)
             for (std::map<int64_t, SecMsgBucket>::iterator it(smsg_module->buckets.begin()); it != smsg_module->buckets.end(); ) {
                 bool fErase = it->first < cutoffTime;
 
-                if (!fErase
-                    && it->first + it->second.nLeastTTL < now) {
+                if (!fErase &&
+                    it->first + it->second.nLeastTTL < now) {
                     it->second.hashBucket(it->first);
 
                     // TODO: periodically prune files
@@ -541,7 +543,7 @@ int CSMSG::BuildBucketSet()
 
         // TODO files must be split if > 2GB
         // time_noFile.dat
-        size_t sep = fileName.find_first_of("_");
+        size_t sep = fileName.find_first_of('_');
         if (sep == std::string::npos) {
             continue;
         }
@@ -884,7 +886,7 @@ bool CSMSG::Start(std::shared_ptr<wallet::CWallet> pwalletIn, std::vector<std::s
     if (fSecMsgEnabled) {
         return error("%s: Secure messaging is already started.", __func__);
     }
-    if (Params().NetworkIDString() == "regtest" &&
+    if (Params().GetChainType() == ChainType::REGTEST &&
         gArgs.GetBoolArg("-smsgsregtestadjust", true)) {
         SMSG_SECONDS_IN_HOUR    = 60 * 2; // seconds
         SMSG_BUCKET_LEN         = 60 * 2; // seconds
@@ -1315,7 +1317,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
         LogPrintf("%s: %s %s.\n", __func__, pfrom->m_addr_name, strCommand);
     }
 
-    if (m_node->chainman->ActiveChainstate().IsInitialBlockDownload()) { // Wait until chain synced
+    if (m_node->chainman->IsInitialBlockDownload()) { // Wait until chain synced
         if (strCommand == SMSGMsgType::PING) {
             pfrom->smsgData.lastSeen = -1; // Mark node as requiring a response once chain is synced
         }
@@ -1776,7 +1778,7 @@ int CSMSG::ReceiveData(PeerManager *peerLogic, CNode *pfrom, const std::string &
   */
 bool CSMSG::SendData(CNode *pto, bool fSendTrickle)
 {
-    if (m_node->chainman->ActiveChainstate().IsInitialBlockDownload()) { // Wait until chain synced
+    if (m_node->chainman->IsInitialBlockDownload()) { // Wait until chain synced
         return true;
     }
 
@@ -2085,8 +2087,8 @@ bool CSMSG::ScanChainForPublicKeys(CBlockIndex *pindexStart)
         LOCK(cs_smsgDB);
 
         SecMsgDB addrpkdb;
-        if (!addrpkdb.Open("cw")
-            || !addrpkdb.TxnBegin()) {
+        if (!addrpkdb.Open("cw") ||
+            !addrpkdb.TxnBegin()) {
             return false;
         }
 
@@ -2094,7 +2096,7 @@ bool CSMSG::ScanChainForPublicKeys(CBlockIndex *pindexStart)
         while (pindex) {
             nBlocks++;
             CBlock block;
-            if (!node::ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
+            if (!m_node->chainman->m_blockman.ReadBlockFromDisk(block, *pindex)) {
                 LogPrintf("%s: ReadBlockFromDisk failed.\n", __func__);
             } else {
                 smsg::ScanBlock(*this, block, addrpkdb,
@@ -2182,7 +2184,7 @@ bool CSMSG::ScanBuckets(bool scan_all)
 
         // TODO files must be split if > 2GB
         // time_noFile.dat
-        size_t sep = fileName.find_first_of("_");
+        size_t sep = fileName.find_first_of('_');
         if (sep == std::string::npos) {
             continue;
         }
@@ -2361,7 +2363,7 @@ int CSMSG::WalletUnlocked(wallet::CWallet *pwallet)
 
         // TODO files must be split if > 2GB
         // time_noFile_wl.dat
-        size_t sep = fileName.find_first_of("_");
+        size_t sep = fileName.find_first_of('_');
         if (sep == std::string::npos) {
             continue;
         }
@@ -3128,7 +3130,7 @@ int CSMSG::Receive(PeerManager *peerLogic, CNode *pfrom, std::vector<uint8_t> &v
                 GetPowHash(&smsg, pPayload, smsg.nPayload, msg_hash);
                 {
                     LOCK(cs_main);
-                    target.SetCompact(particl::GetSmsgDifficulty(*m_node->chainman, now, true));
+                    target.SetCompact(ghost::GetSmsgDifficulty(*m_node->chainman, now, true));
                 }
 
                 if (UintToArith256(msg_hash) > target) {
@@ -3509,9 +3511,7 @@ int CSMSG::StoreFundingTx(ChainSyncCache &cache, const CTransaction &tx, const C
 
     // TODO: Get current fee-rate, GetSmsgFeeRate
 
-    if (!PutFundingData(&cache.m_connect_block_batch, tx.GetHash(), pindex->nHeight, db_data)) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - PutFundingData failed.", __func__);
-    }
+    cache.funding_data.emplace_back(tx.GetHash(), pindex->nHeight, db_data);
 
     return SMSG_NO_ERROR;
 }
@@ -3522,8 +3522,8 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
     const size_t nMsgBytes = SMSG_HDR_LEN + psmsg->nPayload;
     uint256 txid;
     uint160 msgId;
-    if (0 != HashMsg(*psmsg, pPayload, psmsg->nPayload-32, msgId)
-        || !GetFundingTxid(pPayload, psmsg->nPayload, txid)) {
+    if (0 != HashMsg(*psmsg, pPayload, psmsg->nPayload-32, msgId) ||
+        !GetFundingTxid(pPayload, psmsg->nPayload, txid)) {
         LogPrintf("%s: Get msgID or Txn Hash failed.\n", __func__);
         return SMSG_GENERAL_ERROR;
     }
@@ -3552,7 +3552,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
             pindex = &mi->second;
             if (pindex && m_node->chainman->ActiveChain().Contains(pindex)) {
                 blockDepth = m_node->chainman->ActiveChain().Height() - pindex->nHeight + 1;
-                nMsgFeePerKPerDay = particl::GetSmsgFeeRate(*m_node->chainman, pindex);
+                nMsgFeePerKPerDay = ghost::GetSmsgFeeRate(*m_node->chainman, pindex);
             }
         }
     }
@@ -3575,7 +3575,7 @@ int CSMSG::CheckFundingTx(const Consensus::Params &consensusParams, const Secure
                 // Grace period after fee period transition where prev fee is still allowed
                 bool matched_last_fee = false;
                 if (pindex->nHeight % consensusParams.smsg_fee_period < 10) {
-                    int64_t nMsgFeePerKPerDayLast = particl::GetSmsgFeeRate(*m_node->chainman, pindex, true);
+                    int64_t nMsgFeePerKPerDayLast = ghost::GetSmsgFeeRate(*m_node->chainman, pindex, true);
                     int64_t nExpectFeeLast = ((nMsgFeePerKPerDayLast * nMsgBytes) / 1000) * nDaysRetention;
 
                     if (nAmount >= nExpectFeeLast) {
@@ -3652,9 +3652,8 @@ int CSMSG::SetBestBlock(ChainSyncCache &cache, const uint256 &block_hash, int he
         return SMSG_NO_ERROR;
     }
 
-    if (!PutBestBlock(&cache.m_connect_block_batch, block_hash, height)) {
-        return errorN(SMSG_GENERAL_ERROR, "%s - PutBestBlock failed.", __func__);
-    }
+    cache.best_block_hash = block_hash;
+    cache.best_block_height = height;
 
     return SMSG_NO_ERROR;
 }
@@ -3676,7 +3675,18 @@ int CSMSG::WriteCache(ChainSyncCache &cache)
                 return SMSG_GENERAL_ERROR;
             }
         }
-        m_chain_sync_db.CommitBatch(&cache.m_connect_block_batch);
+        leveldb::WriteBatch batch;
+
+        for (const auto &tx_data : cache.funding_data) {
+            if (!PutFundingData(&batch, tx_data.tx_hash, tx_data.tx_height, tx_data.db_data)) {
+                return errorN(SMSG_GENERAL_ERROR, "%s - PutFundingData failed.", __func__);
+            }
+        }
+
+        if (!PutBestBlock(&batch, cache.best_block_hash, cache.best_block_height)) {
+            return errorN(SMSG_GENERAL_ERROR, "%s - PutBestBlock failed.", __func__);
+        }
+        m_chain_sync_db.CommitBatch(&batch);
     }
 
     return SMSG_NO_ERROR;
@@ -3788,7 +3798,7 @@ int CSMSG::Validate(const SecureMessage *psmsg, const uint8_t *pPayload, uint32_
     arith_uint256 target;
     {
     LOCK(cs_main);
-    target.SetCompact(particl::GetSmsgDifficulty(*m_node->chainman, psmsg->timestamp, true));
+    target.SetCompact(ghost::GetSmsgDifficulty(*m_node->chainman, psmsg->timestamp, true));
     }
 
     if (UintToArith256(msg_hash) <= target) {
@@ -3815,7 +3825,7 @@ int CSMSG::SetHash(SecureMessage *psmsg, uint8_t *pPayload, uint32_t nPayload)
     arith_uint256 target_difficulty;
     {
     LOCK(cs_main);
-    target_difficulty.SetCompact(particl::GetSmsgDifficulty(*m_node->chainman, psmsg->timestamp));
+    target_difficulty.SetCompact(ghost::GetSmsgDifficulty(*m_node->chainman, psmsg->timestamp));
     }
 
     unsigned char header_buffer[SMSG_HDR_LEN];
@@ -4226,7 +4236,7 @@ int CSMSG::Send(CKeyID &addressFrom, CKeyID &addressTo, std::string &message,
         } else {
             if (fPaid) {
                 uint256 txfundId;
-                if (!smsg.GetFundingTxid(txfundId)) {
+                if (!GetFundingTxid(smsg, txfundId)) {
                     return errorN(SMSG_GENERAL_ERROR, "%s: GetFundingTxid failed.\n");
                 }
                 // SecureMsgEncrypt will alloc an extra 32 bytes when smsg version describes paid msg
@@ -4731,6 +4741,13 @@ double GetDifficulty(uint32_t compact)
     }
 
     return dDiff;
+}
+
+void ChainSyncCache::Clear() {
+    m_skip = false;
+    best_block_hash = uint256();
+    best_block_height = -1;
+    funding_data.clear();
 }
 
 } // namespace smsg

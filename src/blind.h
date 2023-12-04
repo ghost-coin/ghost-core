@@ -32,9 +32,9 @@ bool IsFrozenBlindOutput(const uint256 &txid);  // tainted && !whitelisted
 bool IsBlacklistedAnonOutput(int64_t anon_index);
 bool IsWhitelistedAnonOutput(int64_t anon_index, int64_t time, const Consensus::Params &consensus_params);
 
-namespace particl {
+namespace ghost {
 void ECC_Start_Blinding();
 void ECC_Stop_Blinding();
-} // namespace particl
+} // namespace ghost
 
 #endif // PARTICL_BLIND_H

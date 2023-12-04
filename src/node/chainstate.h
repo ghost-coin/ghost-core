@@ -50,7 +50,8 @@ struct ChainstateLoadOptions {
 //! and exit cleanly in the interrupted case.
 enum class ChainstateLoadStatus {
     SUCCESS,
-    FAILURE,
+    FAILURE, //!< Generic failure which reindexing may fix
+    FAILURE_FATAL, //!< Fatal error which should not prompt to reindex
     FAILURE_INCOMPATIBLE_DB,
     FAILURE_INSUFFICIENT_DBCACHE,
     INTERRUPTED,
@@ -75,10 +76,10 @@ using ChainstateLoadResult = std::tuple<ChainstateLoadStatus, bilingual_str>;
 ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSizes& cache_sizes,
                                     const ChainstateLoadOptions& options);
 ChainstateLoadResult VerifyLoadedChainstate(ChainstateManager& chainman, const ChainstateLoadOptions& options);
-namespace particl {
+namespace ghost {
 /** Returns true if the block index needs to be reindexed. */
 bool ShouldAutoReindex(ChainstateManager &chainman, const CacheSizes& cache_sizes, const ChainstateLoadOptions& options);
-} // namespace particl
+} // namespace ghost
 } // namespace node
 
 #endif // BITCOIN_NODE_CHAINSTATE_H

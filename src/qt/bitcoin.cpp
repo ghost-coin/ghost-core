@@ -31,7 +31,7 @@
 #include <uint256.h>
 #include <util/exception.h>
 #include <util/string.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <util/threadnames.h>
 #include <util/translation.h>
 #include <validation.h>

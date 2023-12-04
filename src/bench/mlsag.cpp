@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,7 +18,7 @@
 
 static void Mlsag(benchmark::Bench& bench)
 {
-    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true, true, true /* fParticlMode */};
+    TestingSetup test_setup{ChainType::REGTEST, {}, true, true, /*fParticlMode*/true};
 
     const size_t nInputs = 2;
     const size_t nCols = 4;
@@ -66,7 +66,6 @@ static void Mlsag(benchmark::Bench& bench)
 
             CPubKey pk = vKeys[k].GetPubKey();
             memcpy(&m[(i+k*nCols)*33], pk.begin(), 33);
-
 
             vBlindsIn[k].MakeNewKey(true);
             pblinds[k] = vBlindsIn[k].begin();

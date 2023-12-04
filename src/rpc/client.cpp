@@ -3,9 +3,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <common/args.h>
 #include <rpc/client.h>
 #include <tinyformat.h>
-#include <util/system.h>
 
 #include <set>
 #include <stdint.h>
@@ -107,6 +107,13 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listunspent", 2, "addresses" },
     { "listunspent", 3, "include_unsafe" },
     { "listunspent", 4, "query_options" },
+    { "listunspent", 4, "minimumAmount" },
+    { "listunspent", 4, "maximumAmount" },
+    { "listunspent", 4, "maximumCount" },
+    { "listunspent", 4, "minimumSumAmount" },
+    { "listunspent", 4, "include_immature_coinbase" },
+    { "listunspent", 4, "cc_format" },
+    { "listunspent", 4, "include_immature" },
     { "getblock", 1, "verbosity" },
     { "getblock", 1, "verbose" },
     { "getblock", 2, "coinstakeinfo" },
@@ -133,15 +140,45 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "submitpackage", 0, "package" },
     { "combinerawtransaction", 0, "txs" },
     { "fundrawtransaction", 1, "options" },
+    { "fundrawtransaction", 1, "add_inputs"},
+    { "fundrawtransaction", 1, "include_unsafe"},
+    { "fundrawtransaction", 1, "minconf"},
+    { "fundrawtransaction", 1, "maxconf"},
+    { "fundrawtransaction", 1, "changePosition"},
+    { "fundrawtransaction", 1, "includeWatching"},
+    { "fundrawtransaction", 1, "lockUnspents"},
+    { "fundrawtransaction", 1, "fee_rate"},
+    { "fundrawtransaction", 1, "feeRate"},
+    { "fundrawtransaction", 1, "subtractFeeFromOutputs"},
+    { "fundrawtransaction", 1, "input_weights"},
+    { "fundrawtransaction", 1, "conf_target"},
+    { "fundrawtransaction", 1, "replaceable"},
+    { "fundrawtransaction", 1, "solving_data"},
     { "fundrawtransaction", 2, "iswitness" },
     { "walletcreatefundedpsbt", 0, "inputs" },
     { "walletcreatefundedpsbt", 1, "outputs" },
     { "walletcreatefundedpsbt", 2, "locktime" },
     { "walletcreatefundedpsbt", 3, "options" },
+    { "walletcreatefundedpsbt", 3, "add_inputs"},
+    { "walletcreatefundedpsbt", 3, "include_unsafe"},
+    { "walletcreatefundedpsbt", 3, "minconf"},
+    { "walletcreatefundedpsbt", 3, "maxconf"},
+    { "walletcreatefundedpsbt", 3, "changePosition"},
+    { "walletcreatefundedpsbt", 3, "includeWatching"},
+    { "walletcreatefundedpsbt", 3, "lockUnspents"},
+    { "walletcreatefundedpsbt", 3, "fee_rate"},
+    { "walletcreatefundedpsbt", 3, "feeRate"},
+    { "walletcreatefundedpsbt", 3, "subtractFeeFromOutputs"},
+    { "walletcreatefundedpsbt", 3, "conf_target"},
+    { "walletcreatefundedpsbt", 3, "replaceable"},
+    { "walletcreatefundedpsbt", 3, "solving_data"},
     { "walletcreatefundedpsbt", 4, "bip32derivs" },
     { "walletprocesspsbt", 1, "sign" },
     { "walletprocesspsbt", 3, "bip32derivs" },
     { "walletprocesspsbt", 4, "finalize" },
+    { "descriptorprocesspsbt", 1, "descriptors"},
+    { "descriptorprocesspsbt", 3, "bip32derivs" },
+    { "descriptorprocesspsbt", 4, "finalize" },
     { "createpsbt", 0, "inputs" },
     { "createpsbt", 1, "outputs" },
     { "createpsbt", 2, "locktime" },
@@ -163,18 +200,53 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "send", 1, "conf_target" },
     { "send", 3, "fee_rate"},
     { "send", 4, "options" },
+    { "send", 4, "add_inputs"},
+    { "send", 4, "include_unsafe"},
+    { "send", 4, "minconf"},
+    { "send", 4, "maxconf"},
+    { "send", 4, "add_to_wallet"},
+    { "send", 4, "change_position"},
+    { "send", 4, "fee_rate"},
+    { "send", 4, "include_watching"},
+    { "send", 4, "inputs"},
+    { "send", 4, "locktime"},
+    { "send", 4, "lock_unspents"},
+    { "send", 4, "psbt"},
+    { "send", 4, "subtract_fee_from_outputs"},
+    { "send", 4, "conf_target"},
+    { "send", 4, "replaceable"},
+    { "send", 4, "solving_data"},
     { "sendall", 0, "recipients" },
     { "sendall", 1, "conf_target" },
     { "sendall", 3, "fee_rate"},
     { "sendall", 4, "options" },
+    { "sendall", 4, "add_to_wallet"},
+    { "sendall", 4, "fee_rate"},
+    { "sendall", 4, "include_watching"},
+    { "sendall", 4, "inputs"},
+    { "sendall", 4, "locktime"},
+    { "sendall", 4, "lock_unspents"},
+    { "sendall", 4, "psbt"},
+    { "sendall", 4, "send_max"},
+    { "sendall", 4, "minconf"},
+    { "sendall", 4, "maxconf"},
+    { "sendall", 4, "conf_target"},
+    { "sendall", 4, "replaceable"},
+    { "sendall", 4, "solving_data"},
     { "simulaterawtransaction", 0, "rawtxs" },
     { "simulaterawtransaction", 1, "options" },
+    { "simulaterawtransaction", 1, "include_watchonly"},
     { "importprivkey", 2, "rescan" },
     { "importaddress", 2, "rescan" },
     { "importaddress", 3, "p2sh" },
     { "importpubkey", 2, "rescan" },
+    { "importmempool", 1, "options" },
+    { "importmempool", 1, "apply_fee_delta_priority" },
+    { "importmempool", 1, "use_current_time" },
+    { "importmempool", 1, "apply_unbroadcast_set" },
     { "importmulti", 0, "requests" },
     { "importmulti", 1, "options" },
+    { "importmulti", 1, "rescan" },
     { "importdescriptors", 0, "requests" },
     { "listdescriptors", 0, "private" },
     { "verifychain", 0, "checklevel" },
@@ -196,22 +268,19 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "setwalletflag", 1, "value" },
     { "getmempoolancestors", 1, "verbose" },
     { "getmempooldescendants", 1, "verbose" },
-    { "getblockhashes", 0 , "high"},
-    { "getblockhashes", 1, "low"},
-    { "getblockhashes", 2, "options" },
-    { "getspentinfo", 0, "inputs"},
-    { "getaddresstxids", 0, "addresses"},
-    { "getaddressbalance", 0, "addresses"},
-    { "getaddressdeltas", 0, "addresses"},
-    { "getaddressutxos", 0, "addresses"},
-    { "getaddressmempool", 0, "addresses"},
-    { "listcoldstakeunspent", 1, "height"},
-    { "listcoldstakeunspent", 2, "options"},
-    { "getblockreward", 0, "height"},
-    { "getblockbalances", 1, "options"},
     { "gettxspendingprevout", 0, "outputs" },
     { "bumpfee", 1, "options" },
+    { "bumpfee", 1, "conf_target"},
+    { "bumpfee", 1, "fee_rate"},
+    { "bumpfee", 1, "replaceable"},
+    { "bumpfee", 1, "outputs"},
+    { "bumpfee", 1, "reduce_output"},
     { "psbtbumpfee", 1, "options" },
+    { "psbtbumpfee", 1, "conf_target"},
+    { "psbtbumpfee", 1, "fee_rate"},
+    { "psbtbumpfee", 1, "replaceable"},
+    { "psbtbumpfee", 1, "outputs"},
+    { "psbtbumpfee", 1, "reduce_output"},
 
     // Particl
     { "importstealthaddress", 3, "num_prefix_bits" },
@@ -240,35 +309,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "tallyvotes", 0, "proposal" },
     { "tallyvotes", 1, "height_start" },
     { "tallyvotes", 2, "height_end" },
-    { "debugwallet", 0, "options" },
-
-
-    { "sendghosttoblind", 1, "amount" },
-    { "sendghosttoblind", 4, "subtractfeefromamount" },
-    { "sendghosttoanon", 1, "amount" },
-    { "sendghosttoanon", 4, "subtractfeefromamount" },
-
-    { "sendblindtoghost", 1, "amount" },
-    { "sendblindtoghost", 4, "subtractfeefromamount" },
-    { "sendblindtoblind", 1, "amount" },
-    { "sendblindtoblind", 4, "subtractfeefromamount" },
-    { "sendblindtoanon", 1, "amount" },
-    { "sendblindtoanon", 4, "subtractfeefromamount" },
-
-    { "sendanontoghost", 1, "amount" },
-    { "sendanontoghost", 4, "subtractfeefromamount" },
-    { "sendanontoghost", 6, "ringsize" },
-    { "sendanontoghost", 7, "inputs_per_sig" },
-
-    { "sendanontoblind", 1, "amount" },
-    { "sendanontoblind", 4, "subtractfeefromamount" },
-    { "sendanontoblind", 6, "ringsize" },
-    { "sendanontoblind", 7, "inputs_per_sig" },
-
-    { "sendanontoanon", 1, "amount" },
-    { "sendanontoanon", 4, "subtractfeefromamount" },
-    { "sendanontoanon", 6, "ringsize" },
-    { "sendanontoanon", 7, "inputs_per_sig" },
 
     { "sendtypeto", 2, "outputs" },
     { "sendtypeto", 5, "ringsize" },
@@ -355,17 +395,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "smsgpeers", 0, "index" },
     { "smsgzmqpush", 0, "options" },
 
-    { "extkeyimportmaster", 2, "save_bip44_root" },
-    { "extkeyimportmaster", 6, "options" },
-    { "extkeygenesisimport", 2, "save_bip44_root" },
-    { "extkeygenesisimport", 6, "options" },
-
-    { "votehistory", 0, "current_only" },
-    { "votehistory", 1, "include_future" },
-
-
-    { "devicesignrawtransaction", 1, "prevtxs" },
-    { "devicesignrawtransaction", 2, "paths" },
     // Particl: Hardware Device
     { "devicesignrawtransaction", 1, "prevtxs" },
     { "devicesignrawtransaction", 2, "paths" },
@@ -430,9 +459,18 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnodeaddresses", 0, "count"},
     { "addpeeraddress", 1, "port"},
     { "addpeeraddress", 2, "tried"},
+    { "sendmsgtopeer", 0, "peer_id" },
     { "stop", 0, "wait" },
 };
 // clang-format on
+
+/** Parse string to UniValue or throw runtime_error if string contains invalid JSON */
+static UniValue Parse(std::string_view raw)
+{
+    UniValue parsed;
+    if (!parsed.read(raw)) throw std::runtime_error(tfm::format("Error parsing JSON: %s", raw));
+    return parsed;
+}
 
 class CRPCConvertTable
 {
@@ -446,13 +484,13 @@ public:
     /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
     UniValue ArgToUniValue(std::string_view arg_value, const std::string& method, int param_idx)
     {
-        return members.count({method, param_idx}) > 0 ? ParseNonRFCJSONValue(arg_value) : arg_value;
+        return members.count({method, param_idx}) > 0 ? Parse(arg_value) : arg_value;
     }
 
     /** Return arg_value as UniValue, and first parse it if it is a non-string parameter */
     UniValue ArgToUniValue(std::string_view arg_value, const std::string& method, const std::string& param_name)
     {
-        return membersByName.count({method, param_name}) > 0 ? ParseNonRFCJSONValue(arg_value) : arg_value;
+        return membersByName.count({method, param_name}) > 0 ? Parse(arg_value) : arg_value;
     }
 };
 
@@ -465,16 +503,6 @@ CRPCConvertTable::CRPCConvertTable()
 }
 
 static CRPCConvertTable rpcCvtTable;
-
-/** Non-RFC4627 JSON parser, accepts internal values (such as numbers, true, false, null)
- * as well as objects and arrays.
- */
-UniValue ParseNonRFCJSONValue(std::string_view raw)
-{
-    UniValue parsed;
-    if (!parsed.read(raw)) throw std::runtime_error(tfm::format("Error parsing JSON: %s", raw));
-    return parsed;
-}
 
 UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::string> &strParams)
 {
@@ -510,10 +538,10 @@ UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<s
     }
 
     if (!positional_args.empty()) {
-        // Use __pushKV instead of pushKV to avoid overwriting an explicit
+        // Use pushKVEnd instead of pushKV to avoid overwriting an explicit
         // "args" value with an implicit one. Let the RPC server handle the
         // request as given.
-        params.__pushKV("args", positional_args);
+        params.pushKVEnd("args", positional_args);
     }
 
     return params;

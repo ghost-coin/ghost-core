@@ -68,21 +68,21 @@ public:
 
     template<typename Stream>
     void Serialize(Stream& s) const {
-        ser_writedata8(s, particl::FromTxoutType(m_stake_type));
+        ser_writedata8(s, ghost::FromTxoutType(m_stake_type));
         s.write(AsBytes(Span{(char*)m_stake_id.begin(), size_t((m_stake_type == TxoutType::PUBKEYHASH256) ? 32 : 20)}));
         ser_writedata32be(s, m_height);
-        ser_writedata8(s, particl::FromTxoutType(m_spend_type));
+        ser_writedata8(s, ghost::FromTxoutType(m_spend_type));
         s.write(AsBytes(Span{(char*)m_spend_id.begin(), size_t((m_spend_type == TxoutType::PUBKEYHASH256 || m_spend_type == TxoutType::SCRIPTHASH256) ? 32 : 20)}));
     }
     template<typename Stream>
     void Unserialize(Stream& s) {
         uint8_t stake_type = ser_readdata8(s);
-        m_stake_type = particl::ToTxoutType(stake_type);
+        m_stake_type = ghost::ToTxoutType(stake_type);
         m_stake_id.SetNull();
         s.read(AsWritableBytes(Span{m_stake_id.begin(), size_t((m_stake_type == TxoutType::PUBKEYHASH256) ? 32 : 20)}));
         m_height = ser_readdata32be(s);
         uint8_t spend_type = ser_readdata8(s);
-        m_spend_type = particl::ToTxoutType(spend_type);
+        m_spend_type = ghost::ToTxoutType(spend_type);
         m_spend_id.SetNull();
         s.read(AsWritableBytes(Span{m_spend_id.begin(), size_t((m_spend_type == TxoutType::PUBKEYHASH256 || m_spend_type == TxoutType::SCRIPTHASH256) ? 32 : 20)}));
     }

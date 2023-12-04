@@ -117,9 +117,9 @@ std::map<CNetAddr, LocalServiceInfo> mapLocalHost GUARDED_BY(g_maplocalhost_mute
 static bool vfLimited[NET_MAX] GUARDED_BY(g_maplocalhost_mutex) = {};
 std::string strSubVersion;
 
-namespace particl {
+namespace ghost {
 extern void UpdateNumPeers(int num_peers);
-} // namespace particl
+} // namespace ghost
 
 size_t CSerializedNetMsg::GetMemoryUsage() const noexcept
 {
@@ -1271,7 +1271,7 @@ void CConnman::NotifyNumConnectionsChanged()
         if (m_client_interface) {
             m_client_interface->NotifyNumConnectionsChanged(nodes_size);
         }
-        particl::UpdateNumPeers(nodes_size);
+        ghost::UpdateNumPeers(nodes_size);
     }
 }
 

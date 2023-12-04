@@ -11,7 +11,7 @@
 #include <base58.h>
 #include <usbdevice/usbwrapper.h>
 #include <util/strencodings.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <shutdown.h>
 #include <univalue.h>
 
@@ -747,7 +747,7 @@ int CTrezorDevice::CompleteTransaction(int change_pos, const std::vector<uint32_
                     std::vector<uint8_t> script_data(21);
                     script_data[0] = 2;
                     CKeyID pkh_stake;
-                    if (!particl::ExtractStakingKeyID(cached_data.m_scriptCode, pkh_stake)) {
+                    if (!ghost::ExtractStakingKeyID(cached_data.m_scriptCode, pkh_stake)) {
                         return errorN(1, m_error, __func__, "ExtractStakingKeyID failed for output %d.", i);
                     }
                     memcpy(script_data.data() + 1, pkh_stake.data(), 20);

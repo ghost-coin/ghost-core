@@ -11,8 +11,12 @@
 #include <kernel/cs_main.h>
 #include <sync.h>
 #include <util/fs.h>
+#include <util/result.h>
 
 #include "coldreward/coldrewardtracker.h"
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -34,7 +38,9 @@ class uint256;
 namespace Consensus {
 struct Params;
 };
-struct bilingual_str;
+namespace util {
+class SignalInterrupt;
+} // namespace util
 
 const char DB_RCTOUTPUT = 'A';
 const char DB_RCTOUTPUT_LINK = 'L';
@@ -43,9 +49,9 @@ const char DB_SPENTCACHE = 'S';
 const char DB_GVR_RANGE = 'g';
 const char DB_GVR_BALANCE = 'v';
 const char DB_GVR_CHECKPOINT = 'r';
-static const char DB_TRACKER_INPUTS_UNDO = 'U';
-static const char DB_TRACKER_OUTPUTS_UNDO = 'N';
-static const char DB_LAST_TRACKED_HEIGHT = 'h';
+const char DB_TRACKER_INPUTS_UNDO = 'U';
+const char DB_TRACKER_OUTPUTS_UNDO = 'N';
+const char DB_LAST_TRACKED_HEIGHT = 'h';
 const char DB_HAS_BLINDED_TXIN = 'q';
 
 //! -dbcache default (MiB)
@@ -135,7 +141,7 @@ public:
 
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
-    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex)
+    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex, const util::SignalInterrupt& interrupt)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
     size_t CountBlockIndex();
 
@@ -170,6 +176,6 @@ public:
     //bool WriteRCTOutputBatch(std::vector<std::pair<int64_t, CAnonOutput> > &vao);
 };
 
-std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
+[[nodiscard]] util::Result<void> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
 
 #endif // BITCOIN_TXDB_H

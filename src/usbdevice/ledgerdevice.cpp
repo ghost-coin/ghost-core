@@ -6,7 +6,7 @@
 
 #include <hidapi/hidapi.h>
 #include <stdio.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <coins.h>
 #include <pubkey.h>
 #include <crypto/common.h>

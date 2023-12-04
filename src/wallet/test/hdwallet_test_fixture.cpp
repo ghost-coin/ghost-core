@@ -38,8 +38,8 @@ HDWalletTestingSetup::~HDWalletTestingSetup()
     pwalletMain->Finalise();
     pwalletMain.reset();
 
-    particl::mapStakeSeen.clear();
-    particl::listStakeSeen.clear();
+    ghost::mapStakeSeen.clear();
+    ghost::listStakeSeen.clear();
 }
 
 void StakeNBlocks(CHDWallet *pwallet, size_t nBlocks)

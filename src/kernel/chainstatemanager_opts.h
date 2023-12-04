@@ -5,6 +5,8 @@
 #ifndef BITCOIN_KERNEL_CHAINSTATEMANAGER_OPTS_H
 #define BITCOIN_KERNEL_CHAINSTATEMANAGER_OPTS_H
 
+#include <kernel/notifications_interface.h>
+
 #include <arith_uint256.h>
 #include <dbwrapper.h>
 #include <txdb.h>
@@ -63,6 +65,7 @@ struct ChainstateManagerOpts {
     bool anonRestricted = DEFAULT_ANON_RESTRICTED;
 
     CoinsViewOptions coins_view{};
+    Notifications& notifications;
 };
 
 } // namespace kernel

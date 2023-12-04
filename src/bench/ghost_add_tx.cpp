@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,11 +17,11 @@
 #include <node/miner.h>
 #include <pos/miner.h>
 #include <util/string.h>
+#include <util/any.h>
 #include <util/translation.h>
 
 CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amount, int type_in, int type_out, int nRingSize = 5)
 {
-    gArgs.ForceSetArg("-anonrestricted", "0");
     LOCK(pwallet->cs_wallet);
 
     assert(address.IsValid());
@@ -54,7 +54,6 @@ CTransactionRef CreateTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount 
 static void AddAnonTxn(CHDWallet *pwallet, CBitcoinAddress &address, CAmount amount, OutputTypes output_type)
 {
     {
-    gArgs.ForceSetArg("-anonrestricted", "0");
     LOCK(pwallet->cs_wallet);
 
     assert(address.IsValid());
@@ -136,11 +135,7 @@ static std::shared_ptr<CHDWallet> CreateTestWallet(wallet::WalletContext& wallet
 
 static void AddTx(benchmark::Bench& bench, const std::string from, const std::string to, const bool owned)
 {
-    gArgs.ForceSetArg("-anonrestricted", "0");
-
-    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true};
-    util::Ref context{test_setup.m_node};
-    TestingSetup test_setup{CBaseChainParams::REGTEST, {}, true, true, true /* fParticlMode */};
+    TestingSetup test_setup{ChainType::REGTEST, {}, true, true, /*fParticlMode*/true};
     const auto context = util::AnyPtr<node::NodeContext>(&test_setup.m_node);
 
     std::unique_ptr<interfaces::Chain> chain = interfaces::MakeChain(test_setup.m_node);

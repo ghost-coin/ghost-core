@@ -10,13 +10,13 @@
 #include <consensus/merkle.h>
 #include <consensus/params.h>
 #include <hash.h>
-#include <chainparamsbase.h>
 #include <logging.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <script/script.h>
 #include <uint256.h>
+#include <util/chaintype.h>
 #include <util/strencodings.h>
 
 #include <algorithm>
@@ -33,7 +33,7 @@ int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
 {
     static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
 
-    if (strNetworkID != "regtest") {
+    if (GetChainType() != ChainType::REGTEST) {
         // After HF2: 8%, 8%, 7%, 7%, 6%
         if (nTime >= consensus.exploit_fix_2_time) {
             int64_t nPeriodsSinceHF2 = (nTime - consensus.exploit_fix_2_time) / (nSecondsInYear * 2);
@@ -52,7 +52,7 @@ int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
     return nCoinYearReward;
 };
 
-bool CChainParams::PushTreasuryFundSettings(int64_t time_from, particl::TreasuryFundSettings &settings)
+bool CChainParams::PushTreasuryFundSettings(int64_t time_from, ghost::TreasuryFundSettings &settings)
 {
     if (settings.nMinTreasuryStakePercent < 0 or settings.nMinTreasuryStakePercent > 100) {
         throw std::runtime_error("minstakepercent must be in range [0, 100].");
@@ -81,7 +81,7 @@ bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
     return error("%s - Unknown height.", __func__);
 };
 
-const particl::TreasuryFundSettings *CChainParams::GetTreasuryFundSettings(int64_t nTime) const
+const ghost::TreasuryFundSettings *CChainParams::GetTreasuryFundSettings(int64_t nTime) const
 {
     for (auto i = vTreasuryFundSettings.crbegin(); i != vTreasuryFundSettings.crend(); ++i) {
         if (nTime > i->first) {
@@ -128,7 +128,7 @@ bool CChainParams::IsBech32Prefix(const char *ps, size_t slen, CChainParams::Bas
     return false;
 };
 
-namespace particl {
+namespace ghost {
 static const std::pair<const char*, CAmount> regTestOutputs[] = {
     std::make_pair("585c2b3914d9ee51f8e710304e386531c3abcc82", 10000 * COIN),
     std::make_pair("c33f3603ce7c46b423536f0434155dad8ee2aa1f", 10000 * COIN),
@@ -220,7 +220,7 @@ static CBlock CreateGenesisBlockRegTest(uint32_t nTime, uint32_t nNonce, uint32_
     const char *pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
 
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.SetType(TXN_COINBASE);
     txNew.vin.resize(1);
     uint32_t nHeight = 0;  // bip34
@@ -238,7 +238,7 @@ static CBlock CreateGenesisBlockRegTest(uint32_t nTime, uint32_t nNonce, uint32_
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = PARTICL_BLOCK_VERSION;
+    genesis.nVersion = GHOST_BLOCK_VERSION;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
 
     genesis.hashPrevBlock.SetNull();
@@ -253,7 +253,7 @@ static CBlock CreateGenesisBlockTestNet(uint32_t nTime, uint32_t nNonce, uint32_
     const char *pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
 
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.SetType(TXN_COINBASE);
     txNew.vin.resize(1);
     uint32_t nHeight = 0;  // bip34
@@ -306,7 +306,7 @@ static CBlock CreateGenesisBlockTestNet(uint32_t nTime, uint32_t nNonce, uint32_
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = PARTICL_BLOCK_VERSION;
+    genesis.nVersion = GHOST_BLOCK_VERSION;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
 
     genesis.hashPrevBlock.SetNull();
@@ -321,7 +321,7 @@ static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_
     const char *pszTimestamp = "BTC 000000000000000000c679bc2209676d05129834627c7b1c02d1018b224c6f37";
 
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.SetType(TXN_COINBASE);
 
     txNew.vin.resize(1);
@@ -374,7 +374,7 @@ static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
-    genesis.nVersion = PARTICL_BLOCK_VERSION;
+    genesis.nVersion = GHOST_BLOCK_VERSION;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
 
     genesis.hashPrevBlock.SetNull();
@@ -383,7 +383,7 @@ static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_
 
     return genesis;
 }
-} // namespace particl
+} // namespace ghost
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -426,7 +426,7 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 
 void CChainParams::SetOld()
 {
-    if (NetworkID() == CBaseChainParams::MAIN) {
+    if (GetChainType() == ChainType::MAIN) {
         consensus.script_flag_exceptions.clear();
         consensus.script_flag_exceptions.emplace( // BIP16 exception
             uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), SCRIPT_VERIFY_NONE);
@@ -444,6 +444,11 @@ void CChainParams::SetOld()
         genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
 
+        // pchMessageStart[0] = 0xf9;
+        // pchMessageStart[1] = 0xbe;
+        // pchMessageStart[2] = 0xb4;
+        // pchMessageStart[3] = 0xd9;
+
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
@@ -452,7 +457,7 @@ void CChainParams::SetOld()
 
         bech32_hrp = "bc";
     } else
-    if (NetworkID() == CBaseChainParams::TESTNET) {
+    if (GetChainType() == ChainType::TESTNET) {
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
         genesis = CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 50 * COIN);
@@ -466,7 +471,7 @@ void CChainParams::SetOld()
 
         bech32_hrp = "tb";
     } else
-    if (NetworkID() == CBaseChainParams::REGTEST) {
+    if (GetChainType() == ChainType::REGTEST) {
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         /*
@@ -492,7 +497,7 @@ void CChainParams::SetOld()
 class CMainParams : public CChainParams {
 public:
     CMainParams() {
-        strNetworkID = CBaseChainParams::MAIN;
+        m_chain_type = ChainType::MAIN;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 210000;
@@ -574,10 +579,10 @@ public:
         nTargetSpacing = 120;           // 2 minutes
         nTargetTimespan = 24 * 60;      // 24 mins
 
-        particl::AddImportHashesMain(vImportedCoinbaseTxns);
+        ghost::AddImportHashesMain(vImportedCoinbaseTxns);
         SetLastImportHeight();
 
-        genesis = particl::CreateGenesisBlockMainNet(1500296400, 31429, 0x1f00ffff); // 2017-07-17 13:00:00
+        genesis = ghost::CreateGenesisBlockMainNet(1500296400, 31429, 0x1f00ffff); // 2017-07-17 13:00:00
         consensus.hashGenesisBlock = genesis.GetHash();
 
         assert(consensus.hashGenesisBlock == uint256S("0x0000ee0784c195317ac95623e22fddb8c7b8825dc3998e0bb924d66866eccf4c"));
@@ -596,11 +601,11 @@ public:
 
 
         vTreasuryFundSettings.emplace_back(0,
-            particl::TreasuryFundSettings("RJAPhgckEgRGVPZa9WoGSWW24spskSfLTQ", 10, 60));
+            ghost::TreasuryFundSettings("RJAPhgckEgRGVPZa9WoGSWW24spskSfLTQ", 10, 60));
         vTreasuryFundSettings.emplace_back(consensus.OpIsCoinstakeTime,
-            particl::TreasuryFundSettings("RBiiQBnQsVPPQkUaJVQTjsZM9K2xMKozST", 10, 60));
+            ghost::TreasuryFundSettings("RBiiQBnQsVPPQkUaJVQTjsZM9K2xMKozST", 10, 60));
         vTreasuryFundSettings.emplace_back(consensus.exploit_fix_2_time,
-            particl::TreasuryFundSettings("RQYUDd3EJohpjq62So4ftcV5XZfxZxJPe9", 50, 650));
+            ghost::TreasuryFundSettings("RQYUDd3EJohpjq62So4ftcV5XZfxZxJPe9", 50, 650));
 
 
         base58Prefixes[PUBKEY_ADDRESS]     = {0x38}; // P
@@ -629,10 +634,9 @@ public:
         bech32Prefixes[STAKE_ONLY_PKADDR].assign    ("pcs",(const char*)"pcs"+3);
 
         bech32_hrp = "pw";
-        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
+        vFixedSeeds = std::vector<uint8_t>();
 
         fDefaultConsistencyChecks = false;
-        fRequireStandard = true;
         m_is_test_chain = false;
         m_is_mockable_chain = false;
 
@@ -682,7 +686,7 @@ public:
 class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
-        strNetworkID = CBaseChainParams::TESTNET;
+        m_chain_type = ChainType::TESTNET;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 210000;
@@ -751,10 +755,10 @@ public:
         nTargetSpacing = 120;           // 2 minutes
         nTargetTimespan = 24 * 60;      // 24 mins
 
-        particl::AddImportHashesTest(vImportedCoinbaseTxns);
+        ghost::AddImportHashesTest(vImportedCoinbaseTxns);
         SetLastImportHeight();
 
-        genesis = particl::CreateGenesisBlockTestNet(1502309248, 5924, 0x1f00ffff);
+        genesis = ghost::CreateGenesisBlockTestNet(1502309248, 5924, 0x1f00ffff);
         consensus.hashGenesisBlock = genesis.GetHash();
 
         assert(consensus.hashGenesisBlock == uint256S("0x0000594ada5310b367443ee0afd4fa3d0bbd5850ea4e33cdc7d6a904a7ec7c90"));
@@ -768,7 +772,7 @@ public:
         vSeeds.emplace_back("dnsseed-testnet.particl.io");
         vSeeds.emplace_back("dnsseed-testnet.tecnovert.net");
 
-        vTreasuryFundSettings.push_back(std::make_pair(0, particl::TreasuryFundSettings("rTvv9vsbu269mjYYEecPYinDG8Bt7D86qD", 10, 60)));
+        vTreasuryFundSettings.push_back(std::make_pair(0, ghost::TreasuryFundSettings("rTvv9vsbu269mjYYEecPYinDG8Bt7D86qD", 10, 60)));
 
         base58Prefixes[PUBKEY_ADDRESS]     = {0x76}; // p
         base58Prefixes[SCRIPT_ADDRESS]     = {0x7a};
@@ -797,10 +801,9 @@ public:
 
         bech32_hrp = "tpw";
 
-        vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
+        vFixedSeeds = std::vector<uint8_t>();
 
         fDefaultConsistencyChecks = false;
-        fRequireStandard = false;
         m_is_test_chain = true;
         m_is_mockable_chain = false;
 
@@ -882,7 +885,7 @@ public:
             vSeeds = *options.seeds;
         }
 
-        strNetworkID = CBaseChainParams::SIGNET;
+        m_chain_type = ChainType::SIGNET;
         consensus.signet_blocks = true;
         consensus.signet_challenge.assign(bin.begin(), bin.end());
         consensus.nSubsidyHalvingInterval = 210000;
@@ -936,7 +939,6 @@ public:
         bech32_hrp = "tb";
 
         fDefaultConsistencyChecks = false;
-        fRequireStandard = true;
         m_is_test_chain = true;
         m_is_mockable_chain = false;
     }
@@ -950,7 +952,7 @@ class CRegTestParams : public CChainParams {
 public:
     explicit CRegTestParams(const RegTestOptions& opts)
     {
-        strNetworkID =  CBaseChainParams::REGTEST;
+        m_chain_type = ChainType::REGTEST;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 150;
@@ -1049,7 +1051,7 @@ public:
             consensus.vDeployments[deployment_pos].min_activation_height = version_bits_params.min_activation_height;
         }
 
-        genesis = particl::CreateGenesisBlockRegTest(1487714923, 0, 0x207fffff);
+        genesis = ghost::CreateGenesisBlockRegTest(1487714923, 0, 0x207fffff);
 
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x6cd174536c0ada5bfa3b8fde16b98ae508fff6586f2ee24cf866867098f25907"));
@@ -1062,7 +1064,6 @@ public:
         vSeeds.emplace_back("dummySeed.invalid.");
 
         fDefaultConsistencyChecks = true;
-        fRequireStandard = true;
         m_is_test_chain = true;
         m_is_mockable_chain = true;
 

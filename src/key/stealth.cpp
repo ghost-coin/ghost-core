@@ -457,7 +457,7 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
     return 0;
 };
 
-namespace particl {
+namespace ghost {
 void ECC_Start_Stealth()
 {
     assert(secp256k1_ctx_stealth == nullptr);
@@ -485,4 +485,4 @@ void ECC_Stop_Stealth()
         secp256k1_context_destroy(ctx);
     }
 }
-} // namespace particl
+} // namespace ghost

@@ -3416,7 +3416,7 @@ int CHDWallet::PostProcessTempRecipients(std::vector<CTempRecipient> &vecSend)
 bool CheckOutputValue(interfaces::Chain& chain, const CTempRecipient &r, const CTxOutBase *txbout, CAmount nFeeRet, std::string &sError)
 {
     if ((r.nType == OUTPUT_STANDARD &&
-         particl::IsDust(txbout, chain.relayDustFee())) ||
+         ghost::IsDust(txbout, chain.relayDustFee())) ||
          (r.nType != OUTPUT_DATA &&
           r.nAmount < 0)) {
         if (r.fSubtractFeeFromAmount && nFeeRet > 0) {
@@ -3766,7 +3766,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.fTimeReceivedIsTxTime = true;
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
@@ -3890,7 +3890,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
 
                 // Never create dust outputs; if we would, just
                 // add the dust to the fee.
-                if (particl::IsDust(&tempOut, coin_selection_params.m_discard_feerate)) {
+                if (ghost::IsDust(&tempOut, coin_selection_params.m_discard_feerate)) {
                     nChangePosInOut = -1;
                     // Raise the fee after it may be subtracted from outputs
                     extra_fee_from_change += nChange;
@@ -4397,7 +4397,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.fTimeReceivedIsTxTime = true;
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
@@ -5220,7 +5220,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.fTimeReceivedIsTxTime = true;
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
+    txNew.nVersion = GHOST_TXN_VERSION;
     txNew.vout.clear();
 
     txNew.nLockTime = 0;
@@ -5791,12 +5791,12 @@ bool CHDWallet::LoadToWallet(const uint256& hash, const UpdateWalletTxFn& fill_w
         if (wtxIn.IsCoinStake() && wtxIn.isAbandoned()) {
             int csHeight;
             if (wtxIn.tx->GetCoinStakeHeight(csHeight)
-                && csHeight > nBestHeight - (particl::MAX_STAKE_SEEN_SIZE * 1.5)) {
+                && csHeight > nBestHeight - (ghost::MAX_STAKE_SEEN_SIZE * 1.5)) {
                 // Add to MapStakeSeen to prevent node submitting a block that would be rejected.
                 LOCK(cs_main);
                 const COutPoint &kernel = wtxIn.tx->vin[0].prevout;
                 uint256 hash = wtxIn.GetHash();
-                particl::AddToMapStakeSeen(kernel, hash);
+                ghost::AddToMapStakeSeen(kernel, hash);
             }
         }
     }
@@ -8298,7 +8298,7 @@ int CHDWallet::InitAccountStealthV2Chains(CHDWalletDB *pwdb, CExtKeyAccount *sea
 
     CExtKey evStealthSpend;
     uint32_t nStealthSpend;
-    if (0 != sekAccount->DeriveKey(evStealthSpend, particl::CHAIN_NO_STEALTH_SPEND, nStealthSpend, true)) {
+    if (0 != sekAccount->DeriveKey(evStealthSpend, ghost::CHAIN_NO_STEALTH_SPEND, nStealthSpend, true)) {
         return werrorN(1, "%s: Could not derive account chain keys.", __func__);
     }
 
@@ -13278,7 +13278,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
                 COutPoint kernel(wtxid, i);
-                if (!particl::CheckStakeUnused(kernel) ||
+                if (!ghost::CheckStakeUnused(kernel) ||
                      IsSpent(COutPoint(wtxid, i)) ||
                      IsLockedCoin(COutPoint(wtxid, i))) {
                     continue;
@@ -13286,7 +13286,7 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
 
                 const CScript *pscriptPubKey = txout->GetPScriptPubKey();
                 CKeyID keyID;
-                if (!particl::ExtractStakingKeyID(*pscriptPubKey, keyID)) {
+                if (!ghost::ExtractStakingKeyID(*pscriptPubKey, keyID)) {
                     continue;
                 }
 
@@ -13336,14 +13336,14 @@ void CHDWallet::AvailableCoinsForStaking(std::vector<COutput> &vCoins, int64_t n
                     continue;
                 }
                 COutPoint kernel(txid, r.n);
-                if (!particl::CheckStakeUnused(kernel) ||
+                if (!ghost::CheckStakeUnused(kernel) ||
                     IsSpent(COutPoint(txid, r.n)) ||
                     IsLockedCoin(COutPoint(txid, r.n))) {
                     continue;
                 }
 
                 CKeyID keyID;
-                if (!particl::ExtractStakingKeyID(r.scriptPubKey, keyID)) {
+                if (!ghost::ExtractStakingKeyID(r.scriptPubKey, keyID)) {
                     continue;
                 }
 
@@ -13487,7 +13487,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             whichType = Solver(*pscriptPubKey, vSolutions);
 
             if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug)) {
-                WalletLogPrintf("%s: Parsed kernel type=%d.\n", __func__, particl::FromTxoutType(whichType));
+                WalletLogPrintf("%s: Parsed kernel type=%d.\n", __func__, ghost::FromTxoutType(whichType));
             }
             CKeyID spendId;
             if (whichType == TxoutType::PUBKEYHASH) {
@@ -13497,14 +13497,14 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
                 spendId = CKeyID(uint256(vSolutions[0]));
             } else {
                 if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug)) {
-                    WalletLogPrintf("%s: No support for kernel type=%d.\n", __func__, particl::FromTxoutType(whichType));
+                    WalletLogPrintf("%s: No support for kernel type=%d.\n", __func__, ghost::FromTxoutType(whichType));
                 }
                 break;  // only support pay to address (pay to pubkey hash)
             }
 
             if (!GetKey(spendId, key)) {
                 if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug)) {
-                    WalletLogPrintf("%s: Failed to get key for kernel type=%d.\n", __func__, particl::FromTxoutType(whichType));
+                    WalletLogPrintf("%s: Failed to get key for kernel type=%d.\n", __func__, ghost::FromTxoutType(whichType));
                 }
                 break;  // unable to find corresponding key
             }
@@ -13563,7 +13563,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             txNew.vpout.clear();
 
             // Mark as coin stake transaction
-            txNew.nVersion = PARTICL_TXN_VERSION;
+            txNew.nVersion = GHOST_TXN_VERSION;
             txNew.SetType(TXN_COINSTAKE);
 
             txNew.vin.push_back(CTxIn(pcoin.outpoint));
@@ -13663,7 +13663,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     // Process development fund
     CTransactionRef txPrevCoinstake = nullptr;
     CAmount nRewardOut;
-    const particl::TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
+    const ghost::TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
     if (!pTreasuryFundSettings || pTreasuryFundSettings->nMinTreasuryStakePercent <= 0) {
         nRewardOut = nReward;
     } else {
@@ -13675,7 +13675,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         CAmount nTreasuryBfwd = 0;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!particl::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!ghost::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
 
@@ -13720,7 +13720,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         CAmount smsg_fee_rate = consensusParams.smsg_fee_msg_per_day_per_k;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!txPrevCoinstake && !ghost::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
             txPrevCoinstake->GetSmsgFeeRate(smsg_fee_rate);
@@ -13756,7 +13756,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         uint32_t last_compact = consensusParams.smsg_min_difficulty, next_compact = m_smsg_difficulty_target;
         if (nBlockHeight > 1) { // genesis block is pow
             LOCK(cs_main);
-            if (!txPrevCoinstake && !particl::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
+            if (!txPrevCoinstake && !ghost::coinStakeCache.GetCoinStake(chain().getChainman()->ActiveChainstate(), pindexPrev->GetBlockHash(), txPrevCoinstake)) {
                 return werror("%s: Failed to get previous coinstake: %s.", __func__, pindexPrev->GetBlockHash().ToString());
             }
             txPrevCoinstake->GetSmsgDifficulty(last_compact);
@@ -13885,8 +13885,8 @@ bool CHDWallet::SignBlock(node::CBlockTemplate *pblocktemplate, int nHeight, int
     CBlockIndex *pindexPrev = chain().getTip();
 
     CKey key;
-    pblock->nVersion = PARTICL_BLOCK_VERSION;
-    pblock->nBits = particl::GetNextTargetRequired(pindexPrev, consensusParams);
+    pblock->nVersion = GHOST_BLOCK_VERSION;
+    pblock->nBits = ghost::GetNextTargetRequired(pindexPrev, consensusParams);
     if (LogAcceptCategory(BCLog::POS, BCLog::Level::Debug)) {
         WalletLogPrintf("%s, nBits %d\n", __func__, pblock->nBits);
     }

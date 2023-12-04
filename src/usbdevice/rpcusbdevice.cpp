@@ -20,7 +20,7 @@
 #include <script/script_error.h>
 #include <script/sign.h>
 #include <script/signingprovider.h>
-#include <script/standard.h>
+
 #include <txmempool.h>
 #include <node/interface_ui.h>
 #include <node/context.h>
@@ -929,7 +929,7 @@ static RPCHelpMan initaccountfromdevice()
             sekAccount->SetCounter(1, true);
 
             CExtPubKey epStealthSpend;
-            uint32_t nStealthSpend = WithHardenedBit(particl::CHAIN_NO_STEALTH_SPEND);
+            uint32_t nStealthSpend = WithHardenedBit(ghost::CHAIN_NO_STEALTH_SPEND);
             vPath.push_back(nStealthSpend);
             if (0 != pDevice->GetXPub(vPath, epStealthSpend, sError)) {
                 sea->FreeChains();

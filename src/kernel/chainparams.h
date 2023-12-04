@@ -247,9 +247,9 @@ public:
     uint32_t GetStakeTimestampMask(int nHeight) const { return nStakeTimestampMask; }
     int64_t GetCoinYearReward(int64_t nTime) const;
 
-    const particl::TreasuryFundSettings *GetTreasuryFundSettings(int64_t nTime) const;
-    const std::vector<std::pair<int64_t, particl::TreasuryFundSettings> > &GetTreasuryFundSettings() const {return vTreasuryFundSettings;};
-    bool PushTreasuryFundSettings(int64_t time_from, particl::TreasuryFundSettings &settings);
+    const ghost::TreasuryFundSettings *GetTreasuryFundSettings(int64_t nTime) const;
+    const std::vector<std::pair<int64_t, ghost::TreasuryFundSettings>> &GetTreasuryFundSettings() const {return vTreasuryFundSettings;};
+    bool PushTreasuryFundSettings(int64_t time_from, ghost::TreasuryFundSettings &settings);
 
     int64_t GetMaxSmsgFeeRateDelta(int64_t smsg_fee_prev, int64_t time) const;
 
@@ -311,8 +311,8 @@ protected:
     uint32_t nStakeTimestampMask = (1 << 4) - 1; // 4 bits, every kernel stake hash will change every 16 seconds
     int64_t nCoinYearReward = 2 * CENT; // 2% per year, See GetCoinYearReward
 
-    std::vector<particl::CImportedCoinbaseTxn> vImportedCoinbaseTxns;
-    std::vector<std::pair<int64_t, particl::TreasuryFundSettings> > vTreasuryFundSettings;
+    std::vector<ghost::CImportedCoinbaseTxn> vImportedCoinbaseTxns;
+    std::vector<std::pair<int64_t, ghost::TreasuryFundSettings> > vTreasuryFundSettings;
 };
 
 #endif // BITCOIN_KERNEL_CHAINPARAMS_H

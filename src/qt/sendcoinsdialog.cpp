@@ -361,7 +361,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
             sCommand += ",\"subfee\":true";
 
         if (!rcp.narration.isEmpty())
-            sCommand += ",\"narr\":\"" + GUIUtil::particl::escapeQString(GUIUtil::particl::escapeQString(rcp.narration)) + "\"";
+            sCommand += ",\"narr\":\"" + GUIUtil::ghost::escapeQString(GUIUtil::ghost::escapeQString(rcp.narration)) + "\"";
         sCommand += "}";
 
         nRecipient++;

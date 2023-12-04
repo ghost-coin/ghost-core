@@ -13,7 +13,7 @@
 #include <wallet/hdwallet.h>
 #include <wallet/rpchdwallet.h>
 #include <rpc/rpcutil.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <univalue.h>
 
 #include <algorithm>
@@ -386,7 +386,7 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
     }
     else if(type == Receive)
     {
-        QString label_escaped = GUIUtil::particl::escapeQString(label);
+        QString label_escaped = GUIUtil::ghost::escapeQString(label);
         // Generate a new address to associate with given label
         QString sCommand;
         switch (addrType) {

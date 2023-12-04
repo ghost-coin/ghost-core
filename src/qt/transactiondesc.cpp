@@ -20,7 +20,7 @@
 #include <policy/policy.h>
 #include <script/script.h>
 #include <util/string.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <validation.h>
 #include <wallet/types.h>
 

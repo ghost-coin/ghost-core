@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(rct_test)
     UniValue rv;
     std::string sError;
 
-    int peer_blocks = particl::GetNumBlocksOfPeers();
-    particl::SetNumBlocksOfPeers(0);
+    int peer_blocks = ghost::GetNumBlocksOfPeers();
+    ghost::SetNumBlocksOfPeers(0);
 
     // Import the regtest genesis coinbase keys
     BOOST_CHECK_NO_THROW(rv = CallRPC("extkeyimportmaster tprv8ZgxMBicQKsPeK5mCpvMsd1cwyT1JZsrBN82XkoYuZY1EVK7EwDaiL9sDfqUU5SntTfbRfnRedFWjg5xkDG5i3iwd3yP7neX5F2dtdCojk4", context));
@@ -460,7 +460,7 @@ BOOST_AUTO_TEST_CASE(rct_test)
     // Wait to add time for db flushes to complete
     std::this_thread::sleep_for(std::chrono::milliseconds(1250));
 
-    particl::SetNumBlocksOfPeers(peer_blocks);
+    ghost::SetNumBlocksOfPeers(peer_blocks);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

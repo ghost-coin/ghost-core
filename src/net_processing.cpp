@@ -178,12 +178,12 @@ static constexpr size_t MAX_ADDR_PROCESSING_TOKEN_BUCKET{MAX_ADDR_TO_SEND};
 /** The compactblocks version we support. See BIP 152. */
 static constexpr uint64_t CMPCTBLOCKS_VERSION{2};
 
-namespace particl {
+namespace ghost {
 static constexpr size_t MAX_LOOSE_HEADERS = 1000;
 static constexpr int MAX_DUPLICATE_HEADERS = 2000;
 static constexpr int64_t MAX_LOOSE_HEADER_TIME = 120;
 static constexpr int64_t MIN_DOS_STATE_TTL = 60 * 10; // seconds
-} // namespace particl
+} // namespace ghost
 
 // Internal stuff
 namespace {
@@ -1934,7 +1934,7 @@ bool PeerManagerImpl::IncDuplicateHeaders(NodeId node_id) EXCLUSIVE_LOCKS_REQUIR
     if (it != map_dos_state.end()) {
         ++it->second.m_duplicate_count;
         it->second.m_last_used_time = GetTime();
-        if (it->second.m_duplicate_count < particl::MAX_DUPLICATE_HEADERS) {
+        if (it->second.m_duplicate_count < ghost::MAX_DUPLICATE_HEADERS) {
             return true;
         }
         return false;
@@ -2009,8 +2009,8 @@ void PeerManagerImpl::CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIR
         auto &dos_counters = it->second;
         auto it_headers = dos_counters.m_map_loose_headers.begin();
         for (; it_headers != dos_counters.m_map_loose_headers.end();) {
-            if (it_headers->second + particl::MAX_LOOSE_HEADER_TIME < now) {
-                if (particl::RemoveUnreceivedHeader(m_chainman, it_headers->first)) {
+            if (it_headers->second + ghost::MAX_LOOSE_HEADER_TIME < now) {
+                if (ghost::RemoveUnreceivedHeader(m_chainman, it_headers->first)) {
                     MisbehavingByAddr(it->first, dos_counters.m_misbehavior, 5, "Block not received.");
                     dos_counters.m_misbehavior += 5;
                 }
@@ -2021,7 +2021,7 @@ void PeerManagerImpl::CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIR
         }
         // TODO: Options for decrease rate
         if (dos_counters.m_duplicate_count > 0) {
-            if (now - dos_counters.m_last_used_time > particl::MIN_DOS_STATE_TTL) {
+            if (now - dos_counters.m_last_used_time > ghost::MIN_DOS_STATE_TTL) {
                 // Decay faster after some time passes
                 dos_counters.m_duplicate_count -= 20;
                 if (dos_counters.m_duplicate_count > 0) {
@@ -2037,7 +2037,7 @@ void PeerManagerImpl::CheckUnreceivedHeaders(int64_t now) EXCLUSIVE_LOCKS_REQUIR
         if (dos_counters.m_duplicate_count < 1 &&
             dos_counters.m_misbehavior < 1 &&
             dos_counters.m_map_loose_headers.size() == 0 &&
-            now - dos_counters.m_last_used_time > particl::MIN_DOS_STATE_TTL) {
+            now - dos_counters.m_last_used_time > ghost::MIN_DOS_STATE_TTL) {
             map_dos_state.erase(it++);
             continue;
         }
@@ -2062,7 +2062,7 @@ bool PeerManagerImpl::AddNodeHeader(NodeId node_id, const uint256 &hash) EXCLUSI
     }
     auto it = map_dos_state.find(state->m_address);
     if (it != map_dos_state.end()) {
-        if (it->second.m_map_loose_headers.size() > particl::MAX_LOOSE_HEADERS) {
+        if (it->second.m_map_loose_headers.size() > ghost::MAX_LOOSE_HEADERS) {
             return false;
         }
         it->second.m_map_loose_headers.insert(std::make_pair(hash, GetTime()));
@@ -3755,7 +3755,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         peer->m_chain_height = starting_height;
         {
             LOCK(cs_main);
-            particl::UpdateNumBlocksOfPeers(m_chainman, pfrom.GetId(), starting_height);
+            ghost::UpdateNumBlocksOfPeers(m_chainman, pfrom.GetId(), starting_height);
         }
 
         // Only initialize the Peer::TxRelay m_relay_txs data structure if:
@@ -5101,7 +5101,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             }
             {
                 LOCK(cs_main);
-                particl::UpdateNumBlocksOfPeers(m_chainman, pfrom.GetId(), nChainHeight);
+                ghost::UpdateNumBlocksOfPeers(m_chainman, pfrom.GetId(), nChainHeight);
             }
 
             // Echo the message back with the nonce. This allows for two useful features:

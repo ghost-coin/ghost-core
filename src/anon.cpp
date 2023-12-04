@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2021 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,15 +13,14 @@
 #include <blind.h>
 #include <rctindex.h>
 #include <txdb.h>
-#include <util/system.h>
 #include <primitives/transaction.h>
 #include <validation.h>
 #include <validationinterface.h>
 #include <consensus/validation.h>
 #include <chainparams.h>
 #include <txmempool.h>
-#include "adapter.h"
 #include <node/blockstorage.h>
+#include <common/args.h>
 
 
 bool CheckAnonInputMempoolConflicts(const CTxIn &txin, const uint256 txhash, CTxMemPool *pmempool, TxValidationState &state)
@@ -63,12 +62,12 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
     assert(state.m_chainstate);
     auto &pblocktree{state.m_chainstate->m_blockman.m_block_tree_db};
     const Consensus::Params &consensus = Params().GetConsensus();
-    bool default_accept_anon = state.m_exploit_fix_2 ? true : DEFAULT_ACCEPT_ANON_TX; // TODO: Remove after fork, set DEFAULT_ACCEPT_ANON_TX to true
-    if (!ignoreTx(tx) && state.m_exploit_fix_1 &&
+
+    bool default_accept_anon = state.m_exploit_fix_2 ? true : ghost::DEFAULT_ACCEPT_ANON_TX; // TODO: Remove after fork, set DEFAULT_ACCEPT_ANON_TX to true
+    if (state.m_exploit_fix_1 &&
         !gArgs.GetBoolArg("-acceptanontxn", default_accept_anon)) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-anon-disabled");
     }
-    
 
     int rv;
     std::set<int64_t> setHaveI; // Anon prev-outputs can only be used once per transaction.
@@ -200,7 +199,7 @@ bool VerifyMLSAG(const CTransaction &tx, TxValidationState &state)
 
             CAnonKeyImageInfo ki_data;
             if (pblocktree->ReadRCTKeyImage(ki, ki_data)) {
-                if (LogAcceptCategory(BCLog::RINGCT)) {
+                if (LogAcceptCategory(BCLog::VALIDATION, BCLog::Level::Debug)) {
                     LogPrintf("%s: Duplicate keyimage detected %s, used in %s.\n", __func__,
                               HexStr(ki), ki_data.txid.ToString());
                 }
@@ -393,7 +392,6 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
     nBlocks = 0;
     int64_t nLastRCTOutput = 0;
 
-    const CChainParams &chainparams = Params();
     CCoinsViewCache &view = chainman.ActiveChainstate().CoinsTip();
     view.fForceDisconnect = true;
     BlockValidationState state;
@@ -409,7 +407,7 @@ bool RewindToHeight(ChainstateManager &chainman, CTxMemPool &mempool, int nToHei
 
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         CBlock& block = *pblock;
-        if (!node::ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
+        if (!chainman.m_blockman.ReadBlockFromDisk(block, *pindex)) {
             return errorN(false, sError, __func__, "ReadBlockFromDisk failed.");
         }
         if (DISCONNECT_OK != chainman.ActiveChainstate().DisconnectBlock(block, pindex, view)) {

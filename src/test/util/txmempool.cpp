@@ -2,37 +2,38 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <test/util/txmempool.h>
+#ifndef BITCOIN_TEST_UTIL_TXMEMPOOL_H
+#define BITCOIN_TEST_UTIL_TXMEMPOOL_H
 
-#include <chainparams.h>
-#include <node/context.h>
-#include <node/mempool_args.h>
 #include <txmempool.h>
-#include <util/check.h>
 #include <util/time.h>
-#include <util/translation.h>
 
-using node::NodeContext;
-
-CTxMemPool::Options MemPoolOptionsForTest(const NodeContext& node)
-{
-    CTxMemPool::Options mempool_opts{
-        .estimator = node.fee_estimator.get(),
-        // Default to always checking mempool regardless of
-        // chainparams.DefaultConsistencyChecks for tests
-        .check_ratio = 1,
-    };
-    const auto err{ApplyArgsManOptions(*node.args, ::Params(), mempool_opts)};
-    Assert(!err);
-    return mempool_opts;
+namespace node {
+struct NodeContext;
 }
 
-CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CMutableTransaction& tx) const
-{
-    return FromTx(MakeTransactionRef(tx));
-}
+CTxMemPool::Options MemPoolOptionsForTest(const node::NodeContext& node);
 
-CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CTransactionRef& tx) const
-{
-    return CTxMemPoolEntry{tx, nFee, TicksSinceEpoch<std::chrono::seconds>(time), nHeight, spendsCoinbase, sigOpCost, lp};
-}
+struct TestMemPoolEntryHelper {
+    // Default values
+    CAmount nFee{0};
+    NodeSeconds time{};
+    unsigned int nHeight{1};
+    uint64_t m_sequence{0};
+    bool spendsCoinbase{false};
+    unsigned int sigOpCost{4};
+    LockPoints lp;
+
+    CTxMemPoolEntry FromTx(const CMutableTransaction& tx) const;
+    CTxMemPoolEntry FromTx(const CTransactionRef& tx) const;
+
+    // Change the default value
+    TestMemPoolEntryHelper& Fee(CAmount _fee) { nFee = _fee; return *this; }
+    TestMemPoolEntryHelper& Time(NodeSeconds tp) { time = tp; return *this; }
+    TestMemPoolEntryHelper& Height(unsigned int _height) { nHeight = _height; return *this; }
+    TestMemPoolEntryHelper& Sequence(uint64_t _seq) { m_sequence = _seq; return *this; }
+    TestMemPoolEntryHelper& SpendsCoinbase(bool _flag) { spendsCoinbase = _flag; return *this; }
+    TestMemPoolEntryHelper& SigOpsCost(unsigned int _sigopsCost) { sigOpCost = _sigopsCost; return *this; }
+};
+
+#endif // BITCOIN_TEST_UTIL_TXMEMPOOL_H

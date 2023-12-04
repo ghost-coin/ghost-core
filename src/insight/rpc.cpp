@@ -17,14 +17,11 @@
 #include <key_io.h>
 #include <core_io.h>
 #include <node/context.h>
-#include <script/standard.h>
+#include <script/solver.h>
 #include <shutdown.h>
 #include <pos/kernel.h>
 
 #include <univalue.h>
-
-// Avoid initialization-order-fiasco
-#define _UNIX_EPOCH_TIME "UNIX epoch time"
 
 // Avoid initialization-order-fiasco
 #define _UNIX_EPOCH_TIME "UNIX epoch time"
@@ -88,7 +85,7 @@ bool getAddressesFromParams(const UniValue& params, std::vector<std::pair<uint25
         addresses.push_back(std::make_pair(hashBytes, type));
     } else
     if (params[0].isObject()) {
-        UniValue addressValues = find_value(params[0].get_obj(), "addresses");
+        UniValue addressValues = params[0].get_obj().find_value("addresses");
         if (!addressValues.isArray()) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Addresses is expected to be an array");
         }
@@ -250,7 +247,7 @@ return RPCHelpMan{"getaddressutxos",
 
     bool includeChainInfo = false;
     if (request.params[0].isObject()) {
-        UniValue chainInfo = find_value(request.params[0].get_obj(), "chainInfo");
+        UniValue chainInfo = request.params[0].get_obj().find_value("chainInfo");
         if (chainInfo.isBool()) {
             includeChainInfo = chainInfo.get_bool();
         }
@@ -358,10 +355,10 @@ static RPCHelpMan getaddressdeltas()
     }
     ChainstateManager &chainman = EnsureAnyChainman(request.context);
 
-    UniValue startValue = find_value(request.params[0].get_obj(), "start");
-    UniValue endValue = find_value(request.params[0].get_obj(), "end");
+    UniValue startValue = request.params[0].get_obj().find_value("start");
+    UniValue endValue = request.params[0].get_obj().find_value("end");
 
-    UniValue chainInfo = find_value(request.params[0].get_obj(), "chainInfo");
+    UniValue chainInfo = request.params[0].get_obj().find_value("chainInfo");
     bool includeChainInfo = false;
     if (chainInfo.isBool()) {
         includeChainInfo = chainInfo.get_bool();
@@ -553,8 +550,8 @@ static RPCHelpMan getaddresstxids()
     int start = 0;
     int end = 0;
     if (request.params[0].isObject()) {
-        UniValue startValue = find_value(request.params[0].get_obj(), "start");
-        UniValue endValue = find_value(request.params[0].get_obj(), "end");
+        UniValue startValue = request.params[0].get_obj().find_value("start");
+        UniValue endValue = request.params[0].get_obj().find_value("end");
         if (startValue.isNum() && endValue.isNum()) {
             start = startValue.getInt<int>();
             end = endValue.getInt<int>();
@@ -632,8 +629,8 @@ static RPCHelpMan getspentinfo()
     const CTxMemPool& mempool = EnsureMemPool(node);
     ChainstateManager &chainman = EnsureChainman(node);
 
-    UniValue txidValue = find_value(request.params[0].get_obj(), "txid");
-    UniValue indexValue = find_value(request.params[0].get_obj(), "index");
+    UniValue txidValue = request.params[0].get_obj().find_value("txid");
+    UniValue indexValue = request.params[0].get_obj().find_value("index");
 
     if (!txidValue.isStr() || !indexValue.isNum()) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid txid or index");
@@ -840,7 +837,7 @@ return RPCHelpMan{"getblockdeltas",
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Block not available (pruned data)");
     }
 
-    if (!node::ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(block, *pblockindex)) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
     }
 
@@ -891,8 +888,8 @@ static RPCHelpMan getblockhashes()
 
     if (request.params.size() > 2) {
         if (request.params[2].isObject()) {
-            UniValue noOrphans = find_value(request.params[2].get_obj(), "noOrphans");
-            UniValue returnLogical = find_value(request.params[2].get_obj(), "logicalTimes");
+            UniValue noOrphans = request.params[2].get_obj().find_value("noOrphans");
+            UniValue returnLogical = request.params[2].get_obj().find_value("logicalTimes");
 
             if (noOrphans.isBool()) {
                 fActiveOnly = noOrphans.get_bool();
@@ -1090,8 +1087,7 @@ static RPCHelpMan getblockreward()
                         {RPCResult::Type::NUM_TIME, "blocktime", "The block time expressed in " _UNIX_EPOCH_TIME},
                         {RPCResult::Type::STR_AMOUNT, "stakereward", "The stake reward portion, newly minted coin"},
                         {RPCResult::Type::STR_AMOUNT, "blockreward", "The block reward, value paid to staker, including fees"},
-                        {RPCResult::Type::STR_AMOUNT, "treasuryreward", "The accumulated treasury reward payout, if any"},
-                        {RPCResult::Type::STR_AMOUNT, "gvrreward", "The accumulated GVR reward payout, if any"},
+                        {RPCResult::Type::STR_AMOUNT, "treasuryreward", /*optional=*/true, "The accumulated treasury reward payout, if any"},
                         {RPCResult::Type::OBJ, "kernelscript", "", {
                             {RPCResult::Type::STR_HEX, "hex", "The script from the kernel output"},
                             {RPCResult::Type::STR, "stakeaddr", /*optional=*/true, "The stake address, if output script is coldstake"},
@@ -1131,18 +1127,17 @@ static RPCHelpMan getblockreward()
 
     CBlockIndex *pblockindex = chainman.ActiveChain()[nHeight];
 
-    bool gvrActivationHeight = nHeight >= ::Params().GetConsensus().automatedGvrActivationHeight;
     CAmount stake_reward = 0;
     if (pblockindex->pprev) {
         stake_reward = GetProofOfStakeReward(Params(), pblockindex->pprev, 0);
     }
 
     CBlock block;
-    if (!node::ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(block, *pblockindex)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Block not found on disk");
     }
 
-    const TreasuryFundSettings* fundconf = Params().GetTreasuryFundSettings(pblockindex->nHeight);
+    const ghost::TreasuryFundSettings *fundconf = Params().GetTreasuryFundSettings(pblockindex->GetBlockTime());
     CScript fundScriptPubKey;
     if (fundconf) {
         CTxDestination dest = DecodeDestination(fundconf->sTreasuryFundAddresses);
@@ -1153,23 +1148,7 @@ static RPCHelpMan getblockreward()
 
     UniValue outputs(UniValue::VARR);
     CAmount value_out = 0, value_in = 0, value_treasury = 0;
-
-    bool gvrOutExists = false;
-    bool devFundExists = !fundconf? false : (pblockindex->nHeight % fundconf->nTreasuryOutputPeriod) == 0;
-    CAmount gvrAmount = 0;
-    int numDataOutput = 0;
-
     for (const auto &txout : tx->vpout) {
-
-        if (gvrActivationHeight) {
-            if (txout->IsType(OutputTypes::OUTPUT_DATA)) {
-                if (numDataOutput == 0 && !txout->GetGvrFundCfwd(gvrAmount)) {
-                    gvrOutExists = true;
-                }
-                numDataOutput++;
-            }
-        }
-
         if (!txout->IsStandardOutput()) {
             continue;
         }
@@ -1179,8 +1158,8 @@ static RPCHelpMan getblockreward()
         output.pushKV("value", ValueFromAmount(txout->GetValue()));
         outputs.push_back(output);
 
-        if (!gvrActivationHeight && fundconf && *txout->GetPScriptPubKey() == fundScriptPubKey && value_treasury == 0) {
-            value_treasury = txout->GetValue();
+        if (fundconf && *txout->GetPScriptPubKey() == fundScriptPubKey) {
+            value_treasury += txout->GetValue();
             continue;
         }
 
@@ -1197,7 +1176,7 @@ static RPCHelpMan getblockreward()
 
         CBlockIndex *blockindex = nullptr;
         uint256 hash_block;
-        const CTransactionRef tx_prev = node::GetTransaction(blockindex, node.mempool.get(), txin.prevout.hash, Params().GetConsensus(), hash_block);
+        const CTransactionRef tx_prev = node::GetTransaction(blockindex, node.mempool.get(), txin.prevout.hash, hash_block, chainman.m_blockman);
         if (!tx_prev) {
             throw JSONRPCError(RPC_MISC_ERROR, "Transaction not found on disk");
         }
@@ -1211,24 +1190,6 @@ static RPCHelpMan getblockreward()
     }
 
     CAmount block_reward = value_out - value_in;
-    short gvrIndex = 1;
-
-    if (gvrActivationHeight) {
-        if (gvrOutExists && !devFundExists) {
-            block_reward -= tx->vpout[1]->GetValue();
-            gvrIndex = 1;
-        }
-
-        if (gvrOutExists && devFundExists) {
-            block_reward -= tx->vpout[2]->GetValue();
-            gvrIndex = 2;
-        }
-
-        if (devFundExists) {
-            block_reward -= tx->vpout[1]->GetValue();
-            value_treasury = tx->vpout[1]->GetValue();
-        }
-    }
 
     UniValue rv(UniValue::VOBJ);
     rv.pushKV("blockhash", pblockindex->GetBlockHash().ToString());
@@ -1240,12 +1201,8 @@ static RPCHelpMan getblockreward()
     rv.pushKV("stakereward", ValueFromAmount(stake_reward));
     rv.pushKV("blockreward", ValueFromAmount(block_reward));
 
-    if (devFundExists) {
+    if (value_treasury > 0) {
         rv.pushKV("treasuryreward", ValueFromAmount(value_treasury));
-    }
-
-    if (gvrOutExists) {
-        rv.pushKV("gvrreward", ValueFromAmount(tx->vpout[gvrIndex]->GetValue()));
     }
 
     if (tx->IsCoinStake()) {
@@ -1502,7 +1459,6 @@ static RPCHelpMan getinsightinfo()
                     {RPCResult::Type::BOOL, "addressindex", "True if addressindex is enabled"},
                     {RPCResult::Type::BOOL, "spentindex", "True if spentindex is enabled"},
                     {RPCResult::Type::BOOL, "timestampindex", "True if timestampindex is enabled"},
-                    {RPCResult::Type::BOOL, "balancesindex", "True if balancesindex is enabled"},
                     {RPCResult::Type::BOOL, "coldstakeindex", "True if coldstakeindex is enabled"},
                     {RPCResult::Type::BOOL, "balancesindex", "True if balancesindex is enabled"},
                 }

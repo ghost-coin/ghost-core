@@ -13,7 +13,7 @@
 #include <interfaces/node.h>
 
 #include <rpc/rpcutil.h>
-#include <util/system.h>
+#include <common/args.h>
 #include <key/mnemonic.h>
 #include <key/extkey.h>
 
@@ -99,7 +99,7 @@ void MnemonicDialog::on_btnImport_clicked()
         sCommand += "legacy";
     sCommand += " \"" + ui->tbxMnemonic->toPlainText() + "\"";
 
-    QString sPassword = GUIUtil::particl::escapeQString(ui->edtPassword->text());
+    QString sPassword = GUIUtil::ghost::escapeQString(ui->edtPassword->text());
     sCommand += " \"" + sPassword + "\" false \"Master Key\" \"Default Account\" -1";
 
     UniValue rv;

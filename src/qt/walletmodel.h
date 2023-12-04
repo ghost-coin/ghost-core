@@ -10,7 +10,7 @@
 #endif
 
 #include <key.h>
-#include <script/standard.h>
+
 
 #include <qt/walletmodeltransaction.h>
 

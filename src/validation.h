@@ -374,8 +374,8 @@ public:
 
     CScriptCheck(const CScriptCheck&) = delete;
     CScriptCheck& operator=(const CScriptCheck&) = delete;
-    CScriptCheck(CScriptCheck&&) = default;
-    CScriptCheck& operator=(CScriptCheck&&) = default;
+    CScriptCheck(CScriptCheck&&) noexcept = default;
+    CScriptCheck& operator=(CScriptCheck&&) noexcept = default;
 
     bool operator()();
 
@@ -1355,7 +1355,7 @@ bool RebuildRollingIndices(ChainstateManager &chainman, CTxMemPool *mempool);
 int64_t GetSmsgFeeRate(ChainstateManager &chainman, const CBlockIndex *pindex, bool reduce_height=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 uint32_t GetSmsgDifficulty(ChainstateManager &chainman, uint64_t time, bool verify=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-} // namespace particl
+} // namespace ghost
 
 ColdRewardTracker& initColdReward();
 void clearTrackedData();

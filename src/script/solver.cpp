@@ -250,7 +250,7 @@ CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)
     return script;
 }
 
-namespace particl {
+namespace ghost {
 TxoutType ToTxoutType(uint8_t type_byte)
 {
     switch (type_byte) {
@@ -318,4 +318,4 @@ bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID)
     return false;
 }
 
-} // namespace particl
+} // namespace ghost

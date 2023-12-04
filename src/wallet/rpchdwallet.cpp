@@ -1812,7 +1812,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             CStoredExtKey *sekGenesisChain = new CStoredExtKey();
 
             if (0 != (rv = pwallet->NewExtKeyFromAccount(&wdb, idNewDefaultAccount,
-                genesisChainLabel, sekGenesisChain, nullptr, &particl::CHAIN_NO_GENESIS))) {
+                genesisChainLabel, sekGenesisChain, nullptr, &ghost::CHAIN_NO_GENESIS))) {
                 delete sekGenesisChain;
                 pwallet->ExtKeyRemoveAccountFromMapsAndFree(sea);
                 wdb.TxnAbort();
@@ -4557,7 +4557,7 @@ static RPCHelpMan getstakinginfo()
         obj.pushKV("wallettreasurydonationpercent", pwallet->nWalletTreasuryFundCedePercent);
     }
 
-    const particl::TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTipTime);
+    const ghost::TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTipTime);
     if (pTreasuryFundSettings && pTreasuryFundSettings->nMinTreasuryStakePercent > 0) {
         obj.pushKV("treasurydonationpercent", pTreasuryFundSettings->nMinTreasuryStakePercent);
     }
@@ -4670,7 +4670,7 @@ static RPCHelpMan getcoldstakinginfo()
         if (scriptPubKey->IsPayToPublicKeyHash256_CS() || scriptPubKey->IsPayToScriptHash256_CS() || scriptPubKey->IsPayToScriptHash_CS()) {
             // Show output on both the spending and staking wallets
             if (!out.spendable) {
-                if (!particl::ExtractStakingKeyID(*scriptPubKey, keyID) ||
+                if (!ghost::ExtractStakingKeyID(*scriptPubKey, keyID) ||
                     !pwallet->HaveKey(keyID)) {
                     continue;
                 }
@@ -4680,7 +4680,7 @@ static RPCHelpMan getcoldstakinginfo()
             continue;
         }
 
-        if (!particl::ExtractStakingKeyID(*scriptPubKey, keyID)) {
+        if (!ghost::ExtractStakingKeyID(*scriptPubKey, keyID)) {
             continue;
         }
 
@@ -5351,8 +5351,8 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     const Consensus::Params& consensusParams = Params().GetConsensus();
 
     bool exploit_fix_2_active = GetTime() >= consensusParams.exploit_fix_2_time;
-    bool default_accept_anon = exploit_fix_2_active ? true : particl::DEFAULT_ACCEPT_ANON_TX;
-    bool default_accept_blind = exploit_fix_2_active ? true : particl::DEFAULT_ACCEPT_BLIND_TX;
+    bool default_accept_anon = exploit_fix_2_active ? true : ghost::DEFAULT_ACCEPT_ANON_TX;
+    bool default_accept_blind = exploit_fix_2_active ? true : ghost::DEFAULT_ACCEPT_BLIND_TX;
     if (!gArgs.GetBoolArg("-acceptanontxn", default_accept_anon) &&
         (typeIn == OUTPUT_RINGCT || typeOut == OUTPUT_RINGCT)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Disabled output type.");
@@ -6960,9 +6960,9 @@ static RPCHelpMan debugwallet()
 
     if (clear_stakes_seen) {
         LOCK(cs_main);
-        particl::mapStakeConflict.clear();
-        particl::mapStakeSeen.clear();
-        particl::listStakeSeen.clear();
+        ghost::mapStakeConflict.clear();
+        ghost::mapStakeSeen.clear();
+        ghost::listStakeSeen.clear();
         return "Cleared stakes seen.";
     }
 
@@ -8312,7 +8312,7 @@ static RPCHelpMan createrawparttransaction()
     UniValue outputs = request.params[1].get_array();
 
     CMutableTransaction rawTx;
-    rawTx.nVersion = PARTICL_TXN_VERSION;
+    rawTx.nVersion = GHOST_TXN_VERSION;
 
 
     if (!request.params[2].isNull()) {
@@ -8775,7 +8775,7 @@ static RPCHelpMan fundrawtransactionfrom()
 
     // parse hex string from parameter
     CMutableTransaction tx;
-    tx.nVersion = PARTICL_TXN_VERSION;
+    tx.nVersion = GHOST_TXN_VERSION;
     if (!DecodeHexTx(tx, request.params[1].get_str(), true)) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }

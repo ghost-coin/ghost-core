@@ -171,7 +171,7 @@ static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
     return GetVirtualTransactionInputSize(tx, 0, 0);
 }
 
-namespace particl {
+namespace ghost {
 CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn);
 bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee);
 } // namespace particl

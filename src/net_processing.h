@@ -68,7 +68,7 @@ public:
         //! Whether all P2P messages are captured to disk
         bool capture_messages{false};
         size_t banscore{DISCOURAGEMENT_THRESHOLD};
-        bool automaticbans{particl::DEFAULT_AUTOMATIC_BANS};
+        bool automaticbans{ghost::DEFAULT_AUTOMATIC_BANS};
     };
 
     static std::unique_ptr<PeerManager> make(CConnman& connman, AddrMan& addrman,
