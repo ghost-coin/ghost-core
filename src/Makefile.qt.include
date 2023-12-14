@@ -180,9 +180,7 @@ QT_RES_FONTS = \
 QT_RES_ICONS = \
   qt/res/icons/add.png \
   qt/res/icons/address-book.png \
-  qt/res/icons/ghost.ico \
-  qt/res/icons/ghost_testnet.ico \
-  qt/res/icons/ghost.png \
+  qt/res/icons/ghost.icns \
   qt/res/icons/chevron.png \
   qt/res/icons/clock1.png \
   qt/res/icons/clock2.png \

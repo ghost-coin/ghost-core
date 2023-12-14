@@ -25,7 +25,7 @@ check_PROGRAMS =
 TESTS =
 BENCHMARKS =
 
-BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT) $(LEVELDB_CPPFLAGS)
+BITCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/$(MINISKETCH_INCLUDE_DIR_INT) -I$(srcdir)/secp256k1/include -I$(srcdir)/$(UNIVALUE_INCLUDE_DIR_INT)
 
 LIBGHOST_NODE=libghost_node.a
 LIBGHOST_COMMON=libghost_common.a
@@ -151,18 +151,18 @@ BITCOIN_CORE_H = \
   clientversion.h \
   coins.h \
   common/args.h \
-  common/settings.h \
   common/bloom.h \
   common/init.h \
   common/run_command.h \
   common/url.h \
-  common/system.h \
-  common/globals.h \
   compat/assumptions.h \
   compat/byteswap.h \
   compat/compat.h \
   compat/cpuid.h \
   compat/endian.h \
+  common/settings.h \
+  common/system.h \
+  common/globals.h \
   compressor.h \
   consensus/consensus.h \
   consensus/tx_check.h \
@@ -234,7 +234,6 @@ BITCOIN_CORE_H = \
   netgroup.h \
   netmessagemaker.h \
   node/abort.h \
-  node/kernel_notifications.h \
   node/blockmanager_args.h \
   node/blockstorage.h \
   node/caches.h \
@@ -247,10 +246,13 @@ BITCOIN_CORE_H = \
   node/database_args.h \
   node/eviction.h \
   node/interface_ui.h \
+  node/kernel_notifications.h \
   node/mempool_args.h \
   node/mempool_persist_args.h \
   node/miner.h \
+  node/mini_miner.h \
   node/minisketchwrapper.h \
+  node/peerman_args.h \
   node/psbt.h \
   node/transaction.h \
   node/txreconciliation.h \
@@ -293,6 +295,7 @@ BITCOIN_CORE_H = \
   script/sigcache.h \
   script/sign.h \
   script/signingprovider.h \
+  script/solver.h \
   script/ismine.h \
   script/solver.h \
   shutdown.h \
@@ -304,9 +307,9 @@ BITCOIN_CORE_H = \
   smsg/types.h \
   smsg/crypter.h \
   smsg/smessage.h \
-  smsg/securemessage.h \
   smsg/manager.h \
   smsg/rpcsmessage.h \
+  smsg/securemessage.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
   support/cleanse.h \
@@ -323,9 +326,11 @@ BITCOIN_CORE_H = \
   undo.h \
   util/any.h \
   util/asmap.h \
+  util/batchpriority.h \
   util/bip32.h \
   util/bitdeque.h \
   util/bytevectorhash.h \
+  util/chaintype.h \
   util/check.h \
   util/epochguard.h \
   util/error.h \
@@ -348,12 +353,10 @@ BITCOIN_CORE_H = \
   util/readwritefile.h \
   util/result.h \
   util/serfloat.h \
-  util/settings.h \
+  util/signalinterrupt.h \
   util/sock.h \
   util/spanparsing.h \
-  util/signalinterrupt.h \
   util/string.h \
-  util/syscall_sandbox.h \
   util/syserror.h \
   util/thread.h \
   util/threadinterrupt.h \
@@ -365,8 +368,6 @@ BITCOIN_CORE_H = \
   util/types.h \
   util/ui_change_type.h \
   util/vector.h \
-  util/chaintype.cpp \
-  util/batchpriority.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
@@ -418,17 +419,19 @@ BITCOIN_CORE_H = \
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
-	@$(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
+	$(AM_V_GEN) $(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
 	  "$(abs_top_srcdir)"
 libghost_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # node #
-libghost_node_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
+libghost_node_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(LEVELDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(MINIUPNPC_CPPFLAGS) $(NATPMP_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libghost_node_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_node_a_SOURCES = \
   addrdb.cpp \
   addrman.cpp \
+  adapter.cpp \
   banman.cpp \
+  bip324.cpp \
   blockencodings.cpp \
   blockfilter.cpp \
   chain.cpp \
@@ -471,11 +474,14 @@ libghost_node_a_SOURCES = \
   node/database_args.cpp \
   node/eviction.cpp \
   node/interface_ui.cpp \
+  node/interfaces.cpp \
   node/kernel_notifications.cpp \
   node/mempool_args.cpp \
   node/mempool_persist_args.cpp \
   node/miner.cpp \
+  node/mini_miner.cpp \
   node/minisketchwrapper.cpp \
+  node/peerman_args.cpp \
   node/psbt.cpp \
   node/transaction.cpp \
   node/txreconciliation.cpp \
@@ -583,7 +589,7 @@ endif
 #
 
 # wallet #
-libghost_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(BDB_CPPFLAGS) $(SQLITE_CFLAGS)
+libghost_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS) $(BDB_CPPFLAGS) $(SQLITE_CFLAGS) $(LEVELDB_CPPFLAGS)
 libghost_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_wallet_a_SOURCES = \
   wallet/rpchdwallet.cpp \
@@ -652,10 +658,10 @@ crypto_libghost_crypto_base_la_LDFLAGS = $(AM_LDFLAGS) -static
 crypto_libghost_crypto_base_la_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
-  crypto/chacha_poly_aead.h \
-  crypto/chacha_poly_aead.cpp \
   crypto/chacha20.h \
   crypto/chacha20.cpp \
+  crypto/chacha20poly1305.h \
+  crypto/chacha20poly1305.cpp \
   crypto/common.h \
   crypto/hkdf_sha256_32.cpp \
   crypto/hkdf_sha256_32.h \
@@ -764,6 +770,7 @@ libghost_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS
 libghost_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_common_a_SOURCES = \
   addresstype.cpp \
+  adapter.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
@@ -772,11 +779,11 @@ libghost_common_a_SOURCES = \
   coldreward/blockheightrange.cpp \
   common/args.cpp \
   common/bloom.cpp \
-  common/settings.cpp \
   common/config.cpp \
   common/init.cpp \
   common/interfaces.cpp \
   common/run_command.cpp \
+  common/settings.cpp \
   common/system.cpp \
   compressor.cpp \
   core_read.cpp \
@@ -835,11 +842,11 @@ libghost_util_a_SOURCES = \
   streams.cpp \
   support/cleanse.cpp \
   sync.cpp \
-  util/chaintype.cpp \
-  util/batchpriority.cpp \
   util/asmap.cpp \
+  util/batchpriority.cpp \
   util/bip32.cpp \
   util/bytevectorhash.cpp \
+  util/chaintype.cpp \
   util/check.cpp \
   util/error.cpp \
   util/exception.cpp \
@@ -862,14 +869,14 @@ libghost_util_a_SOURCES = \
   util/spanparsing.cpp \
   util/strencodings.cpp \
   util/string.cpp \
-  util/syscall_sandbox.cpp \
   util/time.cpp \
   util/tokenpipe.cpp \
   $(BITCOIN_CORE_H)
 #
+#
 
 # smsg #
-libghost_smsg_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libghost_smsg_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(LEVELDB_CPPFLAGS)
 libghost_smsg_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libghost_smsg_a_CFLAGS = $(AM_CFLAGS) $(PIE_FLAGS)
 libghost_smsg_a_SOURCES = \
@@ -1105,12 +1112,8 @@ libghostkernel_la_SOURCES = \
   kernel/bitcoinkernel.cpp \
   arith_uint256.cpp \
   chain.cpp \
-  chainparamsbase.cpp \
-  chainparams.cpp \
   clientversion.cpp \
   coins.cpp \
-  common/args.cpp \
-  common/config.cpp \
   compressor.cpp \
   consensus/merkle.cpp \
   consensus/tx_check.cpp \
@@ -1128,6 +1131,7 @@ libghostkernel_la_SOURCES = \
   kernel/context.cpp \
   kernel/cs_main.cpp \
   kernel/mempool_persist.cpp \
+  kernel/mempool_removal_reason.cpp \
   key.cpp \
   anon.cpp \
   blind.cpp \
@@ -1146,7 +1150,6 @@ libghostkernel_la_SOURCES = \
   logging.cpp \
   node/blockstorage.cpp \
   node/chainstate.cpp \
-  node/interface_ui.cpp \
   node/utxo_snapshot.cpp \
   policy/feerate.cpp \
   policy/fees.cpp \
@@ -1165,8 +1168,9 @@ libghostkernel_la_SOURCES = \
   script/script.cpp \
   script/script_error.cpp \
   script/sigcache.cpp \
-  shutdown.cpp \
+  script/solver.cpp \
   signet.cpp \
+  streams.cpp \
   support/cleanse.cpp \
   support/lockedpool.cpp \
   sync.cpp \
@@ -1174,6 +1178,7 @@ libghostkernel_la_SOURCES = \
   txmempool.cpp \
   uint256.cpp \
   util/batchpriority.cpp \
+  util/chaintype.cpp \
   util/check.cpp \
   util/exception.cpp \
   util/fs.cpp \
@@ -1183,10 +1188,9 @@ libghostkernel_la_SOURCES = \
   util/moneystr.cpp \
   util/rbf.cpp \
   util/serfloat.cpp \
-  util/settings.cpp \
+  util/signalinterrupt.cpp \
   util/strencodings.cpp \
   util/string.cpp \
-  util/syscall_sandbox.cpp \
   util/syserror.cpp \
   util/thread.cpp \
   util/threadnames.cpp \
@@ -1264,7 +1268,7 @@ clean-local:
 	-rm -rf test/__pycache__
 
 .rc.o:
-	@test -f $(WINDRES)
+	@test -f $(WINDRES) || (echo "windres $(WINDRES) not found, but is required to compile windows resource files"; exit 1)
 	## FIXME: How to get the appropriate modulename_CPPFLAGS in here?
 	$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
 
@@ -1325,12 +1329,11 @@ endif
 
 %.raw.h: %.raw
 	@$(MKDIR_P) $(@D)
-	@{ \
+	$(AM_V_GEN) { \
 	 echo "static unsigned const char $(*F)_raw[] = {" && \
 	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
 	 echo "};"; \
 	} > "$@.new" && mv -f "$@.new" "$@"
-	@echo "Generated $@"
 
 include Makefile.minisketch.include
 

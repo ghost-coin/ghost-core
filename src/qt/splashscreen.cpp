@@ -9,20 +9,19 @@
 #include <qt/splashscreen.h>
 
 #include <clientversion.h>
+#include <common/system.h>
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <interfaces/wallet.h>
 #include <qt/guiutil.h>
 #include <qt/networkstyle.h>
 #include <qt/walletmodel.h>
-#include <common/args.h>
 #include <util/translation.h>
 
 #include <functional>
 
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDesktopWidget>
 #include <QPainter>
 #include <QRadialGradient>
 #include <QScreen>
@@ -31,10 +30,6 @@
 SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     : QWidget()
 {
-    // transparent background
-    setAttribute(Qt::WA_TranslucentBackground);
-    setStyleSheet("background:transparent;");
-    setWindowFlags(Qt::FramelessWindowHint);
     // set reference point, paddings
     int paddingRight            = 50;
     int paddingTop              = 100;
@@ -60,16 +55,74 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     // change to HiDPI if it makes sense
     pixmap.setDevicePixelRatio(devicePixelRatio);
 
-    // load the bitmap for writing some text over it
-    const QSize requiredSize(400,378);
-    pixmap = networkStyle->getAppIcon().pixmap(requiredSize);
     QPainter pixPaint(&pixmap);
-    pixPaint.setPen(QColor(0,0,0));
+    pixPaint.setPen(QColor(100,100,100));
+
+    // draw a slightly radial gradient
+    QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
+    gradient.setColorAt(0, Qt::white);
+    gradient.setColorAt(1, QColor(247,247,247));
+    QRect rGradient(QPoint(0,0), splashSize);
+    pixPaint.fillRect(rGradient, gradient);
+
+    // draw the particl icon, expected size of PNG: 1024x1024
+    QRect rectIcon(QPoint(0,20), QSize(256,256));
+
+    const QSize requiredSize(1024,1024);
+    QPixmap icon(networkStyle->getAppIcon().pixmap(requiredSize));
+
+    QPixmap icon_scaled = icon.scaled(256, 256, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    pixPaint.drawPixmap(rectIcon, icon_scaled);
+
+    // check font size and drawing with
+    pixPaint.setFont(QFont(font, 33*fontFactor));
+    QFontMetrics fm = pixPaint.fontMetrics();
+    int titleTextWidth = GUIUtil::TextWidth(fm, titleText);
+    if (titleTextWidth > 176) {
+        fontFactor = fontFactor * 176 / titleTextWidth;
+    }
+
+    pixPaint.setFont(QFont(font, 33*fontFactor));
+    fm = pixPaint.fontMetrics();
+    titleTextWidth  = GUIUtil::TextWidth(fm, titleText);
+    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight,paddingTop,titleText);
+
+    pixPaint.setFont(QFont(font, 15*fontFactor));
+
+    // if the version string is too long, reduce size
+    fm = pixPaint.fontMetrics();
+    int versionTextWidth  = GUIUtil::TextWidth(fm, versionText);
+    if(versionTextWidth > titleTextWidth+paddingRight-10) {
+        pixPaint.setFont(QFont(font, 10*fontFactor));
+        titleVersionVSpace -= 5;
+    }
+    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight+2,paddingTop+titleVersionVSpace,versionText);
+
+    // draw copyright stuff
+    {
+        pixPaint.setFont(QFont(font, 10*fontFactor));
+        const int x = pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight;
+        const int y = paddingTop+titleCopyrightVSpace;
+        QRect copyrightRect(x, y, pixmap.width() - x - paddingRight, pixmap.height() - y);
+        pixPaint.drawText(copyrightRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, copyrightText);
+    }
+
+    // draw additional text if special network
+    if(!titleAddText.isEmpty()) {
+        QFont boldFont = QFont(font, 10*fontFactor);
+        boldFont.setWeight(QFont::Bold);
+        pixPaint.setFont(boldFont);
+        fm = pixPaint.fontMetrics();
+        int titleAddTextWidth  = GUIUtil::TextWidth(fm, titleAddText);
+        pixPaint.drawText(pixmap.width()/devicePixelRatio-titleAddTextWidth-10,15,titleAddText);
+    }
+
     pixPaint.end();
 
+    // Set window title
+    setWindowTitle(titleText + " " + titleAddText);
+
     // Resize window and move to center of desktop, disallow resizing
-    float devicePixelRatio      = 1.0;
-    devicePixelRatio = static_cast<QGuiApplication*>(QCoreApplication::instance())->devicePixelRatio();
     QRect r(QPoint(), QSize(pixmap.size().width()/devicePixelRatio,pixmap.size().height()/devicePixelRatio));
     resize(r.size());
     setFixedSize(r.size());
@@ -115,7 +168,7 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
         Qt::QueuedConnection,
         Q_ARG(QString, QString::fromStdString(message)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
-        Q_ARG(QColor, QColor(255,255,255)));
+        Q_ARG(QColor, QColor(55,55,55)));
     assert(invoked);
 }
 

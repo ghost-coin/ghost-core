@@ -113,7 +113,6 @@ private Q_SLOTS:
     void coinControlClipboardFee();
     void coinControlClipboardAfterFee();
     void coinControlClipboardBytes();
-    void coinControlClipboardLowOutput();
     void coinControlClipboardChange();
     void cbxTypeFromChanged(int);
     void updateFeeSectionControls();

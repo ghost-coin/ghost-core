@@ -946,7 +946,8 @@ public:
         options.create_flags = wallet_creation_flags;
         options.create_passphrase = passphrase;
         bilingual_str error;
-        std::unique_ptr<Wallet> wallet{MakeWallet(m_context, CreateWallet(m_context, name, /*load_on_start=*/true, options, status, error, warnings))};
+        bool fLegacy = false;
+        std::unique_ptr<Wallet> wallet{MakeWallet(m_context, CreateWallet(m_context, name, /*load_on_start=*/true, options, status, error, warnings, fLegacy))};
         if (wallet) {
             return {std::move(wallet)};
         } else {

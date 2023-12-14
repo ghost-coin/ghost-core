@@ -50,7 +50,8 @@ struct FuzzedWallet {
         DatabaseStatus status;
         bilingual_str error;
         std::vector<bilingual_str> warnings;
-        wallet = CreateWallet(context, name, load_on_start, options, status, error, warnings);
+        bool fLegacy = false;
+        wallet = CreateWallet(context, name, load_on_start, options, status, error, warnings, fLegacy);
         assert(wallet);
         assert(error.empty());
         assert(warnings.empty());

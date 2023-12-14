@@ -133,10 +133,10 @@ int main(int argc, char* argv[])
     node::ChainstateLoadOptions options;
     options.check_interrupt = [] { return false; };
     node::ChainstateLoadArgs csl_args;
-    csl_args.address_index = gArgs.GetBoolArg("-addressindex", particl::DEFAULT_ADDRESSINDEX);
-    csl_args.spent_index = gArgs.GetBoolArg("-spentindex", particl::DEFAULT_SPENTINDEX);
-    csl_args.timestamp_index = gArgs.GetBoolArg("-timestampindex", particl::DEFAULT_TIMESTAMPINDEX);
-    csl_args.balances_index = gArgs.GetBoolArg("-balancesindex", particl::DEFAULT_BALANCESINDEX);
+    csl_args.address_index = gArgs.GetBoolArg("-addressindex", ghost::DEFAULT_ADDRESSINDEX);
+    csl_args.spent_index = gArgs.GetBoolArg("-spentindex", ghost::DEFAULT_SPENTINDEX);
+    csl_args.timestamp_index = gArgs.GetBoolArg("-timestampindex", ghost::DEFAULT_TIMESTAMPINDEX);
+    csl_args.balances_index = gArgs.GetBoolArg("-balancesindex", ghost::DEFAULT_BALANCESINDEX);
     options.args = csl_args;
     auto [status, error] = node::LoadChainstate(chainman, cache_sizes, options);
     if (status != node::ChainstateLoadStatus::SUCCESS) {

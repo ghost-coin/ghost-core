@@ -6,6 +6,7 @@
 
 #include <chainparams.h>
 #include <key.h>
+#include <logging.h>
 #include <qt/bitcoin.h>
 #include <qt/bitcoingui.h>
 #include <qt/networkstyle.h>
@@ -73,7 +74,7 @@ void AppTests::appTests()
     qRegisterMetaType<interfaces::BlockAndHeaderTipInfo>("interfaces::BlockAndHeaderTipInfo");
     m_app.parameterSetup();
     QVERIFY(m_app.createOptionsModel(/*resetSettings=*/true));
-    QScopedPointer<const NetworkStyle> style(NetworkStyle::instantiate(Params().NetworkIDString()));
+    QScopedPointer<const NetworkStyle> style(NetworkStyle::instantiate(Params().GetChainType()));
     m_app.setupPlatformStyle();
     m_app.createWindow(style.data());
     m_app.setTestMode();
@@ -87,7 +88,6 @@ void AppTests::appTests()
 
     // Reset global state to avoid interfering with later tests.
     LogInstance().DisconnectTestLogger();
-    AbortShutdown();
 }
 
 //! Entry point for BitcoinGUI tests.

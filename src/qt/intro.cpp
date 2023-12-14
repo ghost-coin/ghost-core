@@ -9,15 +9,16 @@
 #include <chainparams.h>
 #include <qt/intro.h>
 #include <qt/forms/ui_intro.h>
+#include <util/chaintype.h>
 #include <util/fs.h>
 
 #include <qt/guiconstants.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 
+#include <common/args.h>
 #include <interfaces/node.h>
 #include <util/fs_helpers.h>
-#include <common/args.h>
 #include <validation.h>
 
 #include <QFileDialog>
@@ -135,7 +136,7 @@ Intro::Intro(QWidget *parent, int64_t blockchain_size_gb, int64_t chain_state_si
         .arg(PACKAGE_NAME)
         .arg(m_blockchain_size_gb)
         .arg(2009)
-        .arg(tr("Ghost"))
+        .arg(tr("Particl"))
     );
     ui->lblExplanation2->setText(ui->lblExplanation2->text().arg(PACKAGE_NAME));
 
@@ -219,7 +220,7 @@ bool Intro::showIfNeeded(bool& did_show_intro, int64_t& prune_MiB)
     {
         /* Use selectParams here to guarantee Params() can be used by node interface */
         try {
-            SelectParams(gArgs.GetChainName());
+            SelectParams(gArgs.GetChainType());
         } catch (const std::exception&) {
             return false;
         }
@@ -388,7 +389,7 @@ void Intro::UpdatePruneLabels(bool prune_checked)
         //: Explanatory text on the capability of the current prune target.
         tr("(sufficient to restore backups %n day(s) old)", "", expected_backup_days));
     ui->sizeWarningLabel->setText(
-        tr("%1 will download and store a copy of the Ghost block chain.").arg(PACKAGE_NAME) + " " +
+        tr("%1 will download and store a copy of the Particl block chain.").arg(PACKAGE_NAME) + " " +
         storageRequiresMsg.arg(m_required_space_gb) + " " +
         tr("The wallet will also be stored in this directory.")
     );

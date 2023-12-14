@@ -175,6 +175,7 @@ public:
     bool m_funds_smsg = false;
     bool m_has_anon_output = false;
     bool m_has_anon_input = false;
+    bool m_has_blind_input = false;
     bool m_spends_frozen_blinded = false;
     bool m_clamp_tx_version = false;
     bool m_exploit_fix_1 = false;
@@ -238,7 +239,7 @@ class BlockValidationState : public ValidationState<BlockValidationResult> {};
 // using only serialization with and without witness data. As witness_size
 // is equal to total_size - stripped_size, this formula is identical to:
 // weight = (stripped_size * 3) + total_size.
-static inline int64_t GetTransactionWeight(const CTransaction& tx)
+static inline int32_t GetTransactionWeight(const CTransaction& tx)
 {
     return ::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(tx, PROTOCOL_VERSION);
 }

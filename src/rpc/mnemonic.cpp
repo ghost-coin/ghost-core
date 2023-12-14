@@ -157,8 +157,9 @@ static RPCHelpMan mnemonicrpc()
         }
 
         bool fBip44 = request.params.size() > 3 ? GetBool(request.params[3]) : true;
-
-        if (request.params.size() > 4) {
+        bool fLegacy = request.params.size() > 4 ? GetBool(request.params[4]) : false;
+        
+        if (request.params.size() > 5) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Too many parameters");
         }
         if (sMnemonic.empty()) {
@@ -192,7 +193,7 @@ static RPCHelpMan mnemonicrpc()
             if (!ekMaster.Derive(ekDerived, BIP44_PURPOSE)) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to derive master key");
             }
-            if (!ekDerived.Derive(ekDerived, (uint32_t)Params().BIP44ID())) {
+            if (!ekDerived.Derive(ekDerived, (uint32_t)Params().BIP44ID(fLegacy))) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to derive bip44 key");
             }
 

@@ -11,7 +11,6 @@
 
 #include <key.h>
 
-
 #include <qt/walletmodeltransaction.h>
 
 #include <interfaces/wallet.h>
@@ -39,7 +38,6 @@ class COutPoint;
 namespace wallet {
 struct COutput;
 } // namespace wallet
-class CCoinControlEntry;
 class CPubKey;
 class uint256;
 class UniValue;

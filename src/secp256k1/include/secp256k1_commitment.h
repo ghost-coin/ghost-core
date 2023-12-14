@@ -1,5 +1,5 @@
-#ifndef _SECP256K1_COMMITMENT_
-# define _SECP256K1_COMMITMENT_
+#ifndef SECP256K1_COMMITMENT_H
+# define SECP256K1_COMMITMENT_H
 
 # include "secp256k1.h"
 # include "secp256k1_generator.h"
@@ -26,7 +26,7 @@ typedef struct {
 /**
  * Static constant generator 'h' maintained for historical reasons.
  */
-SECP256K1_API extern const secp256k1_generator *secp256k1_generator_h;
+SECP256K1_API const secp256k1_generator *secp256k1_generator_h;
 
 /** Parse a 33-byte commitment into a commitment object.
  *

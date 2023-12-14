@@ -80,6 +80,7 @@ BITCOIN_TESTS =\
   test/base64_tests.cpp \
   test/bech32_tests.cpp \
   test/bip32_tests.cpp \
+  test/bip324_tests.cpp \
   test/blockchain_tests.cpp \
   test/blockencodings_tests.cpp \
   test/blockfilter_index_tests.cpp \
@@ -112,6 +113,7 @@ BITCOIN_TESTS =\
   test/merkle_tests.cpp \
   test/merkleblock_tests.cpp \
   test/miner_tests.cpp \
+  test/miniminer_tests.cpp \
   test/miniscript_tests.cpp \
   test/minisketch_tests.cpp \
   test/multisig_tests.cpp \
@@ -122,6 +124,7 @@ BITCOIN_TESTS =\
   test/pmt_tests.cpp \
   test/policy_fee_tests.cpp \
   test/policyestimator_tests.cpp \
+  test/pool_tests.cpp \
   test/pow_tests.cpp \
   test/prevector_tests.cpp \
   test/raii_event_tests.cpp \
@@ -178,8 +181,7 @@ BITCOIN_TESTS =\
   test/extkey_tests.cpp \
   test/ct_tests.cpp \
   test/ringct_tests.cpp \
-  test/ghostchain_tests.cpp \
-  test/coldreward_tests.cpp
+  test/ghostchain_tests.cpp
 
 if ENABLE_WALLET
 BITCOIN_TESTS += \
@@ -212,7 +214,9 @@ BITCOIN_TESTS += wallet/test/db_tests.cpp
 endif
 
 FUZZ_WALLET_SRC = \
+ wallet/test/fuzz/coincontrol.cpp \
  wallet/test/fuzz/coinselection.cpp \
+ wallet/test/fuzz/fees.cpp \
  wallet/test/fuzz/parse_iso8601.cpp
 
 if USE_SQLITE
@@ -230,7 +234,7 @@ BITCOIN_TEST_SUITE += \
 endif # ENABLE_WALLET
 
 test_test_ghost_SOURCES = $(BITCOIN_TEST_SUITE) $(BITCOIN_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
-test_test_ghost_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(TESTDEFS) $(BOOST_CPPFLAGS) $(EVENT_CFLAGS)
+test_test_ghost_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(LEVELDB_CPPFLAGS) $(TESTDEFS) $(BOOST_CPPFLAGS) $(EVENT_CFLAGS)
 test_test_ghost_LDADD = $(LIBTEST_UTIL)
 if ENABLE_WALLET
 test_test_ghost_LDADD += $(LIBGHOST_WALLET)
@@ -254,7 +258,7 @@ test_test_ghost_LDADD += $(LIBGHOST_USBDEVICE) $(USB_LIBS) $(HIDAPI_LIBS) $(PROT
 endif
 
 if ENABLE_FUZZ_BINARY
-test_fuzz_fuzz_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLAGS)
+test_fuzz_fuzz_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(LEVELDB_CPPFLAGS) $(BOOST_CPPFLAGS)
 test_fuzz_fuzz_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 test_fuzz_fuzz_LDADD =
 if ENABLE_WALLET
@@ -275,6 +279,7 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/banman.cpp \
  test/fuzz/base_encode_decode.cpp \
  test/fuzz/bech32.cpp \
+ test/fuzz/bip324.cpp \
  test/fuzz/bitdeque.cpp \
  test/fuzz/block.cpp \
  test/fuzz/block_header.cpp \
@@ -290,7 +295,6 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/crypto_aes256.cpp \
  test/fuzz/crypto_aes256cbc.cpp \
  test/fuzz/crypto_chacha20.cpp \
- test/fuzz/crypto_chacha20_poly1305_aead.cpp \
  test/fuzz/crypto_common.cpp \
  test/fuzz/crypto_diff_fuzz_chacha20.cpp \
  test/fuzz/crypto_hkdf_hmac_sha256_l32.cpp \
@@ -319,6 +323,7 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/message.cpp \
  test/fuzz/miniscript.cpp \
  test/fuzz/minisketch.cpp \
+ test/fuzz/mini_miner.cpp \
  test/fuzz/muhash.cpp \
  test/fuzz/multiplication_overflow.cpp \
  test/fuzz/net.cpp \
@@ -334,6 +339,7 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/partially_downloaded_block.cpp \
  test/fuzz/policy_estimator.cpp \
  test/fuzz/policy_estimator_io.cpp \
+ test/fuzz/poolresource.cpp \
  test/fuzz/pow.cpp \
  test/fuzz/prevector.cpp \
  test/fuzz/primitives_transaction.cpp \
@@ -375,6 +381,7 @@ test_fuzz_fuzz_SOURCES = \
  test/fuzz/txorphan.cpp \
  test/fuzz/txrequest.cpp \
  test/fuzz/utxo_snapshot.cpp \
+ test/fuzz/utxo_total_supply.cpp \
  test/fuzz/validation_load_mempool.cpp \
  test/fuzz/versionbits.cpp
 endif # ENABLE_FUZZ_BINARY
@@ -453,10 +460,12 @@ endif
 
 %.json.h: %.json
 	@$(MKDIR_P) $(@D)
-	@{ \
+	$(AM_V_GEN) { \
+	 echo "#include <string>" && \
 	 echo "namespace json_tests{" && \
-	 echo "static unsigned const char $(*F)[] = {" && \
-	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
+	 echo "static const std::string $(*F){" && \
+	 if [[ $@ = *bip39_vectors* ]]; then \
+	 $(HEXDUMP) -v -e '8/1 "static_cast<char>(0x%02x), "' -e '"\n"' $< | $(SED) -e 's/static_cast<char>(0x  ),//g'; else \
+	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g'; fi && \
 	 echo "};};"; \
 	} > "$@.new" && mv -f "$@.new" "$@"
-	@echo "Generated $@"

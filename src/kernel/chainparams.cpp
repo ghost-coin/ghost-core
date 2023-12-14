@@ -568,6 +568,10 @@ public:
         pchMessageStart[2] = 0xef;
         pchMessageStart[3] = 0xb4;
         nDefaultPort = 51738;
+        
+        nBIP44IDLegacy = 0x8000002C;
+        nBIP44IDCurrent = 0x80000213;
+
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 2;
         m_assumed_chain_state_size = 2;
@@ -745,6 +749,9 @@ public:
         pchMessageStart[2] = 0x05;
         pchMessageStart[3] = 0x0b;
         nDefaultPort = 51938;
+        
+        nBIP44IDCurrent = 0x80000213;
+        nBIP44IDLegacy = nBIP44IDCurrent;
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 2;
         m_assumed_chain_state_size = 1;
@@ -1010,6 +1017,9 @@ public:
         pchMessageStart[2] = 0x06;
         pchMessageStart[3] = 0x0c;
         nDefaultPort = 11938;
+
+        nBIP44IDCurrent = 0x80000001;
+        nBIP44IDLegacy = nBIP44IDCurrent;
         nBIP44ID = (int)WithHardenedBit(1);
 
 

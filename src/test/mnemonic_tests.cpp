@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022 The Particl Core developers
+// Copyright (c) 2017-2023 The Particl Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,13 +9,11 @@
 #include <key/mnemonic.h>
 #include <key/extkey.h>
 #include <key_io.h>
-#include <common/args.h>
 #include <util/strencodings.h>
 #include <random.h>
 #include <univalue.h>
 
 #include <string>
-#include <univalue.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -127,16 +125,10 @@ static void runTests(int nLanguage, UniValue &tests)
 
 BOOST_AUTO_TEST_CASE(mnemonic_test_json)
 {
-    UniValue tests_english = read_json(
-        std::string(json_tests::bip39_vectors_english,
-        json_tests::bip39_vectors_english + sizeof(json_tests::bip39_vectors_english)));
-
+    UniValue tests_english = read_json(json_tests::bip39_vectors_english);
     runTests(mnemonic::WLL_ENGLISH, tests_english);
 
-    UniValue tests_japanese = read_json(
-        std::string(json_tests::bip39_vectors_japanese,
-        json_tests::bip39_vectors_japanese + sizeof(json_tests::bip39_vectors_japanese)));
-
+    UniValue tests_japanese = read_json(json_tests::bip39_vectors_japanese);
     runTests(mnemonic::WLL_JAPANESE, tests_japanese);
 }
 

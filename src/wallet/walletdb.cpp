@@ -30,6 +30,7 @@
 #include <atomic>
 #include <optional>
 #include <string>
+#include "bdb.h"
 
 namespace wallet {
 namespace DBKeys {

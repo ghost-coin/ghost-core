@@ -18,12 +18,12 @@
 #include <qt/sendcoinsdialog.h>
 #include <qt/transactiontablemodel.h>
 
+#include <common/args.h> // for GetBoolArg
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <node/interface_ui.h>
 #include <psbt.h>
-#include <common/args.h> // for GetBoolArg
 #include <util/translation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/wallet.h> // for CRecipient
@@ -31,7 +31,7 @@
 
 #include <wallet/hdwallet.h>
 #include <rpc/rpcutil.h>
-#include <common/args.h>
+#include <util/any.h>
 #include <univalue.h>
 
 #include <stdint.h>
@@ -570,8 +570,8 @@ bool WalletModel::tryCallRpc(const QString &sCommand, UniValue &rv, bool returnE
             return false;
         }
         try { // Nice formatting for standard-format error
-            int code = find_value(objError, "code").getInt<int>();
-            std::string message = find_value(objError, "message").get_str();
+            int code = objError.find_value("code").getInt<int>();
+            std::string message = objError.find_value("message").get_str();
             warningBox(tr("Wallet Model"), QString::fromStdString(message) + " (code " + QString::number(code) + ")");
             return false;
         } catch (const std::runtime_error&) { // raised when converting to invalid type, i.e. missing code or message

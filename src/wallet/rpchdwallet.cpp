@@ -1231,6 +1231,12 @@ static RPCHelpMan extkey()
         }
 
         sek.kp = eKey58.GetKey();
+        bool fLegacy = false;
+        if (request.params.size() > nParamOffset) {
+            fLegacy = GetBool(request.params[nParamOffset]);
+            nParamOffset++;
+        }
+
 
         {
             LOCK(pwallet->cs_wallet);
@@ -1241,7 +1247,7 @@ static RPCHelpMan extkey()
 
             int rv;
             CKeyID idDerived;
-            if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44))) {
+            if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44, fLegacy))) {
                 wdb.TxnAbort();
                 throw JSONRPCError(RPC_MISC_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
             }
@@ -1627,7 +1633,7 @@ static RPCHelpMan extkey()
     };
 };
 
-static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesisChain)
+static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesisChain, bool fLegacy)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return UniValue::VNULL;
@@ -1782,7 +1788,7 @@ static UniValue extkeyimportinternal(const JSONRPCRequest &request, bool fGenesi
             throw JSONRPCError(RPC_MISC_ERROR, "TxnBegin failed.");
         }
 
-        if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44Root))) {
+        if (0 != (rv = pwallet->ExtKeyImportLoose(&wdb, sek, idDerived, fBip44, fSaveBip44Root, fLegacy))) {
             wdb.TxnAbort();
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("ExtKeyImportLoose failed, %s", ExtKeyGetString(rv)));
         }
@@ -1907,6 +1913,8 @@ static RPCHelpMan extkeyimportmaster()
                             {"replaceaccount", RPCArg::Type::BOOL, RPCArg::Default{false}, "Prevent importing to a wallet with an existing account if false."},
                         },
                     },
+                    {"use_legacy", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use legacy bip44 derivation."},
+
                 },
             RPCResult{
                 RPCResult::Type::ANY, "", ""
@@ -1922,7 +1930,12 @@ static RPCHelpMan extkeyimportmaster()
     std::shared_ptr<const CWallet> wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return UniValue::VNULL;
 
-    return extkeyimportinternal(request, false);
+    bool fLegacy = false;
+    if (request.params.size() >= 8) {
+        fLegacy = request.params[7].get_bool();
+    }
+
+    return extkeyimportinternal(request, false, fLegacy);
 },
     };
 };
@@ -1966,8 +1979,13 @@ static RPCHelpMan extkeygenesisimport()
 {
     std::shared_ptr<const CWallet> wallet = GetWalletForJSONRPCRequest(request);
     if (!wallet) return UniValue::VNULL;
+    
+    bool fLegacy = false;
+    if (request.params.size() > 7) {
+        fLegacy = request.params[7].get_bool();
+    }
 
-    return extkeyimportinternal(request, true);
+    return extkeyimportinternal(request, true, fLegacy);
 },
     };
 }

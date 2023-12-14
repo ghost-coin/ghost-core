@@ -890,7 +890,7 @@ class CTransaction
 public:
     // Default transaction version.
     static const int32_t CURRENT_VERSION=2;
-    static const int32_t CURRENT_PARTICL_VERSION=0xA0;
+    static const int32_t CURRENT_GHOST_VERSION=0xA0;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not

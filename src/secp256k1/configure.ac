@@ -5,7 +5,7 @@ AC_PREREQ([2.60])
 # backwards-compatible and therefore at most increase the minor version.
 define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 3)
-define(_PKG_VERSION_PATCH, 2)
+define(_PKG_VERSION_PATCH, 3)
 define(_PKG_VERSION_IS_RELEASE, false)
 
 # The library version is based on libtool versioning of the ABI. The set of
@@ -14,7 +14,7 @@ define(_PKG_VERSION_IS_RELEASE, false)
 # All changes in experimental modules are treated as if they don't affect the
 # interface and therefore only increase the revision.
 define(_LIB_VERSION_CURRENT, 2)
-define(_LIB_VERSION_REVISION, 2)
+define(_LIB_VERSION_REVISION, 3)
 define(_LIB_VERSION_AGE, 0)
 
 AC_INIT([libsecp256k1],m4_join([.], _PKG_VERSION_MAJOR, _PKG_VERSION_MINOR, _PKG_VERSION_PATCH)m4_if(_PKG_VERSION_IS_RELEASE, [true], [], [-dev]),[https://github.com/bitcoin-core/secp256k1/issues],[libsecp256k1],[https://github.com/bitcoin-core/secp256k1])
@@ -121,14 +121,12 @@ AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
     # libtool makes the same assumption internally.
     # Note that "/opt" and "-opt" are equivalent for MSVC; we use "-opt" because "/opt" looks like a path.
     if test x"$GCC" != x"yes" && test x"$build_windows" = x"yes"; then
-      SECP_TRY_APPEND_CFLAGS([-W2 -wd4146], $1) # Moderate warning level, disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned"
-      SECP_TRY_APPEND_CFLAGS([-external:anglebrackets -external:W0], $1) # Suppress warnings from #include <...> files
-      # We pass -ignore:4217 to the MSVC linker to suppress warning 4217 when
-      # importing variables from a statically linked secp256k1.
-      # (See the libtool manual, section "Windows DLLs" for background.)
-      # Unfortunately, libtool tries to be too clever and strips "-Xlinker arg"
-      # into "arg", so this will be " -Xlinker -ignore:4217" after stripping.
-      LDFLAGS="-Xlinker -Xlinker -Xlinker -ignore:4217 $LDFLAGS" 
+      SECP_TRY_APPEND_CFLAGS([-W3], $1) # Production quality warning level.
+      SECP_TRY_APPEND_CFLAGS([-wd4146], $1) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
+      SECP_TRY_APPEND_CFLAGS([-wd4244], $1) # Disable warning C4244 "'conversion' conversion from 'type1' to 'type2', possible loss of data".
+      SECP_TRY_APPEND_CFLAGS([-wd4267], $1) # Disable warning C4267 "'var' : conversion from 'size_t' to 'type', possible loss of data".
+      # Eliminate deprecation warnings for the older, less secure functions.
+      CPPFLAGS="-D_CRT_SECURE_NO_WARNINGS $CPPFLAGS"
     fi
 ])
 SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
@@ -186,6 +184,10 @@ AC_ARG_ENABLE(module_schnorrsig,
     AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_schnorrsig], [yes], [yes])])
 
+AC_ARG_ENABLE(module_ellswift,
+    AS_HELP_STRING([--enable-module-ellswift],[enable ElligatorSwift module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_ellswift], [yes], [yes])])
+
 AC_ARG_ENABLE(module_generator,
     AS_HELP_STRING([--enable-module-generator],[enable NUMS generator module (default is no)]),
     [enable_module_generator=$enableval],
@@ -225,8 +227,8 @@ dnl Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), a
 #  *  and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
-AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
-[assembly optimizations to use (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
+AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm32|no|auto],
+[assembly optimizations to use (experimental: arm32) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
 AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
@@ -291,8 +293,8 @@ else
 fi
 
 if test x"$req_asm" = x"auto"; then
-  SECP_64BIT_ASM_CHECK
-  if test x"$has_64bit_asm" = x"yes"; then
+  SECP_X86_64_ASM_CHECK
+  if test x"$has_x86_64_asm" = x"yes"; then
     set_asm=x86_64
   fi
   if test x"$set_asm" = x; then
@@ -302,12 +304,16 @@ else
   set_asm=$req_asm
   case $set_asm in
   x86_64)
-    SECP_64BIT_ASM_CHECK
-    if test x"$has_64bit_asm" != x"yes"; then
+    SECP_X86_64_ASM_CHECK
+    if test x"$has_x86_64_asm" != x"yes"; then
       AC_MSG_ERROR([x86_64 assembly optimization requested but not available])
     fi
     ;;
-  arm)
+  arm32)
+    SECP_ARM32_ASM_CHECK
+    if test x"$has_arm32_asm" != x"yes"; then
+      AC_MSG_ERROR([ARM32 assembly optimization requested but not available])
+    fi
     ;;
   no)
     ;;
@@ -324,7 +330,7 @@ case $set_asm in
 x86_64)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_ASM_X86_64=1"
   ;;
-arm)
+arm32)
   enable_external_asm=yes
   ;;
 no)
@@ -421,6 +427,10 @@ if test x"$enable_module_schnorrsig" = x"yes"; then
   enable_module_extrakeys=yes
 fi
 
+if test x"$enable_module_ellswift" = x"yes"; then
+  AC_DEFINE(ENABLE_MODULE_ELLSWIFT, 1, [Define this symbol to enable the ElligatorSwift module])
+fi
+
 # Test if extrakeys is set after the schnorrsig module to allow the schnorrsig
 # module to set enable_module_extrakeys=yes
 if test x"$enable_module_extrakeys" = x"yes"; then
@@ -481,8 +491,8 @@ if test x"$enable_experimental" = x"yes"; then
     AC_DEFINE(ENABLE_MODULE_MLSAG, 1, [Define this symbol to enable the MLSAG module])
   fi
 else
-  if test x"$set_asm" = x"arm"; then
-    AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
+  if test x"$set_asm" = x"arm32"; then
+    AC_MSG_ERROR([ARM32 assembly optimization is experimental. Use --enable-experimental to allow.])
   fi
   if test x"$enable_module_generator" = x"yes"; then
     AC_MSG_ERROR([NUMS generator module is experimental. Use --enable-experimental to allow.])
@@ -518,14 +528,17 @@ AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_ELLSWIFT], [test x"$enable_module_ellswift" = x"yes"])
+AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
+AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
+
 AM_CONDITIONAL([ENABLE_MODULE_GENERATOR], [test x"$enable_module_generator" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_COMMITMENT], [test x"$enable_module_commitment" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RANGEPROOF], [test x"$enable_module_rangeproof" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_BULLETPROOF], [test x"$enable_module_bulletproof" = x"yes"])
-AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
-AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
 AM_CONDITIONAL([ENABLE_MODULE_SURJECTIONPROOF], [test x"$enable_module_surjectionproof" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_MLSAG], [test x"$enable_module_mlsag" = x"yes"])
+
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
 AC_SUBST(LIB_VERSION_REVISION, _LIB_VERSION_REVISION)
@@ -545,6 +558,7 @@ echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
 echo "  module schnorrsig       = $enable_module_schnorrsig"
+echo "  module ellswift         = $enable_module_ellswift"
 echo "  module generator       = $enable_module_generator"
 echo "  module commitment       = $enable_module_commitment"
 echo "  module rangeproof       = $enable_module_rangeproof"

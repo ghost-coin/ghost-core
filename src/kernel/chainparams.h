@@ -196,7 +196,7 @@ public:
     static std::unique_ptr<CChainParams> TestNet();
 
     // Particl
-    int BIP44ID() const { return nBIP44ID; }
+    int BIP44ID(bool fLegacy) const { return fLegacy ? nBIP44IDLegacy : nBIP44IDCurrent; }
     void SetOld();
     Consensus::Params& GetConsensus_nc() { assert(GetChainType() == ChainType::REGTEST); return consensus; }
 
@@ -291,6 +291,10 @@ protected:
     std::uint32_t anonMaxOutputSize = 2;
     std::set<std::uint64_t> blacklistedAnonTxs;
     bool anonRestricted = false;
+    
+    int nBIP44IDLegacy;
+    int nBIP44IDCurrent;
+
     MapCheckpoints gvrCheckpoints;
 
     // Particl

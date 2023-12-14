@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <common/system.h>
 #include <consensus/tx_check.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
@@ -15,7 +16,6 @@
 #include <test/util/random.h>
 #include <test/util/setup_common.h>
 #include <util/strencodings.h>
-#include <common/args.h>
 #include <version.h>
 
 #include <iostream>
@@ -92,10 +92,9 @@ void static RandomScript(CScript &script) {
         script << oplist[InsecureRandRange(std::size(oplist))];
 }
 
-void static RandomTransaction(CMutableTransaction &tx, bool fSingle) {
-
+void static RandomTransaction(CMutableTransaction& tx, bool fSingle)
+{
     tx.nVersion = ((uint32_t)InsecureRand32()) % (GHOST_TXN_VERSION-1);
-
     tx.vin.clear();
     tx.vout.clear();
     tx.nLockTime = (InsecureRandBool()) ? InsecureRand32() : 0;
@@ -168,7 +167,7 @@ BOOST_AUTO_TEST_CASE(sighash_test)
 // Goal: check that SignatureHash generates correct hash
 BOOST_AUTO_TEST_CASE(sighash_from_data)
 {
-    UniValue tests = read_json(std::string(json_tests::sighash, json_tests::sighash + sizeof(json_tests::sighash)));
+    UniValue tests = read_json(json_tests::sighash);
 
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
         const UniValue& test = tests[idx];

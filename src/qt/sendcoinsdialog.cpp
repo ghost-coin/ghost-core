@@ -107,14 +107,12 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     QAction *clipboardFeeAction = new QAction(tr("Copy fee"), this);
     QAction *clipboardAfterFeeAction = new QAction(tr("Copy after fee"), this);
     QAction *clipboardBytesAction = new QAction(tr("Copy bytes"), this);
-    QAction *clipboardLowOutputAction = new QAction(tr("Copy dust"), this);
     QAction *clipboardChangeAction = new QAction(tr("Copy change"), this);
     connect(clipboardQuantityAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardQuantity);
     connect(clipboardAmountAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardAmount);
     connect(clipboardFeeAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardFee);
     connect(clipboardAfterFeeAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardAfterFee);
     connect(clipboardBytesAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardBytes);
-    connect(clipboardLowOutputAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardLowOutput);
     connect(clipboardChangeAction, &QAction::triggered, this, &SendCoinsDialog::coinControlClipboardChange);
 
     connect(ui->cbxTypeFrom, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &SendCoinsDialog::cbxTypeFromChanged);
@@ -124,7 +122,6 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     ui->labelCoinControlFee->addAction(clipboardFeeAction);
     ui->labelCoinControlAfterFee->addAction(clipboardAfterFeeAction);
     ui->labelCoinControlBytes->addAction(clipboardBytesAction);
-    ui->labelCoinControlLowOutput->addAction(clipboardLowOutputAction);
     ui->labelCoinControlChange->addAction(clipboardChangeAction);
 
     // init transaction fee section
@@ -392,7 +389,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
     if (m_coin_control->NumSelected() > 0)  {
         sCoinControl += ",\"inputs\":[";
         bool fNeedCommaInputs = false;
-        for (const auto &op : m_coin_control->setSelected) {
+        for (const auto &op : m_coin_control->m_selected_inputs) {
             sCoinControl += fNeedCommaInputs ? ",{" : "{";
             sCoinControl += "\"tx\":\"" + QString::fromStdString(op.hash.ToString()) + "\"";
             sCoinControl += ",\"n\":" + QString::number(op.n);
@@ -505,7 +502,7 @@ bool SendCoinsDialog::PrepareSendText(QString& question_string, QString& informa
             question_string.append(tr("removed for transaction fee"));
         else
             question_string.append(tr("added as transaction fee"));
-        
+
         // append RBF message according to transaction's signalling
         question_string.append("<span style='font-size:10pt; font-weight:normal;'>");
         if (ui->optInRBF->isChecked()) {
@@ -848,8 +845,8 @@ void SendCoinsDialog::clear()
         ui->entries->takeAt(0)->widget()->deleteLater();
     }
 
-    ui->cbxTypeFrom->setCurrentIndex(ui->cbxTypeFrom->findText("Ghost"));
-    ui->cbxTypeTo->setCurrentIndex(ui->cbxTypeTo->findText("Ghost"));
+    ui->cbxTypeFrom->setCurrentIndex(ui->cbxTypeFrom->findText("Part"));
+    ui->cbxTypeTo->setCurrentIndex(ui->cbxTypeTo->findText("Part"));
 
     addEntry();
 
@@ -1240,12 +1237,6 @@ void SendCoinsDialog::coinControlClipboardBytes()
     GUIUtil::setClipboard(ui->labelCoinControlBytes->text().replace(ASYMP_UTF8, ""));
 }
 
-// Coin Control: copy label "Dust" to clipboard
-void SendCoinsDialog::coinControlClipboardLowOutput()
-{
-    GUIUtil::setClipboard(ui->labelCoinControlLowOutput->text());
-}
-
 // Coin Control: copy label "Change" to clipboard
 void SendCoinsDialog::coinControlClipboardChange()
 {
@@ -1311,7 +1302,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
         }
         else if (!IsValidDestination(dest)) // Invalid address
         {
-            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Ghost address"));
+            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Particl address"));
         }
         else // Valid address
         {

@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-<<<<<<< HEAD
-# Copyright (c) 2017-2021 The Particl Core developers
-=======
 # Copyright (c) 2017-2023 The Particl Core developers
->>>>>>> particl/25.x
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -237,17 +233,10 @@ class StealthTest(GhostTestFramework):
         found = False
         for sxaddr in rv[0]['Stealth Addresses']:
             if sxaddr['Address'] == sxAddrV2[1]:
-<<<<<<< HEAD
-                assert(sxaddr['received_addresses'] == 1)
-                found = True
-                break
-        assert(found)
-=======
                 assert (sxaddr['received_addresses'] == 1)
                 found = True
                 break
         assert (found)
->>>>>>> particl/25.x
 
         # Imported wallet should be missing imported sx addr
         assert (wi_info['txcount'] == w1_info['txcount'] - 1)

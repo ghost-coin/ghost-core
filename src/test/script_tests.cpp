@@ -24,7 +24,7 @@
 #include <util/strencodings.h>
 
 #if defined(HAVE_CONSENSUS_LIB)
-#include <script/particlconsensus.h>
+#include <script/ghostconsensus.h>
 #endif
 
 #include <cstdint>

@@ -721,9 +721,7 @@ BOOST_AUTO_TEST_CASE(ringct_test_deterministic)
     // See github.com/tecnovert/particl_debug_scripts/mlsag_deterministic.py
     secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 
-    UniValue tests_vectors = read_json(
-        std::string(json_tests::ringct,
-        json_tests::ringct + sizeof(json_tests::ringct)));
+    UniValue tests_vectors = read_json(json_tests::ringct);
 
     for (unsigned int idx = 0; idx < tests_vectors.size(); idx++) {
         const UniValue &test = tests_vectors[idx];

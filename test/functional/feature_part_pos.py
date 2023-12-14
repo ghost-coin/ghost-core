@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-<<<<<<< HEAD
-# Copyright (c) 2017-2021 The Particl Core developers
-=======
 # Copyright (c) 2017-2023 The Particl Core developers
->>>>>>> particl/25.x
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -91,11 +87,7 @@ class PosTest(GhostTestFramework):
         pos_difficulty1 = nodes[0].getposdifficulty()
         self.stakeBlocks(1)
         pos_difficulty = nodes[0].getposdifficulty(1)
-<<<<<<< HEAD
-        assert(pos_difficulty == pos_difficulty1)
-=======
         assert (pos_difficulty == pos_difficulty1)
->>>>>>> particl/25.x
 
         block2_hash = nodes[0].getblockhash(2)
         ro = nodes[0].getblock(block2_hash)
@@ -126,11 +118,7 @@ class PosTest(GhostTestFramework):
                 continue
             if addr0 == addrReward:
                 fFound = True
-<<<<<<< HEAD
-                assert(vout['valueSat'] == 600000000)
-=======
                 assert (vout['valueSat'] == 39637)
->>>>>>> particl/25.x
                 break
         assert (fFound)
 
@@ -197,11 +185,7 @@ class PosTest(GhostTestFramework):
         # Set minstakeablevalue above 1.0
         nodes[0].walletsettings('stakingoptions', {'minstakeablevalue': 2.0})
         stake_info = nodes[0].getstakinginfo()
-<<<<<<< HEAD
-        assert(stake_info['minstakeablevalue'] == 2.0)
-=======
         assert (stake_info['minstakeablevalue'] == 2.0)
->>>>>>> particl/25.x
 
         self.stakeBlocks(1)
         coinstakehash = nodes[0].getblock(nodes[0].getbestblockhash())['tx'][0]

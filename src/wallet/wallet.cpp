@@ -379,7 +379,7 @@ std::shared_ptr<CWallet> LoadWallet(WalletContext& context, const std::string& n
     return wallet;
 }
 
-std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string& name, std::optional<bool> load_on_start, DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings)
+std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string& name, std::optional<bool> load_on_start, DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error, std::vector<bilingual_str>& warnings, bool fLegacy)
 {
     uint64_t wallet_creation_flags = options.create_flags;
     const SecureString& passphrase = options.create_passphrase;
@@ -449,7 +449,7 @@ std::shared_ptr<CWallet> CreateWallet(WalletContext& context, const std::string&
 
             // Set a seed for the wallet
             if (wallet->IsParticlWallet()) {
-                if (0 != GetParticlWallet(wallet.get())->MakeDefaultAccount()) {
+                if (0 != GetParticlWallet(wallet.get())->MakeDefaultAccount(fLegacy)) {
                     error = Untranslated("Error: MakeDefaultAccount failed");
                     return nullptr;
                 }
@@ -4256,7 +4256,8 @@ bool DoMigration(CWallet& wallet, WalletContext& context, bilingual_str& error, 
             DatabaseStatus status;
             std::vector<bilingual_str> warnings;
             std::string wallet_name = wallet.GetName() + "_watchonly";
-            data->watchonly_wallet = CreateWallet(context, wallet_name, std::nullopt, options, status, error, warnings);
+            bool fLegacy = false;
+            data->watchonly_wallet = CreateWallet(context, wallet_name, std::nullopt, options, status, error, warnings, fLegacy);
             if (status != DatabaseStatus::SUCCESS) {
                 error = _("Error: Failed to create new watchonly wallet");
                 return false;
@@ -4287,7 +4288,8 @@ bool DoMigration(CWallet& wallet, WalletContext& context, bilingual_str& error, 
             DatabaseStatus status;
             std::vector<bilingual_str> warnings;
             std::string wallet_name = wallet.GetName() + "_solvables";
-            data->solvable_wallet = CreateWallet(context, wallet_name, std::nullopt, options, status, error, warnings);
+            bool fLegacy = false;
+            data->solvable_wallet = CreateWallet(context, wallet_name, std::nullopt, options, status, error, warnings, fLegacy);
             if (status != DatabaseStatus::SUCCESS) {
                 error = _("Error: Failed to create new watchonly wallet");
                 return false;
