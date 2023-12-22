@@ -4,8 +4,8 @@
  * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
  **********************************************************************/
 
-#ifndef _SECP256K1_RANGEPROOF_IMPL_H_
-#define _SECP256K1_RANGEPROOF_IMPL_H_
+#ifndef SECP256K1_RANGEPROOF_IMPL_H
+#define SECP256K1_RANGEPROOF_IMPL_H
 
 #include "../../eckey.h"
 #include "../../scalar.h"
@@ -606,12 +606,12 @@ SECP256K1_INLINE static int secp256k1_rangeproof_verify_impl(
     if (*min_value) {
         secp256k1_scalar mvs;
         secp256k1_scalar_set_u64(&mvs, *min_value);
-        secp256k1_ecmult_const(&accj, genp, &mvs, 64);
+        secp256k1_ecmult_const(&accj, genp, &mvs);
         secp256k1_scalar_clear(&mvs);
     }
     for(i = 0; i < rings - 1; i++) {
         secp256k1_fe fe;
-        if (!secp256k1_fe_set_b32(&fe, &proof[offset]) ||
+        if (!secp256k1_fe_set_b32_limit(&fe, &proof[offset]) ||
             !secp256k1_ge_set_xquad(&c, &fe)) {
             return 0;
         }

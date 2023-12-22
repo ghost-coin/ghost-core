@@ -5,9 +5,24 @@
 
 #include <script/script.h>
 
+#include <hash.h>
 #include <util/strencodings.h>
 
 #include <string>
+
+CScriptID::CScriptID(const CScript& in) : BaseHash(Hash160(in)) {}
+
+bool CScriptID::Set(const uint256& in)
+{
+    CRIPEMD160().Write(in.begin(), 32).Finalize(this->begin());
+    return true;
+};
+
+bool CScriptID256::Set(const CScript& in)
+{
+    *this = CScriptID256(HashSha256(in.begin(), in.end()));
+    return true;
+};
 
 std::string GetOpName(opcodetype opcode)
 {

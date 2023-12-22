@@ -513,8 +513,8 @@ static int secp256k1_bulletproof_rangeproof_prove_impl(secp256k1_scratch *scratc
     }
 
     /* Compute A and S */
-    secp256k1_ecmult_const(&aj, &gens->blinding_gen[0], &alpha, 256);
-    secp256k1_ecmult_const(&sj, &gens->blinding_gen[0], &rho, 256);
+    secp256k1_ecmult_const(&aj, &gens->blinding_gen[0], &alpha);
+    secp256k1_ecmult_const(&sj, &gens->blinding_gen[0], &rho);
     for (i = 0; i < n_commits; i++) {
         for (j = 0; j < nbits; j++) {
             secp256k1_scalar sl, sr;
@@ -532,10 +532,10 @@ static int secp256k1_bulletproof_rangeproof_prove_impl(secp256k1_scratch *scratc
 
             secp256k1_gej_add_ge(&aj, &aj, &aterm);
 
-            secp256k1_ecmult_const(&stermj, &gens->gens[i * nbits + j], &sl, 256);
+            secp256k1_ecmult_const(&stermj, &gens->gens[i * nbits + j], &sl);
             secp256k1_ge_set_gej(&sterm, &stermj);
             secp256k1_gej_add_ge(&sj, &sj, &sterm);
-            secp256k1_ecmult_const(&stermj, &gens->gens[i * nbits + j + gens->n/2], &sr, 256);
+            secp256k1_ecmult_const(&stermj, &gens->gens[i * nbits + j + gens->n/2], &sr);
             secp256k1_ge_set_gej(&sterm, &stermj);
             secp256k1_gej_add_ge(&sj, &sj, &sterm);
         }
@@ -606,15 +606,15 @@ static int secp256k1_bulletproof_rangeproof_prove_impl(secp256k1_scratch *scratc
     secp256k1_scalar_add(&t2, &t2, &t1);
 
     /* Compute Ti = t_i*A + tau_i*G for i = 1,2 */
-    secp256k1_ecmult_const(&tmpj, value_gen, &t1, 256);
+    secp256k1_ecmult_const(&tmpj, value_gen, &t1);
     secp256k1_ge_set_gej(&out_pt[2], &tmpj);
-    secp256k1_ecmult_const(&tmpj, &gens->blinding_gen[0], &tau1, 256);
+    secp256k1_ecmult_const(&tmpj, &gens->blinding_gen[0], &tau1);
     secp256k1_gej_add_ge(&tmpj, &tmpj, &out_pt[2]);
     secp256k1_ge_set_gej(&out_pt[2], &tmpj);
 
-    secp256k1_ecmult_const(&tmpj, value_gen, &t2, 256);
+    secp256k1_ecmult_const(&tmpj, value_gen, &t2);
     secp256k1_ge_set_gej(&out_pt[3], &tmpj);
-    secp256k1_ecmult_const(&tmpj, &gens->blinding_gen[0], &tau2, 256);
+    secp256k1_ecmult_const(&tmpj, &gens->blinding_gen[0], &tau2);
     secp256k1_gej_add_ge(&tmpj, &tmpj, &out_pt[3]);
     secp256k1_ge_set_gej(&out_pt[3], &tmpj);
 

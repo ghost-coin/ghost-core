@@ -19,6 +19,8 @@
 #include <txmempool.h>
 #include <node/transaction.h>
 #include <validation.h>
+#include "logging.h"
+
 
 /* Calculate the difficulty for a given block index.
  * Duplicated from rpc/blockchain.cpp for linking

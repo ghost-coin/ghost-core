@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright (c) 2017-2021 The Particl Core developers                *
+ * Copyright (c) 2017-2023 The Particl Core developers                *
  * Distributed under the MIT software license, see the accompanying   *
  * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
  **********************************************************************/
@@ -9,7 +9,7 @@
 
 static void pedersen_commitment_load(secp256k1_ge *ge, const uint8_t *commit) {
     secp256k1_fe fe;
-    secp256k1_fe_set_b32(&fe, &commit[1]);
+    secp256k1_fe_set_b32_limit(&fe, &commit[1]);
     secp256k1_ge_set_xquad(ge, &fe);
     if (commit[0] & 1) {
         secp256k1_ge_neg(ge, ge);
@@ -59,10 +59,10 @@ int secp256k1_prepare_mlsag(uint8_t *m, uint8_t *sk,
     int overflow;
     secp256k1_scalar accos, accis, ts;
 
-    if (!m
-        || nRows < 2
-        || nCols < 1
-        || nOuts < 1) {
+    if (!m ||
+        nRows < 2 ||
+        nCols < 1 ||
+        nOuts < 1) {
         return 1;
     }
 
@@ -148,9 +148,9 @@ static int hash_to_curve(secp256k1_ge *ge, const uint8_t *pd, size_t len)
     secp256k1_sha256_finalize(&sha256_m, hash);
 
     for (k = 0; k < safety; ++k) {
-        if (secp256k1_fe_set_b32(&x, hash)
-            && secp256k1_ge_set_xo_var(ge, &x, 0)
-            && secp256k1_ge_is_valid_var(ge)) { /* Is secp256k1_ge_is_valid_var necessary? */
+        if (secp256k1_fe_set_b32_limit(&x, hash) &&
+            secp256k1_ge_set_xo_var(ge, &x, 0) &&
+            secp256k1_ge_is_valid_var(ge)) { /* Is secp256k1_ge_is_valid_var necessary? */
             break;
         }
 
@@ -406,15 +406,6 @@ int secp256k1_verify_mlsag(
             }
             secp256k1_gej_set_ge(&gej1, &ge1);
             secp256k1_ecmult(&L, &gej1, &clast, &ss);
-
-            secp256k1_sha256_write(&sha256_m, &pk[(i + k*nCols)*33], 33); /* pk[k][i] */
-            secp256k1_ge_set_gej(&ge1, &L);
-            secp256k1_eckey_pubkey_serialize(&ge1, tmp, &clen, 1);
-            secp256k1_sha256_write(&sha256_m, tmp, 33); /* L */
-
-            if (k >= dsRows) {
-                continue;
-            }
 
             secp256k1_sha256_write(&sha256_m, &pk[(i + k*nCols)*33], 33); /* pk[k][i] */
             secp256k1_ge_set_gej(&ge1, &L);

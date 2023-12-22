@@ -38,9 +38,9 @@ const secp256k1_generator secp256k1_generator_const_h = {{
 
 static void secp256k1_generator_load(secp256k1_ge* ge, const secp256k1_generator* gen) {
     int succeed;
-    succeed = secp256k1_fe_set_b32(&ge->x, &gen->data[0]);
+    succeed = secp256k1_fe_set_b32_limit(&ge->x, &gen->data[0]);
     VERIFY_CHECK(succeed != 0);
-    succeed = secp256k1_fe_set_b32(&ge->y, &gen->data[32]);
+    succeed = secp256k1_fe_set_b32_limit(&ge->y, &gen->data[32]);
     VERIFY_CHECK(succeed != 0);
     ge->infinity = 0;
     (void) succeed;
@@ -63,7 +63,7 @@ int secp256k1_generator_parse(const secp256k1_context* ctx, secp256k1_generator*
     ARG_CHECK(input != NULL);
 
     if ((input[0] & 0xFE) != 10 ||
-        !secp256k1_fe_set_b32(&x, &input[1]) ||
+        !secp256k1_fe_set_b32_limit(&x, &input[1]) ||
         !secp256k1_ge_set_xquad(&ge, &x)) {
         return 0;
     }
@@ -205,7 +205,7 @@ static int secp256k1_generator_generate_internal(const secp256k1_context* ctx, s
     secp256k1_sha256_write(&sha256, prefix1, 16);
     secp256k1_sha256_write(&sha256, key32, 32);
     secp256k1_sha256_finalize(&sha256, b32);
-    ret &= secp256k1_fe_set_b32(&t, b32);
+    ret &= secp256k1_fe_set_b32_limit(&t, b32);
     CHECK(ret);
     shallue_van_de_woestijne(&add, &t);
     if (blind32) {
@@ -218,7 +218,7 @@ static int secp256k1_generator_generate_internal(const secp256k1_context* ctx, s
     secp256k1_sha256_write(&sha256, prefix2, 16);
     secp256k1_sha256_write(&sha256, key32, 32);
     secp256k1_sha256_finalize(&sha256, b32);
-    ret &= secp256k1_fe_set_b32(&t, b32);
+    ret &= secp256k1_fe_set_b32_limit(&t, b32);
     CHECK(ret);
     shallue_van_de_woestijne(&add, &t);
     secp256k1_gej_add_ge(&accum, &accum, &add);

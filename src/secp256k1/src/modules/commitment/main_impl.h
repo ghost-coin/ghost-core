@@ -28,7 +28,7 @@ const secp256k1_generator *secp256k1_generator_h = &secp256k1_generator_h_intern
 
 static void secp256k1_pedersen_commitment_load(secp256k1_ge* ge, const secp256k1_pedersen_commitment* commit) {
     secp256k1_fe fe;
-    secp256k1_fe_set_b32(&fe, &commit->data[1]);
+    secp256k1_fe_set_b32_limit(&fe, &commit->data[1]);
     secp256k1_ge_set_xquad(ge, &fe);
     if (commit->data[0] & 1) {
         secp256k1_ge_neg(ge, ge);
@@ -51,7 +51,7 @@ int secp256k1_pedersen_commitment_parse(const secp256k1_context* ctx, secp256k1_
     (void) ctx;
 
     if ((input[0] & 0xFE) != 8 ||
-        !secp256k1_fe_set_b32(&x, &input[1]) ||
+        !secp256k1_fe_set_b32_limit(&x, &input[1]) ||
         !secp256k1_ge_set_xquad(&ge, &x)) {
         return 0;
     }

@@ -20,8 +20,8 @@ SECP256K1_INLINE static void secp256k1_pedersen_ecmult(secp256k1_gej *rj, const 
     secp256k1_ge bp;
 
     secp256k1_scalar_set_u64(&vs, value);
-    secp256k1_ecmult_const(rj, value_gen, &vs, 64);
-    secp256k1_ecmult_const(&bj, blind_gen, sec, 256);
+    secp256k1_ecmult_const(rj, value_gen, &vs);
+    secp256k1_ecmult_const(&bj, blind_gen, sec);
 
     /* zero blinding factor indicates that we are not trying to be zero-knowledge,
      * so not being constant-time in this case is OK. */

@@ -1,5 +1,5 @@
-#ifndef _SECP256K1_MLSAG_
-#define _SECP256K1_MLSAG_
+#ifndef SECP256K1_MLSAG_H
+#define SECP256K1_MLSAG_H
 
 #include "secp256k1.h"
 
