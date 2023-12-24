@@ -599,7 +599,7 @@ static RPCHelpMan getblockheader()
                             {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the current chain"},
                             {RPCResult::Type::NUM, "nTx", "The number of transactions in the block"},
                             {RPCResult::Type::NUM, "anonoutputs", /*optional=*/true, "The number of RCT outputs in the chain at this block"},
-                            {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of particl in the chain at this block"},
+                            {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of ghost in the chain at this block"},
                             {RPCResult::Type::STR_HEX, "previousblockhash", /*optional=*/true, "The hash of the previous block (if available)"},
                             {RPCResult::Type::STR_HEX, "nextblockhash", /*optional=*/true, "The hash of the next block (if available)"},
                         }},
@@ -701,7 +701,7 @@ const RPCResult getblock_vin{
                     {RPCResult::Type::STR, "asm", "Disassembly of the public key script"},
                     {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
                     {RPCResult::Type::STR_HEX, "hex", "The raw public key script bytes, hex-encoded"},
-                    {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
+                    {RPCResult::Type::STR, "address", /*optional=*/true, "The Ghost address (only if a well-defined address exists)"},
                     {RPCResult::Type::STR, "type", "The type (one of: " + GetAllOutputTypes() + ")"},
                 }},
             }},
@@ -1114,8 +1114,8 @@ static RPCHelpMan gettxout()
                     {RPCResult::Type::STR, "desc", "Inferred descriptor for the output"},
                     {RPCResult::Type::STR_HEX, "hex", "The raw public key script bytes, hex-encoded"},
                     {RPCResult::Type::STR, "type", "The type, eg pubkeyhash"},
-                    {RPCResult::Type::STR, "address", /*optional=*/true, "The Particl address (only if a well-defined address exists)"},
-                    {RPCResult::Type::STR, "stakeaddress", /*optional=*/true, "The Particl stake address (only if a well-defined stakeaddress exists)"},
+                    {RPCResult::Type::STR, "address", /*optional=*/true, "The Ghost address (only if a well-defined address exists)"},
+                    {RPCResult::Type::STR, "stakeaddress", /*optional=*/true, "The Ghost stake address (only if a well-defined stakeaddress exists)"},
                 }},
                 {RPCResult::Type::BOOL, "coinbase", "Coinbase or not"},
             }},
@@ -2417,7 +2417,7 @@ static RPCHelpMan scanblocks()
 {
     return RPCHelpMan{"scanblocks",
         "\nReturn relevant blockhashes for given descriptors (requires blockfilterindex).\n"
-        "This call may take several minutes. Make sure to use no RPC timeout (particl-cli -rpcclienttimeout=0)",
+        "This call may take several minutes. Make sure to use no RPC timeout (ghost-cli -rpcclienttimeout=0)",
         {
             scan_action_arg_desc,
             scan_objects_arg_desc,

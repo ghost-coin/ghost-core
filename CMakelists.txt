@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.0)
+PROJECT(Ghost)
+
+file(GLOB_RECURSE MySrcFiles
+ "${CMAKE_SOURCE_DIR}/src/*.cpp"
+ "${CMAKE_SOURCE_DIR}/src/*.h"
+ "${CMAKE_SOURCE_DIR}/src/secp256k1/include/*.cpp"
+ "${CMAKE_SOURCE_DIR}/src/secp256k1/include/*.h"
+ )
+
+add_library(MySrcFilesLib
+ ${MySrcFiles}
+ )
+
+add_executable(MyExecutable src/bitcoind.cpp)
+
+target_link_libraries(MyExecutable MySrcFilesLib)
+
+include_directories(src)
+include_directories(src/univalue/include)
+include_directories(src/qt)
+include_directories(src/secp256k1/include)
+include_directories(/usr/include/x86_64-linux-gnu/qt5)
+include_directories(/usr/include/x86_64-linux-gnu/qt5/QtWidgets)
+include_directories(/usr/include/x86_64-linux-gnu/qt5/QtGui)

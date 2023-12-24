@@ -290,6 +290,7 @@ MAIN_FUNCTION
     // Connect bitcoind signal handlers
     noui_connect();
 
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     util::ThreadSetInternalName("init");
 
     // Interpret command line arguments

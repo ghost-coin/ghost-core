@@ -465,4 +465,4 @@ bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee)
     }
     return false;
 }
-} // namespace particl
+} // namespace ghost

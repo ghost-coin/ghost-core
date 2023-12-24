@@ -251,7 +251,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         fname_bitcoinutil = os.path.join(
             config["environment"]["BUILDDIR"],
             "src",
-            "particl-util" + config["environment"]["EXEEXT"],
+            "ghost-util" + config["environment"]["EXEEXT"],
         )
         self.options.bitcoind = os.getenv("BITCOIND", default=fname_bitcoind)
         self.options.bitcoincli = os.getenv("BITCOINCLI", default=fname_bitcoincli)

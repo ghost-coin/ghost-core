@@ -114,14 +114,14 @@ static int AppInitRawTx(int argc, char* argv[])
 
     if (argc < 2 || HelpRequested(gArgs) || gArgs.IsArgSet("-version")) {
         // First part of help message is specific to this utility
-        std::string strUsage = PACKAGE_NAME " particl-tx utility version " + FormatFullVersion() + "\n";
+        std::string strUsage = PACKAGE_NAME " ghost-tx utility version " + FormatFullVersion() + "\n";
 
         if (gArgs.IsArgSet("-version")) {
             strUsage += FormatParagraph(LicenseInfo());
         } else {
             strUsage += "\n"
-                "Usage:  particl-tx [options] <hex-tx> [commands]  Update hex-encoded transaction\n"
-                "or:     particl-tx [options] -create [commands]   Create hex-encoded transaction\n"
+                "Usage:  ghost-tx [options] <hex-tx> [commands]  Update hex-encoded transaction\n"
+                "or:     ghost-tx [options] -create [commands]   Create hex-encoded transaction\n"
                 "\n";
             strUsage += gArgs.GetHelpMessage();
         }
@@ -848,7 +848,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
 static void MutateTxAddOutBlind(CMutableTransaction& tx, const std::string& strInput)
 {
     if (!tx.IsParticlVersion())
-        throw std::runtime_error("tx not particl version.");
+        throw std::runtime_error("tx not ghost version.");
     // separate COMMITMENT:SCRIPT:RANGEPROOF[:DATA]
     std::vector<std::string> vStrInputParts = SplitString(strInput, ':');
     if (vStrInputParts.size() < 3)
@@ -893,7 +893,7 @@ static void MutateTxAddOutBlind(CMutableTransaction& tx, const std::string& strI
 static void MutateTxAddOutDataType(CMutableTransaction& tx, const std::string& strInput)
 {
     if (!tx.IsParticlVersion())
-        throw std::runtime_error("tx not particl version.");
+        throw std::runtime_error("tx not ghost version.");
     if (!IsHex(strInput))
         throw std::runtime_error("invalid TX output data");
 

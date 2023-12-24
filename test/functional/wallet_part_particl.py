@@ -788,7 +788,7 @@ class WalletParticlTest(GhostTestFramework):
         ek_list_after = w_rpc.extkey('list', True)
         assert (json.dumps(ek_list_before) == json.dumps(ek_list_after))
 
-        self.log.info('Test particl-wallet')
+        self.log.info('Test ghost-wallet')
         out = textwrap.dedent('''\
             Wallet info
             ===========

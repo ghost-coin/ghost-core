@@ -23,7 +23,7 @@ static std::string FormatException(const std::exception* pex, std::string_view t
     char pszModule[MAX_PATH] = "";
     GetModuleFileNameA(nullptr, pszModule, sizeof(pszModule));
 #else
-    const char* pszModule = "particl";
+    const char* pszModule = "ghost";
 #endif
     if (pex)
         return strprintf(

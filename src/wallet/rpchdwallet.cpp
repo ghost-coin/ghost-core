@@ -829,7 +829,7 @@ void ParseCoinControlOptions(const UniValue &obj, const CHDWallet *pwallet, CCoi
         if (!fHaveScript) {
             CTxDestination dest = DecodeDestination(sChangeAddress);
             if (!IsValidDestination(dest)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid particl address");
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid ghost address");
             }
             coin_control.destChange = dest;
         }
@@ -1226,7 +1226,7 @@ static RPCHelpMan extkey()
             if (!eKey58.IsValid(CChainParams::EXT_SECRET_KEY) &&
                 !eKey58.IsValid(CChainParams::EXT_PUBLIC_KEY_BTC) &&
                 !eKey58.IsValid(CChainParams::EXT_PUBLIC_KEY)) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Import failed - Key must begin with a particl prefix.");
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Import failed - Key must begin with a ghost prefix.");
             }
         }
 
@@ -4479,7 +4479,7 @@ static RPCHelpMan getstakinginfo()
                         {RPCResult::Type::BOOL, "staking", "If this wallet is currently staking"},
                         {RPCResult::Type::STR, "warnings", "Node warnings messages"},
                         {RPCResult::Type::STR_AMOUNT, "percentyearreward", "Current stake reward percentage"},
-                        {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of particl in the network"},
+                        {RPCResult::Type::STR_AMOUNT, "moneysupply", "The total amount of ghost in the network"},
                         {RPCResult::Type::STR_AMOUNT, "reserve", /*optional=*/true, "The reserve balance of the wallet in " + CURRENCY_UNIT},
                         {RPCResult::Type::STR_AMOUNT, "wallettreasurydonationpercent", /*optional=*/true, "User set percentage of the block reward ceded to the treasury"},
                         {RPCResult::Type::STR_AMOUNT, "treasurydonationpercent", /*optional=*/true, "Network enforced percentage of the block reward ceded to the treasury"},
@@ -4760,9 +4760,9 @@ static RPCHelpMan listunspentanon()
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum confirmations to filter"},
                     {"maxconf", RPCArg::Type::NUM, RPCArg::Default{9999999}, "The maximum confirmations to filter"},
-                    {"addresses", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of particl addresses to filter",
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of ghost addresses to filter",
                         {
-                            {"address", RPCArg::Type::STR, RPCArg::Default{""}, "particl address"},
+                            {"address", RPCArg::Type::STR, RPCArg::Default{""}, "ghost address"},
                         },
                     },
                     {"include_unsafe", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include outputs that are not safe to spend\n"
@@ -4787,7 +4787,7 @@ static RPCHelpMan listunspentanon()
                         {
                             {RPCResult::Type::STR_HEX, "txid", "the transaction id"},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
-                            {RPCResult::Type::STR, "address", "the particl address"},
+                            {RPCResult::Type::STR, "address", "the ghost address"},
                             {RPCResult::Type::STR, "label", /*optional=*/true, "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR_AMOUNT, "amount", "the transaction output amount in " + CURRENCY_UNIT},
                             {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
@@ -5002,9 +5002,9 @@ static RPCHelpMan listunspentblind()
                 {
                     {"minconf", RPCArg::Type::NUM, RPCArg::Default{1}, "The minimum confirmations to filter"},
                     {"maxconf", RPCArg::Type::NUM, RPCArg::Default{9999999}, "The maximum confirmations to filter"},
-                    {"addresses", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of particl addresses to filter",
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of ghost addresses to filter",
                         {
-                            {"address", RPCArg::Type::STR, RPCArg::Default{""}, "particl address"},
+                            {"address", RPCArg::Type::STR, RPCArg::Default{""}, "ghost address"},
                         },
                     },
                     {"include_unsafe", RPCArg::Type::BOOL, RPCArg::Default{true}, "Include outputs that are not safe to spend\n"
@@ -5027,7 +5027,7 @@ static RPCHelpMan listunspentblind()
                         {
                             {RPCResult::Type::STR_HEX, "txid", "the transaction id"},
                             {RPCResult::Type::NUM, "vout", "the vout value"},
-                            {RPCResult::Type::STR, "address", "the particl address"},
+                            {RPCResult::Type::STR, "address", "the ghost address"},
                             {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The associated stealth_address the transaction was received on"},
                             {RPCResult::Type::STR, "label", /*optional=*/true, "The associated label, or \"\" for the default label"},
                             {RPCResult::Type::STR, "scriptPubKey", "the script key"},
@@ -5794,7 +5794,7 @@ static RPCHelpMan sendtypeto()
                         {
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
                                 {
-                                    {"address", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to send to."},
+                                    {"address", RPCArg::Type::STR, RPCArg::Default{""}, "The ghost address to send to."},
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Default{""}, "The amount in " + CURRENCY_UNIT + " to send. eg 0.1."},
                                     {"narr", RPCArg::Type::STR, RPCArg::Default{""}, "Up to 24 character narration sent with the transaction."},
                                     {"blindingfactor", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "The blinding factor, 32 bytes and hex encoded."},
@@ -5815,7 +5815,7 @@ static RPCHelpMan sendtypeto()
                     {"test_fee", RPCArg::Type::BOOL, RPCArg::Default{false}, "Only return the fee it would cost to send, txn is discarded."},
                     {"coin_control", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                         {
-                            {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change"},
+                            {"changeaddress", RPCArg::Type::STR, RPCArg::Default{""}, "The ghost address to receive the change"},
                             {"inputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of json objects",
                                 {
                                     {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
@@ -8269,7 +8269,7 @@ static RPCHelpMan createrawparttransaction()
                         {
                             {"", RPCArg::Type::OBJ, RPCArg::Default{UniValue::VOBJ}, "",
                                 {
-                                    {"address", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address."},
+                                    {"address", RPCArg::Type::STR, RPCArg::Default{""}, "The ghost address."},
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Default{""}, "The numeric value (can be string) in " + CURRENCY_UNIT + " of the output."},
                                     {"data", RPCArg::Type::STR_HEX, RPCArg::Default{""}, "The key is \"data\", the value is hex encoded data."},
                                     {"data_ct_fee", RPCArg::Type::AMOUNT, RPCArg::Default{""}, "If type is \"data\" and output is at index 0, then it will be treated as a CT fee output."},
@@ -8648,7 +8648,7 @@ static RPCHelpMan fundrawtransactionfrom()
                                     },
                                 },
                             },
-                            {"changeAddress", RPCArg::Type::STR, RPCArg::Default{""}, "The particl address to receive the change."},
+                            {"changeAddress", RPCArg::Type::STR, RPCArg::Default{""}, "The ghost address to receive the change."},
                             {"changepubkey", RPCArg::Type::STR, RPCArg::Default{""}, "The public key to use for the change output if changeAddress isn't set."},
                             {"changePosition", RPCArg::Type::NUM, RPCArg::Default{"random"}, "The index of the change output."},
                             //{"change_type", RPCArg::Type::STR, RPCArg::Default{""}, "The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\". Default is set by -changetype."},
@@ -8658,7 +8658,7 @@ static RPCHelpMan fundrawtransactionfrom()
                             {"subtractFeeFromOutputs", RPCArg::Type::ARR, RPCArg::Default{UniValue::VARR}, "A json array of integers.\n"
                             "                              The fee will be equally deducted from the amount of each specified output.\n"
                             "                              The outputs are specified by their zero-based index, before any change output is added.\n"
-                            "                              Those recipients will receive less particl than you enter in their corresponding amount field.\n"
+                            "                              Those recipients will receive less ghost than you enter in their corresponding amount field.\n"
                             "                              If no outputs are specified here, the sender pays the fee.",
                                 {
                                     {"vout_index", RPCArg::Type::NUM, RPCArg::Default{""}, ""},

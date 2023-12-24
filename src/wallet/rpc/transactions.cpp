@@ -845,7 +845,7 @@ RPCHelpMan listtransactions()
                         {RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
                         {
                             {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction."},
-                            {RPCResult::Type::STR, "address", /*optional=*/true, "The particl address of the transaction (not returned if the output does not have an address, e.g. OP_RETURN null data)."},
+                            {RPCResult::Type::STR, "address", /*optional=*/true, "The ghost address of the transaction (not returned if the output does not have an address, e.g. OP_RETURN null data)."},
                             {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
                             {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
                             {RPCResult::Type::STR, "type", /*optional=*/true, "anon/blind/standard."},
@@ -1004,7 +1004,7 @@ RPCHelpMan listsinceblock()
                             {RPCResult::Type::OBJ, "", "", Cat(Cat<std::vector<RPCResult>>(
                             {
                                 {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction."},
-                                {RPCResult::Type::STR, "address", /*optional=*/true, "The particl address of the transaction (not returned if the output does not have an address, e.g. OP_RETURN null data)."},
+                                {RPCResult::Type::STR, "address", /*optional=*/true, "The ghost address of the transaction (not returned if the output does not have an address, e.g. OP_RETURN null data)."},
                                 {RPCResult::Type::STR, "account", /*optional=*/true, "Alias of label."},
                                 {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
                                 {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
@@ -1181,7 +1181,7 @@ RPCHelpMan gettransaction()
                             {RPCResult::Type::OBJ, "", "",
                             {
                                 {RPCResult::Type::BOOL, "involvesWatchonly", /*optional=*/true, "Only returns true if imported addresses were involved in transaction."},
-                                {RPCResult::Type::STR, "address", /*optional=*/true, "The particl address involved in the transaction."},
+                                {RPCResult::Type::STR, "address", /*optional=*/true, "The ghost address involved in the transaction."},
                                 {RPCResult::Type::STR, "stealth_address", /*optional=*/true, "The stealth address the transaction was received on."},
                                 {RPCResult::Type::STR, "coldstake_address", /*optional=*/true, "The address the transaction is staking on."},
                                 {RPCResult::Type::STR, "category", "The transaction category.\n"

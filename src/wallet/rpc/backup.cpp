@@ -681,7 +681,7 @@ RPCHelpMan dumpprivkey()
                 "Then the importprivkey can be used with this output\n"
                 "Note: This command is only compatible with legacy wallets.\n",
                 {
-                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The particl address for the private key"},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The ghost address for the private key"},
                 },
                 {
                     RPCResult{"Default", RPCResult::Type::STR, "", "The private key"},

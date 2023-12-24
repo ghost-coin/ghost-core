@@ -1,7 +1,7 @@
-Contributing to Particl Core
+Contributing to Ghost Core
 ============================
 
-The Particl project operates an open contributor model where anyone is
+The Ghost project operates an open contributor model where anyone is
 welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
@@ -17,7 +17,7 @@ moderation.
 Communication Channels
 ----------------------
 
-Most communication about Particl development happens on [#particl-dev:matrix.org](https://riot.im/app/#/room/#particl-dev:matrix.org), in the Particl Open Development channel on Riot. The easiest way to participate on Riot is
+Most communication about Ghost development happens on [#ghost-dev:matrix.org](https://riot.im/app/#/room/#ghost--dev:matrix.org), in the Ghost Open Development channel on Riot. The easiest way to participate on Riot is
 with the web client, [riot.im](https://riot.im/app/). Desktop downloads also available.
 
 Discussion about codebase improvements happens in GitHub issues and pull

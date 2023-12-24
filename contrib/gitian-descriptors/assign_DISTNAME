@@ -11,4 +11,4 @@ else
 fi
 # git describe isn't detecting the tag in gitian
 VERSION="0.21.2.11"
-DISTNAME="particl-${VERSION}"
+DISTNAME="ghost-${VERSION}"

@@ -59,7 +59,7 @@ BIN_CHECKS=$(top_srcdir)/contrib/devtools/symbol-check.py \
            $(top_srcdir)/contrib/devtools/security-check.py \
            $(top_srcdir)/contrib/devtools/utils.py
 
-WINDOWS_PACKAGING = $(top_srcdir)/share/pixmaps/particl.ico \
+WINDOWS_PACKAGING = $(top_srcdir)/share/pixmaps/ghost.ico \
   $(top_srcdir)/share/pixmaps/nsis-header.bmp \
   $(top_srcdir)/share/pixmaps/nsis-wizard.bmp \
   $(top_srcdir)/doc/README_windows.txt
@@ -135,10 +135,10 @@ APP_DIST_DIR=$(top_builddir)/dist
 $(OSX_DMG): deploydir
 	$(XORRISOFS) -D -l -V "$(OSX_VOLNAME)" -no-pad -r -dir-mode 0755 -o $@ $(APP_DIST_DIR) -- $(if $(SOURCE_DATE_EPOCH),-volume_date all_file_dates =$(SOURCE_DATE_EPOCH))
 
-$(APP_DIST_DIR)/$(OSX_APP)/Contents/MacOS/Particl-Qt: $(OSX_APP_BUILT) $(OSX_PACKAGING)
+$(APP_DIST_DIR)/$(OSX_APP)/Contents/MacOS/ghost-Qt: $(OSX_APP_BUILT) $(OSX_PACKAGING)
 	INSTALL_NAME_TOOL=$(INSTALL_NAME_TOOL) OTOOL=$(OTOOL) STRIP=$(STRIP) $(PYTHON) $(OSX_DEPLOY_SCRIPT) $(OSX_APP) $(OSX_VOLNAME) -translations-dir=$(QT_TRANSLATION_DIR)
 
-deploydir: $(APP_DIST_DIR)/$(OSX_APP)/Contents/MacOS/Particl-Qt
+deploydir: $(APP_DIST_DIR)/$(OSX_APP)/Contents/MacOS/ghost-Qt
 endif !BUILD_DARWIN
 
 deploy: $(OSX_DMG)
@@ -315,27 +315,27 @@ EXTRA_DIST += \
     test/util/rpcauth-test.py
 
 EXTRA_DIST += \
-    test/util/data_particl/particl-util-test.json \
-    test/util/data_particl/blanktxv1.hex \
-    test/util/data_particl/blanktxv1.json \
-    test/util/data_particl/blanktxva0.hex \
-    test/util/data_particl/blanktxva0.json \
-    test/util/data_particl/tx14ae341f.hex \
-    test/util/data_particl/tt-delin1-out.hex \
-    test/util/data_particl/tt-delin1-out.json \
-    test/util/data_particl/tt-delout1-out.hex \
-    test/util/data_particl/tt-delout1-out.json \
-    test/util/data_particl/tt-locktime317000-out.hex \
-    test/util/data_particl/tt-locktime317000-out.json \
-    test/util/data_particl/txcreate1.hex \
-    test/util/data_particl/txcreate1.json \
-    test/util/data_particl/txcreate2.hex \
-    test/util/data_particl/txcreate2.json \
-    test/util/data_particl/txcreatesignva0.hex \
-    test/util/data_particl/txaddwitness0.hex \
-    test/util/data_particl/txdelwitness0.hex \
-    test/util/data_particl/txblindout0.hex \
-    test/util/data_particl/txoutdatatype0.hex
+    test/util/data_ghost/ghost-util-test.json \
+    test/util/data_ghost/blanktxv1.hex \
+    test/util/data_ghost/blanktxv1.json \
+    test/util/data_ghost/blanktxva0.hex \
+    test/util/data_ghost/blanktxva0.json \
+    test/util/data_ghost/tx14ae341f.hex \
+    test/util/data_ghost/tt-delin1-out.hex \
+    test/util/data_ghost/tt-delin1-out.json \
+    test/util/data_ghost/tt-delout1-out.hex \
+    test/util/data_ghost/tt-delout1-out.json \
+    test/util/data_ghost/tt-locktime317000-out.hex \
+    test/util/data_ghost/tt-locktime317000-out.json \
+    test/util/data_ghost/txcreate1.hex \
+    test/util/data_ghost/txcreate1.json \
+    test/util/data_ghost/txcreate2.hex \
+    test/util/data_ghost/txcreate2.json \
+    test/util/data_ghost/txcreatesignva0.hex \
+    test/util/data_ghost/txaddwitness0.hex \
+    test/util/data_ghost/txdelwitness0.hex \
+    test/util/data_ghost/txblindout0.hex \
+    test/util/data_ghost/txoutdatatype0.hex
 
 
 CLEANFILES = $(OSX_DMG) $(BITCOIN_WIN_INSTALLER)

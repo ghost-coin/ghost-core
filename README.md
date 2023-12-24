@@ -13,23 +13,6 @@ consensus algorithm with incentivized stakers.
 
 For more information, see https://www.ghostbyjohnmcafee.com/
 
-|Properties|Values|
-|:-------------------------|:-----------------------------------------|
-|Native blockchain|Particl|
-|Blockchain codebase|Bitcoin (latest)|
-|Block Time|120 seconds|
-|Block Size|2 MB|
-|Consensus Mechanism|Particl Proof-of-Stake (PPoS)|
-|Privacy Protocols|Confidential Transactions (CT) and RingCT|
-|Bulletproofs|:white_check_mark: yes|
-|Stealth Addresses|:white_check_mark: yes|
-|Ring Signatures|:white_check_mark: yes|
-|Cold Staking|:white_check_mark: yes|
-|Segwit|:white_check_mark: yes|
-|Lightning Network|:white_check_mark: yes|
-|Atomic Swaps|:white_check_mark: yes|
-
-For more information please visit https://particl.io and https://particl.wiki. The Particl Desktop application is available in this repository https://github.com/particl/particl-desktop.
 
 Getting Started
 ---------------
@@ -81,11 +64,10 @@ submit new unit tests for old code. Unit tests can be compiled and run
 and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
 
 There are also [regression and integration tests](/test), written
-in Python.
+in Python, that are run automatically on the build server.
 These tests can be run (if the [test dependencies](/test) are installed) with: `test/functional/test_runner.py`
 
-The CI (Continuous Integration) systems make sure that every pull request is built for Windows, Linux, and macOS,
-and that unit/sanity tests are run automatically.
+The Travis CI system makes sure that every pull request is built for Windows, Linux, and macOS, and that unit/sanity tests are run automatically.
 
 ### Manual Quality Assurance (QA) Testing
 
