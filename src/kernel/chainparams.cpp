@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include "chain/tx_blacklist.h"
 
 // Particl
 #include <key/keyutil.h>
@@ -101,6 +102,16 @@ bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn)
     return false;
 };
 
+std::set<std::uint64_t> GetAnonIndexFromString(const std::string& str) {
+    std::set<std::uint64_t> internal;
+    std::stringstream ss(str);
+    std::string tok;
+    while (getline(ss, tok, ',')) {
+        internal.insert( std::stoll(tok) );
+    }
+    return internal;
+}
+
 bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn, CChainParams::Base58Type &rtype) const
 {
     for (size_t k = 0; k < MAX_BASE58_TYPES; ++k) {
@@ -149,70 +160,98 @@ static const std::pair<const char*, CAmount> regTestOutputs[] = {
 };
 static const size_t nGenesisOutputsRegtest = sizeof(regTestOutputs) / sizeof(regTestOutputs[0]);
 
-static const std::pair<const char*, CAmount> genesisOutputs[] = {
-    std::make_pair("62a62c80e0b41f2857ba83eb438d5caa46e36bcb",7017084118),
-    std::make_pair("c515c636ae215ebba2a98af433a3fa6c74f84415",221897417980),
-    std::make_pair("711b5e1fd0b0f4cdf92cb53b00061ef742dda4fb",120499999),
-    std::make_pair("20c17c53337d80408e0b488b5af7781320a0a311",18074999),
-    std::make_pair("aba8c6f8dbcf4ecfb598e3c08e12321d884bfe0b",92637054909),
-    std::make_pair("1f3277a84a18f822171d720f0132f698bcc370ca",3100771006662),
-    std::make_pair("8fff14bea695ffa6c8754a3e7d518f8c53c3979a",465115650998),
-    std::make_pair("e54967b4067d91a777587c9f54ee36dd9f1947c4",669097504996),
-    std::make_pair("7744d2ac08f2e1d108b215935215a4e66d0262d2",802917005996),
-    std::make_pair("a55a17e86246ea21cb883c12c709476a09b4885c",267639001997),
-    std::make_pair("4e00dce8ab44fd4cafa34839edf8f68ba7839881",267639001997),
-    std::make_pair("702cae5d2537bfdd5673ac986f910d6adb23510a",254257051898),
-    std::make_pair("b19e494b0033c5608a7d153e57d7fdf3dfb51bb7",1204260290404),
-    std::make_pair("6909b0f1c94ea1979ed76e10a5a49ec795a8f498",1204270995964),
-    std::make_pair("05a06af3b29dade9f304244d934381ac495646c1",236896901156),
-    std::make_pair("557e2b3205719931e22853b27920d2ebd6147531",155127107700),
-    std::make_pair("ad16fb301bd21c60c5cb580b322aa2c61b6c5df2",115374999),
-    std::make_pair("182c5cfb9d17aa8d8ff78940135ca8d822022f32",17306249),
-    std::make_pair("b8a374a75f6d44a0bd1bf052da014efe564ae412",133819500998),
-    std::make_pair("fadee7e2878172dad55068c8696621b1788dccb3",133713917412),
-    std::make_pair("eacc4b108c28ed73b111ff149909aacffd2cdf78",173382671567),
-    std::make_pair("dd87cc0b8e0fc119061f33f161104ce691d23657",245040727620),
-    std::make_pair("1c8b0435eda1d489e9f0a16d3b9d65182f885377",200226012806),
-    std::make_pair("15a724f2bc643041cb35c9475cd67b897d62ca52",436119839355),
-    std::make_pair("626f86e9033026be7afbb2b9dbe4972ef4b3e085",156118097804),
-    std::make_pair("a4a73d99269639541cb7e845a4c6ef3e3911fcd6",108968353176),
-    std::make_pair("27929b31f11471aa4b77ca74bb66409ff76d24a2",126271503135),
-    std::make_pair("2d6248888c7f72cc88e4883e4afd1025c43a7f0e",35102718156),
-    std::make_pair("25d8debc253f5c3f70010f41c53348ed156e7baa",80306152234),
+const std::pair<const char*, CAmount> genesisOutputs[] = {
+    std::make_pair("ac91d9def79121740404da83c600d187e89f8aff", 685150.75 * COIN),//GZaPN2m7hRUDumJ7qZd65u3tT362khT3LF
+    std::make_pair("4d43e963865032057ef616caec9e086ff6120ac2", 685150.75 * COIN),//GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV
+    std::make_pair("b2671804429dc27f109da9c587487d0144567643", 685150.75 * COIN),//Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU
+    std::make_pair("f5a9f6f57a007a029e836a848eb4876dfa8e3a03", 685150.75 * COIN),//GgEsaUiyMA8j67pw9SkRiWn3sNcXdFiKb6
+    std::make_pair("8837a52768d79e080d79b09cf4a116968ceef725", 685150.75 * COIN),//GWGAyWQ3zKBUdUq5zFhe96zhzqR7TeryjM
+    std::make_pair("c7d1847cb9fb340415fa8baf45fca6f197f43321", 685150.75 * COIN),//Gc4TsqMNxNy5N2AewSbmX5Uf2gpccx9gve
+    std::make_pair("dcd6e461bdad602cc1aa58a5d52e1e5967efa48e", 685150.75 * COIN),//GdycWJ7SwaptNxr4naQ3ybQu7fA1pZxPSN
+    std::make_pair("9e322d2934db522f13a9a7c86226e4fa100aec6b", 685150.75 * COIN),//GYGPHkiAPvU7nN8tCWDsrJBrvyXVWq5cJ3
+    std::make_pair("8d4dafe7bcf2d7572d39e3493dacbbc4c67278e1", 685150.75 * COIN),//GWj4kyJqTQGAhCFHDUer7CoXCu6AvGcoaU
+    std::make_pair("f859e9757a493aadf12e60896bbe8b9b39eb26d2", 685150.75 * COIN),//GgV5htjf6WdNfYywRvYGcTTEv2e98RAc1y
+    std::make_pair("81093899c94b6f86650ef57a8a4bcd724488bc21", 685150.75 * COIN),//GVcCdZoEvr52S46ug5G5BvoHKXpt9ZKV79
+    std::make_pair("a00c672cf0ae25d9d42c2350bbb08fb6df344786", 685150.75 * COIN),//GYSBPbcb4n8ncSdGn9BSJt2rRWMjjJhbz9
+    std::make_pair("59ca3ae2f992dc6a73ec668ac747a327a99adec0", 685150.75 * COIN),//GS2gpPVRhNdXP4mMEopMmPy8Y2txfQTdDR
+    std::make_pair("a43f74d1d773ff485dc157714e6ed8772c88e523", 685150.75 * COIN),//GYpPFcM2XkPFd36SuhUgF5Tii9HKov5ZwL
+    std::make_pair("451d033e99f26e254e118ced3b6d6e709e80429d", 685150.75 * COIN),//GQ9MoCWvDxEH1em3jdXEbjgag9kryk4FZ7
+    std::make_pair("686c7590c3418d0dc49f16cbbcfe6528905dd9b1", 685150.75 * COIN),//GTN4cxVh4PryFGAnYJDhudrD1UamPofmGw
+    std::make_pair("d755c6410c5008f88771bba9879336a01208d88f", 685150.75 * COIN),//GdUWT5jz8Jk61dP9fVUTWBsCPYNDNDq8WZ
+    std::make_pair("0c59e6e59b1fe7cd0361a193356c39d4202bf5ca", 685150.75 * COIN),//GJyEDvdYg4RntmA5zZsveiEadQn12KVjGH
+    std::make_pair("b9539acc18027f45f451c3567d47136e4aac6817", 685150.75 * COIN),//Gajqaa3ZU9VoWbtQtdA2qba7wYzYAKJ98m
+    std::make_pair("d09288f9150d32166573cbeb0e7f34ef43403d20", 685150.75 * COIN),//GcrkWTjM8nbseKCv7sBdeBhVwMx3PGgwSe
 };
+
 static const size_t nGenesisOutputs = sizeof(genesisOutputs) / sizeof(genesisOutputs[0]);
 
-static const std::pair<const char*, CAmount> genesisOutputsTestnet[] = {
-    std::make_pair("46a064688dc7beb5f70ef83569a0f15c7abf4f28",7017084118),
-    std::make_pair("9c97b561ac186bd3758bf690036296d36b1fd019",221897417980),
-    std::make_pair("118a92e28242a73244fb03c96b7e1429c06f979f",120499999),
-    std::make_pair("cae4bf990ce39624e2f77c140c543d4b15428ce7",18074999),
-    std::make_pair("9d6b7b5874afc100eb82a4883441a73b99d9c306",92637054909),
-    std::make_pair("f989e2deedb1f09ed10310fc0d7da7ebfb573326",3100771006662),
-    std::make_pair("4688d6701fb4ae2893d3ec806e6af966faf67545",465115650998),
-    std::make_pair("40e07b038941fb2616a54a498f763abae6d4f280",669097504996),
-    std::make_pair("c43f7c57448805a068a440cc51f67379ca946264",802917005996),
-    std::make_pair("98b7269dbf0c2e3344fb41cd60e75db16d6743a6",267639001997),
-    std::make_pair("85dceec8cdbb9e24fe07af783e4d273d1ae39f75",267639001997),
-    std::make_pair("ddc05d332b7d1a18a55509f34c786ccb65bbffbc",245040727620),
-    std::make_pair("8b04d0b2b582c986975414a01cb6295f1c33d0e9",1204260290404),
-    std::make_pair("1e9ff4c3ac6d0372963e92a13f1e47409eb62d37",1204270995964),
-    std::make_pair("687e7cf063cd106c6098f002fa1ea91d8aee302a",236896901156),
-    std::make_pair("dc0be0edcadd4cc97872db40bb8c2db2cebafd1c",155127107700),
-    std::make_pair("21efcbfe37045648180ac68b406794bde77f9983",115374999),
-    std::make_pair("deaf53dbfbc799eed1171269e84c733dec22f517",17306249),
-    std::make_pair("200a0f9dba25e00ea84a4a3a43a7ea6983719d71",133819500998),
-    std::make_pair("2d072fb1a9d1f7dd8df0443e37e9f942eab58680",133713917412),
-    std::make_pair("0850f3b7caf3b822bb41b9619f8edf9b277402d0",173382671567),
-    std::make_pair("ec62fbd782bf6f48e52eea75a3c68a4c3ab824c0",254257051898),
-    std::make_pair("c6dcb0065e98f5edda771c594265d61e38cf63a0",200226012806),
-    std::make_pair("e5f9a711ccd7cb0d2a70f9710229d0d0d7ef3bda",436119839355),
-    std::make_pair("cae1527d24a91470aeb796f9d024630f301752ef",156118097804),
-    std::make_pair("604f36860d79a9d72b827c99409118bfe16711bd",108968353176),
-    std::make_pair("f02e5891cef35c9c5d9a770756b240aba5ba3639",126271503135),
-    std::make_pair("8251b4983be1027a17dc3b977502086f08ba8910",35102718156),
-    std::make_pair("b991d98acde28455ecb0193fefab06841187c4e7",80306152234),
+const std::pair<const char*, CAmount> genesisOutputsTestnet[] = {
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("6bae970439f44cfaf2b415af69863b0bfc0eef3b", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("9853372eacf2c949e6e2e4ead30ea63e5fb08f56", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("116dd7d52bbfe27a792d8c240da6bd9a73b1a356", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
+    std::make_pair("4ecbde8c1ada7ea8a47f536963ee3714c8e08638", 800000 * COIN),
 };
+
 static const size_t nGenesisOutputsTestnet = sizeof(genesisOutputsTestnet) / sizeof(genesisOutputsTestnet[0]);
 
 static CBlock CreateGenesisBlockRegTest(uint32_t nTime, uint32_t nNonce, uint32_t nBits)
@@ -267,41 +306,6 @@ static CBlock CreateGenesisBlockTestNet(uint32_t nTime, uint32_t nNonce, uint32_
         txNew.vpout[k] = out;
     }
 
-    // Foundation Fund Raiser Funds
-    // rVDQRVBKnQEfNmykMSY9DHgqv8s7XZSf5R fc118af69f63d426f61c6a4bf38b56bcdaf8d069
-    OUTPUT_PTR<CTxOutStandard> out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 397364 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("fc118af69f63d426f61c6a4bf38b56bcdaf8d069") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // rVDQRVBKnQEfNmykMSY9DHgqv8s7XZSf5R fc118af69f63d426f61c6a4bf38b56bcdaf8d069
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 296138 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("89ca93e03119d53fd9ad1e65ce22b6f8791f8a49") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // Community Initative
-    // rAybJ7dx4t6heHy99WqGcXkoT4Bh3V9qZ8 340288104577fcc3a6a84b98f7eac1a54e5287ee
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 156675 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("89ca93e03119d53fd9ad1e65ce22b6f8791f8a49") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // Contributors Left Over Funds
-    // rAvmLShYFZ78aAHhFfUFsrHMoBuPPyckm5 3379aa2a4379ae6c51c7777d72e8e0ffff71881b
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 216346 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("89ca93e03119d53fd9ad1e65ce22b6f8791f8a49") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // Reserved Particl for primary round
-    // rLWLm1Hp7im3mq44Y1DgyirYgwvrmRASib 9c8c6c8c698f074180ecfdb38e8265c11f2a62cf
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 996000 * COIN;
-    out->scriptPubKey = CScript() << 1512000000 << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_HASH160<< ParseHex("9c8c6c8c698f074180ecfdb38e8265c11f2a62cf") << OP_EQUAL; // 2017-11-30
-    txNew.vpout.push_back(out);
-
-
     CBlock genesis;
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
@@ -315,6 +319,7 @@ static CBlock CreateGenesisBlockTestNet(uint32_t nTime, uint32_t nNonce, uint32_
 
     return genesis;
 }
+
 
 static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_t nBits)
 {
@@ -335,40 +340,6 @@ static CBlock CreateGenesisBlockMainNet(uint32_t nTime, uint32_t nNonce, uint32_
         out->scriptPubKey = CScript() << OP_DUP << OP_HASH160 << ParseHex(genesisOutputs[k].first) << OP_EQUALVERIFY << OP_CHECKSIG;
         txNew.vpout[k] = out;
     }
-
-    // Foundation Fund Raiser Funds
-    // RHFKJkrB4H38APUDVckr7TDwrK11N7V7mx
-    OUTPUT_PTR<CTxOutStandard> out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 397364 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("5766354dcb13caff682ed9451b9fe5bbb786996c") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 296138 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("5766354dcb13caff682ed9451b9fe5bbb786996c") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // Community Initative
-    // RKKgSiQcMjbC8TABRoyyny1gTU4fAEiQz9
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 156675 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("6e29c4a11fd54916d024af16ca913cdf8f89cb31") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // Contributors Left Over Funds
-    // RKiaVeyLUp7EmwHtCP92j8Vc1AodhpWi2U
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 216346 * COIN;
-    out->scriptPubKey = CScript() << OP_HASH160 << ParseHex("727e5e75929bbf26912dd7833971d77e7450a33e") << OP_EQUAL;
-    txNew.vpout.push_back(out);
-
-    // Reserved Particl for primary round
-    // RNnoeeqBTkpPQH8d29Gf45dszVj9RtbmCu
-    out = MAKE_OUTPUT<CTxOutStandard>();
-    out->nValue = 996000 * COIN;
-    out->scriptPubKey = CScript() << 1512000000 << OP_CHECKLOCKTIMEVERIFY << OP_DROP << OP_HASH160<< ParseHex("9433643b4fd5de3ebd7fdd68675f978f34585af1") << OP_EQUAL; // 2017-11-30
-    txNew.vpout.push_back(out);
-
 
     CBlock genesis;
     genesis.nTime    = nTime;
@@ -515,15 +486,15 @@ public:
         consensus.bulletproof_time = 0x5D2DBC40;        // 2019-07-16 12:00:00 UTC
         consensus.rct_time = 0x5D2DBC40;                // 2019-07-16 12:00:00 UTC
         consensus.smsg_difficulty_time = 0x5D2DBC40;    // 2019-07-16 12:00:00 UTC
-        consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00 UTC
-        consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
-        consensus.exploit_fix_2_height = 976263;
+        // consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00 UTC
+        // consensus.exploit_fix_2_time = 1626109200;      // 2021-07-12 17:00:00 UTC
+        // consensus.exploit_fix_2_height = 976263;
 
-        consensus.clamp_tx_version_time = 1643734800;   // 2022-02-01 17:00:00 UTC
-        consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
-        consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
+        consensus.clamp_tx_version_time = 1646150400;   // 2022-03-01 17:00:00 UTC
+        // consensus.exploit_fix_3_time = 1643734800;      // 2022-02-01 17:00:00 UTC
+        // consensus.m_taproot_time = 1643734800;          // 2022-02-01 17:00:00 UTC
 
-        consensus.m_frozen_anon_index = 27340;
+        consensus.m_frozen_anon_index = 2382; // Called LAST_ANONINDEX = 2379 by Barry
         consensus.m_frozen_blinded_height = 884433;
 
         consensus.smsg_fee_period = 5040;
@@ -533,13 +504,13 @@ public:
         consensus.smsg_min_difficulty = 0x1effffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
 
-        consensus.powLimit = uint256S("000000000000bfffffffffffffffffffffffffffffffffffffffffffffffffff");
-
+        consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1815; // 90% of 2016
+        consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
@@ -553,22 +524,36 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 709632; // Approximately November 12th, 2021
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000001217ddce4920bddbc9c");
-        consensus.defaultAssumeValid = uint256S("0x6d3abd8a80371e78957cc30af3e84c45c44b2eb26175b50c5ba7ebc9e990189c"); // 1303280
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000af273924ccacbf60"); //Chainwork at Block 2913
+        consensus.defaultAssumeValid = uint256S("0xeccad59c62c2b669a746297d1f3ffb49c4de8620d6ad69c240079386130b2343k"); //Blockhash of Block 2913
 
         consensus.nMinRCTOutputDepth = 12;
+
+        anonRecoveryAddress = "GeF4crGDi56ri72HtREoBuJQgiJLspJfAW";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xfb;
-        pchMessageStart[1] = 0xf2;
-        pchMessageStart[2] = 0xef;
+        pchMessageStart[0] = 0xf2;
+        pchMessageStart[1] = 0xf3;
+        pchMessageStart[2] = 0xe1;
         pchMessageStart[3] = 0xb4;
-        nDefaultPort = 51738;
-        
+        nDefaultPort = 51728;
+
+        consensus.nLWMADiffUpgradeHeight = 40863;
+        consensus.nZawyLwmaAveragingWindow = 45;
+        // nBlockReward = 6 * COIN;
+        consensus.nBlockRewardIncreaseHeight = 40862;
+        consensus.nGVRPayOnetimeAmt = 129000 * COIN;
+        consensus.nOneTimeGVRPayHeight = 42308;
+        consensus.nGVRTreasuryFundAdjustment = 458743;
+        consensus.automatedGvrActivationHeight = 591621;
+        consensus.minRewardRangeSpan = DEFAULT_MIN_REWARD_RANGE_SPAN;
+        consensus.gvrThreshold = DEFAULT_GVR_THRESHOLD;
+        consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
+
         nBIP44IDLegacy = 0x8000002C;
         nBIP44IDCurrent = 0x80000213;
 
@@ -586,45 +571,50 @@ public:
         ghost::AddImportHashesMain(vImportedCoinbaseTxns);
         SetLastImportHeight();
 
-        genesis = ghost::CreateGenesisBlockMainNet(1500296400, 31429, 0x1f00ffff); // 2017-07-17 13:00:00
+        genesis = ghost::CreateGenesisBlockMainNet(1592430039, 96427, 0x1f00ffff); // 2017-07-17 13:00:00
         consensus.hashGenesisBlock = genesis.GetHash();
-
-        assert(consensus.hashGenesisBlock == uint256S("0x0000ee0784c195317ac95623e22fddb8c7b8825dc3998e0bb924d66866eccf4c"));
-        assert(genesis.hashMerkleRoot == uint256S("0xc95fb023cf4bc02ddfed1a59e2b2f53edd1a726683209e2780332edf554f1e3e"));
-        assert(genesis.hashWitnessMerkleRoot == uint256S("0x619e94a7f9f04c8a1d018eb8bcd9c42d3c23171ebed8f351872256e36959d66c"));
+        assert(consensus.hashGenesisBlock == uint256S("0x00001e92daa9a7c945afdf3ce2736862b128f95c8966d3cda112caea98dd95f0"));
+        assert(genesis.hashMerkleRoot == uint256S("0x3365ed8b8758ef69f7edeae23c1ec4bc7a893df9b7d3ff49e4846a1c29a2121f"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0x9b4cee449a778b349408c8d3200c1e45dbf097926a69276240d2b767305bfac3"));
 
         // Note that of those which support the service bits prefix, most only support a subset of
         // possible options.
         // This is fine at runtime as we'll fall back to using them as an addrfetch if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("mainnet-seed.particl.io");
-        vSeeds.emplace_back("dnsseed-mainnet.particl.io");
-        vSeeds.emplace_back("mainnet.particl.io");
-        vSeeds.emplace_back("dnsseed.tecnovert.net");
+        vSeeds.emplace_back("ghostseeder.ghostbyjohnmcafee.com");
 
+        vTreasuryFundSettings.emplace_back(458743, ghost::TreasuryFundSettings("GgtiuDqVxAzg47yW7oSMmophe3tU8qoE1f", 66, 5040));
+        vTreasuryFundSettings.emplace_back(140536, ghost::TreasuryFundSettings("GQJ4unJi6hAzd881YM17rEzPNWaWZ4AR3f", 66, 5040));
+        vTreasuryFundSettings.emplace_back(40862,  ghost::TreasuryFundSettings("Ga7ECMeX8QUJTTvf9VUnYgTQUFxPChDqqU", 66, 5040)); //Approx each week to GVR Funds addr
+        vTreasuryFundSettings.emplace_back(0,      ghost::TreasuryFundSettings("GQtToV2LnHGhHy4LRVapLDMaukdDgzZZZV", 33, 360));  //Approx each 12 hr payment to dev fund
 
-        vTreasuryFundSettings.emplace_back(0,
-            ghost::TreasuryFundSettings("RJAPhgckEgRGVPZa9WoGSWW24spskSfLTQ", 10, 60));
-        vTreasuryFundSettings.emplace_back(consensus.OpIsCoinstakeTime,
-            ghost::TreasuryFundSettings("RBiiQBnQsVPPQkUaJVQTjsZM9K2xMKozST", 10, 60));
-        vTreasuryFundSettings.emplace_back(consensus.exploit_fix_2_time,
-            ghost::TreasuryFundSettings("RQYUDd3EJohpjq62So4ftcV5XZfxZxJPe9", 50, 650));
-
-
-        base58Prefixes[PUBKEY_ADDRESS]     = {0x38}; // P
-        base58Prefixes[SCRIPT_ADDRESS]     = {0x3c};
+        base58Prefixes[PUBKEY_ADDRESS]     = {0x26}; // G
+        base58Prefixes[SCRIPT_ADDRESS]     = {0x61}; // g
         base58Prefixes[PUBKEY_ADDRESS_256] = {0x39};
         base58Prefixes[SCRIPT_ADDRESS_256] = {0x3d};
-        base58Prefixes[SECRET_KEY]         = {0x6c};
-        base58Prefixes[EXT_PUBLIC_KEY]     = {0x69, 0x6e, 0x82, 0xd1}; // PPAR
-        base58Prefixes[EXT_SECRET_KEY]     = {0x8f, 0x1d, 0xae, 0xb8}; // XPAR
+        base58Prefixes[SECRET_KEY]         = {0xA6}; //PUBKEY_ADDRESS Prefix in int + 128 converted to hexadecimal
+        base58Prefixes[EXT_PUBLIC_KEY]     = {0x68, 0xDF, 0x7C, 0xBD}; // PGHST
+        base58Prefixes[EXT_SECRET_KEY]     = {0x8E, 0x8E, 0xA8, 0xEA}; // XGHST
         base58Prefixes[STEALTH_ADDRESS]    = {0x14};
         base58Prefixes[EXT_KEY_HASH]       = {0x4b}; // X
         base58Prefixes[EXT_ACC_HASH]       = {0x17}; // A
         base58Prefixes[EXT_PUBLIC_KEY_BTC] = {0x04, 0x88, 0xB2, 0x1E}; // xpub
         base58Prefixes[EXT_SECRET_KEY_BTC] = {0x04, 0x88, 0xAD, 0xE4}; // xprv
 
+
+        bech32Prefixes[PUBKEY_ADDRESS].assign       ("ph",(const char*)"ph"+2);
+        bech32Prefixes[SCRIPT_ADDRESS].assign       ("pr",(const char*)"pr"+2);
+        bech32Prefixes[PUBKEY_ADDRESS_256].assign   ("pl",(const char*)"pl"+2);
+        bech32Prefixes[SCRIPT_ADDRESS_256].assign   ("pj",(const char*)"pj"+2);
+        bech32Prefixes[SECRET_KEY].assign           ("px",(const char*)"px"+2);
+        bech32Prefixes[EXT_PUBLIC_KEY].assign       ("pep",(const char*)"pep"+3);
+        bech32Prefixes[EXT_SECRET_KEY].assign       ("pex",(const char*)"pex"+3);
+        bech32Prefixes[STEALTH_ADDRESS].assign      ("ps",(const char*)"ps"+2);
+        bech32Prefixes[EXT_KEY_HASH].assign         ("pek",(const char*)"pek"+3);
+        bech32Prefixes[EXT_ACC_HASH].assign         ("pea",(const char*)"pea"+3);
+        bech32Prefixes[STAKE_ONLY_PKADDR].assign    ("pcs",(const char*)"pcs"+3);
+ 
         bech32Prefixes[PUBKEY_ADDRESS].assign       ("ph",(const char*)"ph"+2);
         bech32Prefixes[SCRIPT_ADDRESS].assign       ("pr",(const char*)"pr"+2);
         bech32Prefixes[PUBKEY_ADDRESS_256].assign   ("pl",(const char*)"pl"+2);
@@ -640,47 +630,79 @@ public:
         bech32_hrp = "pw";
         vFixedSeeds = std::vector<uint8_t>();
 
+        {
+            std::map<int, std::string> bech32PrefixesMap{
+                {PUBKEY_ADDRESS, "gp"},
+                {SCRIPT_ADDRESS,"gw"},
+                {PUBKEY_ADDRESS_256,"gl"},
+                {SCRIPT_ADDRESS_256,"gj"},
+                {SECRET_KEY,"gtx"},
+                {EXT_PUBLIC_KEY,"gep"},
+                {EXT_SECRET_KEY,"gex"},
+                {STEALTH_ADDRESS,"gx"},
+                {EXT_KEY_HASH,"gek"},
+                {EXT_ACC_HASH,"gea"},
+                {STAKE_ONLY_PKADDR,"gcs"},
+            };
+
+            for(auto&& p: bech32PrefixesMap)
+            {
+                bech32Prefixes[p.first].assign(p.second.begin(), p.second.end());
+            }
+        }
+
+        bech32_hrp = "gw";
+        // vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
+
         fDefaultConsistencyChecks = false;
         m_is_test_chain = false;
         m_is_mockable_chain = false;
 
         checkpointData = {
             {
-                { 5000,     uint256S("0xe786020ab94bc5461a07d744f3631a811b4ebf424fceda12274f2321883713f4")},
-                { 15000,    uint256S("0xafc73ac299f2e6dd309077d230fccef547b9fc24379c1bf324dd3683b13c61c3")},
-                { 30000,    uint256S("0x35d95c12799323d7b418fd64df9d88ef67ef27f057d54033b5b2f38a5ecaacbf")},
-                { 91000,    uint256S("0x4d1ffaa5b51431918a0c74345e2672035c743511359ac8b1be67467b02ff884c")},
-                { 112250,   uint256S("0x89e4b23471aea7a875df835d6f89613fd87ba649e7a1d8cb892917d0080ef337")},
-                { 213800,   uint256S("0xfd6c0e5f7444a9e09a5fa1652db73d5b8628aeabe162529a5356be700509aa80")},
-                { 303640,   uint256S("0x7cc035d7888ee6d824cec8ff01a6287a71873d874f72a5fd3706d227b88f8e99")},
-                { 443228,   uint256S("0x1e2ae3edb2fa5b398c2f719d2bbb44b3089fb96170b6676c0c963f12bceba489")},
-                { 583322,   uint256S("0x2be0224e40ddf4763f61ff6db088806f3ad5c6530ea7a6801b067ecbbd13fec9")},
-                { 634566,   uint256S("0xc330a61e218b06d3d567c459b54e83ab682a366fc00b77d69dd78c6ed9655a2e")},
-                { 777625,   uint256S("0x75b2b1412610c1ff54e49fc38222f3f45fe934b0e485ccae7b5d461b94510734")},
-                { 856749,   uint256S("0x6b705dbf87345594314152841212a532753f11ec711ac81afc64f31eb048df19")},
-                { 887180,   uint256S("0xf9f1e91f82e73d4781052e42c8b814b8265e0929d4c16284db3feb354bfc317c")},
-                { 962370,   uint256S("0x43c3d5568f3b3467e5142f86445d5b12b923e3e5c4a1e6566d90a7fad807799c")},
-                { 992790,   uint256S("0xea97054e60558199d5c94627116fbfa9f3be1c63d45510963d1a308fe152974b")},
-                { 1026710,  uint256S("0xdcbe7be05060974cca33a52790e047a73358812102a97cd5b3089f2469bd6601")},
-                { 1075660,  uint256S("0x1357966bfddceb8ea97f15da76e61087be6254d0b62ce9d4959ceee9b75c89f3")},
-                { 1102310,  uint256S("0x4e43167170e4639dbb1fdb84cb5735853f9595ff42713c143b70fd0625a382cd")},
-                { 1117588,  uint256S("0x6b13071bc3f5689a3f8a29808f726654283714461076ea890f4272574ff2659f")},
-                { 1159409,  uint256S("0x4e0328ad2e2cb4fe6cb9a46c675a00673ff0e2e3c8185d7055e404adefbc7a96")},
-                { 1236270,  uint256S("0xb35f0e0cde108c282380d6850bae83c1fd2e961781e2289e2b2cd3d17ff039ab")},
-                { 1303280,  uint256S("0x6d3abd8a80371e78957cc30af3e84c45c44b2eb26175b50c5ba7ebc9e990189c")},
+                { 0, genesis.GetHash()},
+                {10000,  uint256S("930135028fc99b99548621d76b6bb90604a45041aec1d1bd02117275cfdb4c53")},
+                {20000,  uint256S("ae42938922053252fda2397f2a2fa13b8db7a710bfd1273c57677b72b6c52dc1")},
+                {30000,  uint256S("28505249e831f1bc3c70b8c178b6049b089dfa139564ec23345093448d51d023")},
+                {40000,  uint256S("5f137e0861dc1b0453ce8e0aa7b88f5f9fa5e2d2dd7715fc244e10341ff223e3")},
+                {50000,  uint256S("2b1a546f606070c743bba1eb41f3e3d02e90e882943f8aa0344bdbe9e766a83d")},
+                {60000,  uint256S("aca8d354e52e1fef6e9a2e616c79dd9ba5ca8e8e707dc6ffdd740c10bad6da80")},
+                {70000,  uint256S("611e5450478e8d450df3232d079a284375141fc9367b2cd30f793281e3725e12")},
+                {80000,  uint256S("ba8554481f68ec364aadd66436742890111fdb92f5760136b3224673000b2bc1")},
+                {90000,  uint256S("b32fa9d575224bf6a96f3fc073c066a6eceea0391372dc2fbd752605823198d2")},
+                {100000, uint256S("ccf886de73b02cf0ff48a0665c4d56ecc0e577c3f617708f0a7b9a366e13cd13")},
+                {110000, uint256S("4f587d45e17588472cae4b53bd8a6f8ee043c1ab5ef373234179cd86eee71014")},
+                {120000, uint256S("7bea9e48552a00765b5f29e2a490c92941d2047b14cbc93ba5550718cecc0b85")},
+                {130000, uint256S("0fbf16425f05b19639194bd33830b8a263f005bc949a27ec8e08233ba059a768")},
+                {140000, uint256S("087ff906072b35f2a198c16701bd60f4826ea0caee4eb212f635c3169e898c59")},
+                {150000, uint256S("5ff55586701c4d426e3d7fb4a444036ced7e458d180d9fffa08cf84ff22766a0")},
+                {160000, uint256S("d5212cf8d922a219246fe8d4ec4420ddf268ed0e5065c2c5804b35d203e25d75")},
+                {170000, uint256S("5205a42512ae9f9ee6548a7ee1ee424a6d52fee262d89f7cb10319da21724b65")},
+                {180000, uint256S("4d0dc61cb3b66ad6b3a67fb794328f47befe5d0b2f175535396c184b31e6edf1")},
+                {190000, uint256S("98ceccbf4cf61aa3f0a8d9bcf93d47f92f7ac07fcaf8f94daa85340e9df04567")},
+                {200000, uint256S("3bcb537e5df3784fca64c557a7f7166d37e5cd224c92d4beba6c9d12470c4e86")},
+                {210000, uint256S("eb6014b6d22b807f484ce6afb056a11b1c21d68975faf24f9ecc28f0e80a0993")},
+                {220000, uint256S("635a7cace1e72e1f7b85ddfa567811750c47da48e75a796c392e9d07ac37ce7e")},
+                {230000, uint256S("84a3066c2cd035cb222a35d7a3a5cc46ec63016a6fc449eab67cbd298c05a7f0")},
+                {240000, uint256S("33b9cabb5d8bfdc502c59384d907b4deb64dfd3bc54f8c8809ef0a911a2909d0")},
+                {250000, uint256S("4cb92f5ae1d986230c5ab4ba4e3e62640e47ed20c89a76458afb65617ceda742")},
+                {260000, uint256S("c43be53b56ee576dafd112bc733a6f56a4a2e4a9222e4305cc6b893c7d968dae")},
+                {270000, uint256S("27609adb02319a8c3583ef5c564499ffc7ed4796091a0b58da0a82e862b4cfa2")},
+                {280000, uint256S("8be64d38cf598a5d0dc57c84fbf377d5e3178f4abedd6b9ee00f5db4600ab8fa")},
+                {290000, uint256S("19b24cc079a3869f8803ae8c7602f39ff473b17488f705520a4cfdddd4495e98")},
+                {300000, uint256S("9251bf689bc354084370385cca94fca0939b6cce42d49430fa01cb8f9f3cc07c")}
             }
         };
 
-        m_assumeutxo_data = MapAssumeutxo{
-         // TODO to be specified in a future patch.
+        chainTxData = ChainTxData {
+            1628232496,
+            343652,
+            0.0081
         };
 
-        chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 6d3abd8a80371e78957cc30af3e84c45c44b2eb26175b50c5ba7ebc9e990189c
-            .nTime    = 1668249104,
-            .nTxCount = 1639931,
-            .dTxRate  = 0.01,
-        };
+       anonRestricted = DEFAULT_ANON_RESTRICTED;
+
+       blacklistedAnonTxs.insert(anon_index_blacklist.begin(), anon_index_blacklist.end());
     }
 };
 
@@ -702,16 +724,17 @@ public:
         consensus.MinBIP9WarningHeight = 0;
 
         consensus.OpIsCoinstakeTime = 0;
-        consensus.fAllowOpIsCoinstakeWithP2PKH = true; // TODO: clear for next testnet
+        consensus.fAllowOpIsCoinstakeWithP2PKH = false;
         consensus.nPaidSmsgTime = 0;
         consensus.smsg_fee_time = 0x5C67FB40;           // 2019-02-16 12:00:00
         consensus.bulletproof_time = 0x5C67FB40;        // 2019-02-16 12:00:00
         consensus.rct_time = 0;
         consensus.smsg_difficulty_time = 0x5D19F5C0;    // 2019-07-01 12:00:00
-        consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00
+        // consensus.exploit_fix_1_time = 1614268800;      // 2021-02-25 16:00:00
 
-        consensus.clamp_tx_version_time = 1641056400;   // 2022-01-01 17:00:00 UTC
-        consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
+        consensus.clamp_tx_version_time = 1646150400;   // 2022-03-01 17:00:00
+        // consensus.smsg_fee_rate_fix_time = 1646150400;  // 2022-03-01 17:00:00
+        // consensus.m_taproot_time = 1641056400;          // 2022-01-01 17:00:00 UTC
 
         consensus.smsg_fee_period = 5040;
         consensus.smsg_fee_funding_tx_per_k = 200000;
@@ -720,35 +743,42 @@ public:
         consensus.smsg_min_difficulty = 0x1effffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
 
-        consensus.powLimit = uint256S("000000000005ffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1512; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.fPowNoRetargeting = true; // No retargeting for now in testnet
+        consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
+        consensus.nMinerConfirmationWindow = 144; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
         // Deployment of Taproot (BIPs 340-342)
+        // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1619222400; // April 24th, 2021
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1628640000; // August 11th, 2021
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
-        // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000001d53653b0771bebf61");
-        consensus.defaultAssumeValid = uint256S("0xab3724205826d2e38f0a12e1938d4825e3ba6f983ee74a08f2af33918bb53122"); // 1230000
 
-        consensus.nMinRCTOutputDepth = 12;
+        // The best chain should have at least this much work.
+        consensus.nMinimumChainWork = uint256{};
+        consensus.defaultAssumeValid = uint256{};
+
+        consensus.nMinRCTOutputDepth = 2;
+        consensus.m_frozen_anon_index = 20;
+        consensus.anonRestrictionStartHeight = 50;
+        consensus.automatedGvrActivationHeight = 1000;
 
         pchMessageStart[0] = 0x08;
         pchMessageStart[1] = 0x11;
         pchMessageStart[2] = 0x05;
         pchMessageStart[3] = 0x0b;
-        nDefaultPort = 51938;
+        nDefaultPort = 51928;
+        nBIP44IDCurrent = 0x80000213;
+        nBIP44IDLegacy = nBIP44IDCurrent;
         
         nBIP44IDCurrent = 0x80000213;
         nBIP44IDLegacy = nBIP44IDCurrent;
@@ -765,24 +795,31 @@ public:
         ghost::AddImportHashesTest(vImportedCoinbaseTxns);
         SetLastImportHeight();
 
-        genesis = ghost::CreateGenesisBlockTestNet(1502309248, 5924, 0x1f00ffff);
+
+        consensus.nLWMADiffUpgradeHeight = 40863;
+        consensus.nZawyLwmaAveragingWindow = 45;
+        // nBlockReward = 6 * COIN;
+        consensus.nBlockRewardIncreaseHeight = 40862;
+        consensus.nGVRPayOnetimeAmt = 129000 * COIN;
+        consensus.nOneTimeGVRPayHeight = 42308;
+        consensus.nGVRTreasuryFundAdjustment = 140536;
+        consensus.m_frozen_blinded_height = 884433;
+
+        genesis = ghost::CreateGenesisBlockTestNet(1663437816, 151165, 0x1f00ffff);
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256S("0x0000594ada5310b367443ee0afd4fa3d0bbd5850ea4e33cdc7d6a904a7ec7c90"));
-        assert(genesis.hashMerkleRoot == uint256S("0x2c7f4d88345994e3849502061f6303d9666172e4dff3641d3472a72908eec002"));
-        assert(genesis.hashWitnessMerkleRoot == uint256S("0xf9e2235c9531d5a19263ece36e82c4d5b71910d73cd0b677b81c5e50d17b6cda"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0000f7a29616311da755c7ebbcaf69eac2cac94d39f7361d773dafd610174f8f"));
+        assert(genesis.hashMerkleRoot == uint256S("0xc088a85a1e2aa0a55900f079078075af187600d5d242c09d5139fc3bbb23f1f8"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0x5e35a3292cbf2e112a65236817519565a3c50544dd24d602ceba985dba4e806c"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("testnet-seed.particl.io");
-        vSeeds.emplace_back("dnsseed-testnet.particl.io");
-        vSeeds.emplace_back("dnsseed-testnet.tecnovert.net");
 
         vTreasuryFundSettings.push_back(std::make_pair(0, ghost::TreasuryFundSettings("rTvv9vsbu269mjYYEecPYinDG8Bt7D86qD", 10, 60)));
 
-        base58Prefixes[PUBKEY_ADDRESS]     = {0x76}; // p
-        base58Prefixes[SCRIPT_ADDRESS]     = {0x7a};
+        base58Prefixes[PUBKEY_ADDRESS]     = {0x4B}; // X
+        base58Prefixes[SCRIPT_ADDRESS]     = {0x89}; // x
         base58Prefixes[PUBKEY_ADDRESS_256] = {0x77};
         base58Prefixes[SCRIPT_ADDRESS_256] = {0x7b};
         base58Prefixes[SECRET_KEY]         = {0x2e};
@@ -813,6 +850,28 @@ public:
         fDefaultConsistencyChecks = false;
         m_is_test_chain = true;
         m_is_mockable_chain = false;
+
+        anonRestricted = true;
+        // Full Script pubkey of the recovery addr: 76a91418cf988c85fdff42269cf1d39c526aa3530c778d88ac
+        anonRecoveryAddress = "XXZL34hbjru176j3q3f1EkofGCSprn5Hbq";
+        checkpointData = {
+            {
+                { 0, genesis.GetHash()},
+            }
+        };
+        
+        vTreasuryFundSettings.emplace_back(1, ghost::TreasuryFundSettings("XMAcJPax3H3LWiVoE3z1iWTXCCpnPxRDhp", 66, 14));
+        consensus.gvrThreshold = 10000 * COIN;
+        consensus.minRewardRangeSpan = 500; // 500 blocks for testnet
+        consensus.agvrStartPayingHeight = consensus.automatedGvrActivationHeight + consensus.minRewardRangeSpan + 1;
+        chainTxData = ChainTxData{
+            // Data from rpc: getchaintxstats 4096 12e6a081d1874b3dfff99e120b8e22599e15730c23c88805740c507c11c91809
+            /* nTime    */ 0,
+            /* nTxCount */ 0,
+            /* dTxRate  */ 0
+        };
+
+        blacklistedAnonTxs = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 
         checkpointData = {
             {
@@ -955,20 +1014,15 @@ public:
  * Regression test: intended for private networks only. Has minimal difficulty to ensure that
  * blocks can be found instantly.
  */
+
 class CRegTestParams : public CChainParams {
 public:
-    explicit CRegTestParams(const RegTestOptions& opts)
-    {
+    explicit CRegTestParams(const RegTestOptions& opts) {
         m_chain_type = ChainType::REGTEST;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.nSubsidyHalvingInterval = 150;
-        consensus.BIP34Height = 1; // Always active unless overridden
         consensus.BIP34Hash = uint256();
-        consensus.BIP65Height = 1;  // Always active unless overridden
-        consensus.BIP66Height = 1;  // Always active unless overridden
-        consensus.CSVHeight = 1;    // Always active unless overridden
-        consensus.SegwitHeight = 0; // Always active unless overridden
         consensus.MinBIP9WarningHeight = 0;
 
         consensus.OpIsCoinstakeTime = 0;
@@ -987,7 +1041,8 @@ public:
         consensus.smsg_fee_max_delta_percent = 4300;
         consensus.smsg_min_difficulty = 0x1f0fffff;
         consensus.smsg_difficulty_max_delta = 0xffff;
-        consensus.m_taproot_time = 0;
+        // consensus.smsg_fee_rate_fix_time = 0;
+        // consensus.m_taproot_time = 0;
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -996,44 +1051,6 @@ public:
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
         consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
-
-        consensus.nMinimumChainWork = uint256{};
-        consensus.defaultAssumeValid = uint256{};
-
-        consensus.nMinRCTOutputDepth = 2;
-
-        pchMessageStart[0] = 0x09;
-        pchMessageStart[1] = 0x12;
-        pchMessageStart[2] = 0x06;
-        pchMessageStart[3] = 0x0c;
-        nDefaultPort = 11938;
-
-        nBIP44IDCurrent = 0x80000001;
-        nBIP44IDLegacy = nBIP44IDCurrent;
-        nBIP44ID = (int)WithHardenedBit(1);
-
-
-        nModifierInterval = 2 * 60;     // 2 minutes
-        nStakeMinConfirmations = 12;
-        nTargetSpacing = 5;             // 5 seconds
-        nTargetTimespan = 16 * 60;      // 16 mins
-        nStakeTimestampMask = 0;
-
-        SetLastImportHeight();
-
-        nPruneAfterHeight = opts.fastprune ? 100 : 1000;
-        m_assumed_blockchain_size = 0;
-        m_assumed_chain_state_size = 0;
 
         for (const auto& [dep, height] : opts.activation_heights) {
             switch (dep) {
@@ -1061,37 +1078,64 @@ public:
             consensus.vDeployments[deployment_pos].min_activation_height = version_bits_params.min_activation_height;
         }
 
-        genesis = ghost::CreateGenesisBlockRegTest(1487714923, 0, 0x207fffff);
+        consensus.nMinimumChainWork = uint256{};
+        consensus.defaultAssumeValid = uint256{};
 
+        consensus.nMinRCTOutputDepth = 2;
+
+        consensus.anonRestrictionStartHeight = opts.anonRestrictionStartHeight;
+        consensus.automatedGvrActivationHeight = opts.automatedGvrActivationHeight;
+
+        pchMessageStart[0] = 0x09;
+        pchMessageStart[1] = 0x12;
+        pchMessageStart[2] = 0x06;
+        pchMessageStart[3] = 0x0c;
+        nDefaultPort = 11928;
+        nBIP44IDCurrent = 0x80000001;
+        nBIP44IDLegacy = nBIP44IDCurrent;
+
+        nModifierInterval = 2 * 60;    // 10 minutes
+        nStakeMinConfirmations = 12;   // 12 * 2 minutes
+        nTargetSpacing = 5;           // 5 seconds
+        nTargetTimespan = 16 * 60;      // 16 mins
+        consensus.nLWMADiffUpgradeHeight = 40863;
+        consensus.nZawyLwmaAveragingWindow = 45;
+        // nBlockReward = 6 * COIN;
+        consensus.nBlockRewardIncreaseHeight = 40862;
+        consensus.nGVRPayOnetimeAmt = 129000 * COIN;
+        consensus.nOneTimeGVRPayHeight = 42308;
+        consensus.nGVRTreasuryFundAdjustment = 140536;
+        // nBlockRewardIncrease = 2;
+        nStakeTimestampMask = 0;
+        // nBlockPerc = {100, 100, 95, 90, 86, 81, 77, 74, 70, 66, 63, 60, 57, 54, 51, 49, 46, 44, 42, 40, 38, 36, 34, 32, 31, 29, 28, 26, 25, 24, 23, 21, 20, 19, 18, 17, 17, 16, 15, 14, 14, 13, 12, 12, 11, 10, 10};
+
+        nPruneAfterHeight = 1000;
+        m_assumed_blockchain_size = 0;
+        m_assumed_chain_state_size = 0;
+
+        // UpdateActivationParametersFromArgs(args);
+
+        genesis = ghost::CreateGenesisBlockRegTest(1543578342, 1, 0x207fffff);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x6cd174536c0ada5bfa3b8fde16b98ae508fff6586f2ee24cf866867098f25907"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0df42459b6ced4f7c9ec8c7d4c4efe1a9ca89441f17e8c2485a80c247d0544b2"));
         assert(genesis.hashMerkleRoot == uint256S("0xf89653c7208af2c76a3070d436229fb782acbd065bd5810307995b9982423ce7"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x36b66a1aff91f34ab794da710d007777ef5e612a320e1979ac96e5f292399639"));
 
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
-        vSeeds.clear();
-        vSeeds.emplace_back("dummySeed.invalid.");
+        vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
 
         fDefaultConsistencyChecks = true;
+        // fRequireStandard = true;
         m_is_test_chain = true;
         m_is_mockable_chain = true;
 
+        blacklistedAnonTxs = GetAnonIndexFromString(opts.blacklisted);
+
         checkpointData = {
             {
-                {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")},
+                {0, uint256S("0x0df42459b6ced4f7c9ec8c7d4c4efe1a9ca89441f17e8c2485a80c247d0544b2")},
             }
-        };
-
-        m_assumeutxo_data = MapAssumeutxo{
-            {
-                110,
-                {AssumeutxoHash{uint256S("0xd98b6865564c85700442c2df34cf379d97ac4c157b3eb25780ca916183620376")}, 110},
-            },
-            {
-                200,
-                {AssumeutxoHash{uint256S("0x51c8d11d8b5c1de51543c579736e786aa2736206d1e11e627568029ce092cf62")}, 200},
-            },
         };
 
         base58Prefixes[PUBKEY_ADDRESS]     = {0x76}; // p
@@ -1107,7 +1151,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY_BTC] = {0x04, 0x35, 0x87, 0xCF}; // tpub
         base58Prefixes[EXT_SECRET_KEY_BTC] = {0x04, 0x35, 0x83, 0x94}; // tprv
 
-        bech32Prefixes[PUBKEY_ADDRESS].assign       ("tph",(const char*)"tph"+3);
+        bech32Prefixes[PUBKEY_ADDRESS].assign       ("rghost",(const char*)"rghost"+6);
         bech32Prefixes[SCRIPT_ADDRESS].assign       ("tpr",(const char*)"tpr"+3);
         bech32Prefixes[PUBKEY_ADDRESS_256].assign   ("tpl",(const char*)"tpl"+3);
         bech32Prefixes[SCRIPT_ADDRESS_256].assign   ("tpj",(const char*)"tpj"+3);
@@ -1126,7 +1170,51 @@ public:
             0,
             0
         };
+
+
+        gvrCheckpoints = {
+            {0, uint256S("0x0df42459b6ced4f7c9ec8c7d4c4efe1a9ca89441f17e8c2485a80c247d0544b2")}
+        };
+
+        anonRestricted = opts.anonRestricted;
+        consensus.m_frozen_anon_index = opts.frozen_anon_index;
+        anonRecoveryAddress = "pX9N6S76ZtA5BfsiJmqBbjaEgLMHpt58it";
+
+        consensus.gvrThreshold = opts.gvrThreshold;
+        consensus.minRewardRangeSpan = opts.minRewardRangeSpan;
+        consensus.agvrStartPayingHeight = opts.agvrStartPayingHeight;
     }
+
+    void SetOld()
+    {
+        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
+        consensus.hashGenesisBlock = genesis.GetHash();
+        /*
+        pchMessageStart[0] = 0xfa;
+        pchMessageStart[1] = 0xbf;
+        pchMessageStart[2] = 0xb5;
+        pchMessageStart[3] = 0xda;
+        */
+
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
+        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
+        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+
+        bech32_hrp = "bcrt";
+    }
+
+    /**
+     * Allows modifying the Version Bits regtest parameters.
+     */
+    void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout, int min_activation_height)
+    {
+        consensus.vDeployments[d].nStartTime = nStartTime;
+        consensus.vDeployments[d].nTimeout = nTimeout;
+        consensus.vDeployments[d].min_activation_height = min_activation_height;
+    }
+    // void UpdateActivationParametersFromArgs(const ArgsManager& args);
 };
 
 std::unique_ptr<CChainParams> CChainParams::SigNet(const SigNetOptions& options)

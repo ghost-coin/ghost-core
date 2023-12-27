@@ -23,6 +23,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "chainstatemanager_opts.h"
+
 
 class CBlockIndex;
 
@@ -188,6 +190,14 @@ public:
         std::unordered_map<Consensus::DeploymentPos, VersionBitsParameters> version_bits_parameters{};
         std::unordered_map<Consensus::BuriedDeployment, int> activation_heights{};
         bool fastprune{false};
+        int anonRestrictionStartHeight{DEFAULT_ANON_RESTRICTION_START_HEIGHT};
+        int automatedGvrActivationHeight{DEFAULT_GVR_START_HEIGHT};
+        std::string blacklisted{""};
+        bool anonRestricted{DEFAULT_ANON_RESTRICTED};
+        int frozen_anon_index{DEFAULT_LAST_ANON_INDEX};
+        int64_t gvrThreshold{DEFAULT_GVR_THRESHOLD};
+        int minRewardRangeSpan{DEFAULT_MIN_REWARD_RANGE_SPAN};
+        int agvrStartPayingHeight{0};
     };
 
     static std::unique_ptr<CChainParams> RegTest(const RegTestOptions& options);

@@ -97,6 +97,26 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
             throw std::runtime_error(strprintf("Invalid deployment (%s)", vDeploymentParams[0]));
         }
     }
+
+    if (auto anonRestrict = args.GetArg("-anonrestrictionstartheight")) {
+        if (!ParseInt32(anonRestrict.value(), &options.anonRestrictionStartHeight)) {
+            throw std::runtime_error(strprintf("Invalid anonrestrictionstartheight (%s)", anonRestrict.value()));
+        }
+    }
+
+    if (auto automatedGvrActivationHeight = args.GetArg("-automatedgvrstartheight")) {
+        if (!ParseInt32(automatedGvrActivationHeight.value(), &options.automatedGvrActivationHeight)) {
+            throw std::runtime_error(strprintf("Invalid automatedGvrActivationHeight (%s)", automatedGvrActivationHeight.value()));
+        }
+    }
+
+    if (auto bl = args.GetArg("-blacklistedanon")) {
+        options.blacklisted = bl.value();
+    }
+
+    if (auto ba = args.GetBoolArg("-anonrestricted"); ba.has_value()) {
+        options.anonRestricted = ba.value();
+    }
 }
 
 static std::unique_ptr<CChainParams> globalChainParams;
