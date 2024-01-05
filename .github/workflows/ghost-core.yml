@@ -77,7 +77,7 @@ jobs:
     
       
       - name: install dependencies
-        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc pkg-config python qt@5 libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc pkg-config python libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
   
       - name: Refresh automake configs
         run: ./autogen.sh
