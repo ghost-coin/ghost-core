@@ -58,7 +58,7 @@ jobs:
         run: make check
 
   build-macos:
-    runs-on: macOS-11
+    runs-on: macOS-latest
     env:
       CCACHE_TEMPDIR: /tmp/.ccache-temp
     steps:
