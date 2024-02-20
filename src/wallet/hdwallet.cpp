@@ -11217,7 +11217,14 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx, C
 
     if (!strCmd.empty()) {
         boost::replace_all(strCmd, "%s", txhash.GetHex());
-        //boost::replace_all(strCmd, "%w", ShellEscape(GetName()));
+        #ifndef WIN32
+            // Substituting the wallet name isn't currently supported on windows
+            // because windows shell escaping has not been implemented yet:
+            // https://github.com/bitcoin/bitcoin/pull/13339#issuecomment-537384875
+            // A few ways it could be implemented in the future are described in:
+            // https://github.com/bitcoin/bitcoin/pull/13339#issuecomment-461288094
+            boost::replace_all(strCmd, "%w", ShellEscape(GetName()));
+        #endif
         std::thread t(runCommand, strCmd);
         t.detach(); // thread runs free
     }
@@ -11822,7 +11829,9 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlyS
             }
 
             if (spend_frozen && !include_tainted_frozen) {
-                if (r.nValue > consensusParams.m_max_tainted_value_out) {
+                CAmount max_tainted_value_out = rtx.block_height >= consensusParams.nBlockRewardCorrectionHeight ?
+                    consensusParams.m_max_tainted_value_out_increased : consensusParams.m_max_tainted_value_out;
+                if (r.nValue > max_tainted_value_out) {
                     if (IsFrozenBlindOutput(txid)) {
                         continue;
                     }
@@ -12074,11 +12083,13 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
                 // TODO: Store pubkey on COutputRecord - in scriptPubKey
                 CStoredTransaction stx;
                 int64_t index;
+                CAmount max_tainted_value_out = rtx.block_height >= consensusParams.nBlockRewardCorrectionHeight ?
+                    consensusParams.m_max_tainted_value_out_increased : consensusParams.m_max_tainted_value_out;
                 if (!wdb.ReadStoredTx(txid, stx) ||
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                     !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
                     !::Params().IsBlacklistedAnonOutput(index) ||
-                    (!IsWhitelistedAnonOutput(index, time_now, consensusParams) && r.nValue > consensusParams.m_max_tainted_value_out)) {
+                    (!IsWhitelistedAnonOutput(index, time_now, consensusParams) && r.nValue > max_tainted_value_out)) {
                     continue;
                 }
             }
@@ -13540,6 +13551,9 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
     bool devFundPaid = false;
 
     const TreasuryFundSettings *pTreasuryFundSettings = Params().GetTreasuryFundSettings(nTime);
+    const int agvrFundPercent = nBlockHeight >= consensusParams.nBlockRewardCorrectionHeight ? 33 : 50;
+    const int devFundPercent = nBlockHeight >= consensusParams.nBlockRewardCorrectionHeight ? 21 : 16;
+
     if (!pTreasuryFundSettings || pTreasuryFundSettings->nMinTreasuryStakePercent <= 0) {
         nRewardOut = nReward;
     } else {
@@ -13598,8 +13612,9 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
 
         } else {
             // Place devfunds
+
             CAmount nTreasuryBfwd = 0;
-            CAmount devFundOut = (nRewardFeesExcluded * 16) / 100; // 16% goes to devfund
+            CAmount devFundOut = (nRewardFeesExcluded * devFundPercent) / 100; // 16% goes to devfund
 
             if (nBlockHeight > 1) { // genesis block is pow
                 LOCK(cs_main);
@@ -13675,7 +13690,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             return trackedAddrDest == stakerAddrDest;
         });
 
-        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        CAmount gvrOut = (nRewardFeesExcluded * agvrFundPercent) / 100; // 50% goes to the veteran
         CAmount gvrOutTotal = nGVRfwd + gvrOut;
 
         nRewardOut -= gvrOut;
@@ -13722,7 +13737,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
         
         CTxDestination dfDest = CBitcoinAddress(pTreasuryFundSettings->sTreasuryFundAddresses).Get();
 
-        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        CAmount gvrOut = (nRewardFeesExcluded * agvrFundPercent) / 100; // 50% goes to the veteran
         auto gvrOutTotal = nGVRfwd + gvrOut;
 
         OUTPUT_PTR<CTxOutStandard> gvrOutTx = MAKE_OUTPUT<CTxOutStandard>();
@@ -13743,7 +13758,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
             nGVRfwd = 0;
         }
 
-        CAmount gvrOut = (nRewardFeesExcluded * 50) / 100; // 50% goes to the veteran
+        CAmount gvrOut = (nRewardFeesExcluded * agvrFundPercent) / 100; // 50% goes to the veteran
         nRewardOut -= gvrOut;
         auto gvrOutTotal = nGVRfwd + gvrOut;
         std::vector<uint8_t> vCfwd(1), &vData = *txNew.vpout[0]->GetPData();

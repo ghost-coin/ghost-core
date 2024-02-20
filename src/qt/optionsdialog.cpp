@@ -44,7 +44,11 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     ui->pruneWarning->setStyleSheet("QLabel { color: red; }");
 
     ui->pruneSize->setEnabled(false);
-    connect(ui->prune, &QPushButton::toggled, ui->pruneSize, &QWidget::setEnabled);
+
+    // Disable prune mode until AGVR confilct is resolved.
+
+    ui->prune->setEnabled(false);
+    //connect(ui->prune, &QPushButton::toggled, ui->pruneSize, &QWidget::setEnabled);
 
     /* Network elements init */
 #ifndef USE_UPNP

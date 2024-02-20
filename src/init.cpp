@@ -739,6 +739,8 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-anonrestrictionstartheight", strprintf("Height at which to start anon restriction (default: %u)", DEFAULT_ANON_RESTRICTION_START_HEIGHT), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-blacklistedanon", "A list of anon indexes to blacklist eg: 1,3,5,6", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-gvrthreshold", "Threshold gvr", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-moneysupplycap", "Sets many supply cap", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-rewardcorrectionheight", "Sets reward correction height", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-minrewardrangespan", "Min reward range span", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-automatedgvrstartheight", "Automated GVR start height", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-startpayingheight", "Automated GVR start paying height", ArgsManager::ALLOW_INT | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
@@ -1205,6 +1207,9 @@ bool AppInitParameterInteraction(const ArgsManager& args)
 
     // if using block pruning, then disallow txindex
     if (args.GetArg("-prune", 0)) {
+        // Disable prune mode until AGVR confilct is resolved.
+        return InitError(_("Prune mode is incompatible with AGVR."));
+        
         if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX))
             return InitError(_("Prune mode is incompatible with -txindex."));
         if (!g_enabled_filter_types.empty()) {

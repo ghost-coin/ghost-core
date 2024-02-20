@@ -104,6 +104,8 @@ struct Params {
     int m_frozen_blinded_height = 0;
     /** Maximum value of tainted blinded output that can be spent without being whitelisted */
     int64_t m_max_tainted_value_out = 200LL * 100000000LL /* COIN */;
+    /** Increased maximum value of tainted blinded output that can be spent without being whitelisted */
+    int64_t m_max_tainted_value_out_increased = 150000LL * 100000000LL /* COIN */;
     /** Fix GetMaxSmsgFeeRateDelta */
     uint32_t smsg_fee_rate_fix_time = 0xffffffff; /* TODO: Remove after fork */
     /** Time taproot activates on Particl chain */
@@ -148,6 +150,10 @@ struct Params {
     int nBlockRewardIncreaseHeight;
     //GVR Allocation one time payout params
     int nOneTimeGVRPayHeight;
+    //Block reward correction height
+    int nBlockRewardCorrectionHeight;
+    //Block reward correction height
+    int nMoneySupplyCap;
     //GVR Devfund Adjustment to a GVR held address
     int nGVRTreasuryFundAdjustment;
     int64_t nGVRPayOnetimeAmt;
