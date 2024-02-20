@@ -6726,7 +6726,8 @@ static UniValue debugwallet(const JSONRPCRequest &request)
     bool clear_stakes_seen = false;
     bool downgrade_wallets = false;
     bool exit_ibd = false;
-    CAmount max_frozen_output_spendable = pwallet->GetLastBlockHeight() >= Params().GetConsensus().nBlockRewardCorrectionHeight ? 150000LL * 100000000LL : Params().GetConsensus().m_max_tainted_value_out;
+    CAmount max_frozen_output_spendable = pwallet->GetLastBlockHeight() >= Params().GetConsensus().nBlockRewardCorrectionHeight ?
+        Params().GetConsensus().m_max_tainted_value_out_increased : Params().GetConsensus().m_max_tainted_value_out;
     int64_t time_now = GetAdjustedTime();
 
     if (!request.params[0].isNull()) {

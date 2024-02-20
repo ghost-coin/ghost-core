@@ -11829,7 +11829,8 @@ void CHDWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlyS
             }
 
             if (spend_frozen && !include_tainted_frozen) {
-                CAmount max_tainted_value_out = rtx.block_height >= consensusParams.nBlockRewardCorrectionHeight ? 150000LL * 100000000LL : consensusParams.m_max_tainted_value_out;
+                CAmount max_tainted_value_out = rtx.block_height >= consensusParams.nBlockRewardCorrectionHeight ?
+                    consensusParams.m_max_tainted_value_out_increased : consensusParams.m_max_tainted_value_out;
                 if (r.nValue > max_tainted_value_out) {
                     if (IsFrozenBlindOutput(txid)) {
                         continue;
@@ -12082,7 +12083,8 @@ void CHDWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe
                 // TODO: Store pubkey on COutputRecord - in scriptPubKey
                 CStoredTransaction stx;
                 int64_t index;
-                CAmount max_tainted_value_out = rtx.block_height >= consensusParams.nBlockRewardCorrectionHeight ? 150000LL * 100000000LL : consensusParams.m_max_tainted_value_out;
+                CAmount max_tainted_value_out = rtx.block_height >= consensusParams.nBlockRewardCorrectionHeight ?
+                    consensusParams.m_max_tainted_value_out_increased : consensusParams.m_max_tainted_value_out;
                 if (!wdb.ReadStoredTx(txid, stx) ||
                     !stx.tx->vpout[r.n]->IsType(OUTPUT_RINGCT) ||
                     !pblocktree->ReadRCTOutputLink(((CTxOutRingCT*)stx.tx->vpout[r.n].get())->pk, index) ||
