@@ -31,7 +31,7 @@ brew install librsvg
 ```
 
 The wallet support requires one or both of the dependencies ([*SQLite*](#sqlite) and [*Berkeley DB*](#berkeley-db)) in the sections below.
-To build Bitcoin Core without wallet, see [*Disable-wallet mode*](#disable-wallet-mode).
+To build Ghost Core without wallet, see [*Disable-wallet mode*](#disable-wallet-mode).
 
 #### SQLite
 
@@ -42,7 +42,7 @@ Also, the Homebrew package could be installed:
 brew install sqlite
 ```
 
-In that case the Homebrew package will prevail.
+In that case, the Homebrew package will prevail.
 
 #### Berkeley DB
 
@@ -62,17 +62,17 @@ Also, the Homebrew package could be installed:
 brew install berkeley-db4
 ```
 
-## Build Particl Core
+## Build Ghost Core
 
-1. Clone the Particl Core source code:
+1. Clone the Ghost Core source code:
     ```shell
-    git clone https://github.com/particl/particl-core
-    cd particl-core
+    git clone https://github.com/particl/ghost-core
+    cd ghost-core
     ```
 
-2.  Build Particl Core:
+2.  Build Ghost Core:
 
-    Configure and build the headless Particl Core binaries as well as the GUI (if Qt is found).
+    Configure and build the headless Ghost Core binaries as well as the GUI (if Qt is found).
 
     You can disable the GUI build by passing `--without-gui` to configure.
     ```shell
@@ -92,41 +92,41 @@ brew install berkeley-db4
     ```
 
 ## Disable-wallet mode
-When the intention is to run only a P2P node without a wallet, Particl Core may be
+When the intention is to run only a P2P node without a wallet, Ghost Core may be
 compiled in disable-wallet mode with:
 ```shell
 ./configure --disable-wallet
 ```
 
-In this case there is no dependency on [*Berkeley DB*](#berkeley-db) and [*SQLite*](#sqlite).
+In this case, there is no dependency on [*Berkeley DB*](#berkeley-db) and [*SQLite*](#sqlite).
 
-Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
+Mining is also possible in disable-wallet mode, using the `getblocktemplate` RPC call.
 
 ## Running
-Particl Core is now available at `./src/particld`
+Ghost Core is now available at `./src/ghostd`
 
 Before running, you may create an empty configuration file:
 ```shell
-mkdir -p "/Users/${USER}/Library/Application Support/Particl"
+mkdir -p "/Users/${USER}/Library/Application Support/Ghost"
 
-touch "/Users/${USER}/Library/Application Support/Particl/ghost.conf"
+touch "/Users/${USER}/Library/Application Support/Ghost/ghost.conf"
 
-chmod 600 "/Users/${USER}/Library/Application Support/Particl/ghost.conf"
+chmod 600 "/Users/${USER}/Library/Application Support/Ghost/ghost.conf"
 ```
 
-The first time you run particld, it will start downloading the blockchain. This process could
+The first time you run ghostd, it will start downloading the blockchain. This process could
 take many hours, or even days on slower than average systems.
 
 You can monitor the download process by looking at the debug.log file:
 ```shell
-tail -f $HOME/Library/Application\ Support/Particl/debug.log
+tail -f $HOME/Library/Application\ Support/Ghost/debug.log
 ```
 
 ## Other commands:
 ```shell
-./src/particld -daemon      # Starts the particl daemon.
-./src/particl-cli --help    # Outputs a list of command-line options.
-./src/particl-cli help      # Outputs a list of RPC commands when the daemon is running.
+./src/ghostd -daemon      # Starts the ghost daemon.
+./src/ghost-cli --help    # Outputs a list of command-line options.
+./src/ghost-cli help      # Outputs a list of RPC commands when the daemon is running.
 ```
 
 ## Notes
