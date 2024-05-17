@@ -100,11 +100,11 @@ void ColdRewardTracker::endPersistedTransaction()
 }
 
 const std::vector<std::pair<ColdRewardTracker::AddressType, CAmount>> ColdRewardTracker::getBalances() {
-    const std::map<AddressType, std::vector<BlockHeightRange>> ranges = allRangesGetter();
+    const std::map<AddressType, std::vector<BlockHeightRange>> ranges = getAllRanges();
     std::vector<std::pair<AddressType, CAmount>> result;
 
     for(const auto& r: ranges) {
-        CAmount balance = balanceGetter(r.first);
+        CAmount balance = getBalance(r.first);
         auto add = std::string(r.first.begin(), r.first.end());
         LogPrintf("%s Tracking addr %s with balance %i \n", __func__, add, balance);
         result.push_back(std::make_pair(r.first, balance));
@@ -142,22 +142,19 @@ boost::optional<int> ColdRewardTracker::GetLastCheckpoint(const std::map<int, ui
     }
 }
 
-unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHeight, const std::vector<BlockHeightRange>& addressRanges)
+unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHeight, const std::vector<BlockHeightRange>& ar)
 {
 
     std::vector<unsigned> rewardMultipliers;
 
-    const auto& ar = addressRanges;
-
     for(unsigned i = 0; i < ar.size(); i++) {
         const unsigned idx = ar.size() - i - 1;
-        // Now we're getting the elig addr every block
-        // AssertTrue(currentBlockHeight > ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
-        // AssertTrue(currentBlockHeight > ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
+        // AssertTrue(currentBlockHeight >= ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
+        // AssertTrue(currentBlockHeight >= ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
 
         // collect all reward multipliers that are > 0 over the last periods, to figure out the final reward
         const int startDistance = currentBlockHeight - ar[idx].getStart();
-        const int endDistance = currentBlockHeight -   ar[idx].getEnd();
+        const int endDistance = currentBlockHeight - ar[idx].getEnd();
 
         if(ar[idx].getRewardMultiplier() > 0) {
             // collect all changes in balance
@@ -196,7 +193,7 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
 
 std::vector<std::pair<ColdRewardTracker::AddressType, unsigned>> ColdRewardTracker::getEligibleAddresses(int currentBlockHeight)
 {
-    const std::map<AddressType, std::vector<BlockHeightRange>> ranges = allRangesGetter();
+    const std::map<AddressType, std::vector<BlockHeightRange>> ranges = getAllRanges();
     std::vector<std::pair<AddressType, unsigned>> result;
 
     for(const auto& r: ranges) {
@@ -255,7 +252,7 @@ void ColdRewardTracker::addAddressTransaction(int blockHeight, const AddressType
             // we add a [blockHeight, blockHeight] range as a marker that the balance has crossed a threshold multiple
             ranges.push_back(BlockHeightRange(blockHeight, blockHeight, currentMultiplier, ranges.back().getRewardMultiplier()));
         } else {
-            LogPrintf("%s Previous range value [%d, %d]\n", __func__, ranges.back().getStart(), ranges.back().getEnd());
+            LogPrintf("%s Previous range value for [%s] is [%d, %d]\n", __func__, std::string(address.begin(), address.end()), ranges.back().getStart(), ranges.back().getEnd());
             ranges.back().newEnd(blockHeight);
         }
     }
@@ -356,7 +353,12 @@ void ColdRewardTracker::setAllRangesGetter(const std::function<std::map<AddressT
     allRangesGetter = func;
 }
 
-const std::map<ColdRewardTracker::AddressType, std::vector<BlockHeightRange>>& ColdRewardTracker::getAllRanges() const
+const std::map<ColdRewardTracker::AddressType, std::vector<BlockHeightRange>>& ColdRewardTracker::getAllRanges()
 {
+    if (!addressesRanges.empty()) {
+        return addressesRanges;
+    }
+
+    addressesRanges = allRangesGetter();
     return addressesRanges;
 }

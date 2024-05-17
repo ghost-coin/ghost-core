@@ -127,7 +127,7 @@ public:
 
     void setAllRangesGetter(const std::function<std::map<AddressType, std::vector<BlockHeightRange>>()>& func);
 
-    const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges() const;
+    const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges();
     const std::vector<std::pair<AddressType, CAmount>> getBalances();
 
     void setGvrThreshold(const CAmount& amount) { 

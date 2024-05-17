@@ -2386,7 +2386,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             !pblocktree->WriteLastTrackedHeight(pindex->pprev->nHeight)) {
             return DISCONNECT_FAILED;
         } else {
-            LogPrintf("%s Writting last tracked height %d\n", __func__, pindex->pprev->nHeight);
+            LogPrintf("%s Writing last tracked height %d\n", __func__, pindex->pprev->nHeight);
         }
 
     }
@@ -3338,6 +3338,16 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 } else {
                     // The staker was not eligible so the carried forward has to be set
                     // The carried forward is set since there were no gvr output
+                    LogPrintf("THE STAKER OF THE BLOCK IS %s\n", EncodeDestination(stakerAddrDest));
+                    LogPrintf("THE SIZE OF THE ELIG MAP IS %d\n", eligibleAddresses.size());
+
+                    for (auto& elig: eligibleAddresses) {
+                        LogPrintf("ELIGIBLE ADRR WERE (ADDR=%s, MUL=%d)\n", std::string(elig.first.begin(), elig.first.end()), elig.second);
+                    }
+
+                    eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
+                    LogPrintf("THE SIZE OF THE ELIG MAP AFTER RETRY IS %d\n", eligibleAddresses.size());
+
                     if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)) {
                         LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
@@ -3390,20 +3400,24 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
     std::int64_t readHeight;
 
-    if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadLastTrackedHeight(readHeight)) {
-        if (pindex->nHeight == 1 || pindex->nHeight == consensus.automatedGvrActivationHeight) {
-            readHeight = 0;
-        } else {
+    if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+
+        if (!pblocktree->ReadLastTrackedHeight(readHeight)) {
             LogPrintf("%s Impossible to read last tracked height attempted height %s\n", __func__, pindex->nHeight);
             return false;
         }
+        if (pindex->nHeight == 1 || pindex->nHeight == consensus.automatedGvrActivationHeight) {
+            readHeight = 0;
+        }
     }
+
 
     // Track the inputs/outputs for any balance changes
     // Track out/in only after verifydb is done
 
     if (!fVerifyingDB) {
-        if (readHeight < pindex->nHeight && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
+        LogPrintf("TRACKING CURRENT HEIGHT %d AND READ HEIGHT = %d\n", pindex->nHeight, readHeight);
+        if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
 
             LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
 
@@ -3788,6 +3802,7 @@ std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
 
     while (pcursor->Valid()) {
         if (ShutdownRequested()) {
+            LogPrintf("SHUTDOWN REQUESTED RETURNING EMPTY BLOCK RANGES");
             return std::map<AddressType, std::vector<BlockHeightRange>>();
         }
         std::pair<char, AddressType> key;
@@ -3801,6 +3816,10 @@ std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
             break;
         }
     }
+
+    if (ranges.empty()) {
+        LogPrintf("RETRIEVED FOR SOME REASONS EMPTY RANGES FROM DB");
+    } 
     return ranges;
 }
 
@@ -6458,6 +6477,43 @@ bool CChainState::LoadChainTip(const CChainParams& chainparams)
     }
     m_chain.SetTip(pindex);
     PruneBlockIndexCandidates();
+
+    std::int64_t readHeight;
+    int currentHeight = m_chain.Height();
+    ColdRewardUndo undoData;
+    ColdRewardTracker& tracker = initColdReward();
+
+    LogPrintf("REMOVING COLD REWARD DURING STARTUP %d\n", currentHeight);
+    if (!pblocktree->ReadLastTrackedHeight(readHeight)) {
+        LogPrintf("Can't read last tracked height from disk");
+    }
+
+    LogPrintf("READ HEIGHT AFTER STARTUP IS %d\n", readHeight);
+
+    if (currentHeight >= 1 && currentHeight >= chainparams.GetConsensus().automatedGvrActivationHeight) {
+        if (currentHeight == 1 || currentHeight == chainparams.GetConsensus().automatedGvrActivationHeight) {
+            readHeight = 0;
+        } 
+
+        pblocktree->ReadRewardTrackerUndo(undoData, 1);
+
+        while (readHeight > currentHeight) {
+            for(const auto& output: undoData.outputs.at(readHeight)) {
+                const auto addr = std::string(output.first.begin(), output.first.end());
+                LogPrintf("%s Remove tracked output %d of addr %s \n", __func__, output.second, addr);
+                rewardTracker.removeAddressTransaction(readHeight, output.first, output.second);
+            }
+
+            for(const auto& input: undoData.inputs.at(readHeight)) {
+                const auto addr = std::string(input.first.begin(), input.first.end());
+                LogPrintf("%s Remove tracked input %d of addr %s \n", __func__, input.second, addr);
+                rewardTracker.removeAddressTransaction(readHeight, input.first, - input.second);
+            }
+            readHeight--;
+        }
+
+        pblocktree->WriteLastTrackedHeight(readHeight);
+    }
 
     tip = m_chain.Tip();
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
