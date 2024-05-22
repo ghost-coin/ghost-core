@@ -9878,7 +9878,7 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
         flushState = request.params[2].get_bool();
     }
 
-    auto& tracker = initColdReward();
+    auto& tracker = InitColdReward();
 
     if (flushState) {
         tracker.endPersistedTransaction();

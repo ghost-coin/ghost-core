@@ -13682,7 +13682,7 @@ bool CHDWallet::CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHei
              return werror("%s: Can't extract destination for kernel script.", __func__);
         }
 
-        auto& rewardTracker = initColdReward();
+        auto& rewardTracker = InitColdReward();
         const auto& eligibleAddresses = rewardTracker.getEligibleAddresses(nBlockHeight);
         auto isStakerGvrEligible = std::find_if(eligibleAddresses.cbegin(), eligibleAddresses.cend(),
                                                 [&stakerAddrDest](const std::pair<ColdRewardTracker::AddressType, unsigned int>& addrMul) {

@@ -149,8 +149,8 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
 
     for(unsigned i = 0; i < ar.size(); i++) {
         const unsigned idx = ar.size() - i - 1;
-        // AssertTrue(currentBlockHeight >= ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
-        // AssertTrue(currentBlockHeight >= ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
+        AssertTrue(currentBlockHeight >= ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
+        AssertTrue(currentBlockHeight >= ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
 
         // collect all reward multipliers that are > 0 over the last periods, to figure out the final reward
         const int startDistance = currentBlockHeight - ar[idx].getStart();
@@ -198,7 +198,7 @@ std::vector<std::pair<ColdRewardTracker::AddressType, unsigned>> ColdRewardTrack
 
     for(const auto& r: ranges) {
         const std::vector<BlockHeightRange>& ar = r.second;
-        // AssertTrue(ar.empty() || ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
+        AssertTrue(ar.empty() || ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
         const unsigned rewardMultiplier = ExtractRewardMultiplierFromRanges(currentBlockHeight, ar);
         if(rewardMultiplier > 0)
         {

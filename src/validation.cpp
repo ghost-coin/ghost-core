@@ -238,6 +238,7 @@ CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& loc
 std::unique_ptr<CBlockTreeDB> pblocktree;
 
 bool CheckInputScripts(const CTransaction& tx, TxValidationState &state, const CCoinsViewCache &inputs, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks = nullptr, bool fAnonChecks = true);
+void CheckpointSetter(int newCheckpoint);
 static FILE* OpenUndoFile(const FlatFilePos &pos, bool fReadOnly = false);
 static FlatFileSeq BlockFileSeq();
 static FlatFileSeq UndoFileSeq();
@@ -3288,7 +3289,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
 
                 auto eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
                 CTxDestination stakerAddrDest;
-                uint256 kernelhash, kernelblockhash;
 
                 const COutPoint& prevout = (*block.vtx[0]).vin[0].prevout;
 
@@ -3401,13 +3401,12 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     std::int64_t readHeight;
 
     if (pindex->nHeight >= 1 && pindex->nHeight >= consensus.automatedGvrActivationHeight) {
-
-        if (!pblocktree->ReadLastTrackedHeight(readHeight)) {
-            LogPrintf("%s Impossible to read last tracked height attempted height %s\n", __func__, pindex->nHeight);
-            return false;
-        }
+        
         if (pindex->nHeight == 1 || pindex->nHeight == consensus.automatedGvrActivationHeight) {
             readHeight = 0;
+        } else if (!pblocktree->ReadLastTrackedHeight(readHeight)) {
+            LogPrintf("%s Impossible to read last tracked height attempted height %s\n", __func__, pindex->nHeight);
+            return false;
         }
     }
 
@@ -3685,6 +3684,12 @@ bool CChainState::FlushStateToDisk(
                 LOG_TIME_MILLIS_WITH_CATEGORY("unlink pruned files", BCLog::BENCH);
 
                 UnlinkPrunedFiles(setFilesToPrune);
+
+                // Update the checkpoint here so that we make sure the block have really be pruned
+                int checkpointHeight = (m_chain.Height() - MIN_BLOCKS_TO_KEEP) + 1;
+
+                LogPrintf("BLOCK PRUNED, WRITING CHECKPOINT DATA %i\n", checkpointHeight);
+                ::CheckpointSetter(checkpointHeight);
             }
             nLastWrite = nNow;
         }
@@ -3767,7 +3772,7 @@ static void ClearSpentCache(CDBBatch &batch, int height)
     }
 }
 
-void balanceSetter(const AddressType& addr, const CAmount& amount) {
+void BalanceSetter(const AddressType& addr, const CAmount& amount) {
     CDBBatch batch(*pblocktree);
     batch.Write(std::make_pair(DB_GVR_BALANCE, addr), amount);
 
@@ -3776,7 +3781,7 @@ void balanceSetter(const AddressType& addr, const CAmount& amount) {
     }
 }
 
-void rangesSetter(const AddressType& addr, const std::vector<BlockHeightRange>& vranges) {
+void RangesSetter(const AddressType& addr, const std::vector<BlockHeightRange>& vranges) {
     CDBBatch batch(*pblocktree);
     batch.Write(std::make_pair(DB_GVR_RANGE, addr), vranges);
 
@@ -3785,7 +3790,7 @@ void rangesSetter(const AddressType& addr, const std::vector<BlockHeightRange>& 
     }
 }
 
-void checkpointSetter(int newCheckpoint) {
+void CheckpointSetter(int newCheckpoint) {
     CDBBatch batch(*pblocktree);
     batch.Write(std::make_pair(DB_GVR_CHECKPOINT, 0), newCheckpoint);
 
@@ -3794,7 +3799,7 @@ void checkpointSetter(int newCheckpoint) {
     }
 }
 
-std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
+std::map<AddressType, std::vector<BlockHeightRange>> AllRangesGetter() {
     std::map<AddressType, std::vector<BlockHeightRange>> ranges;
     const std::unique_ptr<CDBIterator> pcursor(pblocktree->NewIterator());
 
@@ -3823,15 +3828,15 @@ std::map<AddressType, std::vector<BlockHeightRange>> allRangesGetter() {
     return ranges;
 }
 
-void clearTrackedData() {
-    auto allRanges = allRangesGetter();
+void ClearTrackedData() {
+    auto allRanges = AllRangesGetter();
 
     for (auto& range: allRanges) {
         pblocktree->Erase(std::make_pair(DB_GVR_RANGE, range.first));
         pblocktree->Erase(std::make_pair(DB_GVR_BALANCE, range.first));
     }
 
-    allRanges = allRangesGetter();
+    allRanges = AllRangesGetter();
     assert(allRanges.size() == 0 && "Tracked data not reset during -reindex-chainstate or -reindex");
 
     ColdRewardUndo undoData;
@@ -3853,41 +3858,41 @@ void clearTrackedData() {
     assert(undoData.outputs.size() == 0 && "Undo outputs tracked data not reset during -reindex-chainstate or -reindex");
 }
 
-CAmount balanceGetter(const AddressType& addr) {
+CAmount BalanceGetter(const AddressType& addr) {
     CAmount balance{0};
     pblocktree->Read(std::make_pair(DB_GVR_BALANCE, addr), balance);
     return balance;
 }
 
-std::vector<BlockHeightRange> rangesGetter(const AddressType& addr) {
+std::vector<BlockHeightRange> RangesGetter(const AddressType& addr) {
     std::vector<BlockHeightRange> vBlockHeightRanges;
     pblocktree->Read(std::make_pair(DB_GVR_RANGE, addr), vBlockHeightRanges);
     return vBlockHeightRanges;
 }
 
-int checkpointGetter() {
+int CheckpointGetter() {
     int checkpoint{0};
     pblocktree->Read(std::make_pair(DB_GVR_CHECKPOINT, 0), checkpoint);
     return checkpoint;
 }
 
-void transactionStarter() {}
-void transactionEnder() {}
+void TransactionStarter() {}
+void TransactionEnder() {}
 
-ColdRewardTracker& initColdReward() {
+ColdRewardTracker& InitColdReward() {
 
     rewardTracker.setGvrThreshold(::Params().GetConsensus().gvrThreshold);
     rewardTracker.setMinRewardRangeSpan(::Params().GetConsensus().minRewardRangeSpan);
 
-    rewardTracker.setPersistedRangesGetter(rangesGetter);
-    rewardTracker.setPersistedRangesSetter(rangesSetter);
-    rewardTracker.setPersistedBalanceGetter(balanceGetter);
-    rewardTracker.setPersistedBalanceSetter(balanceSetter);
-    rewardTracker.setPersistedCheckpointGetter(checkpointGetter);
-    rewardTracker.setPersistedCheckpointSetter(checkpointSetter);
-    rewardTracker.setPersistedTransactionStarter(transactionStarter);
-    rewardTracker.setPersisterTransactionEnder(transactionEnder);
-    rewardTracker.setAllRangesGetter(allRangesGetter);
+    rewardTracker.setPersistedRangesGetter(RangesGetter);
+    rewardTracker.setPersistedRangesSetter(RangesSetter);
+    rewardTracker.setPersistedBalanceGetter(BalanceGetter);
+    rewardTracker.setPersistedBalanceSetter(BalanceSetter);
+    rewardTracker.setPersistedCheckpointGetter(CheckpointGetter);
+    rewardTracker.setPersistedCheckpointSetter(CheckpointSetter);
+    rewardTracker.setPersistedTransactionStarter(TransactionStarter);
+    rewardTracker.setPersisterTransactionEnder(TransactionEnder);
+    rewardTracker.setAllRangesGetter(AllRangesGetter);
     return rewardTracker;
 }
 
@@ -4067,7 +4072,7 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
     int64_t nStart = GetTimeMicros();
     {
         CCoinsViewCache view(&CoinsTip());
-        ColdRewardTracker& tracker = initColdReward();
+        ColdRewardTracker& tracker = InitColdReward();
 
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
@@ -4181,7 +4186,7 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
     {
         CCoinsViewCache view(&CoinsTip());
-        ColdRewardTracker& tracker = initColdReward();
+        ColdRewardTracker& tracker = InitColdReward();
 
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
         if (pindexNew->nFlags & BLOCK_FAILED_DUPLICATE_STAKE)
@@ -6481,16 +6486,15 @@ bool CChainState::LoadChainTip(const CChainParams& chainparams)
     std::int64_t readHeight;
     int currentHeight = m_chain.Height();
     ColdRewardUndo undoData;
-    ColdRewardTracker& tracker = initColdReward();
 
     LogPrintf("REMOVING COLD REWARD DURING STARTUP %d\n", currentHeight);
-    if (!pblocktree->ReadLastTrackedHeight(readHeight)) {
-        LogPrintf("Can't read last tracked height from disk");
-    }
-
-    LogPrintf("READ HEIGHT AFTER STARTUP IS %d\n", readHeight);
-
     if (currentHeight >= 1 && currentHeight >= chainparams.GetConsensus().automatedGvrActivationHeight) {
+        if (!pblocktree->ReadLastTrackedHeight(readHeight)) {
+            LogPrintf("Can't read last tracked height from disk");
+        }
+
+        LogPrintf("READ HEIGHT AFTER STARTUP IS %d\n", readHeight);
+
         if (currentHeight == 1 || currentHeight == chainparams.GetConsensus().automatedGvrActivationHeight) {
             readHeight = 0;
         } 
@@ -6553,7 +6557,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     int nGoodTransactions = 0;
     BlockValidationState state;
     int reportDone = 0;
-    [[maybe_unused]] ColdRewardTracker& tracker = initColdReward();
+    [[maybe_unused]] ColdRewardTracker& tracker = InitColdReward();
     tracker.revertPersistedTransaction();
 
     LogPrintf("[0%%]..."); /* Continued */

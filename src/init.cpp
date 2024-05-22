@@ -918,7 +918,7 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
         bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
         if (fReindexChainState || fReindex) {
             LogPrintf("%s Clearing tracked data \n", __func__);
-            clearTrackedData();
+            ClearTrackedData();
         }
 
         if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
@@ -1209,7 +1209,7 @@ bool AppInitParameterInteraction(const ArgsManager& args)
     if (args.GetArg("-prune", 0)) {
         // Disable prune mode until AGVR confilct is resolved.
         return InitError(_("Prune mode is incompatible with AGVR."));
-        
+
         if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX))
             return InitError(_("Prune mode is incompatible with -txindex."));
         if (!g_enabled_filter_types.empty()) {
