@@ -149,8 +149,8 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
 
     for(unsigned i = 0; i < ar.size(); i++) {
         const unsigned idx = ar.size() - i - 1;
-        AssertTrue(currentBlockHeight >= ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
-        AssertTrue(currentBlockHeight >= ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
+        AssertTrue(currentBlockHeight > ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
+        AssertTrue(currentBlockHeight > ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
 
         // collect all reward multipliers that are > 0 over the last periods, to figure out the final reward
         const int startDistance = currentBlockHeight - ar[idx].getStart();
@@ -214,6 +214,7 @@ std::vector<std::pair<ColdRewardTracker::AddressType, unsigned>> ColdRewardTrack
 
 void ColdRewardTracker::RemoveOldData(int lastCheckpoint, std::vector<BlockHeightRange>& ranges)
 {
+    LogPrintf("Removing old data last checkpoint is %i", lastCheckpoint);
     if (ranges.size() > 0) {
         auto itr = ranges.begin();
         while (itr != ranges.end()) {
@@ -286,7 +287,6 @@ void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressT
     balances[address] = balance;                                                                                                                                                                                                                                                                                                                                                                                                                   
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
     LogPrintf("%s Attempt to remove block at height %s for address %s ranges size %d\n", __func__, blockHeight, std::string(address.begin(), address.end()), ranges.size());
-
 
     if (!ranges.empty() && ranges.back().getEnd() > blockHeight) {
         if (ranges.back().getStart() > blockHeight) {
