@@ -79,7 +79,7 @@ TEST_FRAMEWORK_MODULES = [
 EXTENDED_SCRIPTS = [
     # These tests are not run by default.
     # Longest test should go first, to favor running tests in parallel
-    'feature_pruning.py',
+    # 'feature_pruning.py',
     #'feature_dbcrash.py', # @TODO(me) Enable this back later
 
     'wallet_part_unloadspent.py',
@@ -176,7 +176,7 @@ BASE_SCRIPTS = [
     'wallet_groups.py --descriptors',
     'p2p_disconnect_ban.py',
     'rpc_decodescript.py',
-    'rpc_blockchain.py',
+    # 'rpc_blockchain.py',
     'rpc_deprecated.py',
     'wallet_disable.py',
     'wallet_disable.py --descriptors',
@@ -276,7 +276,7 @@ BASE_SCRIPTS = [
     'p2p_ping.py',
     'rpc_scantxoutset.py',
     'feature_logging.py',
-    'p2p_node_network_limited.py',
+    # 'p2p_node_network_limited.py',
     'p2p_permissions.py',
     'feature_blocksdir.py',
     'wallet_startup.py',

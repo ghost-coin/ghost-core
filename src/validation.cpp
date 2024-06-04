@@ -3893,6 +3893,7 @@ ColdRewardTracker& InitColdReward() {
     rewardTracker.setPersistedTransactionStarter(TransactionStarter);
     rewardTracker.setPersisterTransactionEnder(TransactionEnder);
     rewardTracker.setAllRangesGetter(AllRangesGetter);
+    rewardTracker.setChainType(::Params().NetworkIDString());
     return rewardTracker;
 }
 

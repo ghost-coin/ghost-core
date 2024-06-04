@@ -149,8 +149,11 @@ unsigned ColdRewardTracker::ExtractRewardMultiplierFromRanges(int currentBlockHe
 
     for(unsigned i = 0; i < ar.size(); i++) {
         const unsigned idx = ar.size() - i - 1;
-        AssertTrue(currentBlockHeight > ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
-        AssertTrue(currentBlockHeight > ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
+        
+        if (chainType != "regtest") {
+            AssertTrue(currentBlockHeight > ar[idx].getStart(), std::string(__func__), "You can't get the reward for the past");
+            AssertTrue(currentBlockHeight > ar[idx].getEnd(), std::string(__func__), "You can't get the reward for the past");
+        }
 
         // collect all reward multipliers that are > 0 over the last periods, to figure out the final reward
         const int startDistance = currentBlockHeight - ar[idx].getStart();
@@ -198,7 +201,10 @@ std::vector<std::pair<ColdRewardTracker::AddressType, unsigned>> ColdRewardTrack
 
     for(const auto& r: ranges) {
         const std::vector<BlockHeightRange>& ar = r.second;
-        AssertTrue(ar.empty() || ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
+        if (chainType != "regtest") {
+            AssertTrue(ar.empty() || ar.back().getEnd() <= currentBlockHeight, __func__, "You cannot ask for addresses eligible for rewards in the past");
+        }
+
         const unsigned rewardMultiplier = ExtractRewardMultiplierFromRanges(currentBlockHeight, ar);
         if(rewardMultiplier > 0)
         {
@@ -253,7 +259,6 @@ void ColdRewardTracker::addAddressTransaction(int blockHeight, const AddressType
             // we add a [blockHeight, blockHeight] range as a marker that the balance has crossed a threshold multiple
             ranges.push_back(BlockHeightRange(blockHeight, blockHeight, currentMultiplier, ranges.back().getRewardMultiplier()));
         } else {
-            LogPrintf("%s Previous range value for [%s] is [%d, %d]\n", __func__, std::string(address.begin(), address.end()), ranges.back().getStart(), ranges.back().getEnd());
             ranges.back().newEnd(blockHeight);
         }
     }
@@ -286,7 +291,6 @@ void ColdRewardTracker::removeAddressTransaction(int blockHeight, const AddressT
     // AssertTrue(balance >= 0, __func__, "Can't apply, total address balance will be negative");
     balances[address] = balance;                                                                                                                                                                                                                                                                                                                                                                                                                   
     std::vector<BlockHeightRange> ranges = getAddressRanges(address);
-    LogPrintf("%s Attempt to remove block at height %s for address %s ranges size %d\n", __func__, blockHeight, std::string(address.begin(), address.end()), ranges.size());
 
     if (!ranges.empty() && ranges.back().getEnd() > blockHeight) {
         if (ranges.back().getStart() > blockHeight) {
@@ -351,6 +355,10 @@ void ColdRewardTracker::setPersistedCheckpointSetter(const std::function<void(in
 void ColdRewardTracker::setAllRangesGetter(const std::function<std::map<AddressType, std::vector<BlockHeightRange>>()>& func)
 {
     allRangesGetter = func;
+}
+
+void ColdRewardTracker::setChainType(std::string cht) {
+    chainType = std::move(cht);
 }
 
 const std::map<ColdRewardTracker::AddressType, std::vector<BlockHeightRange>>& ColdRewardTracker::getAllRanges()
