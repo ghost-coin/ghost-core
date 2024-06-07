@@ -3338,16 +3338,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 } else {
                     // The staker was not eligible so the carried forward has to be set
                     // The carried forward is set since there were no gvr output
-                    LogPrintf("THE STAKER OF THE BLOCK IS %s\n", EncodeDestination(stakerAddrDest));
-                    LogPrintf("THE SIZE OF THE ELIG MAP IS %d\n", eligibleAddresses.size());
-
-                    for (auto& elig: eligibleAddresses) {
-                        LogPrintf("ELIGIBLE ADRR WERE (ADDR=%s, MUL=%d)\n", std::string(elig.first.begin(), elig.first.end()), elig.second);
-                    }
-
-                    eligibleAddresses = rewardTracker.getEligibleAddresses(pindex->nHeight);
-                    LogPrintf("THE SIZE OF THE ELIG MAP AFTER RETRY IS %d\n", eligibleAddresses.size());
-
                     if (!txCoinstake->GetGvrFundCfwd(ngvrCfwdCheck)) {
                         LogPrintf("ERROR: %s: Coinstake gvr cfwd must be set.\n", __func__);
                         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cs-cfwd");
@@ -3415,7 +3405,6 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     // Track out/in only after verifydb is done
 
     if (!fVerifyingDB) {
-        LogPrintf("TRACKING CURRENT HEIGHT %d AND READ HEIGHT = %d\n", pindex->nHeight, readHeight);
         if (pindex->nHeight >= consensus.automatedGvrActivationHeight) {
 
             LogPrintf("%s Last tracked Height %d, Current connecting height %d\n", __func__, readHeight, pindex->nHeight);
