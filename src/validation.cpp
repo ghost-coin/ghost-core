@@ -3673,12 +3673,6 @@ bool CChainState::FlushStateToDisk(
                 LOG_TIME_MILLIS_WITH_CATEGORY("unlink pruned files", BCLog::BENCH);
 
                 UnlinkPrunedFiles(setFilesToPrune);
-
-                // Update the checkpoint here so that we make sure the block have really be pruned
-                int checkpointHeight = (m_chain.Height() - MIN_BLOCKS_TO_KEEP) + 1;
-
-                LogPrintf("BLOCK PRUNED, WRITING CHECKPOINT DATA %i\n", checkpointHeight);
-                ::CheckpointSetter(checkpointHeight);
             }
             nLastWrite = nNow;
         }
