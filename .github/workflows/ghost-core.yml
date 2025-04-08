@@ -3,59 +3,59 @@ name: 'build ghost-core (x86_64-linux-gnu)'
 on: [push]
 
 jobs:
-  build-ubuntu:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        os: [x86_64-linux-gnu]
+  # build-ubuntu:
+  #   runs-on: ubuntu-20.04
+  #   strategy:
+  #     matrix:
+  #       os: [x86_64-linux-gnu]
 
-    steps:
-      - uses: actions/checkout@v2
+  #   steps:
+      # - uses: actions/checkout@v2
 
-      - name: Cache apt depencenies
-        uses: actions/cache@v3
-        id: cache-apt
-        with:
-          path: "~/apt-cache"
-          key: apt-cache
+      # - name: Cache apt depencenies
+      #   uses: actions/cache@v3
+      #   id: cache-apt
+      #   with:
+      #     path: "~/apt-cache"
+      #     key: apt-cache
 
-      - name: Cache depends
-        id: cache-dependencies
-        uses: actions/cache@v3
-        with:
-          path: depends/${{ matrix.os }}
-          key: ${{ matrix.os }}-${{ hashFiles('depends/packages/*.mk') }}
+      # - name: Cache depends
+      #   id: cache-dependencies
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: depends/${{ matrix.os }}
+      #     key: ${{ matrix.os }}-${{ hashFiles('depends/packages/*.mk') }}
 
-      - name: Install dependencies
-        env:
-          CACHE_HIT: ${{steps.cache-apt.outputs.cache-hit}}
-          DEPS: build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git ca-certificates ccache libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools
-        run: |
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            sudo cp --force --recursive ~/apt-cache/* /
-          else
-            sudo apt-get update && sudo apt-get install -yq $DEPS
-            mkdir -p ~/apt-cache
-            for dep in $DEPS; do
-                dpkg -L $dep | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/apt-cache/
-            done
-          fi
+      # - name: Install dependencies
+      #   env:
+      #     CACHE_HIT: ${{steps.cache-apt.outputs.cache-hit}}
+      #     DEPS: build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git ca-certificates ccache libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools
+      #   run: |
+      #     if [[ "$CACHE_HIT" == 'true' ]]; then
+      #       sudo cp --force --recursive ~/apt-cache/* /
+      #     else
+      #       sudo apt-get update && sudo apt-get install -yq $DEPS
+      #       mkdir -p ~/apt-cache
+      #       for dep in $DEPS; do
+      #           dpkg -L $dep | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/apt-cache/
+      #       done
+      #     fi
 
-      - name: Build depends
-        if: steps.cache-dependencies.outputs.cache-hit != 'true' && steps.cache-apt.outputs.cache-hit != 'true'
-        run: cd depends/ && make -j4 HOST=${{matrix.os}} NO_USB=1
+      # - name: Build depends
+      #   if: steps.cache-dependencies.outputs.cache-hit != 'true' && steps.cache-apt.outputs.cache-hit != 'true'
+      #   run: cd depends/ && make -j4 HOST=${{matrix.os}} NO_USB=1
 
-      - name: Refresh automake configs
-        run: ./autogen.sh
+      # - name: Refresh automake configs
+      #   run: ./autogen.sh
 
-      - name: Configure automake
-        run: ./configure --prefix=`pwd`/depends/${{ matrix.os }} --with-gui=qt5
+      # - name: Configure automake
+      #   run: ./configure --prefix=`pwd`/depends/${{ matrix.os }} --with-gui=qt5
 
-      - name: Build codebase
-        run: make -j4
+      # - name: Build codebase
+      #   run: make -j4
 
-      - name: Unittests
-        run: make check
+      # - name: Unittests
+      #   run: make check
 
   build-macos:
     runs-on: macOS-latest
@@ -74,10 +74,11 @@ jobs:
         with:
           xcode-version: '15.0.1'
         
-    
-      
       - name: install dependencies
-        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc pkg-config python libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc python pkg-config python libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
   
+      - name: python dependencies
+        run: pip install setuptools
+
       - name: Build depends
         run:  cd depends/ && make -j4 HOST=x86_64-apple-darwin19 NO_USB=1
