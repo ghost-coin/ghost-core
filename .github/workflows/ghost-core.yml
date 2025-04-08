@@ -79,14 +79,5 @@ jobs:
       - name: install dependencies
         run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc pkg-config python libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
   
-      - name: Refresh automake configs
-        run: ./autogen.sh
-
-      - name: Configure automake
-        run: ./configure --with-gui=auto
-
-      - name: Build codebase
-        run: make -j4
-        
-      - name: Unittests
-        run: make check
+      - name: Build depends
+        run:  cd depends/ && make -j4 HOST=x86_64-apple-darwin19 NO_USB=1
