@@ -78,4 +78,4 @@ jobs:
         run: HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool boost miniupnpc python pkg-config python libevent qrencode protobuf hidapi librsvg sqlite berkeley-db@4  
   
       - name: Build depends
-        run:  pip3 install setuptools ez_setup && cd depends/ && make -j4 HOST=x86_64-apple-darwin19 NO_USB=1
+        run:  pip3 install setuptools ez_setup --break-system-packages && cd depends/ && make -j4 HOST=x86_64-apple-darwin19 NO_USB=1
