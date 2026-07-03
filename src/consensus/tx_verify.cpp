@@ -219,6 +219,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
     size_t nStandard = 0, nCt = 0, nRingCTInputs = 0, nRCTPrevouts = 0;
+    size_t nStandardInputs = 0;
     CAmount nValueIn = 0;
     CAmount nFees = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
@@ -305,6 +306,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
                 }
                 nStandard++;
+                nStandardInputs++;
             } else
             if (coin.nType == OUTPUT_CT) {
                 vpCommitsIn.push_back(&coin.commitment);
@@ -318,6 +320,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
             }
+            nStandardInputs++;
         }
     }
 
@@ -393,6 +396,21 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if (nCt > 0 || (nRingCTInputs + nRingCTOutputs) > 0) {
                 LogPrintf("%s: non-standard elements in coinstake\n", __func__);
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-coinstake-output");
+            }
+        }
+
+        if (!tx.IsCoinStake() &&
+            nStandardInputs > 0 &&
+            nCTInputs == 0 &&
+            nRingCTInputs == 0 &&
+            (nCTOutputs > 0 || nRingCTOutputs > 0)) {
+            const CAmount nPlainValueWithFee = nPlainValueOut + txfee;
+            if (!MoneyRange(nPlainValueWithFee)) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-out-outofrange");
+            }
+            if (nValueIn < nPlainValueWithFee) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
+                    strprintf("value in (%s) < plain value out + fee (%s)", FormatMoney(nValueIn), FormatMoney(nPlainValueWithFee)));
             }
         }
     } else {

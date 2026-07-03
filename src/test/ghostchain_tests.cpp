@@ -302,6 +302,98 @@ BOOST_AUTO_TEST_CASE(mixed_output_types)
     ECC_Stop_Blinding();
 }
 
+BOOST_AUTO_TEST_CASE(plain_to_anon_value_conservation)
+{
+    ECC_Start_Blinding();
+
+    CAmount txfee = 2000;
+    int nSpendHeight = 1;
+    BOOST_TEST_MESSAGE("plain_to_anon_value_conservation: txfee=" << txfee << ", nSpendHeight=" << nSpendHeight);
+
+    CCoinsView viewDummy;
+    CCoinsViewCache inputs(&viewDummy);
+
+    CMutableTransaction txnPrev;
+    txnPrev.nVersion = GHOST_TXN_VERSION;
+    BOOST_CHECK(txnPrev.IsParticlVersion());
+
+    CScript scriptPubKey;
+    txnPrev.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, scriptPubKey));
+
+    CTransaction txnPrev_c(txnPrev);
+    AddCoins(inputs, txnPrev_c, 1);
+    uint256 prevHash = txnPrev_c.GetHash();
+
+    CMutableTransaction txn;
+    txn.nVersion = GHOST_TXN_VERSION;
+    BOOST_CHECK(txn.IsParticlVersion());
+    txn.vin.push_back(CTxIn(prevHash, 0));
+
+    OUTPUT_PTR<CTxOutData> out_fee = MAKE_OUTPUT<CTxOutData>();
+    out_fee->vData.push_back(DO_FEE);
+    BOOST_REQUIRE(0 == part::PutVarInt(out_fee->vData, txfee));
+    txn.vpout.push_back(out_fee);
+
+    // Attempt to create plain value from a small plain input while adding anon output.
+    txn.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(2 * COIN, scriptPubKey));
+    txn.vpout.push_back(MAKE_OUTPUT<CTxOutRingCT>());
+
+    CTransaction tx_c(txn);
+    TxValidationState state;
+    state.SetStateInfo(GetTime(), nSpendHeight, Params().GetConsensus(), true /* particl_mode */, false /* skip_rangeproof */);
+
+    BOOST_TEST_MESSAGE("plain_to_anon_value_conservation: inputs=" << tx_c.vin.size() << ", outputs=" << tx_c.vpout.size());
+    for (size_t i = 0; i < tx_c.vin.size(); ++i) {
+        const auto &txin = tx_c.vin[i];
+        if (txin.IsAnonInput()) {
+            BOOST_TEST_MESSAGE("  vin[" << i << "]: anon input, value=hidden");
+            continue;
+        }
+
+        const Coin &coin = inputs.AccessCoin(txin.prevout);
+        const char *type_str = coin.nType == OUTPUT_STANDARD ? "standard" :
+            coin.nType == OUTPUT_CT ? "ct" : "unknown";
+        CAmount in_value = coin.nType == OUTPUT_STANDARD ? coin.out.nValue : 0;
+        BOOST_TEST_MESSAGE("  vin[" << i << "]: prevout=" << txin.prevout.hash.ToString() << ":" << txin.prevout.n
+            << ", type=" << type_str << ", value=" << in_value);
+    }
+
+    for (size_t i = 0; i < tx_c.vpout.size(); ++i) {
+        const auto &txout = tx_c.vpout[i];
+        if (txout->nVersion == OUTPUT_STANDARD) {
+            const CTxOutStandard *out = (CTxOutStandard*)txout.get();
+            BOOST_TEST_MESSAGE("  vpout[" << i << "]: standard, value=" << out->nValue);
+        } else if (txout->nVersion == OUTPUT_DATA) {
+            const CTxOutData *out = (CTxOutData*)txout.get();
+            if (!out->vData.empty() && out->vData[0] == DO_FEE) {
+                uint64_t fee_value = 0;
+                size_t nB = 0;
+                if (0 == part::GetVarInt(out->vData, 1, fee_value, nB)) {
+                    BOOST_TEST_MESSAGE("  vpout[" << i << "]: data fee, value=" << (CAmount)fee_value);
+                } else {
+                    BOOST_TEST_MESSAGE("  vpout[" << i << "]: data fee, value=parse-error");
+                }
+            } else {
+                BOOST_TEST_MESSAGE("  vpout[" << i << "]: data output, value=n/a");
+            }
+        } else if (txout->nVersion == OUTPUT_CT) {
+            BOOST_TEST_MESSAGE("  vpout[" << i << "]: ct output, value=hidden");
+        } else if (txout->nVersion == OUTPUT_RINGCT) {
+            BOOST_TEST_MESSAGE("  vpout[" << i << "]: ringct output, value=hidden");
+        } else {
+            BOOST_TEST_MESSAGE("  vpout[" << i << "]: unknown output type=" << txout->nVersion);
+        }
+    }
+
+    const bool check_ok = Consensus::CheckTxInputs(tx_c, state, inputs, nSpendHeight, txfee);
+    BOOST_TEST_MESSAGE("plain_to_anon_value_conservation: check_ok=" << check_ok << ", reject_reason=" << state.GetRejectReason());
+
+    BOOST_CHECK(!check_ok);
+    BOOST_CHECK(state.GetRejectReason() == "bad-txns-in-belowout");
+
+    ECC_Stop_Blinding();
+}
+
 BOOST_AUTO_TEST_CASE(op_iscoinstake_tests)
 {
     CKey k1, k2;
