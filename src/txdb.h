@@ -161,6 +161,7 @@ public:
 
     bool WriteRewardTrackerUndo(const ColdRewardUndo& ro);
     bool ReadRewardTrackerUndo(ColdRewardUndo& ro, int nHeight);
+    bool ReadRewardTrackerUndoAtHeight(ColdRewardUndo& ro, int nHeight);
     bool EraseRewardTrackerUndo(int nHeight);
 
     bool WriteLastTrackedHeight(std::int64_t lastHeight);

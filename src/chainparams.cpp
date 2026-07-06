@@ -651,8 +651,16 @@ public:
                 {270000, uint256S("27609adb02319a8c3583ef5c564499ffc7ed4796091a0b58da0a82e862b4cfa2")},
                 {280000, uint256S("8be64d38cf598a5d0dc57c84fbf377d5e3178f4abedd6b9ee00f5db4600ab8fa")},
                 {290000, uint256S("19b24cc079a3869f8803ae8c7602f39ff473b17488f705520a4cfdddd4495e98")},
-                {300000, uint256S("9251bf689bc354084370385cca94fca0939b6cce42d49430fa01cb8f9f3cc07c")}
+                {300000, uint256S("9251bf689bc354084370385cca94fca0939b6cce42d49430fa01cb8f9f3cc07c")},
+                {1572594, uint256S("375c0f3464d93c7f2c16c28d0b466120400fbcbf66841d072e50a5029485d11c")}
             }
+        };
+
+        // Rollback hardfork: blocks from 1572595 onward are invalid. Rejecting
+        // the first bad block invalidates its entire descendant chain, so updated
+        // nodes automatically reorg back to block 1572594 with no manual action.
+        vInvalidBlocks = {
+            uint256S("5dce3e3a7e442b7cb4c49d8f905da8fc11ba1466db1e362d084f0b2ec7dabd18"),
         };
 
         chainTxData = ChainTxData {

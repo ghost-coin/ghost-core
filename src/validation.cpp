@@ -2104,7 +2104,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndo(rewardUndo, pindex->nHeight)) {
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndoAtHeight(rewardUndo, pindex->nHeight)) {
         error("DisconnectBlock(): failure reading coldreward undo data");
         return DISCONNECT_FAILED;
     }
@@ -2283,13 +2283,20 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                     return DISCONNECT_FAILED;
                 }
 
+                // txundo.vprevout is packed: UpdateCoins only stores an entry for
+                // each non-anon input, so it must be indexed by a running non-anon
+                // counter rather than the raw vin index j. Indexing by j misaligns
+                // (or reads out of bounds) whenever an anon input precedes a
+                // standard input, restoring the wrong coin and corrupting the
+                // UTXO/address-index reversal.
+                int nUndoPos = (int)txundo.vprevout.size();
                 for (unsigned int j = tx.vin.size(); j-- > 0;) {
                     if (tx.vin[j].IsAnonInput()) {
                         continue;
                     }
 
                     const COutPoint &out = tx.vin[j].prevout;
-                    int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
+                    int res = ApplyTxInUndo(std::move(txundo.vprevout[--nUndoPos]), view, out);
                     if (res == DISCONNECT_FAILED) {
                         error("DisconnectBlock(): ApplyTxInUndo failed");
                         return DISCONNECT_FAILED;
@@ -5239,6 +5246,13 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         // Check proof of work
         if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "bad-diffbits", "incorrect proof of work");
+    }
+
+    // Reject blocks removed by a rollback hardfork. Rejecting the first bad block
+    // (its descendants build on it) is sufficient to keep the whole bad chain out.
+    if (params.IsBadBlock(block.GetHash())) {
+        LogPrintf("ERROR: %s: block %s rejected by rollback hardfork\n", __func__, block.GetHash().ToString());
+        return state.Invalid(BlockValidationResult::BLOCK_CHECKPOINT, "bad-block-rollback");
     }
 
     // Check against checkpoints

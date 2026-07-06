@@ -928,6 +928,24 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
         }
     }
 
+    // We can't hold cs_main during ActivateBestChain even though we're accessing
+    // the chainman unique_ptrs since ABC requires us not to be holding cs_main, so retrieve
+    // the relevant pointers before the ABC call.
+    for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
+        BlockValidationState state;
+        bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
+        if (fReindexChainState || fReindex) {
+            LogPrintf("%s Clearing tracked data \n", __func__);
+            clearTrackedData();
+        }
+
+        if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
+            LogPrintf("Failed to connect best block (%s)\n", state.ToString());
+            //StartShutdown();
+            //return;
+        }
+    }
+
     if (args.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
         LogPrintf("Stopping after block import\n");
         StartShutdown();
