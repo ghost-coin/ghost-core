@@ -928,21 +928,19 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
         }
     }
 
-    // We can't hold cs_main during ActivateBestChain even though we're accessing
-    // the chainman unique_ptrs since ABC requires us not to be holding cs_main, so retrieve
-    // the relevant pointers before the ABC call.
+    // Enforce the consensus block invalidations from chainparams. Header checks
+    // only reject incoming invalid blocks; blocks already stored in the active
+    // chain must be disconnected here. InvalidateBlock reorgs to the best
+    // remaining valid chain. No-op for nodes that never accepted these blocks.
     for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
-        BlockValidationState state;
-        bool fReindexChainState = args.GetBoolArg("-reindex-chainstate", false);
-        if (fReindexChainState || fReindex) {
-            LogPrintf("%s Clearing tracked data \n", __func__);
-            clearTrackedData();
-        }
-
-        if (!chainstate->ActivateBestChain(state, chainparams, nullptr)) {
-            LogPrintf("Failed to connect best block (%s)\n", state.ToString());
-            //StartShutdown();
-            //return;
+        for (const uint256& block_hash : chainparams.InvalidBlocks()) {
+            CBlockIndex* pindex = WITH_LOCK(::cs_main, return LookupBlockIndex(block_hash));
+            if (!pindex) continue;
+            LogPrintf("Invalidating block %s (height %d)\n", block_hash.ToString(), pindex->nHeight);
+            BlockValidationState state;
+            if (!chainstate->InvalidateBlock(state, chainparams, pindex) || !state.IsValid()) {
+                LogPrintf("Failed to invalidate block %s: %s\n", block_hash.ToString(), state.ToString());
+            }
         }
     }
 
