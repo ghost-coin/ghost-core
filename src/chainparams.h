@@ -209,7 +209,16 @@ public:
     MapCheckpoints GetGvrCheckpoints() const {
         return gvrCheckpoints;
     }
-    
+
+    /** Blocks removed by a rollback hardfork; these are rejected as consensus-invalid. */
+    const std::vector<uint256>& InvalidBlocks() const { return vInvalidBlocks; }
+    bool IsBadBlock(const uint256& hash) const {
+        for (const uint256& bad : vInvalidBlocks) {
+            if (bad == hash) return true;
+        }
+        return false;
+    }
+
 protected:
     CChainParams() {}
 
@@ -253,6 +262,7 @@ protected:
     bool m_is_test_chain;
     bool m_is_mockable_chain;
     CCheckpointData checkpointData;
+    std::vector<uint256> vInvalidBlocks;
     ChainTxData chainTxData;
     std::set<std::uint64_t> blacklistedAnonTxs;
     MapCheckpoints gvrCheckpoints;

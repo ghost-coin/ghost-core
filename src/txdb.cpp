@@ -662,6 +662,24 @@ bool CBlockTreeDB::ReadRewardTrackerUndo(ColdRewardUndo& rewardUndo, int nHeight
     return true;
 }
 
+// Reads only the undo data stored at nHeight, avoiding a full-table scan.
+// The per-block disconnect path only ever needs the single height, so this is
+// O(1) instead of O(all tracked history).
+bool CBlockTreeDB::ReadRewardTrackerUndoAtHeight(ColdRewardUndo& rewardUndo, int nHeight)
+{
+    std::vector<std::pair<AddressType, CAmount>> inputs;
+    if (Read(std::make_pair(DB_TRACKER_INPUTS_UNDO, nHeight), inputs)) {
+        rewardUndo.inputs[nHeight] = std::move(inputs);
+    }
+
+    std::vector<std::pair<AddressType, CAmount>> outputs;
+    if (Read(std::make_pair(DB_TRACKER_OUTPUTS_UNDO, nHeight), outputs)) {
+        rewardUndo.outputs[nHeight] = std::move(outputs);
+    }
+
+    return true;
+}
+
 bool CBlockTreeDB::WriteRewardTrackerUndo(const ColdRewardUndo& rewardUndo)
 {
     CDBBatch batch(*this);

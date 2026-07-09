@@ -2104,7 +2104,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndo(rewardUndo, pindex->nHeight)) {
+    if (pindex->nHeight >= consensus.automatedGvrActivationHeight && !pblocktree->ReadRewardTrackerUndoAtHeight(rewardUndo, pindex->nHeight)) {
         error("DisconnectBlock(): failure reading coldreward undo data");
         return DISCONNECT_FAILED;
     }
@@ -5239,6 +5239,13 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         // Check proof of work
         if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "bad-diffbits", "incorrect proof of work");
+    }
+
+    // Reject blocks removed by a rollback hardfork. Rejecting the first bad block
+    // (its descendants build on it) is sufficient to keep the whole bad chain out.
+    if (params.IsBadBlock(block.GetHash())) {
+        LogPrintf("ERROR: %s: block %s rejected by rollback hardfork\n", __func__, block.GetHash().ToString());
+        return state.Invalid(BlockValidationResult::BLOCK_CHECKPOINT, "bad-block-rollback");
     }
 
     // Check against checkpoints

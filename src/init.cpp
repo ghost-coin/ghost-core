@@ -928,6 +928,22 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
         }
     }
 
+    // Enforce the consensus block invalidations from chainparams. Header checks
+    // only reject incoming invalid blocks; blocks already stored in the active
+    // chain must be disconnected here. InvalidateBlock reorgs to the best
+    // remaining valid chain. No-op for nodes that never accepted these blocks.
+    for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
+        for (const uint256& block_hash : chainparams.InvalidBlocks()) {
+            CBlockIndex* pindex = WITH_LOCK(::cs_main, return LookupBlockIndex(block_hash));
+            if (!pindex) continue;
+            LogPrintf("Invalidating block %s (height %d)\n", block_hash.ToString(), pindex->nHeight);
+            BlockValidationState state;
+            if (!chainstate->InvalidateBlock(state, chainparams, pindex) || !state.IsValid()) {
+                LogPrintf("Failed to invalidate block %s: %s\n", block_hash.ToString(), state.ToString());
+            }
+        }
+    }
+
     if (args.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
         LogPrintf("Stopping after block import\n");
         StartShutdown();
