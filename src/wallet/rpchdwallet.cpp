@@ -6726,7 +6726,7 @@ static UniValue debugwallet(const JSONRPCRequest &request)
     bool clear_stakes_seen = false;
     bool downgrade_wallets = false;
     bool exit_ibd = false;
-    CAmount max_frozen_output_spendable = pwallet->GetLastBlockHeight() >= Params().GetConsensus().nBlockRewardCorrectionHeight ?
+    CAmount max_frozen_output_spendable = ::ChainActive().Height() >= Params().GetConsensus().nBlockRewardCorrectionHeight ?
         Params().GetConsensus().m_max_tainted_value_out_increased : Params().GetConsensus().m_max_tainted_value_out;
     int64_t time_now = GetAdjustedTime();
 
@@ -9878,7 +9878,7 @@ static UniValue geteligibleaddresses(const JSONRPCRequest& request)
         flushState = request.params[2].get_bool();
     }
 
-    auto& tracker = initColdReward();
+    auto& tracker = InitColdReward();
 
     if (flushState) {
         tracker.endPersistedTransaction();

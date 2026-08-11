@@ -61,6 +61,7 @@ public:
     int MinimumRewardRangeSpan;
 
 private:
+    std::string chainType;
     std::map<AddressType, std::vector<BlockHeightRange>> addressesRanges;
     std::map<AddressType, CAmount> balances;
     boost::optional<int> lastCheckpoint;
@@ -124,10 +125,11 @@ public:
 
     void setPersistedCheckpointGetter(const std::function<int()>& func);
     void setPersistedCheckpointSetter(const std::function<void(int)>& func);
+    void setChainType(std::string cht);
 
     void setAllRangesGetter(const std::function<std::map<AddressType, std::vector<BlockHeightRange>>()>& func);
 
-    const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges() const;
+    const std::map<AddressType, std::vector<BlockHeightRange>>& getAllRanges();
     const std::vector<std::pair<AddressType, CAmount>> getBalances();
 
     void setGvrThreshold(const CAmount& amount) { 

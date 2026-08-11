@@ -542,7 +542,6 @@ BOOST_AUTO_TEST_CASE(reward_multiplier_tests)
 BOOST_AUTO_TEST_CASE(getEligibleAddresses)
 {
     //test asserts
-    // We can retrieve reward fo the past blocks now
     // BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(1), std::invalid_argument);
     // BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan-1), std::invalid_argument);
     // BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan + 1), std::invalid_argument);
@@ -582,8 +581,8 @@ BOOST_AUTO_TEST_CASE(getEligibleAddresses)
 
     // assert was eligable for month 3 in the past but not now
     // this doesn't work because we just added block (tracker.MinimumRewardRangeSpan * 3)
-    BOOST_REQUIRE_NO_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).size());
-    BOOST_REQUIRE_NO_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).front());
+    BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).size(), std::invalid_argument);
+    BOOST_REQUIRE_THROW(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 3).front(), std::invalid_argument);
 
     // not eligable in month 4, this is ok.
     BOOST_REQUIRE_EQUAL(tracker.getEligibleAddresses(tracker.MinimumRewardRangeSpan * 4).size(), 0);

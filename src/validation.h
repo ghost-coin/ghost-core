@@ -1122,7 +1122,7 @@ bool FlushStateToDisk(const CChainParams& chainParams, BlockValidationState &sta
 bool FlushView(CCoinsViewCache *view, BlockValidationState& state, bool fDisconnecting);
 void UpdateTip(CTxMemPool& mempool, const CBlockIndex *pindexNew, const CChainParams& chainParams);
 
-ColdRewardTracker& initColdReward();
-void clearTrackedData();
+ColdRewardTracker& InitColdReward();
+void ClearTrackedData();
 
 #endif // BITCOIN_VALIDATION_H
