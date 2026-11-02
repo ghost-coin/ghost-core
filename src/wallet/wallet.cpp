@@ -256,7 +256,14 @@ std::shared_ptr<CWallet> CreateWallet(interfaces::Chain& chain, const std::strin
     uint64_t wallet_creation_flags = options.create_flags;
     const SecureString& passphrase = options.create_passphrase;
 
-    if (wallet_creation_flags & WALLET_FLAG_DESCRIPTORS) options.require_format = DatabaseFormat::SQLITE;
+    if (wallet_creation_flags & WALLET_FLAG_DESCRIPTORS) {
+        if (fParticlMode) {
+            error = Untranslated("Descriptor wallets are not supported in Particl mode.");
+            status = DatabaseStatus::FAILED_CREATE;
+            return nullptr;
+        }
+        options.require_format = DatabaseFormat::SQLITE;
+    }
 
     // Indicate that the wallet is actually supposed to be blank and not just blank to make it encrypted
     bool create_blank = (wallet_creation_flags & WALLET_FLAG_BLANK_WALLET);
@@ -4022,7 +4029,16 @@ std::unique_ptr<WalletDatabase> MakeWalletDatabase(const std::string& name, cons
         status = DatabaseStatus::FAILED_BAD_PATH;
         return nullptr;
     }
-    return MakeDatabase(wallet_path, options, status, error_string);
+    DatabaseOptions effective_options = options;
+    if (fParticlMode) {
+        if (effective_options.require_format && *effective_options.require_format != DatabaseFormat::BERKELEY) {
+            error_string = Untranslated("Particl wallets require Berkeley DB.");
+            status = DatabaseStatus::FAILED_BAD_FORMAT;
+            return nullptr;
+        }
+        effective_options.require_format = DatabaseFormat::BERKELEY;
+    }
+    return MakeDatabase(wallet_path, effective_options, status, error_string);
 }
 
 std::shared_ptr<CWallet> CWallet::Create(interfaces::Chain& chain, const std::string& name, std::unique_ptr<WalletDatabase> database, uint64_t wallet_creation_flags, bilingual_str& error, std::vector<bilingual_str>& warnings)

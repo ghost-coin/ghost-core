@@ -50,6 +50,9 @@ static std::shared_ptr<CWallet> MakeWallet(const std::string& name, const fs::pa
     } else {
         options.require_existing = true;
     }
+    if (fParticlMode) {
+        options.require_format = DatabaseFormat::BERKELEY;
+    }
     bilingual_str error;
     std::unique_ptr<WalletDatabase> database = MakeDatabase(path, options, status, error);
     if (!database) {

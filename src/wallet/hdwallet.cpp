@@ -1516,6 +1516,12 @@ bool CHDWallet::AddressBookChangedNotify(const CTxDestination &address, ChangeTy
 
 DBErrors CHDWallet::LoadWallet(bool& fFirstRunRet)
 {
+    if (database->Format() != "bdb") {
+        WalletLogPrintf("Error: HD wallet requires Berkeley DB; database format is %s.\n",
+                        database->Format());
+        return DBErrors::LOAD_FAIL;
+    }
+
     if (!ParseMoney(gArgs.GetArg("-reservebalance", "0"), nReserveBalance)) {
         InitError(_("Invalid amount for -reservebalance=<amount>"));
         return DBErrors::LOAD_FAIL;
