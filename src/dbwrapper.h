@@ -24,6 +24,12 @@ public:
     explicit dbwrapper_error(const std::string& msg) : std::runtime_error(msg) {}
 };
 
+enum class DBReadResult {
+    FOUND,
+    NOT_FOUND,
+    CORRUPT
+};
+
 class CDBWrapper;
 
 /** These should be considered an implementation detail of the specific database.
@@ -130,6 +136,7 @@ public:
     ~CDBIterator();
 
     bool Valid() const;
+    void CheckStatus() const;
 
     void SeekToFirst();
 
@@ -238,6 +245,46 @@ public:
 
     CDBWrapper(const CDBWrapper&) = delete;
     CDBWrapper& operator=(const CDBWrapper&) = delete;
+
+    template <typename K, typename V>
+    DBReadResult ReadWithStatus(const K& key, V& value) const
+    {
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
+        ssKey << key;
+        leveldb::Slice slKey(ssKey.data(), ssKey.size());
+
+        std::string strValue;
+        leveldb::Status status = pdb->Get(readoptions, slKey, &strValue);
+
+        if (status.IsNotFound()) {
+            return DBReadResult::NOT_FOUND;
+        }
+
+        if (!status.ok()) {
+            LogPrintf("LevelDB read failure: %s\n", status.ToString());
+            dbwrapper_private::HandleError(status);
+        }
+
+        try {
+            CDataStream ssValue(
+                strValue.data(),
+                strValue.data() + strValue.size(),
+                SER_DISK,
+                CLIENT_VERSION
+            );
+            ssValue.Xor(obfuscate_key);
+            ssValue >> value;
+
+            if (!ssValue.empty()) {
+                return DBReadResult::CORRUPT;
+            }
+        } catch (const std::exception&) {
+            return DBReadResult::CORRUPT;
+        }
+
+        return DBReadResult::FOUND;
+    }
 
     template <typename K, typename V>
     bool Read(const K& key, V& value) const

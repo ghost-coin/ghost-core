@@ -155,6 +155,10 @@ public:
     bool ReadRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &data);
     bool EraseRCTKeyImage(const CCmpPubKey &ki);
     bool EraseRCTKeyImagesAfterHeight(int height);
+    bool RollbackRCTIndexAtomic(int64_t last_valid_output,
+                                int64_t expected_erase,
+                                int chain_height,
+                                const std::set<CCmpPubKey>& key_images);
 
     bool ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin);
     bool EraseSpentCache(const COutPoint &outpoint);

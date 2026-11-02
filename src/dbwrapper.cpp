@@ -236,6 +236,10 @@ bool CDBWrapper::IsEmpty()
 
 CDBIterator::~CDBIterator() { delete piter; }
 bool CDBIterator::Valid() const { return piter->Valid(); }
+void CDBIterator::CheckStatus() const
+{
+    dbwrapper_private::HandleError(piter->status());
+}
 void CDBIterator::SeekToFirst() { piter->SeekToFirst(); }
 void CDBIterator::Next() { piter->Next(); }
 

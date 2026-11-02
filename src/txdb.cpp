@@ -20,6 +20,7 @@
 #include <chainparams.h>
 
 #include <stdint.h>
+#include <limits>
 
 static const char DB_COIN = 'C';
 //static const char DB_COINS = 'c';
@@ -598,6 +599,231 @@ bool CBlockTreeDB::EraseRCTKeyImagesAfterHeight(int height)
     }
     return WriteBatch(batch);
 };
+
+
+bool CBlockTreeDB::RollbackRCTIndexAtomic(
+    int64_t last_valid_output,
+    int64_t expected_erase,
+    int chain_height,
+    const std::set<CCmpPubKey>& key_images)
+{
+    AssertLockHeld(cs_main);
+
+    constexpr size_t MAX_RCT_ROLLBACK_BATCH = 16U << 20;
+
+    enum class StageResult {
+        OK,
+        NOT_FOUND,
+        CORRUPT_RECORD,
+        LINK_NOT_FOUND,
+        LINK_CORRUPT,
+        LINK_MISMATCH,
+        BATCH_LIMIT_EXCEEDED
+    };
+
+    CDBBatch batch(*this);
+
+    auto stage_output = [&](CDBIterator& cursor,
+                            int64_t index) -> StageResult {
+        if (!cursor.Valid()) {
+            cursor.CheckStatus();
+            return StageResult::NOT_FOUND;
+        }
+
+        std::pair<char, int64_t> key;
+
+        if (!cursor.GetKey(key)) {
+            cursor.CheckStatus();
+            return StageResult::CORRUPT_RECORD;
+        }
+
+        if (key.first != DB_RCTOUTPUT || key.second != index) {
+            cursor.CheckStatus();
+            return StageResult::NOT_FOUND;
+        }
+
+        CAnonOutput output;
+
+        if (!cursor.GetValue(output)) {
+            cursor.CheckStatus();
+            return StageResult::CORRUPT_RECORD;
+        }
+
+        cursor.CheckStatus();
+
+        int64_t linked_index = 0;
+
+        DBReadResult link_result = ReadWithStatus(
+            std::make_pair(DB_RCTOUTPUT_LINK, output.pubkey),
+            linked_index
+        );
+
+        if (link_result == DBReadResult::NOT_FOUND) {
+            return StageResult::LINK_NOT_FOUND;
+        }
+
+        if (link_result == DBReadResult::CORRUPT) {
+            return StageResult::LINK_CORRUPT;
+        }
+
+        if (linked_index != index) {
+            return StageResult::LINK_MISMATCH;
+        }
+
+        batch.Erase(std::make_pair(DB_RCTOUTPUT, index));
+        batch.Erase(std::make_pair(DB_RCTOUTPUT_LINK, output.pubkey));
+
+        if (batch.SizeEstimate() > MAX_RCT_ROLLBACK_BATCH) {
+            return StageResult::BATCH_LIMIT_EXCEEDED;
+        }
+
+        return StageResult::OK;
+    };
+
+    auto report_error = [](StageResult result, int64_t index) -> bool {
+        switch (result) {
+            case StageResult::CORRUPT_RECORD:
+                return error("%s: corrupt RCT output record at index %d",
+                             __func__, index);
+
+            case StageResult::LINK_NOT_FOUND:
+                return error("%s: missing RCT output link at index %d",
+                             __func__, index);
+
+            case StageResult::LINK_CORRUPT:
+                return error("%s: corrupt RCT output link at index %d",
+                             __func__, index);
+
+            case StageResult::LINK_MISMATCH:
+                return error("%s: RCT output link mismatch at index %d",
+                             __func__, index);
+
+            case StageResult::BATCH_LIMIT_EXCEEDED:
+                return error("%s: RCT rollback batch exceeds 16 MiB",
+                             __func__);
+
+            default:
+                return false;
+        }
+    };
+
+    LogPrintf("%s: Last valid %d, expected erase %d, key images %d\n",
+              __func__, last_valid_output, expected_erase, key_images.size());
+
+    // Scan every existing RCT output above the last valid index.
+    // The expected index is diagnostic, not an upper bound.
+    if (last_valid_output < std::numeric_limits<int64_t>::max()) {
+        std::unique_ptr<CDBIterator> output_cursor(NewIterator());
+        // RCT indices are serialized little-endian, so LevelDB
+        // bytewise ordering does not match numeric ordering.
+        output_cursor->Seek(DB_RCTOUTPUT);
+
+        while (output_cursor->Valid()) {
+            if (ShutdownRequested()) return false;
+
+            if (!output_cursor->StartsWith(DB_RCTOUTPUT)) {
+                break;
+            }
+
+            std::pair<char, int64_t> key;
+
+            if (!output_cursor->GetKey(key)) {
+                output_cursor->CheckStatus();
+                return error("%s: invalid RCT output database key",
+                             __func__);
+            }
+
+            if (key.first != DB_RCTOUTPUT) {
+                return error("%s: unexpected RCT output key",
+                             __func__);
+            }
+
+            if (key.second > last_valid_output) {
+                StageResult result = stage_output(
+                    *output_cursor, key.second);
+
+                if (result != StageResult::OK) {
+                    return report_error(result, key.second);
+                }
+            }
+
+            output_cursor->Next();
+        }
+
+        output_cursor->CheckStatus();
+    }
+
+    // Explicit key images supplied by the caller.
+    for (const auto& ki : key_images) {
+        if (ShutdownRequested()) return false;
+
+        batch.Erase(std::make_pair(DB_RCTKEYIMAGE, ki));
+
+        if (batch.SizeEstimate() > MAX_RCT_ROLLBACK_BATCH) {
+            return error("%s: RCT rollback batch exceeds 16 MiB", __func__);
+        }
+    }
+
+    // Remove key images created above the rollback height.
+    std::unique_ptr<CDBIterator> cursor(NewIterator());
+    cursor->Seek(std::make_pair(DB_RCTKEYIMAGE, CCmpPubKey()));
+
+    while (cursor->Valid()) {
+        if (ShutdownRequested()) return false;
+
+        std::pair<char, CCmpPubKey> key;
+
+        if (!cursor->GetKey(key)) {
+            cursor->CheckStatus();
+            return error("%s: invalid key image database key", __func__);
+        }
+
+        if (key.first != DB_RCTKEYIMAGE) {
+            break;
+        }
+
+        unsigned int value_size = cursor->GetValueSize();
+
+        if (value_size != 32 && value_size != 36) {
+            return error("%s: invalid key image value size %u",
+                         __func__, value_size);
+        }
+
+        if (value_size == 36) {
+            CAnonKeyImageInfo info;
+
+            if (!cursor->GetValue(info)) {
+                cursor->CheckStatus();
+                return error("%s: invalid key image value", __func__);
+            }
+
+            if (chain_height < info.height) {
+                batch.Erase(std::make_pair(DB_RCTKEYIMAGE, key.second));
+
+                if (batch.SizeEstimate() > MAX_RCT_ROLLBACK_BATCH) {
+                    return error("%s: RCT rollback batch exceeds 16 MiB",
+                                 __func__);
+                }
+            }
+        }
+
+        cursor->Next();
+    }
+
+    cursor->CheckStatus();
+
+    if (ShutdownRequested()) return false;
+
+    if (batch.SizeEstimate() > MAX_RCT_ROLLBACK_BATCH) {
+        return error("%s: RCT rollback batch exceeds 16 MiB", __func__);
+    }
+
+    LogPrintf("%s: Prepared atomic RCT rollback batch, estimated size %.2f MiB\n",
+              __func__,
+              batch.SizeEstimate() / (1024.0 * 1024.0));
+
+    return WriteBatch(batch);
+}
 
 bool CBlockTreeDB::ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin)
 {
