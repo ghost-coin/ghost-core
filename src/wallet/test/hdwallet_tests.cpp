@@ -187,6 +187,59 @@ BOOST_AUTO_TEST_CASE(new_ext_key)
     }
 }
 
+BOOST_AUTO_TEST_CASE(bdb_hd_wallet_create_close_reopen)
+{
+    const std::string name = "p2_bdb_hd_wallet";
+    const fs::path path = GetWalletDir() / name;
+    DatabaseOptions options;
+    options.require_create = true;
+    options.require_format = DatabaseFormat::BERKELEY;
+
+    DatabaseStatus status;
+    bilingual_str error;
+    auto database = MakeWalletDatabase(name, options, status, error);
+    BOOST_REQUIRE(database);
+    BOOST_REQUIRE(status == DatabaseStatus::SUCCESS);
+    BOOST_CHECK_EQUAL(database->Format(), "bdb");
+
+    std::vector<bilingual_str> warnings;
+    auto wallet = CWallet::Create(*m_chain, name, std::move(database), 0, error, warnings);
+    BOOST_REQUIRE(wallet);
+    auto hd_wallet = std::dynamic_pointer_cast<CHDWallet>(wallet);
+    BOOST_REQUIRE(hd_wallet);
+    BOOST_CHECK_EQUAL(hd_wallet->GetDBHandle().Format(), "bdb");
+    BOOST_REQUIRE_EQUAL(hd_wallet->MakeDefaultAccount(false), 0);
+
+    const CKeyID account_id = hd_wallet->idDefaultAccount;
+    const size_t account_count = hd_wallet->mapExtAccounts.size();
+    BOOST_CHECK(!account_id.IsNull());
+    BOOST_CHECK(account_count > 0);
+    hd_wallet->Flush();
+    hd_wallet.reset();
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+
+    DatabaseOptions load_options;
+    load_options.require_existing = true;
+    load_options.require_format = DatabaseFormat::BERKELEY;
+    database = MakeWalletDatabase(name, load_options, status, error);
+    BOOST_REQUIRE_MESSAGE(database, error.original);
+    BOOST_REQUIRE(status == DatabaseStatus::SUCCESS);
+    BOOST_CHECK_EQUAL(database->Format(), "bdb");
+
+    wallet = CWallet::Create(*m_chain, name, std::move(database), 0, error, warnings);
+    BOOST_REQUIRE(wallet);
+    hd_wallet = std::dynamic_pointer_cast<CHDWallet>(wallet);
+    BOOST_REQUIRE(hd_wallet);
+    BOOST_CHECK(hd_wallet->idDefaultAccount == account_id);
+    BOOST_CHECK_EQUAL(hd_wallet->mapExtAccounts.size(), account_count);
+    hd_wallet.reset();
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+}
+
 static const std::string strSecret1C("RZszq9auoziFsuwYacTKAPctz31qEHsXDNLNYinVEGxzw4DWB6Xb");
 static const std::string strSecret2C("H5hDgLvFjLcZG9jyxkUTJ28P6N5T7iMBQ79boMuaPafxXuy8hb9n");
 
