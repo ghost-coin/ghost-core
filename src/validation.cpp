@@ -38,6 +38,7 @@
 #include <signet.h>
 #include <timedata.h>
 #include <tinyformat.h>
+#include <dbwrapper.h>
 #include <txdb.h>
 #include <txmempool.h>
 #include <uint256.h>
@@ -2975,8 +2976,14 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                         if (!attempted_rct_index_repair) {
                             LogPrintf("Attempting to repair anon index.\n");
                             std::set<CCmpPubKey> setKi; // unused
-                            RollBackRCTIndex(pindex->pprev->nAnonOutputs, nTestExists, pindex->pprev->nHeight, setKi);
                             attempted_rct_index_repair = true;
+                            try {
+                                if (!RollBackRCTIndex(pindex->pprev->nAnonOutputs, nTestExists, pindex->pprev->nHeight, setKi)) {
+                                    return AbortNode(state, "Failed to repair anonymous output index");
+                                }
+                            } catch (const dbwrapper_error& e) {
+                                return AbortNode(state, strprintf("Failed to repair anonymous output index: %s", e.what()));
+                            }
                             return false;
                         } else {
                             LogPrintf("Not attempting anon index repair, already tried once.\n");

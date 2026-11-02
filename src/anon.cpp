@@ -352,8 +352,12 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int cha
         if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao)) {
             break;
         }
-        pblocktree->EraseRCTOutput(nRemRCTOutput);
-        pblocktree->EraseRCTOutputLink(ao.pubkey);
+        if (!pblocktree->EraseRCTOutput(nRemRCTOutput)) {
+            return error("%s: EraseRCTOutput failed at index %d.", __func__, nRemRCTOutput);
+        }
+        if (!pblocktree->EraseRCTOutputLink(ao.pubkey)) {
+            return error("%s: EraseRCTOutputLink failed at index %d.", __func__, nRemRCTOutput);
+        }
     }
 
     LogPrintf("%s: Removed up to %d\n", __func__, nRemRCTOutput);
@@ -363,18 +367,26 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int cha
             if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao)) {
                 break;
             }
-            pblocktree->EraseRCTOutput(nRemRCTOutput);
-            pblocktree->EraseRCTOutputLink(ao.pubkey);
+            if (!pblocktree->EraseRCTOutput(nRemRCTOutput)) {
+                return error("%s: EraseRCTOutput failed at index %d.", __func__, nRemRCTOutput);
+            }
+            if (!pblocktree->EraseRCTOutputLink(ao.pubkey)) {
+                return error("%s: EraseRCTOutputLink failed at index %d.", __func__, nRemRCTOutput);
+            }
             nRemRCTOutput--;
         }
         LogPrintf("%s: Removed down to %d\n", __func__, nRemRCTOutput);
     }
 
     for (const auto &ki : setKi) {
-        pblocktree->EraseRCTKeyImage(ki);
+        if (!pblocktree->EraseRCTKeyImage(ki)) {
+            return error("%s: EraseRCTKeyImage failed.", __func__);
+        }
     }
 
-    pblocktree->EraseRCTKeyImagesAfterHeight(chain_height);
+    if (!pblocktree->EraseRCTKeyImagesAfterHeight(chain_height)) {
+        return error("%s: EraseRCTKeyImagesAfterHeight failed.", __func__);
+    }
 
     return true;
 };
