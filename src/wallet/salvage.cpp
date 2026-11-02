@@ -26,6 +26,7 @@ bool RecoverDatabaseFile(const fs::path& file_path, bilingual_str& error, std::v
     DatabaseOptions options;
     DatabaseStatus status;
     options.require_existing = true;
+    options.require_format = DatabaseFormat::BERKELEY;
     options.verify = false;
     std::unique_ptr<WalletDatabase> database = MakeDatabase(file_path, options, status, error);
     if (!database) return false;

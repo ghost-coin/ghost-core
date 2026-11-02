@@ -3,6 +3,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/hdwallet.h>
+#ifdef USE_SQLITE
+#include <wallet/sqlite.h>
+#include <wallet/salvage.h>
+#include <wallet/wallettool.h>
+#endif
 
 #include <wallet/test/hdwallet_test_fixture.h>
 #include <base58.h>
@@ -18,6 +23,11 @@
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>
+
+#ifdef USE_SQLITE
+#include <iterator>
+#include <set>
+#endif
 
 extern bool CheckAnonOutput(TxValidationState &state, const CTxOutRingCT *p);
 extern void SetCTOutVData(std::vector<uint8_t> &vData, CPubKey &pkEphem, const CTempRecipient &r);
@@ -48,6 +58,117 @@ static void AddKey(CWallet& wallet, const CKey& key)
     spk_man->AddKeyPubKey(key, key.GetPubKey());
 }
 
+
+#ifdef USE_SQLITE
+struct SQLiteWalletSnapshot {
+    std::vector<unsigned char> contents;
+    std::set<std::string> entries;
+};
+
+static fs::path CreateSQLiteWallet(const std::string& name)
+{
+    const fs::path path = GetWalletDir() / name;
+    SQLiteDatabase database(path, path / "wallet.dat");
+    return path;
+}
+
+static SQLiteWalletSnapshot SnapshotSQLiteWallet(const fs::path& path)
+{
+    SQLiteWalletSnapshot snapshot;
+    fsbridge::ifstream file(path / "wallet.dat", std::ios::binary);
+    BOOST_REQUIRE(file.is_open());
+    snapshot.contents.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    for (fs::directory_iterator it(path), end; it != end; ++it) {
+        snapshot.entries.insert(it->path().filename().string());
+    }
+    return snapshot;
+}
+
+static void CheckSQLiteWalletUnchanged(const SQLiteWalletSnapshot& before, const fs::path& path)
+{
+    const SQLiteWalletSnapshot after = SnapshotSQLiteWallet(path);
+    BOOST_CHECK_EQUAL_COLLECTIONS(before.contents.begin(), before.contents.end(), after.contents.begin(), after.contents.end());
+    BOOST_CHECK(before.entries == after.entries);
+}
+
+BOOST_AUTO_TEST_CASE(reject_sqlite_database)
+{
+    const fs::path test_dir = GetDataDir() / "hdwallet_sqlite_regression";
+    std::unique_ptr<SQLiteDatabase> sqlite_db(
+        new SQLiteDatabase(test_dir, test_dir / "wallet.dat", true));
+
+    BOOST_REQUIRE_EQUAL(sqlite_db->Format(), "sqlite");
+
+    CHDWallet sqlite_wallet(m_chain.get(), "sqlite-regression", std::move(sqlite_db));
+
+    bool first_run = false;
+    BOOST_CHECK(sqlite_wallet.LoadWallet(first_run) == DBErrors::LOAD_FAIL);
+}
+
+BOOST_AUTO_TEST_CASE(particl_wallet_factory_rejects_sqlite_without_opening)
+{
+    const fs::path path = CreateSQLiteWallet("hdwallet_sqlite_factory_regression");
+    const SQLiteWalletSnapshot before = SnapshotSQLiteWallet(path);
+    DatabaseOptions options;
+    DatabaseStatus status;
+    bilingual_str error;
+    options.require_existing = true;
+
+    BOOST_CHECK(!MakeWalletDatabase(path.string(), options, status, error));
+    BOOST_CHECK(status == DatabaseStatus::FAILED_BAD_FORMAT);
+    CheckSQLiteWalletUnchanged(before, path);
+}
+
+BOOST_AUTO_TEST_CASE(wallet_tool_rejects_particl_sqlite_without_opening)
+{
+    const fs::path path = CreateSQLiteWallet("hdwallet_sqlite_wallet_tool_regression");
+    const SQLiteWalletSnapshot before = SnapshotSQLiteWallet(path);
+
+    BOOST_CHECK(!WalletTool::ExecuteWalletToolFunc("info", path.string()));
+    CheckSQLiteWalletUnchanged(before, path);
+}
+
+BOOST_AUTO_TEST_CASE(salvage_rejects_sqlite_without_opening)
+{
+    const fs::path path = CreateSQLiteWallet("hdwallet_sqlite_salvage_regression");
+    const SQLiteWalletSnapshot before = SnapshotSQLiteWallet(path);
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+
+    BOOST_CHECK(!RecoverDatabaseFile(path, error, warnings));
+    CheckSQLiteWalletUnchanged(before, path);
+}
+
+BOOST_AUTO_TEST_CASE(generic_wallet_database_still_accepts_sqlite)
+{
+    const fs::path path = CreateSQLiteWallet("hdwallet_sqlite_generic_regression");
+    DatabaseOptions options;
+    DatabaseStatus status;
+    bilingual_str error;
+    options.require_existing = true;
+
+    std::unique_ptr<WalletDatabase> database = MakeDatabase(path, options, status, error);
+    BOOST_REQUIRE(database);
+    BOOST_CHECK_EQUAL(database->Format(), "sqlite");
+    BOOST_CHECK(status == DatabaseStatus::SUCCESS);
+}
+
+BOOST_AUTO_TEST_CASE(particl_descriptor_wallet_is_rejected_before_creation)
+{
+    const std::string name = "hdwallet_descriptor_regression";
+    const fs::path path = GetWalletDir() / name;
+    DatabaseOptions options;
+    DatabaseStatus status;
+    bilingual_str error;
+    std::vector<bilingual_str> warnings;
+    options.create_flags = WALLET_FLAG_DESCRIPTORS;
+
+    BOOST_CHECK(!CreateWallet(*m_chain, name, false, options, status, error, warnings, false));
+    BOOST_CHECK(status == DatabaseStatus::FAILED_CREATE);
+    BOOST_CHECK(!fs::exists(path));
+}
+#endif // USE_SQLITE
+
 BOOST_AUTO_TEST_CASE(new_ext_key)
 {
     // Match keys from http://bip32.org/
@@ -64,6 +185,59 @@ BOOST_AUTO_TEST_CASE(new_ext_key)
         ek58.SetKey(ekp, CChainParams::EXT_SECRET_KEY_BTC);
         BOOST_CHECK(ek58.ToString() == it->sOutput);
     }
+}
+
+BOOST_AUTO_TEST_CASE(bdb_hd_wallet_create_close_reopen)
+{
+    const std::string name = "p2_bdb_hd_wallet";
+    const fs::path path = GetWalletDir() / name;
+    DatabaseOptions options;
+    options.require_create = true;
+    options.require_format = DatabaseFormat::BERKELEY;
+
+    DatabaseStatus status;
+    bilingual_str error;
+    auto database = MakeWalletDatabase(name, options, status, error);
+    BOOST_REQUIRE(database);
+    BOOST_REQUIRE(status == DatabaseStatus::SUCCESS);
+    BOOST_CHECK_EQUAL(database->Format(), "bdb");
+
+    std::vector<bilingual_str> warnings;
+    auto wallet = CWallet::Create(*m_chain, name, std::move(database), 0, error, warnings);
+    BOOST_REQUIRE(wallet);
+    auto hd_wallet = std::dynamic_pointer_cast<CHDWallet>(wallet);
+    BOOST_REQUIRE(hd_wallet);
+    BOOST_CHECK_EQUAL(hd_wallet->GetDBHandle().Format(), "bdb");
+    BOOST_REQUIRE_EQUAL(hd_wallet->MakeDefaultAccount(false), 0);
+
+    const CKeyID account_id = hd_wallet->idDefaultAccount;
+    const size_t account_count = hd_wallet->mapExtAccounts.size();
+    BOOST_CHECK(!account_id.IsNull());
+    BOOST_CHECK(account_count > 0);
+    hd_wallet->Flush();
+    hd_wallet.reset();
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
+
+    DatabaseOptions load_options;
+    load_options.require_existing = true;
+    load_options.require_format = DatabaseFormat::BERKELEY;
+    database = MakeWalletDatabase(name, load_options, status, error);
+    BOOST_REQUIRE_MESSAGE(database, error.original);
+    BOOST_REQUIRE(status == DatabaseStatus::SUCCESS);
+    BOOST_CHECK_EQUAL(database->Format(), "bdb");
+
+    wallet = CWallet::Create(*m_chain, name, std::move(database), 0, error, warnings);
+    BOOST_REQUIRE(wallet);
+    hd_wallet = std::dynamic_pointer_cast<CHDWallet>(wallet);
+    BOOST_REQUIRE(hd_wallet);
+    BOOST_CHECK(hd_wallet->idDefaultAccount == account_id);
+    BOOST_CHECK_EQUAL(hd_wallet->mapExtAccounts.size(), account_count);
+    hd_wallet.reset();
+    SyncWithValidationInterfaceQueue();
+    wallet->m_chain_notifications_handler.reset();
+    UnloadWallet(std::move(wallet));
 }
 
 static const std::string strSecret1C("RZszq9auoziFsuwYacTKAPctz31qEHsXDNLNYinVEGxzw4DWB6Xb");
