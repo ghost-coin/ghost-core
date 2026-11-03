@@ -13,13 +13,141 @@
 
 #include <rctindex.h>
 #include <txdb.h>
+#include <leveldb/env.h>
 
 #include <array>
 #include <chrono>
 #include <cstring>
 #include <set>
 
+namespace {
+
+class AppendFailureEnv;
+
+class AppendFailureFile : public leveldb::WritableFile
+{
+public:
+    AppendFailureFile(leveldb::WritableFile* target, AppendFailureEnv* env) : target(target), env(env) {}
+    ~AppendFailureFile() override { delete target; }
+    leveldb::Status Append(const leveldb::Slice& data) override;
+    leveldb::Status Close() override { return target->Close(); }
+    leveldb::Status Flush() override { return target->Flush(); }
+    leveldb::Status Sync() override { return target->Sync(); }
+    std::string GetName() const override { return target->GetName(); }
+
+private:
+    leveldb::WritableFile* target;
+    AppendFailureEnv* env;
+};
+
+class AppendFailureEnv : public leveldb::EnvWrapper
+{
+public:
+    AppendFailureEnv() : leveldb::EnvWrapper(leveldb::Env::Default()) {}
+
+    leveldb::Status NewWritableFile(const std::string& filename,
+                                    leveldb::WritableFile** result) override
+    {
+        leveldb::WritableFile* file = nullptr;
+        leveldb::Status status = target()->NewWritableFile(filename, &file);
+        if (status.ok()) {
+            *result = new AppendFailureFile(file, this);
+        }
+        return status;
+    }
+
+    leveldb::Status NewAppendableFile(const std::string& filename,
+                                      leveldb::WritableFile** result) override
+    {
+        leveldb::WritableFile* file = nullptr;
+        leveldb::Status status = target()->NewAppendableFile(filename, &file);
+        if (status.ok()) {
+            *result = new AppendFailureFile(file, this);
+        }
+        return status;
+    }
+
+    void Arm() { armed = true; }
+    bool WasTriggered() const { return triggered; }
+    bool TriggeredWal() const
+    {
+        return triggered_file.size() >= 4 &&
+               triggered_file.compare(triggered_file.size() - 4, 4, ".log") == 0;
+    }
+
+private:
+    friend class AppendFailureFile;
+    bool armed{false};
+    bool triggered{false};
+    std::string triggered_file;
+};
+
+leveldb::Status AppendFailureFile::Append(const leveldb::Slice& data)
+{
+    if (env->armed && !env->triggered) {
+        env->triggered = true;
+        env->triggered_file = target->GetName();
+        return leveldb::Status::IOError("injected WAL Append failure");
+    }
+    return target->Append(data);
+}
+
+} // namespace
+
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
+
+BOOST_AUTO_TEST_CASE(rct_atomic_rollback_writebatch_failure_test)
+{
+    LOCK(cs_main);
+
+    AppendFailureEnv env;
+    const int64_t base = 900;
+    std::array<CCmpPubKey, 2> keys;
+
+    {
+        CBlockTreeDB db(1 << 20, false, true, true, 1000, &env);
+        for (size_t i = 0; i < keys.size(); ++i) {
+            std::vector<unsigned char> bytes(33, 0);
+            bytes[0] = 2;
+            bytes[32] = static_cast<unsigned char>(i + 80);
+            keys[i] = CCmpPubKey(bytes);
+
+            CAnonOutput output;
+            output.pubkey = keys[i];
+            std::memset(output.commitment.data, 0, 33);
+            output.nBlockHeight = 90;
+            BOOST_REQUIRE(db.WriteRCTOutput(base + i, output));
+            BOOST_REQUIRE(db.WriteRCTOutputLink(keys[i], base + i));
+        }
+
+        env.Arm();
+        bool caught = false;
+        try {
+            db.RollbackRCTIndexAtomic(base - 1, base + 1, 90, {});
+        } catch (const dbwrapper_error&) {
+            caught = true;
+        }
+        BOOST_CHECK(env.WasTriggered());
+        BOOST_CHECK(env.TriggeredWal());
+        BOOST_CHECK(caught);
+    }
+
+    AppendFailureEnv clean_env;
+    CBlockTreeDB db(1 << 20, false, false, true, 1000, &clean_env);
+    CAnonOutput output;
+    int64_t linked_index = 0;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        BOOST_CHECK(db.ReadRCTOutput(base + i, output));
+        BOOST_CHECK(db.ReadRCTOutputLink(keys[i], linked_index));
+        BOOST_CHECK_EQUAL(linked_index, base + static_cast<int64_t>(i));
+    }
+
+    BOOST_REQUIRE(db.RollbackRCTIndexAtomic(base - 1, base + 1, 90, {}));
+    for (size_t i = 0; i < keys.size(); ++i) {
+        BOOST_CHECK(!db.ReadRCTOutput(base + i, output));
+        BOOST_CHECK(!db.ReadRCTOutputLink(keys[i], linked_index));
+    }
+}
 
 
 BOOST_AUTO_TEST_CASE(rct_read_with_status_valid_value_test)

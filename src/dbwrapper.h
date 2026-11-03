@@ -13,6 +13,7 @@
 #include <util/strencodings.h>
 
 #include <leveldb/db.h>
+#include <leveldb/env.h>
 #include <leveldb/write_batch.h>
 
 static const size_t DBWRAPPER_PREALLOC_KEY_SIZE = 64;
@@ -240,7 +241,7 @@ public:
      * @param[in] maxOpenFiles  The maximum number of open files for the database
      */
 
-    CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool obfuscate = false, bool compression = false, int maxOpenFiles = 64);
+    CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool obfuscate = false, bool compression = false, int maxOpenFiles = 64, leveldb::Env* env = nullptr);
     ~CDBWrapper();
 
     CDBWrapper(const CDBWrapper&) = delete;
