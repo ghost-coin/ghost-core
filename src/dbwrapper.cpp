@@ -115,7 +115,7 @@ static leveldb::Options GetOptions(size_t nCacheSize, bool compression, int maxO
     return options;
 }
 
-CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool obfuscate, bool compression, int maxOpenFiles)
+CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool obfuscate, bool compression, int maxOpenFiles, leveldb::Env* env)
     : m_name{path.stem().string()}
 {
     penv = nullptr;
@@ -136,6 +136,9 @@ CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bo
         }
         TryCreateDirectories(path);
         LogPrintf("Opening LevelDB in %s\n", path.string());
+    }
+    if (env) {
+        options.env = env;
     }
     leveldb::Status status = leveldb::DB::Open(options, path.string(), &pdb);
     dbwrapper_private::HandleError(status);
@@ -236,6 +239,10 @@ bool CDBWrapper::IsEmpty()
 
 CDBIterator::~CDBIterator() { delete piter; }
 bool CDBIterator::Valid() const { return piter->Valid(); }
+void CDBIterator::CheckStatus() const
+{
+    dbwrapper_private::HandleError(piter->status());
+}
 void CDBIterator::SeekToFirst() { piter->SeekToFirst(); }
 void CDBIterator::Next() { piter->Next(); }
 

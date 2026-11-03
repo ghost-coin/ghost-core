@@ -6,6 +6,7 @@
 #include <rpc/util.h>
 
 #include <validation.h>
+#include <dbwrapper.h>
 #include <txdb.h>
 #include <anon.h>
 
@@ -148,7 +149,13 @@ UniValue rollbackrctindex(const JSONRPCRequest &request)
 
     std::set<CCmpPubKey> setKi; // unused
     int64_t nTestExists = 0;
-    RollBackRCTIndex(pindex->nAnonOutputs, nTestExists, pindex->nHeight, setKi);
+    try {
+        if (!RollBackRCTIndex(pindex->nAnonOutputs, nTestExists, pindex->nHeight, setKi)) {
+            throw JSONRPCError(RPC_DATABASE_ERROR, "Failed to roll back RCT index");
+        }
+    } catch (const dbwrapper_error& e) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, strprintf("Failed to roll back RCT index: %s", e.what()));
+    }
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("height", pindex->nHeight);

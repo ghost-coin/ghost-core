@@ -13,6 +13,7 @@
 #include <util/strencodings.h>
 
 #include <leveldb/db.h>
+#include <leveldb/env.h>
 #include <leveldb/write_batch.h>
 
 static const size_t DBWRAPPER_PREALLOC_KEY_SIZE = 64;
@@ -22,6 +23,12 @@ class dbwrapper_error : public std::runtime_error
 {
 public:
     explicit dbwrapper_error(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+enum class DBReadResult {
+    FOUND,
+    NOT_FOUND,
+    CORRUPT
 };
 
 class CDBWrapper;
@@ -130,6 +137,7 @@ public:
     ~CDBIterator();
 
     bool Valid() const;
+    void CheckStatus() const;
 
     void SeekToFirst();
 
@@ -233,11 +241,51 @@ public:
      * @param[in] maxOpenFiles  The maximum number of open files for the database
      */
 
-    CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool obfuscate = false, bool compression = false, int maxOpenFiles = 64);
+    CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool obfuscate = false, bool compression = false, int maxOpenFiles = 64, leveldb::Env* env = nullptr);
     ~CDBWrapper();
 
     CDBWrapper(const CDBWrapper&) = delete;
     CDBWrapper& operator=(const CDBWrapper&) = delete;
+
+    template <typename K, typename V>
+    DBReadResult ReadWithStatus(const K& key, V& value) const
+    {
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
+        ssKey << key;
+        leveldb::Slice slKey(ssKey.data(), ssKey.size());
+
+        std::string strValue;
+        leveldb::Status status = pdb->Get(readoptions, slKey, &strValue);
+
+        if (status.IsNotFound()) {
+            return DBReadResult::NOT_FOUND;
+        }
+
+        if (!status.ok()) {
+            LogPrintf("LevelDB read failure: %s\n", status.ToString());
+            dbwrapper_private::HandleError(status);
+        }
+
+        try {
+            CDataStream ssValue(
+                strValue.data(),
+                strValue.data() + strValue.size(),
+                SER_DISK,
+                CLIENT_VERSION
+            );
+            ssValue.Xor(obfuscate_key);
+            ssValue >> value;
+
+            if (!ssValue.empty()) {
+                return DBReadResult::CORRUPT;
+            }
+        } catch (const std::exception&) {
+            return DBReadResult::CORRUPT;
+        }
+
+        return DBReadResult::FOUND;
+    }
 
     template <typename K, typename V>
     bool Read(const K& key, V& value) const

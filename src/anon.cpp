@@ -338,45 +338,23 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, TxValidationState &state)
     return true;
 };
 
-bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, int chain_height, std::set<CCmpPubKey> &setKi)
+bool RollBackRCTIndex(
+    int64_t nLastValidRCTOutput,
+    int64_t nExpectErase,
+    int chain_height,
+    std::set<CCmpPubKey> &setKi)
 {
-    LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n", __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
-    // This should hardly happen, if ever
-
     AssertLockHeld(cs_main);
 
-    int64_t nRemRCTOutput = nLastValidRCTOutput;
-    CAnonOutput ao;
-    while (true) {
-        nRemRCTOutput++;
-        if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao)) {
-            break;
-        }
-        pblocktree->EraseRCTOutput(nRemRCTOutput);
-        pblocktree->EraseRCTOutputLink(ao.pubkey);
-    }
+    LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n",
+        __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
 
-    LogPrintf("%s: Removed up to %d\n", __func__, nRemRCTOutput);
-    if (nExpectErase > 0 && nExpectErase > nRemRCTOutput) {
-        nRemRCTOutput = nExpectErase;
-        while (nRemRCTOutput > nLastValidRCTOutput) {
-            if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao)) {
-                break;
-            }
-            pblocktree->EraseRCTOutput(nRemRCTOutput);
-            pblocktree->EraseRCTOutputLink(ao.pubkey);
-            nRemRCTOutput--;
-        }
-        LogPrintf("%s: Removed down to %d\n", __func__, nRemRCTOutput);
-    }
-
-    for (const auto &ki : setKi) {
-        pblocktree->EraseRCTKeyImage(ki);
-    }
-
-    pblocktree->EraseRCTKeyImagesAfterHeight(chain_height);
-
-    return true;
+    return pblocktree->RollbackRCTIndexAtomic(
+        nLastValidRCTOutput,
+        nExpectErase,
+        chain_height,
+        setKi
+    );
 };
 
 bool RewindToHeight(CTxMemPool& mempool, int nToHeight, int &nBlocks, std::string &sError)

@@ -113,7 +113,7 @@ private:
 class CBlockTreeDB : public CDBWrapper
 {
 public:
-    explicit CBlockTreeDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool compression = true, int maxOpenFiles = 1000);
+    explicit CBlockTreeDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false, bool compression = true, int maxOpenFiles = 1000, leveldb::Env* env = nullptr);
 
     bool WriteBatchSync(const std::vector<std::pair<int, const CBlockFileInfo*> >& fileInfo, int nLastFile, const std::vector<const CBlockIndex*>& blockinfo);
     bool ReadBlockFileInfo(int nFile, CBlockFileInfo &info);
@@ -155,6 +155,10 @@ public:
     bool ReadRCTKeyImage(const CCmpPubKey &ki, CAnonKeyImageInfo &data);
     bool EraseRCTKeyImage(const CCmpPubKey &ki);
     bool EraseRCTKeyImagesAfterHeight(int height);
+    bool RollbackRCTIndexAtomic(int64_t last_valid_output,
+                                int64_t expected_erase,
+                                int chain_height,
+                                const std::set<CCmpPubKey>& key_images);
 
     bool ReadSpentCache(const COutPoint &outpoint, SpentCoin &coin);
     bool EraseSpentCache(const COutPoint &outpoint);
